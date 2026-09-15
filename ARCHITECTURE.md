@@ -201,6 +201,11 @@ The fixed update order is:
 World collections do not change while a system is traversing them. Systems append
 plain requests to `WorldRequests`; `World` applies them at the end of the tick.
 
+`updateWorldSimulation` owns the fixed gameplay-system order and creates a request queue
+for each tick. A game supplies its `TileMap`, `World`, player intentions, and elapsed time
+without reproducing the engine update sequence. Game-specific animation clips and
+animation updating remain in the game layer as a separate presentation step.
+
 ## Platformer movement
 
 Movement has one readable configuration and one small runtime state:

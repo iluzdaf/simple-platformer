@@ -5,7 +5,10 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -30,6 +33,7 @@ namespace simple_platformer
         Body body;
         InputIntentions intentions;
         std::optional<PlatformerMovement> platformerMovement;
+        std::optional<FlyingMovement> flyingMovement;
         Facing facing = Facing::Right;
 
         LifeState life = LifeState::Alive;
@@ -41,5 +45,9 @@ namespace simple_platformer
         Team team = Team::Neutral;
         std::optional<RangedWeapon> rangedWeapon;
         std::optional<BiteAttack> bite;
+        std::optional<NpcBrain> brain;
+        std::optional<NpcSenses> senses;
+        std::optional<Patrol> patrol;
+        std::optional<PathFollower> pathFollower;
     };
 }

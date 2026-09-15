@@ -6,7 +6,9 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -81,6 +83,14 @@ TEST_CASE("World rejects invalid actor composition", "[world][actor]")
     simple_platformer::Actor neutralAttacker = makeActor();
     neutralAttacker.rangedWeapon = simple_platformer::RangedWeapon{};
     REQUIRE_THROWS_AS(world.addActor(neutralAttacker), std::invalid_argument);
+
+    simple_platformer::Actor twoMovementComponents = makeActor();
+    twoMovementComponents.flyingMovement = simple_platformer::FlyingMovement{};
+    REQUIRE_THROWS_AS(world.addActor(twoMovementComponents), std::invalid_argument);
+
+    simple_platformer::Actor incompleteNpc = makeActor();
+    incompleteNpc.brain = simple_platformer::NpcBrain{};
+    REQUIRE_THROWS_AS(world.addActor(incompleteNpc), std::invalid_argument);
 }
 
 TEST_CASE("The world records the player and feet-based spawn", "[world][actor]")

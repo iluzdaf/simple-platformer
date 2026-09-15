@@ -67,7 +67,13 @@ add_library(
     src/math/aabb.cpp
     src/math/coordinates.cpp
     src/math/validation.cpp
+    src/movement/flying_movement.cpp
     src/movement/platformer_movement.cpp
+    src/navigation/a_star.cpp
+    src/navigation/flying_navigation.cpp
+    src/navigation/path_follower.cpp
+    src/npc/npc_senses.cpp
+    src/npc/npc_system.cpp
     src/physics/collision.cpp
     src/physics/segment_cast.cpp
     src/render/animation.cpp
@@ -77,6 +83,7 @@ add_library(
     src/world/tile_map.cpp
     src/world/world.cpp
     src/world/world_requests.cpp
+    src/world/world_simulation.cpp
 )
 target_include_directories(
     simple_platformer_core
@@ -234,7 +241,12 @@ if(BUILD_TESTING)
         tests/input/test_input_state.cpp
         tests/math/test_coordinates.cpp
         tests/math/test_validation.cpp
+        tests/movement/test_flying_movement.cpp
         tests/movement/test_platformer_movement.cpp
+        tests/navigation/test_a_star.cpp
+        tests/navigation/test_flying_navigation.cpp
+        tests/navigation/test_path_follower.cpp
+        tests/npc/test_npc_system.cpp
         tests/physics/test_collision.cpp
         tests/physics/test_segment_cast.cpp
         tests/render/test_animation.cpp
@@ -243,6 +255,7 @@ if(BUILD_TESTING)
         tests/timing/test_fixed_step.cpp
         tests/world/test_tile_map.cpp
         tests/world/test_world.cpp
+        tests/world/test_world_simulation.cpp
     )
     target_compile_features(simple_platformer_tests PRIVATE cxx_std_17)
     target_link_libraries(

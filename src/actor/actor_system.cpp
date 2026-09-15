@@ -4,6 +4,7 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -14,15 +15,27 @@ namespace simple_platformer
     {
         for (Actor& actor : world.actors())
         {
-            if (!actor.platformerMovement.has_value())
+            const InputIntentions intentions =
+                actor.life == LifeState::Alive ? actor.intentions : InputIntentions{};
+            if (actor.platformerMovement.has_value())
+            {
+                updatePlatformerMovement(
+                    map,
+                    actor.body,
+                    *actor.platformerMovement,
+                    intentions,
+                    actor.facing,
+                    deltaTime);
+            }
+            else if (actor.flyingMovement.has_value())
+            {
+                updateFlyingMovement(
+                    map, actor.body, *actor.flyingMovement, intentions, actor.facing, deltaTime);
+            }
+            else
             {
                 throw std::logic_error("An actor has no movement component");
             }
-
-            const InputIntentions intentions =
-                actor.life == LifeState::Alive ? actor.intentions : InputIntentions{};
-            updatePlatformerMovement(
-                map, actor.body, *actor.platformerMovement, intentions, actor.facing, deltaTime);
         }
     }
 }

@@ -7,14 +7,13 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
-#include "simple_platformer/actor/actor_system.hpp"
-#include "simple_platformer/actor/lifecycle.hpp"
-#include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
-#include "simple_platformer/combat/projectile_system.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
@@ -22,6 +21,7 @@
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "simple_platformer/world/world_simulation.hpp"
 
 namespace
 {
@@ -104,30 +104,19 @@ namespace
             {
                 continue;
             }
-            if (!actor.platformerMovement.has_value() || !actor.sprite.has_value())
+            if ((!actor.platformerMovement.has_value() && !actor.flyingMovement.has_value()) ||
+                !actor.sprite.has_value())
             {
                 throw std::logic_error("An animated actor is missing a required component");
             }
 
             const bool biting = actor.bite.has_value() && actor.bite->phase != BitePhase::Ready;
+            const bool grounded =
+                actor.platformerMovement.has_value() ? actor.platformerMovement->grounded : true;
             const AnimationName selected = simple_platformer::selectActorAnimation(
-                actor.life == LifeState::Dying,
-                biting,
-                actor.platformerMovement->grounded,
-                actor.body.velocity);
+                actor.life == LifeState::Dying, biting, grounded, actor.body.velocity);
             simple_platformer::updateAnimation(
                 *actor.animator, *actor.sprite, selected, clipFor(selected), deltaTime);
-        }
-    }
-
-    void requestNpcAttacks(simple_platformer::World& world)
-    {
-        for (simple_platformer::Actor& actor : world.actors())
-        {
-            if (actor.team == simple_platformer::Team::Enemy && actor.bite.has_value())
-            {
-                actor.intentions.primaryAttackPressed = true;
-            }
         }
     }
 
@@ -163,6 +152,19 @@ namespace
         npc.bite = simple_platformer::BiteAttack{};
         return npc;
     }
+
+    simple_platformer::Actor makeFlyingNpc(int textureId)
+    {
+        simple_platformer::Actor npc = makeBitingNpc(textureId);
+        npc.body.bounds.position = {170.0F, 132.0F};
+        npc.platformerMovement.reset();
+        npc.flyingMovement = simple_platformer::FlyingMovement{};
+        npc.brain = simple_platformer::NpcBrain{};
+        npc.senses = simple_platformer::NpcSenses{};
+        npc.patrol = simple_platformer::Patrol{{176.0F, 144.0F}, {248.0F, 96.0F}, true};
+        npc.pathFollower = simple_platformer::PathFollower{};
+        return npc;
+    }
 }
 
 namespace simple_platformer
@@ -171,7 +173,7 @@ namespace simple_platformer
     {
         const ActorId player = world.addActor(makePlayer(textureId));
         world.setPlayer(player, {38.0F, 208.0F});
-        world.addActor(makeBitingNpc(textureId));
+        world.addActor(makeFlyingNpc(textureId));
     }
 
     void ExampleGame::update(const InputIntentions& intentions, float deltaTime)
@@ -183,11 +185,7 @@ namespace simple_platformer
         }
 
         player->intentions = intentions;
-        requestNpcAttacks(world);
-        updateActorMovement(map, world, deltaTime);
-        updateAttacks(world, requests, deltaTime);
-        updateProjectiles(map, world, requests, deltaTime);
-        updateLifeState(world, requests, deltaTime);
+        updateWorldSimulation(map, world, deltaTime);
 
         player = world.findActor(world.playerId());
         if (player == nullptr)

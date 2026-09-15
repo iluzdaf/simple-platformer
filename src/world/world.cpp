@@ -14,7 +14,10 @@
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/npc/npc.hpp"
 
 namespace
 {
@@ -50,9 +53,14 @@ namespace
         {
             throw std::invalid_argument("Actors require finite positive-sized bodies");
         }
-        if (!actor.platformerMovement.has_value())
+        if (actor.platformerMovement.has_value() == actor.flyingMovement.has_value())
         {
-            throw std::invalid_argument("Actors currently require platformer movement");
+            throw std::invalid_argument("Actors require exactly one movement component");
+        }
+        if (actor.flyingMovement.has_value() &&
+            (!std::isfinite(actor.flyingMovement->speed) || actor.flyingMovement->speed < 0.0F))
+        {
+            throw std::invalid_argument("Flying movement speed must be finite and non-negative");
         }
         if (actor.animator.has_value() && !actor.sprite.has_value())
         {
@@ -102,6 +110,43 @@ namespace
                                          actor.health->current > actor.health->maximum))
         {
             throw std::invalid_argument("Actor health must be within zero and its maximum");
+        }
+        const bool hasAnyNpcComponent = actor.brain.has_value() || actor.senses.has_value() ||
+                                        actor.patrol.has_value() || actor.pathFollower.has_value();
+        const bool hasRequiredNpcComponents = actor.brain.has_value() && actor.senses.has_value() &&
+                                              actor.pathFollower.has_value() &&
+                                              actor.bite.has_value();
+        if (hasAnyNpcComponent && !hasRequiredNpcComponents)
+        {
+            throw std::invalid_argument(
+                "NPC actors require a brain, senses, path follower, and bite");
+        }
+        if (actor.brain.has_value() &&
+            (!std::isfinite(actor.brain->stateTime) || actor.brain->stateTime < 0.0F ||
+             !isFinite(actor.brain->lastSeenTargetFeet) ||
+             !std::isfinite(actor.brain->targetMemoryRemaining) ||
+             actor.brain->targetMemoryRemaining < 0.0F))
+        {
+            throw std::invalid_argument("NPC brain runtime data is invalid");
+        }
+        if (actor.senses.has_value() &&
+            (!std::isfinite(actor.senses->noticeDistance) || actor.senses->noticeDistance < 0.0F ||
+             !std::isfinite(actor.senses->forgetAfter) || actor.senses->forgetAfter < 0.0F))
+        {
+            throw std::invalid_argument("NPC senses data is invalid");
+        }
+        if (actor.patrol.has_value() &&
+            (!isFinite(actor.patrol->firstFeet) || !isFinite(actor.patrol->secondFeet)))
+        {
+            throw std::invalid_argument("NPC patrol endpoints must be finite");
+        }
+        if (actor.pathFollower.has_value() &&
+            (!std::isfinite(actor.pathFollower->repathCooldown) ||
+             actor.pathFollower->repathCooldown <= 0.0F ||
+             !std::isfinite(actor.pathFollower->repathRemaining) ||
+             actor.pathFollower->repathRemaining < 0.0F))
+        {
+            throw std::invalid_argument("NPC path timing is invalid");
         }
     }
 }

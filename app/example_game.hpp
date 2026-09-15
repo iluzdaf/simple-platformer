@@ -2,7 +2,6 @@
 
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
-#include "simple_platformer/world/world_requests.hpp"
 
 namespace simple_platformer
 {
@@ -20,6 +19,5 @@ namespace simple_platformer
     private:
         TileMap map;
         World world;
-        WorldRequests requests;
     };
 }

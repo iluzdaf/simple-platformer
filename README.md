@@ -79,6 +79,10 @@ The Windows job generates the same solution as `setup-windows.bat`, builds the a
 `.sln` with MSBuild, and builds its generated `run_tests` project. Running the
 graphical game remains a manual smoke test.
 
+A separate Linux quality job checks source formatting, runs clang-tidy, and verifies
+that every public header can compile on its own. These checks do not add any tools to
+the normal macOS or Visual Studio build.
+
 ## Formatting
 
 The checked-in `.clang-format` defines the shared C and C++ style, while
@@ -105,6 +109,27 @@ cmake --build --preset mac-debug --target format-check
 
 These command-line targets require `clang-format` on `PATH` and deliberately exclude
 `external/`.
+
+## Static analysis
+
+The checked-in `.clang-tidy` checks naming, unused and missing includes, common bugs,
+and performance mistakes. VS Code's recommended clangd extension reports unused and
+missing includes while editing. Treat include-cleaner suggestions as findings to
+review; do not automatically remove headers without rebuilding and running the tests.
+
+Static analysis is enforced by CI using LLVM 18, but remains optional for local
+builds. Developers with clang-tidy installed can run it with:
+
+```sh
+cmake --build --preset mac-debug --target tidy
+```
+
+The `header_self_containment` target verifies that public headers include everything
+they need themselves:
+
+```sh
+cmake --build --preset mac-debug --target header_self_containment
+```
 
 ## Phase 1 layout
 

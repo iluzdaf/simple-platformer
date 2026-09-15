@@ -14,6 +14,17 @@ function(enable_project_warnings target)
         target_compile_options(${target} PRIVATE /W4 /WX /permissive-)
     else()
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            target_compile_options(
+                ${target}
+                PRIVATE
+                -Wshadow
+                -Wfloat-conversion
+                -Wimplicit-int-conversion
+                -Wshorten-64-to-32
+            )
+        endif()
     endif()
 endfunction()
 
@@ -49,32 +60,90 @@ set_target_properties(
 )
 
 find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
+find_program(
+    CLANG_TIDY_EXECUTABLE
+    NAMES clang-tidy
+    HINTS /opt/homebrew/opt/llvm/bin /usr/local/opt/llvm/bin
+)
+
+file(
+    GLOB_RECURSE PROJECT_CPP_FILES
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp
+)
+
+file(
+    GLOB_RECURSE PROJECT_HEADERS
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+)
 
 if(CLANG_FORMAT_EXECUTABLE)
-    file(
-        GLOB_RECURSE PROJECT_FORMAT_FILES
-        CONFIGURE_DEPENDS
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp
-    )
-
     add_custom_target(
         format
-        COMMAND ${CLANG_FORMAT_EXECUTABLE} -i ${PROJECT_FORMAT_FILES}
+        COMMAND ${CLANG_FORMAT_EXECUTABLE} -i ${PROJECT_CPP_FILES} ${PROJECT_HEADERS}
         COMMENT "Formatting first-party C++ source"
         VERBATIM
     )
 
     add_custom_target(
         format-check
-        COMMAND ${CLANG_FORMAT_EXECUTABLE} --dry-run --Werror ${PROJECT_FORMAT_FILES}
+        COMMAND
+            ${CLANG_FORMAT_EXECUTABLE} --dry-run --Werror ${PROJECT_CPP_FILES}
+            ${PROJECT_HEADERS}
         COMMENT "Checking first-party C++ formatting"
         VERBATIM
     )
 else()
     message(STATUS "clang-format not found; format targets are unavailable")
+endif()
+
+if(CLANG_TIDY_EXECUTABLE)
+    set(CLANG_TIDY_EXTRA_ARGUMENTS)
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+        execute_process(
+            COMMAND xcrun --show-sdk-path
+            OUTPUT_VARIABLE MACOS_SDK_PATH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            COMMAND_ERROR_IS_FATAL ANY
+        )
+        list(
+            APPEND CLANG_TIDY_EXTRA_ARGUMENTS
+            --extra-arg=-isysroot
+            --extra-arg=${MACOS_SDK_PATH}
+            --extra-arg=-isystem
+            --extra-arg=${MACOS_SDK_PATH}/usr/include/c++/v1
+        )
+    endif()
+
+    add_custom_target(
+        tidy
+        COMMAND
+            ${CLANG_TIDY_EXECUTABLE} -p ${CMAKE_BINARY_DIR} --warnings-as-errors=*
+            --quiet ${CLANG_TIDY_EXTRA_ARGUMENTS} ${PROJECT_CPP_FILES}
+        COMMENT "Checking first-party C++ source with clang-tidy"
+        VERBATIM
+    )
+else()
+    message(STATUS "clang-tidy not found; tidy target is unavailable")
+endif()
+
+set_source_files_properties(${PROJECT_HEADERS} PROPERTIES LANGUAGE CXX)
+add_library(header_self_containment OBJECT EXCLUDE_FROM_ALL ${PROJECT_HEADERS})
+target_compile_features(header_self_containment PRIVATE cxx_std_17)
+target_link_libraries(header_self_containment PRIVATE simple_platformer_core)
+enable_project_warnings(header_self_containment)
+
+if(NOT MSVC)
+    target_compile_options(
+        header_self_containment
+        PRIVATE
+        -Wno-pragma-once-outside-header
+        -Wno-unused-const-variable
+    )
 endif()
 
 include(CTest)
@@ -101,6 +170,13 @@ if(BUILD_TESTING)
         Catch2::Catch2WithMain
     )
     enable_project_warnings(simple_platformer_tests)
+
+    if(
+        CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 22
+    )
+        target_compile_options(simple_platformer_tests PRIVATE -Wno-c2y-extensions)
+    endif()
 
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/extras)
     include(Catch)

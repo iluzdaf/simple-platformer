@@ -1,0 +1,37 @@
+Checks: '-*,clang-analyzer-*,-clang-analyzer-optin.core.EnumCastOutOfRange,bugprone-*,-bugprone-easily-swappable-parameters,-bugprone-throwing-static-initialization,misc-include-cleaner,performance-*,-performance-enum-size,readability-identifier-naming'
+HeaderFilterRegex: '.*/include/simple_platformer/.*'
+CheckOptions:
+  - key: bugprone-narrowing-conversions.WarnOnIntegerToFloatingPointNarrowingConversion
+    value: 'false'
+
+  - key: misc-include-cleaner.MissingIncludes
+    value: 'true'
+  - key: misc-include-cleaner.UnusedIncludes
+    value: 'true'
+  - key: misc-include-cleaner.IgnoreHeaders
+    value: 'glm/.*;catch2/.*'
+
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeAliasCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+  - key: readability-identifier-naming.MemberCase
+    value: camelBack
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: CamelCase
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case

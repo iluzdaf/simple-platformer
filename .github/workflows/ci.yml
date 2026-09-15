@@ -28,6 +28,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-$LLVM
           -DCLANG_FORMAT_EXECUTABLE=$CLANG_FORMAT
           -DCLANG_TIDY_EXECUTABLE=$CLANG_TIDY
+          -DGLFW_BUILD_X11=OFF
+          -DGLFW_BUILD_WAYLAND=OFF
       - name: Check formatting
         run: cmake --build build/quality --target format-check
       - name: Check headers stand alone

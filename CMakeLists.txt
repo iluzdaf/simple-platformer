@@ -35,6 +35,26 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glm
 )
 
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/glfw EXCLUDE_FROM_ALL)
+
+add_library(simple_platformer_glad external/glad/src/glad.c)
+target_include_directories(
+    simple_platformer_glad
+    SYSTEM PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
+)
+
+add_library(simple_platformer_stb external/stb/stb_image.cpp)
+target_include_directories(
+    simple_platformer_stb
+    SYSTEM PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/stb
+)
+
 add_library(
     simple_platformer_core
     src/input/input_state.cpp
@@ -42,6 +62,9 @@ add_library(
     src/math/coordinates.cpp
     src/movement/platformer_movement.cpp
     src/physics/collision.cpp
+    src/render/camera.cpp
+    src/render/render_scene.cpp
+    src/render/sprite.cpp
     src/timing/fixed_step.cpp
     src/world/tile_map.cpp
 )
@@ -54,14 +77,37 @@ target_compile_features(simple_platformer_core PUBLIC cxx_std_17)
 target_link_libraries(simple_platformer_core PUBLIC simple_platformer_glm)
 enable_project_warnings(simple_platformer_core)
 
-add_executable(simple_platformer app/main.cpp)
+add_executable(
+    simple_platformer
+    app/application.cpp
+    app/example_game.cpp
+    app/graphics/sprite_renderer.cpp
+    app/main.cpp
+)
 target_compile_features(simple_platformer PRIVATE cxx_std_17)
-target_link_libraries(simple_platformer PRIVATE simple_platformer_core)
+target_include_directories(simple_platformer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/app)
+target_link_libraries(
+    simple_platformer
+    PRIVATE
+    simple_platformer_core
+    simple_platformer_glad
+    simple_platformer_stb
+    glfw
+)
 enable_project_warnings(simple_platformer)
+add_custom_command(
+    TARGET simple_platformer
+    POST_BUILD
+    COMMAND
+        ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:simple_platformer>/assets
+    COMMENT "Copying game assets beside the executable"
+    VERBATIM
+)
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT simple_platformer)
 set_target_properties(
     simple_platformer
-    PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:simple_platformer>"
 )
 
 find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
@@ -81,6 +127,13 @@ file(
 
 file(
     GLOB_RECURSE PROJECT_HEADERS
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+)
+
+file(
+    GLOB_RECURSE PROJECT_PUBLIC_HEADERS
     CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
 )
@@ -136,8 +189,8 @@ else()
     message(STATUS "clang-tidy not found; tidy target is unavailable")
 endif()
 
-set_source_files_properties(${PROJECT_HEADERS} PROPERTIES LANGUAGE CXX)
-add_library(header_self_containment OBJECT EXCLUDE_FROM_ALL ${PROJECT_HEADERS})
+set_source_files_properties(${PROJECT_PUBLIC_HEADERS} PROPERTIES LANGUAGE CXX)
+add_library(header_self_containment OBJECT EXCLUDE_FROM_ALL ${PROJECT_PUBLIC_HEADERS})
 target_compile_features(header_self_containment PRIVATE cxx_std_17)
 target_link_libraries(header_self_containment PRIVATE simple_platformer_core)
 enable_project_warnings(header_self_containment)
@@ -168,6 +221,9 @@ if(BUILD_TESTING)
         tests/math/test_coordinates.cpp
         tests/movement/test_platformer_movement.cpp
         tests/physics/test_collision.cpp
+        tests/render/test_camera.cpp
+        tests/render/test_render_scene.cpp
+        tests/render/test_sprite.cpp
         tests/timing/test_fixed_step.cpp
         tests/world/test_tile_map.cpp
     )

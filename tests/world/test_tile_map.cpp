@@ -17,6 +17,7 @@ TEST_CASE("An ASCII tile map is rectangular and row-major", "[world][tile-map]")
     REQUIRE(map.tileAt({1, 0}) == 1);
     REQUIRE(map.tileAt({0, 1}) == 1);
     REQUIRE(map.tileAt({2, 1}) == 0);
+    REQUIRE(map.definitionAt({1, 0}).sprite.size.x == 1.0F);
 }
 
 TEST_CASE("Tile solidity comes from its definition", "[world][tile-map]")

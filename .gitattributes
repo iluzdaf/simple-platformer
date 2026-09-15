@@ -18,3 +18,4 @@ CMakeLists.txt text eol=lf
 *.jpg binary
 *.jpeg binary
 *.png binary
+*.ppm binary

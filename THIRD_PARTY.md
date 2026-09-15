@@ -13,5 +13,5 @@ package manager or a network connection.
 | `external/stb` | stb_image 2.30 | `stb_image.h` plus its implementation translation unit |
 
 Each dependency retains its upstream licence or licensing notice in its source tree.
-GLFW, ImGui, GLAD, and stb_image are not compiled in Phase 1; they are present for
-the later graphics phases at fixed source revisions.
+GLFW, GLAD, and stb_image are compiled by the Phase 4 application. ImGui remains
+vendored for the later UI phase.

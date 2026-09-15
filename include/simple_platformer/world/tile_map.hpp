@@ -5,12 +5,19 @@
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/render/sprite.hpp"
 
 namespace simple_platformer
 {
     struct TileDefinition
     {
+        TileDefinition(bool blocks = false, SpriteRegion spriteRegion = {})
+            : solid(blocks), sprite(spriteRegion)
+        {
+        }
+
         bool solid = false;
+        SpriteRegion sprite;
     };
 
     class TileMap
@@ -31,6 +38,7 @@ namespace simple_platformer
 
         bool contains(GridPosition position) const;
         int tileAt(GridPosition position) const;
+        const TileDefinition& definitionAt(GridPosition position) const;
         bool isSolid(GridPosition position) const;
 
         // The map is open above, but its left, right, and bottom edges are walls.

@@ -1,0 +1,23 @@
+#pragma once
+
+#include <glm/vec2.hpp>
+
+#include "simple_platformer/math/aabb.hpp"
+
+namespace simple_platformer
+{
+    class TileMap;
+
+    struct Camera
+    {
+        glm::vec2 position = {0.0F, 0.0F};
+        glm::vec2 viewportSize = {320.0F, 180.0F};
+    };
+
+    Camera makeLockedCamera(
+        const TileMap& map,
+        const Aabb& target,
+        glm::vec2 viewportSize = {320.0F, 180.0F});
+
+    glm::vec2 worldToScreen(const Camera& camera, glm::vec2 worldPosition);
+}

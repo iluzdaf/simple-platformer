@@ -1,9 +1,9 @@
 # Simple Platformer
 
 Simple Platformer is a C++17 teaching engine and complete example game. The project
-is being built in independently testable phases. Phase 3 provides the build and test
-foundation, coordinate conventions, fixed-step timing, ASCII tile maps,
-axis-separated AABB collision, input intentions, and responsive player movement.
+is being built in independently testable phases. Phase 4 provides a playable OpenGL
+window with responsive movement, a scrolling tile map, named animation clips, and a
+pixel-stable camera.
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for the agreed design and implementation plan.
 
@@ -27,11 +27,14 @@ cmake --build --preset mac-debug
 ctest --preset mac-debug
 ```
 
-Run the Phase 3 application smoke check:
+Run the Phase 4 application:
 
 ```sh
 ./build/mac-debug/simple_platformer
 ```
+
+Use the left and right arrow keys to move, Space to jump, and Escape to close the
+window.
 
 ## Windows: create and use the Visual Studio solution
 
@@ -62,7 +65,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-The Windows Phase 3 executable is:
+The Windows Phase 4 executable is:
 
 ```text
 build\windows-vs\Debug\simple_platformer.exe
@@ -77,8 +80,8 @@ should not be shared.
 GitHub Actions configures, builds, and runs all tests on both macOS with Apple Clang
 and Windows with Visual Studio 2022. The workflow runs for every push and pull request.
 The Windows job generates the same solution as `setup-windows.bat`, builds the actual
-`.sln` with MSBuild, and builds its generated `run_tests` project. Running the
-graphical game remains a manual smoke test.
+`.sln` with MSBuild, and builds its generated `run_tests` project. CI does not launch
+the graphical game.
 
 A separate Linux quality job checks source formatting, runs clang-tidy, and verifies
 that every public header can compile on its own. These checks do not add any tools to
@@ -132,10 +135,11 @@ they need themselves:
 cmake --build --preset mac-debug --target header_self_containment
 ```
 
-## Phase 3 layout
+## Phase 4 layout
 
 ```text
 app/        executable entry point
+assets/     small example texture atlas
 include/    public core headers
 src/        core implementations
 tests/      Catch2 tests mirroring the core subjects

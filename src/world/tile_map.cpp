@@ -86,7 +86,10 @@ namespace simple_platformer
         }
 
         return TileMap(
-            mapWidth, static_cast<int>(rows.size()), std::move(tiles), {{false}, {true}});
+            mapWidth,
+            static_cast<int>(rows.size()),
+            std::move(tiles),
+            {{false}, {true, {{0.0F, 0.0F}, {1.0F, 1.0F}}}});
     }
 
     int TileMap::width() const
@@ -128,9 +131,15 @@ namespace simple_platformer
         return tileIds[index];
     }
 
+    const TileDefinition& TileMap::definitionAt(GridPosition position) const
+    {
+        const int tileId = tileAt(position);
+        return tileDefinitions[static_cast<std::size_t>(tileId)];
+    }
+
     bool TileMap::isSolid(GridPosition position) const
     {
-        return tileDefinitions[static_cast<std::size_t>(tileAt(position))].solid;
+        return definitionAt(position).solid;
     }
 
     bool TileMap::blocksMovement(GridPosition position) const

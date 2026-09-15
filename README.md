@@ -1,9 +1,9 @@
 # Simple Platformer
 
 Simple Platformer is a C++17 teaching engine and complete example game. The project
-is being built in independently testable phases. Phase 4 provides a playable OpenGL
-window with responsive movement, a scrolling tile map, named animation clips, and a
-pixel-stable camera.
+is being built in independently testable phases. Phase 5 provides a playable OpenGL
+window with responsive movement, a scrolling tile map, composed actors with stable
+IDs, and tested health, death, removal, and player-respawn lifecycles.
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for the agreed design and implementation plan.
 
@@ -27,7 +27,7 @@ cmake --build --preset mac-debug
 ctest --preset mac-debug
 ```
 
-Run the Phase 4 application:
+Run the Phase 5 application:
 
 ```sh
 ./build/mac-debug/simple_platformer
@@ -65,7 +65,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-The Windows Phase 4 executable is:
+The Windows Phase 5 executable is:
 
 ```text
 build\windows-vs\Debug\simple_platformer.exe
@@ -135,7 +135,7 @@ they need themselves:
 cmake --build --preset mac-debug --target header_self_containment
 ```
 
-## Phase 4 layout
+## Phase 5 layout
 
 ```text
 app/        executable entry point

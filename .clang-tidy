@@ -1,5 +1,5 @@
 Checks: '-*,clang-analyzer-*,-clang-analyzer-optin.core.EnumCastOutOfRange,bugprone-*,-bugprone-easily-swappable-parameters,-bugprone-throwing-static-initialization,misc-include-cleaner,performance-*,-performance-enum-size,readability-identifier-naming'
-HeaderFilterRegex: '.*/include/simple_platformer/.*'
+HeaderFilterRegex: '.*/(app|include/simple_platformer)/.*'
 CheckOptions:
   - key: bugprone-narrowing-conversions.WarnOnIntegerToFloatingPointNarrowingConversion
     value: 'false'

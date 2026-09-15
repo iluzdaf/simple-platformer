@@ -5,12 +5,14 @@
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
 {
@@ -18,9 +20,7 @@ namespace simple_platformer
         const TileMap& map,
         int tileTextureId,
         const Camera& camera,
-        const Sprite& playerSprite,
-        const Aabb& playerBounds,
-        Facing playerFacing)
+        const World& world)
     {
         RenderScene scene;
         const float tileSize = static_cast<float>(TileSize);
@@ -58,15 +58,23 @@ namespace simple_platformer
             }
         }
 
-        const glm::vec2 playerFeet = feetOf(playerBounds);
-        const glm::vec2 playerSpritePosition = {
-            playerFeet.x - playerSprite.size.x * 0.5F, playerFeet.y - playerSprite.size.y};
-        scene.sprites.push_back(
-            {playerSprite.textureId,
-             worldToScreen(camera, playerSpritePosition),
-             playerSprite.size,
-             playerSprite.region,
-             playerFacing == Facing::Left});
+        for (const Actor& actor : world.actors())
+        {
+            if (!actor.sprite.has_value())
+            {
+                continue;
+            }
+
+            const glm::vec2 actorFeet = feetOf(actor.body.bounds);
+            const glm::vec2 spritePosition = {
+                actorFeet.x - actor.sprite->size.x * 0.5F, actorFeet.y - actor.sprite->size.y};
+            scene.sprites.push_back(
+                {actor.sprite->textureId,
+                 worldToScreen(camera, spritePosition),
+                 actor.sprite->size,
+                 actor.sprite->region,
+                 actor.facing == Facing::Left});
+        }
         return scene;
     }
 }

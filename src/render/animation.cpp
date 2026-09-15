@@ -1,4 +1,4 @@
-#include "simple_platformer/render/sprite.hpp"
+#include "simple_platformer/render/animation.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -6,6 +6,8 @@
 #include <stdexcept>
 
 #include <glm/vec2.hpp>
+
+#include "simple_platformer/render/sprite.hpp"
 
 namespace simple_platformer
 {
@@ -32,6 +34,35 @@ namespace simple_platformer
         }
 
         return clip.frames[frame];
+    }
+
+    void updateAnimation(
+        Animator& animator,
+        Sprite& sprite,
+        AnimationName selected,
+        const AnimationClip& clip,
+        float deltaTime)
+    {
+        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
+        {
+            throw std::invalid_argument("Animation delta time must be finite and non-negative");
+        }
+        if (clip.name != selected)
+        {
+            throw std::invalid_argument("The animation clip does not match the selected animation");
+        }
+
+        if (animator.current != selected)
+        {
+            animator.current = selected;
+            animator.elapsed = 0.0F;
+        }
+        else
+        {
+            animator.elapsed += deltaTime;
+        }
+
+        sprite.region = frameAt(clip, animator.elapsed);
     }
 
     AnimationName selectMovementAnimation(bool grounded, glm::vec2 velocity)

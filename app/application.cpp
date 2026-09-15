@@ -15,6 +15,7 @@
 #include "graphics/sprite_renderer.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 
 namespace
@@ -118,7 +119,7 @@ namespace simple_platformer
 
         SpriteRenderer renderer;
         const int atlas = renderer.loadTexture("assets/sprites.ppm");
-        ExampleGame game;
+        ExampleGame game(atlas);
         FixedStep fixedStep;
         double previousTime = glfwGetTime();
 
@@ -136,7 +137,8 @@ namespace simple_platformer
             int framebufferWidth = 0;
             int framebufferHeight = 0;
             glfwGetFramebufferSize(window.get(), &framebufferWidth, &framebufferHeight);
-            renderer.render(game.buildScene(atlas), framebufferWidth, framebufferHeight);
+            const simple_platformer::RenderScene scene = game.buildScene();
+            renderer.render(scene, framebufferWidth, framebufferHeight);
             glfwSwapBuffers(window.get());
         }
 

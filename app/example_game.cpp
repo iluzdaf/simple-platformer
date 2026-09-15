@@ -5,13 +5,19 @@
 #include <utility>
 #include <vector>
 
+#include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_system.hpp"
+#include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/physics/body.hpp"
+#include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/world/world.hpp"
 
 namespace
 {
@@ -58,6 +64,8 @@ namespace
             AnimationName::Jump, {{{4.0F, 0.0F}, {1.0F, 1.0F}}}, 0.15F, true};
         static const AnimationClip fall{
             AnimationName::Fall, {{{5.0F, 0.0F}, {1.0F, 1.0F}}}, 0.15F, true};
+        static const AnimationClip death{
+            AnimationName::Death, {{{1.0F, 0.0F}, {1.0F, 1.0F}}}, 0.4F, false};
 
         switch (name)
         {
@@ -69,44 +77,86 @@ namespace
             return jump;
         case AnimationName::Fall:
             return fall;
-        case AnimationName::Bite:
         case AnimationName::Death:
-            throw std::invalid_argument("The Phase 4 player has no combat animation");
+            return death;
+        case AnimationName::Bite:
+            throw std::invalid_argument("The Phase 5 player has no bite animation");
         }
 
         throw std::invalid_argument("Animation name is invalid");
+    }
+
+    void updatePlayerAnimation(simple_platformer::Actor& player, float deltaTime)
+    {
+        using simple_platformer::AnimationName;
+        using simple_platformer::LifeState;
+
+        if (!player.platformerMovement.has_value() || !player.sprite.has_value() ||
+            !player.animator.has_value())
+        {
+            throw std::logic_error("The example player is missing a required component");
+        }
+
+        const AnimationName selected =
+            player.life == LifeState::Dying
+                ? AnimationName::Death
+                : simple_platformer::selectMovementAnimation(
+                      player.platformerMovement->grounded, player.body.velocity);
+        simple_platformer::updateAnimation(
+            *player.animator, *player.sprite, selected, clipFor(selected), deltaTime);
+    }
+
+    simple_platformer::Actor makePlayer(int textureId)
+    {
+        simple_platformer::Actor player;
+        player.body = {{{32.0F, 196.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+        player.platformerMovement = simple_platformer::PlatformerMovement{};
+        player.platformerMovement->grounded = true;
+        player.sprite = simple_platformer::Sprite{
+            textureId, {{1.0F, 0.0F}, {1.0F, 1.0F}}, player.body.bounds.size};
+        player.animator = simple_platformer::Animator{};
+        player.health = simple_platformer::Health{3, 3};
+        return player;
     }
 }
 
 namespace simple_platformer
 {
-    ExampleGame::ExampleGame()
-        : map(makeLevel()), player{{{32.0F, 196.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}}
+    ExampleGame::ExampleGame(int textureId) : map(makeLevel())
     {
-        movement.grounded = true;
+        const ActorId player = world.addActor(makePlayer(textureId));
+        world.setPlayer(player, {38.0F, 208.0F});
     }
 
     void ExampleGame::update(const InputIntentions& intentions, float deltaTime)
     {
-        updatePlatformerMovement(map, player, movement, intentions, facing, deltaTime);
+        Actor* player = world.findActor(world.playerId());
+        if (player == nullptr)
+        {
+            throw std::logic_error("The example game has no player");
+        }
 
-        const AnimationName selected = selectMovementAnimation(movement.grounded, player.velocity);
-        if (selected != animation)
+        player->intentions = intentions;
+        updateActorMovement(map, world, deltaTime);
+        updateLifeState(world, requests, deltaTime);
+
+        player = world.findActor(world.playerId());
+        if (player == nullptr)
         {
-            animation = selected;
-            animationElapsed = 0.0F;
+            throw std::logic_error("The example game has no player after lifecycle update");
         }
-        else
-        {
-            animationElapsed += deltaTime;
-        }
+        updatePlayerAnimation(*player, deltaTime);
     }
 
-    RenderScene ExampleGame::buildScene(int textureId) const
+    RenderScene ExampleGame::buildScene() const
     {
-        const Camera camera = makeLockedCamera(map, player.bounds);
-        const Sprite playerSprite{
-            textureId, frameAt(clipFor(animation), animationElapsed), player.bounds.size};
-        return buildRenderScene(map, textureId, camera, playerSprite, player.bounds, facing);
+        const Actor* player = world.findActor(world.playerId());
+        if (player == nullptr || !player->sprite.has_value())
+        {
+            throw std::logic_error("The example player is missing its sprite");
+        }
+
+        const Camera camera = makeLockedCamera(map, player->body.bounds);
+        return buildRenderScene(map, player->sprite.value().textureId, camera, world);
     }
 }

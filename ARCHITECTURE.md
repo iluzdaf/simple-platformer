@@ -446,6 +446,11 @@ bite phase, grounded state, velocity, and facing. Death has highest priority; a
 non-ready bite selects Bite. Render-scene tests cover selection, source frame, sprite
 placement, and horizontal flipping.
 
+Each animated actor owns a small optional `Animator` component containing only its
+current animation and elapsed playback time. Game and behaviour code select named
+animations and provide game-specific clips; the reusable animation helper advances
+the component and writes the selected frame to the actor's `Sprite`.
+
 ## Inventory, pickups, and exit
 
 Inventory has a configurable number of slots. Each slot is empty or contains an item
@@ -470,6 +475,11 @@ Gameplay objects never issue graphics calls. A pure render-scene builder reads t
 world and camera and produces ordered `SpriteDrawCommand` values. Tests cover camera
 transforms, visible tile selection, animation frames, sprite placement, facing flips,
 and draw order.
+
+Texture dimensions and `SpriteRegion` rectangles are measured in source-image pixels.
+`Sprite::size` and `Body::bounds` are measured in world pixels and are independent;
+matching sizes must be assigned explicitly. Rendering aligns differently sized body
+and sprite rectangles at the actor's feet.
 
 A small OpenGL `SpriteRenderer` submits textured quads using one uncomplicated shader.
 There is no scene graph, material system, lighting, or general render graph. ImGui is

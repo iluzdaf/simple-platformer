@@ -6,6 +6,7 @@ namespace simple_platformer
 {
     struct Aabb
     {
+        // Top-left position and dimensions measured in world pixels.
         glm::vec2 position = {0.0F, 0.0F};
         glm::vec2 size = {0.0F, 0.0F};
     };

@@ -1,4 +1,7 @@
 Diagnostics:
+  Includes:
+    IgnoreHeader:
+      - "glm/.*"
   MissingIncludes: Strict
   UnusedIncludes: Strict
   Suppress:

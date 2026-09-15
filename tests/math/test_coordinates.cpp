@@ -41,3 +41,14 @@ TEST_CASE("Grid positions compare by both coordinates", "[math][coordinates]")
     REQUIRE(GridPosition{2, 3} == GridPosition{2, 3});
     REQUIRE(GridPosition{2, 3} != GridPosition{3, 2});
 }
+
+TEST_CASE("World and grid coordinates convert at tile boundaries", "[math][coordinates]")
+{
+    using simple_platformer::GridPosition;
+
+    REQUIRE(simple_platformer::worldToGrid({0.0F, 0.0F}) == GridPosition{0, 0});
+    REQUIRE(simple_platformer::worldToGrid({15.9F, 31.9F}) == GridPosition{0, 1});
+    REQUIRE(simple_platformer::worldToGrid({16.0F, 32.0F}) == GridPosition{1, 2});
+    REQUIRE(simple_platformer::worldToGrid({-0.1F, -16.1F}) == GridPosition{-1, -2});
+    requireVector(simple_platformer::gridToWorld({2, 3}), {32.0F, 48.0F});
+}

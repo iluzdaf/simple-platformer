@@ -38,7 +38,10 @@ target_include_directories(
 add_library(
     simple_platformer_core
     src/math/aabb.cpp
+    src/math/coordinates.cpp
+    src/physics/collision.cpp
     src/timing/fixed_step.cpp
+    src/world/tile_map.cpp
 )
 target_include_directories(
     simple_platformer_core
@@ -160,7 +163,9 @@ if(BUILD_TESTING)
     add_executable(
         simple_platformer_tests
         tests/math/test_coordinates.cpp
+        tests/physics/test_collision.cpp
         tests/timing/test_fixed_step.cpp
+        tests/world/test_tile_map.cpp
     )
     target_compile_features(simple_platformer_tests PRIVATE cxx_std_17)
     target_link_libraries(

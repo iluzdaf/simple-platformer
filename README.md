@@ -1,8 +1,9 @@
 # Simple Platformer
 
 Simple Platformer is a C++17 teaching engine and complete example game. The project
-is being built in independently testable phases; Phase 1 provides the build, core
-target boundary, coordinate conventions, fixed-step timing, and test harness.
+is being built in independently testable phases. Phase 2 provides the build and test
+foundation, coordinate conventions, fixed-step timing, ASCII tile maps, and
+axis-separated AABB collision.
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for the agreed design and implementation plan.
 
@@ -26,7 +27,7 @@ cmake --build --preset mac-debug
 ctest --preset mac-debug
 ```
 
-Run the Phase 1 application smoke check:
+Run the Phase 2 application smoke check:
 
 ```sh
 ./build/mac-debug/simple_platformer
@@ -61,7 +62,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-The Windows Phase 1 executable is:
+The Windows Phase 2 executable is:
 
 ```text
 build\windows-vs\Debug\simple_platformer.exe
@@ -131,7 +132,7 @@ they need themselves:
 cmake --build --preset mac-debug --target header_self_containment
 ```
 
-## Phase 1 layout
+## Phase 2 layout
 
 ```text
 app/        executable entry point

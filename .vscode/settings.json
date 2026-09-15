@@ -4,6 +4,7 @@
     "editor.formatOnSave": true,
     "clangd.arguments": [
         "--background-index",
+        "--compile-commands-dir=build/mac-debug",
         "--header-insertion=never"
     ],
     "[c]": {

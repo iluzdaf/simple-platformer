@@ -2,7 +2,10 @@
 #include <cstddef>
 #include <iostream>
 
+#include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
+#include "simple_platformer/world/tile_map.hpp"
 
 int main()
 {
@@ -18,7 +21,19 @@ int main()
         return EXIT_FAILURE;
     }
 
-    std::cout << "Simple Platformer Phase 1 ready: " << simulatedUpdates
-              << " fixed updates at 60 Hz\n";
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"....", "....", "####"});
+    simple_platformer::Aabb bounds{{4.0F, 0.0F}, {12.0F, 12.0F}};
+    const simple_platformer::CollisionContacts contacts =
+        simple_platformer::moveAndCollide(map, bounds, {0.0F, 100.0F});
+
+    if (!contacts.ground || bounds.position.y != 20.0F)
+    {
+        std::cerr << "Simple Platformer tile collision smoke check failed\n";
+        return EXIT_FAILURE;
+    }
+
+    std::cout << "Simple Platformer Phase 2 ready: " << simulatedUpdates
+              << " fixed updates and tile collision verified\n";
     return EXIT_SUCCESS;
 }

@@ -254,9 +254,9 @@ The first TileMap is one rectangular row-major vector of integer tile IDs. Tile 
 zero is empty. Each nonzero definition provides a sprite region and whether it is
 solid. The same layer supplies rendering and collision.
 
-Early tests and examples construct maps from ASCII strings. JSON loading arrives
-later. Entities, pickups, player spawn, and exit are separate level data rather than
-special tile IDs.
+Early tests and examples construct maps from ASCII strings, using `.` for empty and
+`#` for solid. JSON loading arrives later. Entities, pickups, player spawn, and exit
+are separate level data rather than special tile IDs.
 
 Collision moves an arbitrary-sized actor AABB along X, resolves against nearby full
 solid tile AABBs, then repeats along Y. It returns left, right, ground, and ceiling

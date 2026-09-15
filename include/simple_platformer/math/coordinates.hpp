@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/vec2.hpp>
+
 namespace simple_platformer
 {
     // World X increases right and world Y increases down.
@@ -22,4 +24,7 @@ namespace simple_platformer
     {
         return !(left == right);
     }
+
+    GridPosition worldToGrid(glm::vec2 worldPosition);
+    glm::vec2 gridToWorld(GridPosition gridPosition);
 }

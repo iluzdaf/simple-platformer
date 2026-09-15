@@ -1,0 +1,15 @@
+{
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "cmake.useCMakePresets": "always",
+    "editor.formatOnSave": true,
+    "clangd.arguments": [
+        "--background-index",
+        "--header-insertion=never"
+    ],
+    "[c]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    }
+}

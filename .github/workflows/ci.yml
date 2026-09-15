@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  macos:
+    name: macOS / Apple Clang
+    runs-on: macos-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Configure
+        run: cmake --preset mac-debug
+      - name: Build
+        run: cmake --build --preset mac-debug
+      - name: Test
+        run: ctest --preset mac-debug
+
+  windows:
+    name: Windows / Visual Studio 2022
+    runs-on: windows-2022
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
+      - name: Generate Visual Studio solution
+        run: cmake --preset windows-vs
+      - name: Build Visual Studio solution
+        run: >
+          msbuild build\windows-vs\SimplePlatformer.sln
+          /m
+          /p:Configuration=Debug
+          /p:Platform=x64
+      - name: Run tests through Visual Studio project
+        run: >
+          msbuild build\windows-vs\run_tests.vcxproj
+          /m
+          /p:Configuration=Debug
+          /p:Platform=x64

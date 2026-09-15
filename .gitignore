@@ -1,0 +1,6 @@
+/build/
+/compile_commands.json
+/CMakeUserPresets.json
+/.vs/
+/out/
+/.DS_Store

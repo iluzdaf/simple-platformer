@@ -7,6 +7,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace
@@ -27,8 +28,7 @@ namespace simple_platformer
 {
     Camera makeLockedCamera(const TileMap& map, const Aabb& target, glm::vec2 viewportSize)
     {
-        if (!std::isfinite(viewportSize.x) || !std::isfinite(viewportSize.y) ||
-            viewportSize.x <= 0.0F || viewportSize.y <= 0.0F)
+        if (!isFinite(viewportSize) || viewportSize.x <= 0.0F || viewportSize.y <= 0.0F)
         {
             throw std::invalid_argument("Camera viewport must be positive and finite");
         }

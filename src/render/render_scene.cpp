@@ -6,6 +6,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
@@ -74,6 +75,18 @@ namespace simple_platformer
                  actor.sprite->size,
                  actor.sprite->region,
                  actor.facing == Facing::Left});
+        }
+
+        for (const Projectile& projectile : world.projectiles())
+        {
+            const glm::vec2 projectileCenter = centerOf(projectile.bounds);
+            const glm::vec2 spritePosition = projectileCenter - projectile.sprite.size * 0.5F;
+            scene.sprites.push_back(
+                {projectile.sprite.textureId,
+                 worldToScreen(camera, spritePosition),
+                 projectile.sprite.size,
+                 projectile.sprite.region,
+                 projectile.velocity.x < 0.0F});
         }
         return scene;
     }

@@ -1,4 +1,4 @@
-#include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 
 namespace simple_platformer
 {

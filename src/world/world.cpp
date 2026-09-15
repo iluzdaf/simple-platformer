@@ -10,14 +10,32 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 
 namespace
 {
-    bool isFinite(glm::vec2 value)
+    using simple_platformer::isFinite;
+
+    bool isFinitePositive(float value)
     {
-        return std::isfinite(value.x) && std::isfinite(value.y);
+        return std::isfinite(value) && value > 0.0F;
+    }
+
+    void validateProjectile(const simple_platformer::Projectile& projectile)
+    {
+        if (!isFinite(projectile.bounds.position) || !isFinite(projectile.bounds.size) ||
+            projectile.bounds.size.x <= 0.0F || projectile.bounds.size.y <= 0.0F ||
+            !isFinite(projectile.velocity) || projectile.damage <= 0 ||
+            !isFinitePositive(projectile.remainingLifetime) || !isFinite(projectile.sprite.size) ||
+            projectile.sprite.size.x <= 0.0F || projectile.sprite.size.y <= 0.0F ||
+            (projectile.owner.has_value() && !simple_platformer::isValid(*projectile.owner)))
+        {
+            throw std::invalid_argument("Projectile data is invalid");
+        }
     }
 
     void validateActor(const simple_platformer::Actor& actor)
@@ -34,7 +52,7 @@ namespace
         }
         if (!actor.platformerMovement.has_value())
         {
-            throw std::invalid_argument("Phase 5 actors require platformer movement");
+            throw std::invalid_argument("Actors currently require platformer movement");
         }
         if (actor.animator.has_value() && !actor.sprite.has_value())
         {
@@ -44,6 +62,41 @@ namespace
             (!std::isfinite(actor.animator->elapsed) || actor.animator->elapsed < 0.0F))
         {
             throw std::invalid_argument("Actor animation time must be finite and non-negative");
+        }
+        if (actor.rangedWeapon.has_value())
+        {
+            const simple_platformer::RangedWeapon& weapon = *actor.rangedWeapon;
+            if (weapon.damage <= 0 || !isFinite(weapon.projectileSize) ||
+                weapon.projectileSize.x <= 0.0F || weapon.projectileSize.y <= 0.0F ||
+                !isFinitePositive(weapon.projectileSpeed) ||
+                !isFinitePositive(weapon.projectileLifetime) ||
+                !isFinitePositive(weapon.cooldown) || !std::isfinite(weapon.cooldownRemaining) ||
+                weapon.cooldownRemaining < 0.0F || !isFinite(weapon.projectileSprite.size) ||
+                weapon.projectileSprite.size.x <= 0.0F || weapon.projectileSprite.size.y <= 0.0F)
+            {
+                throw std::invalid_argument("Actor ranged weapon data is invalid");
+            }
+        }
+        if (actor.bite.has_value())
+        {
+            const simple_platformer::BiteAttack& bite = *actor.bite;
+            if (bite.damage <= 0 || !isFinite(bite.hitboxSize) || bite.hitboxSize.x <= 0.0F ||
+                bite.hitboxSize.y <= 0.0F || !std::isfinite(bite.reach) || bite.reach < 0.0F ||
+                !isFinitePositive(bite.windupDuration) || !isFinitePositive(bite.activeDuration) ||
+                !isFinitePositive(bite.recoveryDuration) ||
+                !std::isfinite(bite.phaseTimeRemaining) || bite.phaseTimeRemaining < 0.0F)
+            {
+                throw std::invalid_argument("Actor bite data is invalid");
+            }
+        }
+        if (actor.rangedWeapon.has_value() && actor.bite.has_value())
+        {
+            throw std::invalid_argument("An actor can have only one primary attack");
+        }
+        if ((actor.rangedWeapon.has_value() || actor.bite.has_value()) &&
+            actor.team == simple_platformer::Team::Neutral)
+        {
+            throw std::invalid_argument("Actors with attacks require a non-neutral team");
         }
         if (actor.health.has_value() && (actor.health->maximum <= 0 || actor.health->current < 0 ||
                                          actor.health->current > actor.health->maximum))
@@ -115,6 +168,22 @@ namespace simple_platformer
     const std::vector<Actor>& World::actors() const
     {
         return actorStorage;
+    }
+
+    void World::addProjectile(Projectile projectile)
+    {
+        validateProjectile(projectile);
+        projectileStorage.push_back(projectile);
+    }
+
+    std::vector<Projectile>& World::projectiles()
+    {
+        return projectileStorage;
+    }
+
+    const std::vector<Projectile>& World::projectiles() const
+    {
+        return projectileStorage;
     }
 
     void World::setPlayer(ActorId id, glm::vec2 spawnFeet)

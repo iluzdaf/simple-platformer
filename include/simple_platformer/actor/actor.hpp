@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cstdint>
 #include <optional>
 
+#include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/physics/body.hpp"
@@ -11,15 +12,6 @@
 
 namespace simple_platformer
 {
-    struct ActorId
-    {
-        std::uint32_t value = 0;
-    };
-
-    bool operator==(ActorId left, ActorId right);
-    bool operator!=(ActorId left, ActorId right);
-    bool isValid(ActorId id);
-
     struct Health
     {
         int current = 1;
@@ -46,5 +38,8 @@ namespace simple_platformer
         std::optional<Sprite> sprite;
         std::optional<Animator> animator;
         std::optional<Health> health;
+        Team team = Team::Neutral;
+        std::optional<RangedWeapon> rangedWeapon;
+        std::optional<BiteAttack> bite;
     };
 }

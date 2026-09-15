@@ -3,6 +3,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"

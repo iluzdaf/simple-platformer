@@ -8,6 +8,7 @@
 
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace
@@ -25,18 +26,15 @@ namespace
                1;
     }
 
-    bool isFinite(glm::vec2 value)
-    {
-        return std::isfinite(value.x) && std::isfinite(value.y);
-    }
-
     void validateBounds(
         const simple_platformer::TileMap& map,
         const simple_platformer::Aabb& bounds,
         glm::vec2 displacement)
     {
-        if (!isFinite(bounds.position) || !isFinite(bounds.size) || !isFinite(displacement) ||
-            bounds.size.x <= 0.0F || bounds.size.y <= 0.0F)
+        if (!simple_platformer::isFinite(bounds.position) ||
+            !simple_platformer::isFinite(bounds.size) ||
+            !simple_platformer::isFinite(displacement) || bounds.size.x <= 0.0F ||
+            bounds.size.y <= 0.0F)
         {
             throw std::invalid_argument("Collision requires finite, positive-sized bounds");
         }

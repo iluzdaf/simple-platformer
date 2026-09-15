@@ -3,6 +3,8 @@
 #include <stdexcept>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/render/animation.hpp"
@@ -69,6 +71,16 @@ TEST_CASE("World rejects invalid actor composition", "[world][actor]")
     simple_platformer::Actor animatorWithoutSprite = makeActor();
     animatorWithoutSprite.animator = simple_platformer::Animator{};
     REQUIRE_THROWS_AS(world.addActor(animatorWithoutSprite), std::invalid_argument);
+
+    simple_platformer::Actor twoAttacks = makeActor();
+    twoAttacks.team = simple_platformer::Team::Player;
+    twoAttacks.rangedWeapon = simple_platformer::RangedWeapon{};
+    twoAttacks.bite = simple_platformer::BiteAttack{};
+    REQUIRE_THROWS_AS(world.addActor(twoAttacks), std::invalid_argument);
+
+    simple_platformer::Actor neutralAttacker = makeActor();
+    neutralAttacker.rangedWeapon = simple_platformer::RangedWeapon{};
+    REQUIRE_THROWS_AS(world.addActor(neutralAttacker), std::invalid_argument);
 }
 
 TEST_CASE("The world records the player and feet-based spawn", "[world][actor]")

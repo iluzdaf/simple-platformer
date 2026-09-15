@@ -60,17 +60,23 @@ add_library(
     src/actor/actor.cpp
     src/actor/actor_system.cpp
     src/actor/lifecycle.cpp
+    src/combat/attack_system.cpp
+    src/combat/combat.cpp
+    src/combat/projectile_system.cpp
     src/input/input_state.cpp
     src/math/aabb.cpp
     src/math/coordinates.cpp
+    src/math/validation.cpp
     src/movement/platformer_movement.cpp
     src/physics/collision.cpp
+    src/physics/segment_cast.cpp
     src/render/animation.cpp
     src/render/camera.cpp
     src/render/render_scene.cpp
     src/timing/fixed_step.cpp
     src/world/tile_map.cpp
     src/world/world.cpp
+    src/world/world_requests.cpp
 )
 target_include_directories(
     simple_platformer_core
@@ -162,30 +168,30 @@ else()
     message(STATUS "clang-format not found; format targets are unavailable")
 endif()
 
+set(CLANG_TIDY_EXTRA_ARGUMENTS)
+
+if(CLANG_TIDY_EXECUTABLE AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    execute_process(
+        COMMAND xcrun --show-sdk-path
+        OUTPUT_VARIABLE MACOS_SDK_PATH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        COMMAND_ERROR_IS_FATAL ANY
+    )
+    list(
+        APPEND CLANG_TIDY_EXTRA_ARGUMENTS
+        --extra-arg=-isysroot
+        --extra-arg=${MACOS_SDK_PATH}
+        --extra-arg=-isystem
+        --extra-arg=${MACOS_SDK_PATH}/usr/include/c++/v1
+    )
+endif()
+
 if(CLANG_TIDY_EXECUTABLE)
-    set(CLANG_TIDY_EXTRA_ARGUMENTS)
-
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-        execute_process(
-            COMMAND xcrun --show-sdk-path
-            OUTPUT_VARIABLE MACOS_SDK_PATH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            COMMAND_ERROR_IS_FATAL ANY
-        )
-        list(
-            APPEND CLANG_TIDY_EXTRA_ARGUMENTS
-            --extra-arg=-isysroot
-            --extra-arg=${MACOS_SDK_PATH}
-            --extra-arg=-isystem
-            --extra-arg=${MACOS_SDK_PATH}/usr/include/c++/v1
-        )
-    endif()
-
     add_custom_target(
         tidy
         COMMAND
             ${CLANG_TIDY_EXECUTABLE} -p ${CMAKE_BINARY_DIR} --warnings-as-errors=*
-            --quiet ${CLANG_TIDY_EXTRA_ARGUMENTS} ${PROJECT_CPP_FILES}
+            --quiet ${CLANG_TIDY_EXTRA_ARGUMENTS} ${PROJECT_CPP_FILES} ${PROJECT_HEADERS}
         COMMENT "Checking first-party C++ source with clang-tidy"
         VERBATIM
     )
@@ -223,10 +229,14 @@ if(BUILD_TESTING)
         simple_platformer_tests
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp
+        tests/combat/test_attack_system.cpp
+        tests/combat/test_projectile_system.cpp
         tests/input/test_input_state.cpp
         tests/math/test_coordinates.cpp
+        tests/math/test_validation.cpp
         tests/movement/test_platformer_movement.cpp
         tests/physics/test_collision.cpp
+        tests/physics/test_segment_cast.cpp
         tests/render/test_animation.cpp
         tests/render/test_camera.cpp
         tests/render/test_render_scene.cpp

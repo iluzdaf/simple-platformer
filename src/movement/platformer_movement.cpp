@@ -7,6 +7,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -23,38 +24,33 @@ namespace
         return std::max(current - maximumChange, target);
     }
 
-    bool isFinite(float value)
-    {
-        return std::isfinite(value);
-    }
-
     void validate(
         const simple_platformer::PlatformerMovementConfig& config,
         const simple_platformer::InputIntentions& intentions,
         float deltaTime)
     {
-        if (!isFinite(deltaTime) || deltaTime <= 0.0F)
+        if (!std::isfinite(deltaTime) || deltaTime <= 0.0F)
         {
             throw std::invalid_argument("Platformer movement requires a positive finite time step");
         }
 
         const bool invalidConfig =
-            !isFinite(config.maximumSpeed) || config.maximumSpeed < 0.0F ||
-            !isFinite(config.groundAcceleration) || config.groundAcceleration < 0.0F ||
-            !isFinite(config.airAcceleration) || config.airAcceleration < 0.0F ||
-            !isFinite(config.groundDeceleration) || config.groundDeceleration < 0.0F ||
-            !isFinite(config.jumpSpeed) || config.jumpSpeed < 0.0F || !isFinite(config.gravity) ||
-            config.gravity < 0.0F || !isFinite(config.jumpReleaseGravity) ||
-            config.jumpReleaseGravity < 0.0F || !isFinite(config.maximumFallSpeed) ||
-            config.maximumFallSpeed < 0.0F || !isFinite(config.coyoteTime) ||
-            config.coyoteTime < 0.0F || !isFinite(config.jumpBufferTime) ||
-            config.jumpBufferTime < 0.0F;
+            !std::isfinite(config.maximumSpeed) || config.maximumSpeed < 0.0F ||
+            !std::isfinite(config.groundAcceleration) || config.groundAcceleration < 0.0F ||
+            !std::isfinite(config.airAcceleration) || config.airAcceleration < 0.0F ||
+            !std::isfinite(config.groundDeceleration) || config.groundDeceleration < 0.0F ||
+            !std::isfinite(config.jumpSpeed) || config.jumpSpeed < 0.0F ||
+            !std::isfinite(config.gravity) || config.gravity < 0.0F ||
+            !std::isfinite(config.jumpReleaseGravity) || config.jumpReleaseGravity < 0.0F ||
+            !std::isfinite(config.maximumFallSpeed) || config.maximumFallSpeed < 0.0F ||
+            !std::isfinite(config.coyoteTime) || config.coyoteTime < 0.0F ||
+            !std::isfinite(config.jumpBufferTime) || config.jumpBufferTime < 0.0F;
         if (invalidConfig)
         {
             throw std::invalid_argument("Platformer movement configuration cannot be negative");
         }
 
-        if (!isFinite(intentions.direction.x) || !isFinite(intentions.direction.y))
+        if (!simple_platformer::isFinite(intentions.direction))
         {
             throw std::invalid_argument("Input intentions must be finite");
         }

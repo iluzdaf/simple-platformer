@@ -39,5 +39,9 @@ namespace simple_platformer
         AnimationName selected,
         const AnimationClip& clip,
         float deltaTime);
-    AnimationName selectMovementAnimation(bool grounded, glm::vec2 velocity);
+    AnimationName selectActorAnimation(
+        bool dying,
+        bool attacking,
+        bool grounded,
+        glm::vec2 velocity);
 }

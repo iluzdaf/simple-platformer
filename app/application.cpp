@@ -54,6 +54,8 @@ namespace
             return simple_platformer::InputButton::Down;
         case GLFW_KEY_SPACE:
             return simple_platformer::InputButton::Jump;
+        case GLFW_KEY_X:
+            return simple_platformer::InputButton::PrimaryAttack;
         default:
             return std::nullopt;
         }
@@ -97,7 +99,7 @@ namespace simple_platformer
 
         using Window = std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)>;
         Window window(
-            glfwCreateWindow(960, 540, "Simple Platformer - Phase 4", nullptr, nullptr),
+            glfwCreateWindow(960, 540, "Simple Platformer - Phase 6", nullptr, nullptr),
             glfwDestroyWindow);
         if (!window)
         {

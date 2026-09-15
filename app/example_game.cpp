@@ -6,8 +6,12 @@
 #include <vector>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/actor/lifecycle.hpp"
+#include "simple_platformer/combat/attack_system.hpp"
+#include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/combat/projectile_system.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
@@ -66,6 +70,8 @@ namespace
             AnimationName::Fall, {{{5.0F, 0.0F}, {1.0F, 1.0F}}}, 0.15F, true};
         static const AnimationClip death{
             AnimationName::Death, {{{1.0F, 0.0F}, {1.0F, 1.0F}}}, 0.4F, false};
+        static const AnimationClip bite{
+            AnimationName::Bite, {{{3.0F, 0.0F}, {1.0F, 1.0F}}}, 0.1F, true};
 
         switch (name)
         {
@@ -80,30 +86,49 @@ namespace
         case AnimationName::Death:
             return death;
         case AnimationName::Bite:
-            throw std::invalid_argument("The Phase 5 player has no bite animation");
+            return bite;
         }
 
         throw std::invalid_argument("Animation name is invalid");
     }
 
-    void updatePlayerAnimation(simple_platformer::Actor& player, float deltaTime)
+    void updateActorAnimations(simple_platformer::World& world, float deltaTime)
     {
         using simple_platformer::AnimationName;
+        using simple_platformer::BitePhase;
         using simple_platformer::LifeState;
 
-        if (!player.platformerMovement.has_value() || !player.sprite.has_value() ||
-            !player.animator.has_value())
+        for (simple_platformer::Actor& actor : world.actors())
         {
-            throw std::logic_error("The example player is missing a required component");
-        }
+            if (!actor.animator.has_value())
+            {
+                continue;
+            }
+            if (!actor.platformerMovement.has_value() || !actor.sprite.has_value())
+            {
+                throw std::logic_error("An animated actor is missing a required component");
+            }
 
-        const AnimationName selected =
-            player.life == LifeState::Dying
-                ? AnimationName::Death
-                : simple_platformer::selectMovementAnimation(
-                      player.platformerMovement->grounded, player.body.velocity);
-        simple_platformer::updateAnimation(
-            *player.animator, *player.sprite, selected, clipFor(selected), deltaTime);
+            const bool biting = actor.bite.has_value() && actor.bite->phase != BitePhase::Ready;
+            const AnimationName selected = simple_platformer::selectActorAnimation(
+                actor.life == LifeState::Dying,
+                biting,
+                actor.platformerMovement->grounded,
+                actor.body.velocity);
+            simple_platformer::updateAnimation(
+                *actor.animator, *actor.sprite, selected, clipFor(selected), deltaTime);
+        }
+    }
+
+    void requestNpcAttacks(simple_platformer::World& world)
+    {
+        for (simple_platformer::Actor& actor : world.actors())
+        {
+            if (actor.team == simple_platformer::Team::Enemy && actor.bite.has_value())
+            {
+                actor.intentions.primaryAttackPressed = true;
+            }
+        }
     }
 
     simple_platformer::Actor makePlayer(int textureId)
@@ -116,7 +141,27 @@ namespace
             textureId, {{1.0F, 0.0F}, {1.0F, 1.0F}}, player.body.bounds.size};
         player.animator = simple_platformer::Animator{};
         player.health = simple_platformer::Health{3, 3};
+        player.team = simple_platformer::Team::Player;
+        simple_platformer::RangedWeapon weapon;
+        weapon.projectileSprite = {textureId, {{4.0F, 0.0F}, {1.0F, 1.0F}}, weapon.projectileSize};
+        player.rangedWeapon = weapon;
         return player;
+    }
+
+    simple_platformer::Actor makeBitingNpc(int textureId)
+    {
+        simple_platformer::Actor npc;
+        npc.body = {{{176.0F, 196.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+        npc.platformerMovement = simple_platformer::PlatformerMovement{};
+        npc.platformerMovement->grounded = true;
+        npc.facing = simple_platformer::Facing::Left;
+        npc.sprite = simple_platformer::Sprite{
+            textureId, {{2.0F, 0.0F}, {1.0F, 1.0F}}, npc.body.bounds.size};
+        npc.animator = simple_platformer::Animator{};
+        npc.health = simple_platformer::Health{3, 3};
+        npc.team = simple_platformer::Team::Enemy;
+        npc.bite = simple_platformer::BiteAttack{};
+        return npc;
     }
 }
 
@@ -126,6 +171,7 @@ namespace simple_platformer
     {
         const ActorId player = world.addActor(makePlayer(textureId));
         world.setPlayer(player, {38.0F, 208.0F});
+        world.addActor(makeBitingNpc(textureId));
     }
 
     void ExampleGame::update(const InputIntentions& intentions, float deltaTime)
@@ -137,7 +183,10 @@ namespace simple_platformer
         }
 
         player->intentions = intentions;
+        requestNpcAttacks(world);
         updateActorMovement(map, world, deltaTime);
+        updateAttacks(world, requests, deltaTime);
+        updateProjectiles(map, world, requests, deltaTime);
         updateLifeState(world, requests, deltaTime);
 
         player = world.findActor(world.playerId());
@@ -145,7 +194,7 @@ namespace simple_platformer
         {
             throw std::logic_error("The example game has no player after lifecycle update");
         }
-        updatePlayerAnimation(*player, deltaTime);
+        updateActorAnimations(world, deltaTime);
     }
 
     RenderScene ExampleGame::buildScene() const

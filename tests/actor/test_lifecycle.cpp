@@ -3,11 +3,13 @@
 #include <stdexcept>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "simple_platformer/world/world_requests.hpp"
 
 namespace
 {

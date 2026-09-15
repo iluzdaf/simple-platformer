@@ -77,11 +77,31 @@ TEST_CASE(
     "Movement animation selection observes grounded state and velocity",
     "[render][animation]")
 {
-    REQUIRE(simple_platformer::selectMovementAnimation(true, {0.0F, 0.0F}) == AnimationName::Idle);
-    REQUIRE(simple_platformer::selectMovementAnimation(true, {1.0F, 0.0F}) == AnimationName::Run);
     REQUIRE(
-        simple_platformer::selectMovementAnimation(false, {0.0F, -1.0F}) == AnimationName::Jump);
-    REQUIRE(simple_platformer::selectMovementAnimation(false, {0.0F, 1.0F}) == AnimationName::Fall);
+        simple_platformer::selectActorAnimation(false, false, true, {0.0F, 0.0F}) ==
+        AnimationName::Idle);
+    REQUIRE(
+        simple_platformer::selectActorAnimation(false, false, true, {1.0F, 0.0F}) ==
+        AnimationName::Run);
+    REQUIRE(
+        simple_platformer::selectActorAnimation(false, false, false, {0.0F, -1.0F}) ==
+        AnimationName::Jump);
+    REQUIRE(
+        simple_platformer::selectActorAnimation(false, false, false, {0.0F, 1.0F}) ==
+        AnimationName::Fall);
+}
+
+TEST_CASE("Actor animation selection gives death and attack priority", "[render][animation]")
+{
+    REQUIRE(
+        simple_platformer::selectActorAnimation(true, true, true, {1.0F, 0.0F}) ==
+        AnimationName::Death);
+    REQUIRE(
+        simple_platformer::selectActorAnimation(false, true, true, {1.0F, 0.0F}) ==
+        AnimationName::Bite);
+    REQUIRE(
+        simple_platformer::selectActorAnimation(false, false, true, {1.0F, 0.0F}) ==
+        AnimationName::Run);
 }
 
 TEST_CASE("Animation clips reject missing frames and invalid timing", "[render][animation]")

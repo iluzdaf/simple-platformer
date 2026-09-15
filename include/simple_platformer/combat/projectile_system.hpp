@@ -2,12 +2,13 @@
 
 namespace simple_platformer
 {
+    class TileMap;
     class World;
     class WorldRequests;
 
-    void updateLifeState(
+    void updateProjectiles(
+        const TileMap& map,
         World& world,
         WorldRequests& requests,
-        float deltaTime,
-        float deathDuration = 0.4F);
+        float deltaTime);
 }

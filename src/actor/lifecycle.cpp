@@ -1,38 +1,19 @@
 #include "simple_platformer/actor/lifecycle.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <cmath>
 #include <stdexcept>
 #include <vector>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "simple_platformer/world/world_requests.hpp"
 
 namespace simple_platformer
 {
-    void WorldRequests::damage(ActorId target, int amount)
-    {
-        if (!isValid(target) || amount <= 0)
-        {
-            throw std::invalid_argument("Damage requests require a target and positive amount");
-        }
-        damageRequests.push_back({target, amount});
-    }
-
-    void WorldRequests::remove(ActorId target)
-    {
-        if (!isValid(target))
-        {
-            throw std::invalid_argument("Removal requests require a target");
-        }
-        removalRequests.push_back(target);
-    }
-
-    bool WorldRequests::empty() const
-    {
-        return damageRequests.empty() && removalRequests.empty();
-    }
-
     void updateLifeState(
         World& world,
         WorldRequests& requests,
@@ -54,7 +35,7 @@ namespace simple_platformer
             }
         }
 
-        for (const DamageRequest& request : requests.damageRequests)
+        for (const auto& request : requests.damageRequests)
         {
             Actor* actor = world.findActor(request.target);
             if (actor == nullptr || actor->life != LifeState::Alive || !actor->health.has_value())
@@ -100,7 +81,29 @@ namespace simple_platformer
             world.removeActor(id);
         }
 
+        std::sort(requests.projectileRemovals.begin(), requests.projectileRemovals.end());
+        requests.projectileRemovals.erase(
+            std::unique(requests.projectileRemovals.begin(), requests.projectileRemovals.end()),
+            requests.projectileRemovals.end());
+        for (auto removal = requests.projectileRemovals.rbegin();
+             removal != requests.projectileRemovals.rend();
+             ++removal)
+        {
+            if (*removal < world.projectiles().size())
+            {
+                world.projectiles().erase(
+                    world.projectiles().begin() + static_cast<std::ptrdiff_t>(*removal));
+            }
+        }
+
+        for (const Projectile& projectile : requests.projectileSpawns)
+        {
+            world.addProjectile(projectile);
+        }
+
         requests.damageRequests.clear();
         requests.removalRequests.clear();
+        requests.projectileSpawns.clear();
+        requests.projectileRemovals.clear();
     }
 }

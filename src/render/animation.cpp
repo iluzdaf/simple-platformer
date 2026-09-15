@@ -9,6 +9,21 @@
 
 #include "simple_platformer/render/sprite.hpp"
 
+namespace
+{
+    simple_platformer::AnimationName selectMovementAnimation(bool grounded, glm::vec2 velocity)
+    {
+        using simple_platformer::AnimationName;
+
+        if (!grounded)
+        {
+            return velocity.y < 0.0F ? AnimationName::Jump : AnimationName::Fall;
+        }
+
+        return velocity.x == 0.0F ? AnimationName::Idle : AnimationName::Run;
+    }
+}
+
 namespace simple_platformer
 {
     const SpriteRegion& frameAt(const AnimationClip& clip, float elapsedSeconds)
@@ -65,13 +80,20 @@ namespace simple_platformer
         sprite.region = frameAt(clip, animator.elapsed);
     }
 
-    AnimationName selectMovementAnimation(bool grounded, glm::vec2 velocity)
+    AnimationName selectActorAnimation(
+        bool dying,
+        bool attacking,
+        bool grounded,
+        glm::vec2 velocity)
     {
-        if (!grounded)
+        if (dying)
         {
-            return velocity.y < 0.0F ? AnimationName::Jump : AnimationName::Fall;
+            return AnimationName::Death;
         }
-
-        return velocity.x == 0.0F ? AnimationName::Idle : AnimationName::Run;
+        if (attacking)
+        {
+            return AnimationName::Bite;
+        }
+        return selectMovementAnimation(grounded, velocity);
     }
 }

@@ -422,8 +422,9 @@ frequency.
 ## Projectiles and damage
 
 The first projectile contains bounds, velocity, damage, remaining lifetime, owner,
-and team. The player's primary attack fires it in the retained left or right facing
-direction. Each tick it casts the swept
+team, and a sprite. Its collision bounds and sprite display size are independently
+configurable world-pixel dimensions. The player's primary attack fires it in the
+retained left or right facing direction. Each tick it casts the swept
 segment from its previous to proposed position against solid tiles and eligible actor
 AABBs, selects the earliest hit, applies one damage request, and disappears. It does
 not pierce, bounce, home, or cause splash damage.

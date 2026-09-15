@@ -71,7 +71,9 @@ add_library(
     src/movement/platformer_movement.cpp
     src/navigation/a_star.cpp
     src/navigation/flying_navigation.cpp
+    src/navigation/input_program.cpp
     src/navigation/path_follower.cpp
+    src/navigation/platformer_navigation.cpp
     src/npc/npc_senses.cpp
     src/npc/npc_system.cpp
     src/physics/collision.cpp
@@ -245,7 +247,9 @@ if(BUILD_TESTING)
         tests/movement/test_platformer_movement.cpp
         tests/navigation/test_a_star.cpp
         tests/navigation/test_flying_navigation.cpp
+        tests/navigation/test_input_program.cpp
         tests/navigation/test_path_follower.cpp
+        tests/navigation/test_platformer_navigation.cpp
         tests/npc/test_npc_system.cpp
         tests/physics/test_collision.cpp
         tests/physics/test_segment_cast.cpp

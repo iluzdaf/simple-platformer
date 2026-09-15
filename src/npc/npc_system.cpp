@@ -4,7 +4,6 @@
 #include <cmath>
 #include <optional>
 #include <stdexcept>
-#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -18,7 +17,9 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/a_star.hpp"
 #include "simple_platformer/navigation/flying_navigation.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -82,7 +83,7 @@ namespace
             !follower.destination.has_value() || follower.destination.value_or(goal) != goal;
         const bool displacedAfterCompletion =
             simple_platformer::pathComplete(follower) && start != goal;
-        if (!destinationChanged && !follower.path.empty() && !displacedAfterCompletion)
+        if (!destinationChanged && follower.path.has_value() && !displacedAfterCompletion)
         {
             return;
         }
@@ -91,30 +92,50 @@ namespace
             return;
         }
 
-        const std::optional<std::vector<simple_platformer::GridPosition>> path =
-            simple_platformer::findGridPath(
+        if (actor.platformerMovement.has_value() && !actor.platformerMovement->grounded)
+        {
+            return;
+        }
+
+        std::optional<simple_platformer::NavigationPath> path;
+        if (actor.flyingMovement.has_value())
+        {
+            path = simple_platformer::findGridPath(
                 start,
                 goal,
                 [&map](simple_platformer::GridPosition position)
                 { return simple_platformer::flyingNeighbors(map, position); });
+        }
+        else if (actor.platformerMovement.has_value())
+        {
+            path = simple_platformer::findGridPath(
+                start,
+                goal,
+                [&map, &actor](simple_platformer::GridPosition position)
+                {
+                    return simple_platformer::platformerNeighbors(
+                        map, position, actor.body.bounds.size, actor.platformerMovement->config);
+                });
+        }
         follower.destination = goal;
         follower.repathRemaining = follower.repathCooldown;
         if (path.has_value())
         {
-            simple_platformer::setPath(
-                follower, path.value_or(std::vector<simple_platformer::GridPosition>{}), goal);
+            simple_platformer::setPath(follower, path.value(), goal);
         }
         else
         {
-            follower.path.clear();
+            follower.path.reset();
             follower.nextStep = 0;
+            follower.programElapsed = 0.0F;
         }
     }
 
     void followDestination(
         const simple_platformer::TileMap& map,
         simple_platformer::Actor& actor,
-        glm::vec2 destination)
+        glm::vec2 destination,
+        float deltaTime)
     {
         if (!actor.pathFollower.has_value())
         {
@@ -122,7 +143,15 @@ namespace
         }
         simple_platformer::PathFollower& follower = *actor.pathFollower;
         requestPath(map, actor, follower, destination);
-        actor.intentions = simple_platformer::followFlyingPath(actor.body.bounds, follower);
+        if (actor.flyingMovement.has_value())
+        {
+            actor.intentions = simple_platformer::followFlyingPath(actor.body.bounds, follower);
+        }
+        else if (actor.platformerMovement.has_value())
+        {
+            actor.intentions = simple_platformer::followPlatformerPath(
+                actor.body, *actor.platformerMovement, follower, deltaTime);
+        }
     }
 
     void enterPatrolOrIdle(simple_platformer::Actor& actor)
@@ -155,7 +184,8 @@ namespace
     void updateNpcState(
         const simple_platformer::TileMap& map,
         simple_platformer::World& world,
-        simple_platformer::Actor& actor)
+        simple_platformer::Actor& actor,
+        float deltaTime)
     {
         if (!actor.brain.has_value() || !actor.pathFollower.has_value() || !actor.bite.has_value())
         {
@@ -202,7 +232,7 @@ namespace
                 throw std::logic_error("A patrolling NPC is missing its patrol");
             }
             simple_platformer::Patrol& patrol = *actor.patrol;
-            followDestination(map, actor, patrolDestination(patrol));
+            followDestination(map, actor, patrolDestination(patrol), deltaTime);
             if (simple_platformer::pathComplete(*actor.pathFollower))
             {
                 patrol.headingToSecond = !patrol.headingToSecond;
@@ -224,7 +254,7 @@ namespace
             changeState(brain, simple_platformer::NpcState::Bite);
             return;
         }
-        followDestination(map, actor, brain.lastSeenTargetFeet);
+        followDestination(map, actor, brain.lastSeenTargetFeet, deltaTime);
     }
 }
 
@@ -254,7 +284,7 @@ namespace simple_platformer
             follower.repathRemaining = std::max(0.0F, follower.repathRemaining - deltaTime);
             if (actor.life == LifeState::Alive)
             {
-                updateNpcState(map, world, actor);
+                updateNpcState(map, world, actor, deltaTime);
                 brain.stateTime += deltaTime;
             }
         }

@@ -250,7 +250,7 @@ TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]
 
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Patrol);
     REQUIRE(patrol(world, npcId).headingToSecond);
-    REQUIRE(pathFollower(world, npcId).path.empty());
+    REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
 }
 
 TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
@@ -264,7 +264,7 @@ TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
     actor(world, npcId).patrol = simple_platformer::Patrol{{24.0F, 32.0F}, {120.0F, 32.0F}, true};
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE(pathFollower(world, npcId).path.empty());
+    REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
     REQUIRE(pathFollower(world, npcId).destination == simple_platformer::GridPosition{7, 1});
     REQUIRE_THAT(
         pathFollower(world, npcId).repathRemaining, Catch::Matchers::WithinAbs(0.25F, 0.0001F));

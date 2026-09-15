@@ -6,6 +6,8 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -78,4 +80,85 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
     REQUIRE(brain.target == playerId);
     REQUIRE(brain.state == simple_platformer::NpcState::Chase);
     REQUIRE(storedNpc->body.bounds.position.x > 16.0F);
+}
+
+TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulation]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"............................................................",
+         "............................................................",
+         "............................................................",
+         "............................................................",
+         "............................................................",
+         "............................................................",
+         "............................................................",
+         "............................................................",
+         "..................#######.................#######...........",
+         "............................................................",
+         "......#######...............................................",
+         "..............................#########..............#####..",
+         "............................................................",
+         "############################################################"});
+    simple_platformer::World world;
+
+    simple_platformer::Actor npc;
+    npc.body.bounds = {{450.0F, 196.0F}, {12.0F, 12.0F}};
+    npc.platformerMovement = simple_platformer::PlatformerMovement{};
+    npc.platformerMovement->grounded = true;
+    npc.health = simple_platformer::Health{3, 3};
+    npc.team = simple_platformer::Team::Enemy;
+    npc.bite = simple_platformer::BiteAttack{};
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.senses = simple_platformer::NpcSenses{};
+    npc.patrol = simple_platformer::Patrol{{456.0F, 208.0F}, {488.0F, 176.0F}, true};
+    npc.pathFollower = simple_platformer::PathFollower{};
+    const simple_platformer::ActorId npcId = world.addActor(npc);
+
+    bool enteredPatrol = false;
+    bool wasAirborne = false;
+    bool reachedUpperEndpoint = false;
+    bool switchedTowardLowerEndpoint = false;
+    bool returnedToLowerEndpoint = false;
+    int completedPatrolLegs = 0;
+    bool previousHeadingToSecond = true;
+    for (int tick = 0; tick < 1200 && completedPatrolLegs < 4; ++tick)
+    {
+        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+        const simple_platformer::Actor* storedNpc = world.findActor(npcId);
+        REQUIRE(storedNpc != nullptr);
+        if (!storedNpc->platformerMovement.has_value() || !storedNpc->brain.has_value() ||
+            !storedNpc->patrol.has_value())
+        {
+            throw std::logic_error("The test NPC is missing its patrol components");
+        }
+        const simple_platformer::PlatformerMovement& movement =
+            storedNpc->platformerMovement.value();
+        const simple_platformer::Patrol& patrol = storedNpc->patrol.value();
+        const simple_platformer::GridPosition cell =
+            simple_platformer::navigationCell(simple_platformer::feetOf(storedNpc->body.bounds));
+
+        enteredPatrol =
+            enteredPatrol || storedNpc->brain->state == simple_platformer::NpcState::Patrol;
+        wasAirborne = wasAirborne || !movement.grounded;
+        reachedUpperEndpoint =
+            reachedUpperEndpoint ||
+            (movement.grounded && cell == simple_platformer::GridPosition{30, 10});
+        switchedTowardLowerEndpoint =
+            switchedTowardLowerEndpoint || (reachedUpperEndpoint && !patrol.headingToSecond);
+        returnedToLowerEndpoint =
+            returnedToLowerEndpoint || (switchedTowardLowerEndpoint && movement.grounded &&
+                                        cell == simple_platformer::GridPosition{28, 12});
+        if (patrol.headingToSecond != previousHeadingToSecond)
+        {
+            ++completedPatrolLegs;
+            previousHeadingToSecond = patrol.headingToSecond;
+        }
+    }
+
+    REQUIRE(enteredPatrol);
+    REQUIRE(wasAirborne);
+    REQUIRE(reachedUpperEndpoint);
+    REQUIRE(switchedTowardLowerEndpoint);
+    REQUIRE(returnedToLowerEndpoint);
+    REQUIRE(completedPatrolLegs == 4);
 }

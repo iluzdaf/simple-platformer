@@ -144,7 +144,9 @@ namespace
             (!std::isfinite(actor.pathFollower->repathCooldown) ||
              actor.pathFollower->repathCooldown <= 0.0F ||
              !std::isfinite(actor.pathFollower->repathRemaining) ||
-             actor.pathFollower->repathRemaining < 0.0F))
+             actor.pathFollower->repathRemaining < 0.0F ||
+             !std::isfinite(actor.pathFollower->programElapsed) ||
+             actor.pathFollower->programElapsed < 0.0F))
         {
             throw std::invalid_argument("NPC path timing is invalid");
         }

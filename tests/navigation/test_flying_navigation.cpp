@@ -5,6 +5,7 @@
 
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/flying_navigation.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 TEST_CASE("Flying neighbors stay inside the map and avoid solid cells", "[navigation][flying]")
@@ -12,15 +13,20 @@ TEST_CASE("Flying neighbors stay inside the map and avoid solid cells", "[naviga
     const simple_platformer::TileMap map =
         simple_platformer::TileMap::fromAscii({"...", ".#.", "###"});
 
-    const std::vector<simple_platformer::GridPosition> neighbors =
+    const std::vector<simple_platformer::NavigationNeighbor> neighbors =
         simple_platformer::flyingNeighbors(map, {0, 0});
 
     REQUIRE(neighbors.size() == 2);
-    REQUIRE(
-        std::find(neighbors.begin(), neighbors.end(), simple_platformer::GridPosition{1, 0}) !=
-        neighbors.end());
-    REQUIRE(
-        std::find(neighbors.begin(), neighbors.end(), simple_platformer::GridPosition{0, 1}) !=
-        neighbors.end());
+    const auto hasDestination = [&neighbors](simple_platformer::GridPosition destination)
+    {
+        return std::find_if(
+                   neighbors.begin(),
+                   neighbors.end(),
+                   [destination](const simple_platformer::NavigationNeighbor& neighbor)
+                   { return neighbor.destination == destination; }) != neighbors.end();
+    };
+    REQUIRE(hasDestination({1, 0}));
+    REQUIRE(hasDestination({0, 1}));
+    REQUIRE(neighbors.front().traversal == simple_platformer::Traversal::Fly);
     REQUIRE(simple_platformer::flyingNeighbors(map, {1, 0}).size() == 2);
 }

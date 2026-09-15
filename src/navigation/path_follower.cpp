@@ -1,8 +1,9 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <stdexcept>
 #include <utility>
-#include <vector>
 
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
@@ -10,6 +11,35 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/physics/body.hpp"
+
+namespace
+{
+    constexpr float ArrivalDistance = 1.0F;
+
+    float directionTowards(float from, float to)
+    {
+        if (to < from)
+        {
+            return -1.0F;
+        }
+        return to > from ? 1.0F : 0.0F;
+    }
+
+    bool arrivedAt(
+        const simple_platformer::Body& body,
+        const simple_platformer::PlatformerMovement& movement,
+        simple_platformer::GridPosition destination)
+    {
+        const glm::vec2 target = simple_platformer::navigationFeet(destination);
+        const glm::vec2 feet = simple_platformer::feetOf(body.bounds);
+        return movement.grounded && std::abs(target.x - feet.x) <= ArrivalDistance &&
+               std::abs(target.y - feet.y) <= ArrivalDistance;
+    }
+}
 
 namespace simple_platformer
 {
@@ -27,36 +57,47 @@ namespace simple_platformer
             topLeft.y + static_cast<float>(TileSize)};
     }
 
-    void setPath(PathFollower& follower, std::vector<GridPosition> path, GridPosition destination)
+    void setPath(PathFollower& follower, NavigationPath path, GridPosition destination)
     {
-        if (path.empty())
+        if ((!path.steps.empty() && path.steps.back().destination != destination) ||
+            (path.steps.empty() && path.start != destination))
         {
-            throw std::invalid_argument("A path follower cannot follow an empty path");
+            throw std::invalid_argument("A navigation path does not reach its destination");
         }
         follower.path = std::move(path);
-        follower.nextStep = follower.path.size() > 1 ? 1 : follower.path.size();
+        follower.nextStep = 0;
+        follower.programElapsed = 0.0F;
         follower.destination = destination;
     }
 
     void clearPath(PathFollower& follower)
     {
-        follower.path.clear();
+        follower.path.reset();
         follower.nextStep = 0;
+        follower.programElapsed = 0.0F;
         follower.destination.reset();
     }
 
     bool pathComplete(const PathFollower& follower)
     {
-        return !follower.path.empty() && follower.nextStep >= follower.path.size();
+        return follower.path.has_value() && follower.nextStep >= follower.path->steps.size();
     }
 
     InputIntentions followFlyingPath(const Aabb& bounds, PathFollower& follower)
     {
-        constexpr float ArrivalDistance = 1.0F;
-        const glm::vec2 feet = feetOf(bounds);
-        while (follower.nextStep < follower.path.size())
+        if (!follower.path.has_value())
         {
-            const glm::vec2 offset = navigationFeet(follower.path[follower.nextStep]) - feet;
+            return {};
+        }
+        const glm::vec2 feet = feetOf(bounds);
+        while (follower.nextStep < follower.path->steps.size())
+        {
+            const NavigationStep& step = follower.path->steps[follower.nextStep];
+            if (step.traversal != Traversal::Fly)
+            {
+                throw std::invalid_argument("A flying actor requires flying path steps");
+            }
+            const glm::vec2 offset = navigationFeet(step.destination) - feet;
             if (glm::length(offset) > ArrivalDistance)
             {
                 InputIntentions intentions;
@@ -64,6 +105,89 @@ namespace simple_platformer
                 return intentions;
             }
             ++follower.nextStep;
+        }
+        return {};
+    }
+
+    InputIntentions followPlatformerPath(
+        Body& body,
+        const PlatformerMovement& movement,
+        PathFollower& follower,
+        float deltaTime)
+    {
+        if (!std::isfinite(deltaTime) || deltaTime <= 0.0F)
+        {
+            throw std::invalid_argument(
+                "Platformer path following requires a positive finite time step");
+        }
+        if (!follower.path.has_value())
+        {
+            return {};
+        }
+
+        while (follower.nextStep < follower.path->steps.size())
+        {
+            const NavigationStep& step = follower.path->steps[follower.nextStep];
+            if (step.traversal == Traversal::Fly)
+            {
+                throw std::invalid_argument("A platformer actor cannot follow a flying path step");
+            }
+
+            if (step.traversal == Traversal::Walk)
+            {
+                if (arrivedAt(body, movement, step.destination))
+                {
+                    ++follower.nextStep;
+                    continue;
+                }
+                InputIntentions intentions;
+                intentions.direction.x =
+                    directionTowards(feetOf(body.bounds).x, navigationFeet(step.destination).x);
+                return intentions;
+            }
+
+            if (step.inputs.empty())
+            {
+                throw std::invalid_argument("Jump and fall path steps require an input program");
+            }
+            if (follower.programElapsed == 0.0F)
+            {
+                const GridPosition takeoff =
+                    follower.nextStep == 0
+                        ? follower.path->start
+                        : follower.path->steps[follower.nextStep - 1].destination;
+                const glm::vec2 takeoffFeet = navigationFeet(takeoff);
+                const glm::vec2 actorFeet = feetOf(body.bounds);
+                if (!movement.grounded || std::abs(takeoffFeet.x - actorFeet.x) > ArrivalDistance)
+                {
+                    InputIntentions intentions;
+                    intentions.direction.x = directionTowards(actorFeet.x, takeoffFeet.x);
+                    return intentions;
+                }
+
+                // Temporary workaround: give the stored input program the exact position and
+                // velocity used when it was generated. Replace this snap with an explicit
+                // approach-and-brake preparation phase driven through normal movement.
+                placeFeetAt(body.bounds, takeoffFeet);
+                body.velocity.x = 0.0F;
+            }
+
+            const float programDuration = durationOf(step.inputs);
+            if (follower.programElapsed < programDuration)
+            {
+                const InputIntentions intentions =
+                    replayInput(step.inputs, follower.programElapsed);
+                follower.programElapsed =
+                    std::min(programDuration, follower.programElapsed + deltaTime);
+                return intentions;
+            }
+            if (movement.grounded && navigationCell(feetOf(body.bounds)) == step.destination)
+            {
+                ++follower.nextStep;
+                follower.programElapsed = 0.0F;
+                continue;
+            }
+            return {};
         }
         return {};
     }

@@ -140,7 +140,7 @@ namespace
     simple_platformer::Actor makeBitingNpc(int textureId)
     {
         simple_platformer::Actor npc;
-        npc.body = {{{176.0F, 196.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+        npc.body = {{{450.0F, 196.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
         npc.platformerMovement = simple_platformer::PlatformerMovement{};
         npc.platformerMovement->grounded = true;
         npc.facing = simple_platformer::Facing::Left;
@@ -150,6 +150,10 @@ namespace
         npc.health = simple_platformer::Health{3, 3};
         npc.team = simple_platformer::Team::Enemy;
         npc.bite = simple_platformer::BiteAttack{};
+        npc.brain = simple_platformer::NpcBrain{};
+        npc.senses = simple_platformer::NpcSenses{};
+        npc.patrol = simple_platformer::Patrol{{456.0F, 208.0F}, {488.0F, 176.0F}, true};
+        npc.pathFollower = simple_platformer::PathFollower{};
         return npc;
     }
 
@@ -159,10 +163,7 @@ namespace
         npc.body.bounds.position = {170.0F, 132.0F};
         npc.platformerMovement.reset();
         npc.flyingMovement = simple_platformer::FlyingMovement{};
-        npc.brain = simple_platformer::NpcBrain{};
-        npc.senses = simple_platformer::NpcSenses{};
         npc.patrol = simple_platformer::Patrol{{176.0F, 144.0F}, {248.0F, 96.0F}, true};
-        npc.pathFollower = simple_platformer::PathFollower{};
         return npc;
     }
 }
@@ -173,6 +174,7 @@ namespace simple_platformer
     {
         const ActorId player = world.addActor(makePlayer(textureId));
         world.setPlayer(player, {38.0F, 208.0F});
+        world.addActor(makeBitingNpc(textureId));
         world.addActor(makeFlyingNpc(textureId));
     }
 

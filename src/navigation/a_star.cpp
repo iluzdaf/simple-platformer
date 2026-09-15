@@ -5,9 +5,11 @@
 #include <cstdlib>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
 
 namespace
 {
@@ -16,7 +18,8 @@ namespace
         simple_platformer::GridPosition position;
         int costFromStart = 0;
         int estimatedTotalCost = 0;
-        std::optional<simple_platformer::GridPosition> parent;
+        std::optional<std::size_t> parent;
+        std::optional<simple_platformer::NavigationNeighbor> connectionFromParent;
         bool closed = false;
     };
 
@@ -60,30 +63,32 @@ namespace
         return cheapest;
     }
 
-    std::vector<simple_platformer::GridPosition> reconstructPath(
+    simple_platformer::NavigationPath reconstructPath(
         const std::vector<SearchNode>& nodes,
-        simple_platformer::GridPosition goal)
+        std::size_t goalIndex)
     {
-        std::vector<simple_platformer::GridPosition> path;
-        simple_platformer::GridPosition current = goal;
-        while (true)
+        std::vector<simple_platformer::NavigationStep> steps;
+        std::size_t current = goalIndex;
+        while (nodes[current].parent.has_value())
         {
-            path.push_back(current);
-            const std::optional<std::size_t> node = findNode(nodes, current);
-            if (!node.has_value() || !nodes[node.value_or(0)].parent.has_value())
+            const SearchNode& currentNode = nodes[current];
+            if (!currentNode.connectionFromParent.has_value())
             {
-                break;
+                throw std::logic_error("An A* node is missing its incoming connection");
             }
-            current = nodes[node.value_or(0)].parent.value_or(current);
+            const simple_platformer::NavigationNeighbor connection =
+                currentNode.connectionFromParent.value_or(simple_platformer::NavigationNeighbor{});
+            steps.push_back({connection.destination, connection.traversal, connection.inputs});
+            current = currentNode.parent.value_or(0);
         }
-        std::reverse(path.begin(), path.end());
-        return path;
+        std::reverse(steps.begin(), steps.end());
+        return {nodes[current].position, std::move(steps)};
     }
 }
 
 namespace simple_platformer
 {
-    std::optional<std::vector<GridPosition>> findGridPath(
+    std::optional<NavigationPath> findGridPath(
         GridPosition start,
         GridPosition goal,
         const GridNeighborFunction& neighbors)
@@ -94,7 +99,7 @@ namespace simple_platformer
         }
 
         std::vector<SearchNode> nodes{
-            {start, 0, estimatedDistance(start, goal), std::nullopt, false}};
+            {start, 0, estimatedDistance(start, goal), std::nullopt, std::nullopt, false}};
         while (true)
         {
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);
@@ -103,36 +108,47 @@ namespace simple_platformer
                 return std::nullopt;
             }
 
-            SearchNode& currentNode = nodes[currentIndex.value_or(0)];
+            SearchNode& currentNode = nodes[currentIndex.value()];
             if (currentNode.position == goal)
             {
-                return reconstructPath(nodes, goal);
+                return reconstructPath(nodes, currentIndex.value());
             }
 
             const GridPosition currentPosition = currentNode.position;
-            const int nextCost = currentNode.costFromStart + 1;
+            const int costFromStart = currentNode.costFromStart;
             currentNode.closed = true;
 
-            for (const GridPosition neighbor : neighbors(currentPosition))
+            for (const NavigationNeighbor& neighbor : neighbors(currentPosition))
             {
-                const std::optional<std::size_t> existingIndex = findNode(nodes, neighbor);
+                const int minimumCost = estimatedDistance(currentPosition, neighbor.destination);
+                if (neighbor.cost <= 0 || neighbor.cost < minimumCost)
+                {
+                    throw std::invalid_argument(
+                        "Navigation connection cost cannot be below its grid distance");
+                }
+                const int nextCost = costFromStart + neighbor.cost;
+                const std::optional<std::size_t> existingIndex =
+                    findNode(nodes, neighbor.destination);
                 if (!existingIndex.has_value())
                 {
                     nodes.push_back(
-                        {neighbor,
+                        {neighbor.destination,
                          nextCost,
-                         nextCost + estimatedDistance(neighbor, goal),
-                         currentPosition,
+                         nextCost + estimatedDistance(neighbor.destination, goal),
+                         currentIndex,
+                         neighbor,
                          false});
                     continue;
                 }
 
-                SearchNode& existing = nodes[existingIndex.value_or(0)];
+                SearchNode& existing = nodes[existingIndex.value()];
                 if (!existing.closed && nextCost < existing.costFromStart)
                 {
                     existing.costFromStart = nextCost;
-                    existing.estimatedTotalCost = nextCost + estimatedDistance(neighbor, goal);
-                    existing.parent = currentPosition;
+                    existing.estimatedTotalCost =
+                        nextCost + estimatedDistance(neighbor.destination, goal);
+                    existing.parent = currentIndex;
+                    existing.connectionFromParent = neighbor;
                 }
             }
         }

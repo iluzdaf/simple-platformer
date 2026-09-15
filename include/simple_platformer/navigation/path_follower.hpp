@@ -2,21 +2,24 @@
 
 #include <cstddef>
 #include <optional>
-#include <vector>
 
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
 
 namespace simple_platformer
 {
     struct Aabb;
+    struct Body;
     struct InputIntentions;
+    struct PlatformerMovement;
 
     struct PathFollower
     {
-        std::vector<GridPosition> path;
+        std::optional<NavigationPath> path;
         std::size_t nextStep = 0;
+        float programElapsed = 0.0F;
         std::optional<GridPosition> destination;
         float repathCooldown = 0.25F;
         float repathRemaining = 0.0F;
@@ -24,8 +27,13 @@ namespace simple_platformer
 
     GridPosition navigationCell(glm::vec2 feet);
     glm::vec2 navigationFeet(GridPosition cell);
-    void setPath(PathFollower& follower, std::vector<GridPosition> path, GridPosition destination);
+    void setPath(PathFollower& follower, NavigationPath path, GridPosition destination);
     void clearPath(PathFollower& follower);
     bool pathComplete(const PathFollower& follower);
     InputIntentions followFlyingPath(const Aabb& bounds, PathFollower& follower);
+    InputIntentions followPlatformerPath(
+        Body& body,
+        const PlatformerMovement& movement,
+        PathFollower& follower,
+        float deltaTime);
 }

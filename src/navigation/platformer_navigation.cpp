@@ -116,7 +116,53 @@ namespace
         return std::nullopt;
     }
 
-    std::optional<simple_platformer::NavigationNeighbor> simulateTraversal(
+    bool touchesHorizontalMapEdge(
+        const simple_platformer::TileMap& map,
+        const simple_platformer::Aabb& bounds,
+        float direction)
+    {
+        constexpr float WallTolerance = 0.001F;
+        return (direction < 0.0F && bounds.position.x <= WallTolerance) ||
+               (direction > 0.0F &&
+                bounds.position.x + bounds.size.x >= map.pixelWidth() - WallTolerance);
+    }
+
+    simple_platformer::InputIntentions makeTraversalIntentions(
+        simple_platformer::Traversal traversal,
+        float direction,
+        int tick,
+        int jumpHoldTicks,
+        bool hasLanded)
+    {
+        simple_platformer::InputIntentions intentions;
+        intentions.direction.x = hasLanded ? 0.0F : direction;
+        if (traversal == simple_platformer::Traversal::Jump && !hasLanded)
+        {
+            intentions.jumpPressed = tick == 0;
+            intentions.jumpHeld = tick < jumpHoldTicks;
+        }
+        return intentions;
+    }
+
+    std::optional<simple_platformer::GridPosition> tryFindLandingCell(
+        const simple_platformer::TileMap& map,
+        simple_platformer::GridPosition start,
+        const simple_platformer::Aabb& bounds,
+        glm::vec2 bodySize)
+    {
+        const simple_platformer::GridPosition destination =
+            simple_platformer::navigationCell(simple_platformer::feetOf(bounds));
+        if (destination == start || !simple_platformer::canStandAt(map, destination, bodySize))
+        {
+            return std::nullopt;
+        }
+        return destination;
+    }
+
+    // Simulates leaving the ground, landing on another standable cell, and braking
+    // to a stop. Returns the connection and its recorded inputs, or nullopt when the
+    // traversal cannot complete within the connection simulation limit.
+    std::optional<simple_platformer::NavigationNeighbor> trySimulateAirborneConnection(
         const simple_platformer::TileMap& map,
         simple_platformer::GridPosition start,
         glm::vec2 bodySize,
@@ -135,21 +181,13 @@ namespace
 
         for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
         {
-            constexpr float WallTolerance = 0.001F;
-            if ((direction < 0.0F && body.bounds.position.x <= WallTolerance) ||
-                (direction > 0.0F &&
-                 body.bounds.position.x + body.bounds.size.x >= map.pixelWidth() - WallTolerance))
+            if (touchesHorizontalMapEdge(map, body.bounds, direction))
             {
                 return std::nullopt;
             }
 
-            simple_platformer::InputIntentions intentions;
-            intentions.direction.x = landing.has_value() ? 0.0F : direction;
-            if (traversal == simple_platformer::Traversal::Jump && !landing.has_value())
-            {
-                intentions.jumpPressed = tick == 0;
-                intentions.jumpHeld = tick < jumpHoldTicks;
-            }
+            const simple_platformer::InputIntentions intentions = makeTraversalIntentions(
+                traversal, direction, tick, jumpHoldTicks, landing.has_value());
             recordSimulationInput(program, intentions);
             simple_platformer::updatePlatformerMovement(
                 map, body, movement, intentions, facing, SimulationStep);
@@ -160,27 +198,26 @@ namespace
                 continue;
             }
 
-            const simple_platformer::GridPosition destination =
-                simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds));
             if (!landing.has_value())
             {
-                if (destination == start ||
-                    !simple_platformer::canStandAt(map, destination, bodySize))
+                landing = tryFindLandingCell(map, start, body.bounds, bodySize);
+                if (!landing.has_value())
                 {
                     return std::nullopt;
                 }
-                landing = destination;
             }
             if (body.velocity.x != 0.0F)
             {
                 continue;
             }
-            if (destination != landing.value_or(start))
+            const simple_platformer::GridPosition stoppedCell =
+                simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds));
+            if (stoppedCell != landing.value())
             {
                 return std::nullopt;
             }
             const int ticks = tick + 1;
-            return simple_platformer::NavigationNeighbor{destination, traversal, ticks, program};
+            return simple_platformer::NavigationNeighbor{stoppedCell, traversal, ticks, program};
         }
         return std::nullopt;
     }
@@ -300,7 +337,7 @@ namespace simple_platformer
             }
             else
             {
-                const std::optional<NavigationNeighbor> fall = simulateTraversal(
+                const std::optional<NavigationNeighbor> fall = trySimulateAirborneConnection(
                     map,
                     position,
                     bodySize,
@@ -317,7 +354,7 @@ namespace simple_platformer
             constexpr std::array<int, 2> JumpHoldTicks{1, MaximumConnectionSimulationTicks};
             for (const int holdTicks : JumpHoldTicks)
             {
-                const std::optional<NavigationNeighbor> jump = simulateTraversal(
+                const std::optional<NavigationNeighbor> jump = trySimulateAirborneConnection(
                     map,
                     position,
                     bodySize,

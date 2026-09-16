@@ -13,6 +13,7 @@
 #include <imgui.h>
 
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 
@@ -55,6 +56,25 @@ namespace
             return "Chase";
         case NpcState::Bite:
             return "Bite";
+        }
+
+        return "Unknown";
+    }
+
+    const char* nameOf(simple_platformer::Traversal traversal)
+    {
+        using simple_platformer::Traversal;
+
+        switch (traversal)
+        {
+        case Traversal::Fly:
+            return "Fly";
+        case Traversal::Walk:
+            return "Walk";
+        case Traversal::Fall:
+            return "Fall";
+        case Traversal::Jump:
+            return "Jump";
         }
 
         return "Unknown";
@@ -137,30 +157,150 @@ namespace
         drawList.AddRect(minimum, maximum, colour, 0.0F, 0, 2.0F);
     }
 
+    ImU32 pathColour(const simple_platformer::PathConnectionDebugInfo& connection)
+    {
+        if (connection.completed)
+        {
+            return IM_COL32(128, 128, 128, 180);
+        }
+
+        using simple_platformer::Traversal;
+        switch (connection.traversal)
+        {
+        case Traversal::Fly:
+            return IM_COL32(64, 224, 255, 255);
+        case Traversal::Walk:
+            return IM_COL32(80, 224, 96, 255);
+        case Traversal::Fall:
+            return IM_COL32(255, 160, 64, 255);
+        case Traversal::Jump:
+            return IM_COL32(224, 80, 255, 255);
+        }
+
+        return IM_COL32(255, 255, 255, 255);
+    }
+
+    void drawActorPath(
+        ImDrawList& drawList,
+        const simple_platformer::ActorDebugInfo& actor,
+        const simple_platformer::ActorDebugScene& scene,
+        const GameViewport& viewport)
+    {
+        if (!actor.pathFollower.has_value())
+        {
+            return;
+        }
+
+        const simple_platformer::PathFollowerDebugInfo& follower = actor.pathFollower.value();
+        for (const simple_platformer::PathConnectionDebugInfo& connection : follower.connections)
+        {
+            const ImVec2 from = screenPosition(connection.fromFeet, scene, viewport);
+            const ImVec2 to = screenPosition(connection.toFeet, scene, viewport);
+            const ImU32 colour = pathColour(connection);
+            const float thickness = connection.next ? 3.0F : 2.0F;
+            if (connection.sampledFeet.size() >= 2)
+            {
+                for (std::size_t index = 1; index < connection.sampledFeet.size(); ++index)
+                {
+                    drawList.AddLine(
+                        screenPosition(connection.sampledFeet[index - 1], scene, viewport),
+                        screenPosition(connection.sampledFeet[index], scene, viewport),
+                        colour,
+                        thickness);
+                }
+            }
+            else
+            {
+                drawList.AddLine(from, to, colour, thickness);
+            }
+            drawList.AddCircleFilled(to, connection.next ? 4.0F : 3.0F, colour);
+
+            if (connection.next)
+            {
+                const glm::vec2 labelWorldPosition =
+                    connection.sampledFeet.empty()
+                        ? (connection.fromFeet + connection.toFeet) * 0.5F
+                        : connection.sampledFeet[connection.sampledFeet.size() / 2];
+                const ImVec2 labelPosition = screenPosition(labelWorldPosition, scene, viewport);
+                const char* traversalName = nameOf(connection.traversal);
+                drawList.AddText(
+                    {labelPosition.x + 1.0F, labelPosition.y + 1.0F},
+                    IM_COL32(0, 0, 0, 220),
+                    traversalName);
+                drawList.AddText(labelPosition, colour, traversalName);
+                drawList.AddLine(
+                    screenPosition(simple_platformer::feetOf(actor.collider), scene, viewport),
+                    to,
+                    IM_COL32(255, 255, 255, 220));
+            }
+        }
+    }
+
+    void drawActorWorldLabel(
+        ImDrawList& drawList,
+        const simple_platformer::ActorDebugInfo& actor,
+        const simple_platformer::ActorDebugScene& scene,
+        const GameViewport& viewport)
+    {
+        const glm::vec2 labelWorldPosition =
+            actor.sprite.has_value() ? actor.sprite->bounds.position : actor.collider.position;
+        ImVec2 labelPosition = screenPosition(labelWorldPosition, scene, viewport);
+        const float lineHeight = ImGui::GetTextLineHeight();
+        const std::string actorLabel = labelFor(actor);
+        drawList.AddText(labelPosition, IM_COL32(255, 255, 255, 255), actorLabel.c_str());
+
+        if (actor.animation.has_value())
+        {
+            labelPosition.y += lineHeight;
+            drawList.AddText(
+                labelPosition, IM_COL32(255, 255, 255, 255), nameOf(actor.animation.value()));
+        }
+        if (actor.npcState.has_value())
+        {
+            labelPosition.y += lineHeight;
+            drawList.AddText(
+                labelPosition, IM_COL32(255, 255, 255, 255), nameOf(actor.npcState.value()));
+        }
+    }
+
     void drawActorWindow(const simple_platformer::ActorDebugInfo& actor, std::size_t index)
     {
+        constexpr float WindowWidth = 180.0F;
+        constexpr float WindowHeight = 120.0F;
+        constexpr float WindowMargin = 8.0F;
+        constexpr float WindowGap = 8.0F;
         constexpr ImGuiWindowFlags Flags =
-            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-            ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
-            ImGuiWindowFlags_NoNav;
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
         const std::string label = labelFor(actor);
         const std::string windowName =
             label + " debug###actor-debug-" + std::to_string(actor.id.value);
-        const float windowX = 8.0F + static_cast<float>(index) * 220.0F;
+        const float windowX = WindowMargin + static_cast<float>(index) * (WindowWidth + WindowGap);
 
-        ImGui::SetNextWindowPos({windowX, 8.0F}, ImGuiCond_Always);
-        ImGui::SetNextWindowBgAlpha(0.75F);
+        ImGui::SetNextWindowPos({windowX, WindowMargin}, ImGuiCond_Always);
+        ImGui::SetNextWindowSize({WindowWidth, WindowHeight}, ImGuiCond_Always);
+        ImGui::SetNextWindowBgAlpha(0.3F);
         if (ImGui::Begin(windowName.c_str(), nullptr, Flags))
         {
-            ImGui::Text("%s", label.c_str());
             ImGui::Text("pos: %.1f, %.1f", actor.collider.position.x, actor.collider.position.y);
-            if (actor.animation.has_value())
+            if (actor.pathFollower.has_value())
             {
-                ImGui::Text("animation: %s", nameOf(*actor.animation));
-            }
-            if (actor.npcState.has_value())
-            {
-                ImGui::Text("state: %s", nameOf(*actor.npcState));
+                const simple_platformer::PathFollowerDebugInfo& follower =
+                    actor.pathFollower.value();
+                if (follower.hasPath)
+                {
+                    ImGui::Text("path: %zu / %zu", follower.nextStep, follower.stepCount);
+                }
+                else
+                {
+                    ImGui::Text("path: none");
+                }
+                if (follower.destination.has_value())
+                {
+                    ImGui::Text(
+                        "destination: %d, %d", follower.destination->x, follower.destination->y);
+                }
+                ImGui::Text("repath: %.2f", follower.repathRemaining);
             }
             if (actor.sprite.has_value())
             {
@@ -169,20 +309,7 @@ namespace
                     actor.sprite->atlasFrame,
                     actor.sprite->atlasPosition.x,
                     actor.sprite->atlasPosition.y);
-                ImGui::Text(
-                    "sprite: %.1f, %.1f  %.0f x %.0f",
-                    actor.sprite->bounds.position.x,
-                    actor.sprite->bounds.position.y,
-                    actor.sprite->bounds.size.x,
-                    actor.sprite->bounds.size.y);
             }
-            ImGui::TextColored(
-                {1.0F, 0.25F, 0.25F, 1.0F},
-                "collider: %.1f, %.1f  %.0f x %.0f",
-                actor.collider.position.x,
-                actor.collider.position.y,
-                actor.collider.size.x,
-                actor.collider.size.y);
         }
         ImGui::End();
     }
@@ -221,6 +348,8 @@ namespace simple_platformer
                 continue;
             }
 
+            drawActorPath(*drawList, actor, scene, *viewport);
+
             if (actor.sprite.has_value())
             {
                 drawWorldBounds(
@@ -229,11 +358,8 @@ namespace simple_platformer
                     scene,
                     *viewport,
                     IM_COL32(255, 255, 255, 255));
-                const ImVec2 labelPosition =
-                    screenPosition(actor.sprite->bounds.position, scene, *viewport);
-                drawList->AddText(
-                    labelPosition, IM_COL32(255, 255, 255, 255), labelFor(actor).c_str());
             }
+            drawActorWorldLabel(*drawList, actor, scene, *viewport);
             drawWorldBounds(
                 *drawList, actor.collider, scene, *viewport, IM_COL32(255, 64, 64, 255));
         }

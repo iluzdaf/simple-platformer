@@ -8,10 +8,13 @@
 
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
 
 namespace simple_platformer
 {
     class World;
+    class TileMap;
     struct CameraController;
     enum class AnimationName;
     enum class NpcState;
@@ -30,6 +33,26 @@ namespace simple_platformer
         glm::vec2 atlasPosition = {0.0F, 0.0F};
     };
 
+    struct PathConnectionDebugInfo
+    {
+        glm::vec2 fromFeet = {0.0F, 0.0F};
+        glm::vec2 toFeet = {0.0F, 0.0F};
+        Traversal traversal = Traversal::Fly;
+        bool completed = false;
+        bool next = false;
+        std::vector<glm::vec2> sampledFeet;
+    };
+
+    struct PathFollowerDebugInfo
+    {
+        bool hasPath = false;
+        std::size_t nextStep = 0;
+        std::size_t stepCount = 0;
+        std::optional<GridPosition> destination;
+        float repathRemaining = 0.0F;
+        std::vector<PathConnectionDebugInfo> connections;
+    };
+
     struct ActorDebugInfo
     {
         ActorId id;
@@ -38,6 +61,7 @@ namespace simple_platformer
         std::optional<ActorSpriteDebugInfo> sprite;
         std::optional<AnimationName> animation;
         std::optional<NpcState> npcState;
+        std::optional<PathFollowerDebugInfo> pathFollower;
     };
 
     struct ActorDebugScene
@@ -49,6 +73,7 @@ namespace simple_platformer
 
     ActorDebugScene makeActorDebugScene(
         const World& world,
+        const TileMap& map,
         const CameraController& cameraController,
         float atlasWidth);
 }

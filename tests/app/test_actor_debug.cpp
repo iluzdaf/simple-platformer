@@ -1,19 +1,25 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <stdexcept>
+#include <vector>
 
 #include <glm/vec2.hpp>
 
 #include "actor_debug.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "simple_platformer/world/tile_map.hpp"
 
 TEST_CASE("Actor debug data supports actors without presentation components", "[app][debug]")
 {
@@ -23,11 +29,12 @@ TEST_CASE("Actor debug data supports actors without presentation components", "[
 
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(actor);
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "####"});
     const simple_platformer::Camera camera{{4.0F, 5.0F}, {320.0F, 180.0F}};
     const simple_platformer::CameraController cameraController{camera, {80.0F, 40.0F}};
 
     const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, cameraController, 128.0F);
+        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
 
     REQUIRE(debug.cameraBounds.position == camera.position);
     REQUIRE(debug.cameraBounds.size == camera.viewportSize);
@@ -41,6 +48,7 @@ TEST_CASE("Actor debug data supports actors without presentation components", "[
     REQUIRE_FALSE(debug.actors.front().sprite.has_value());
     REQUIRE_FALSE(debug.actors.front().animation.has_value());
     REQUIRE_FALSE(debug.actors.front().npcState.has_value());
+    REQUIRE_FALSE(debug.actors.front().pathFollower.has_value());
 }
 
 TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][debug]")
@@ -70,11 +78,13 @@ TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][d
     const simple_platformer::ActorId playerId = world.addActor(player);
     const simple_platformer::ActorId npcId = world.addActor(npc);
     world.setPlayer(playerId, {38.0F, 208.0F});
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"......", "######"});
 
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
     const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, cameraController, 128.0F);
+        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
 
     REQUIRE(debug.actors.size() == 2);
     const simple_platformer::ActorDebugInfo& playerDebug = debug.actors.front();
@@ -92,15 +102,128 @@ TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][d
     REQUIRE(npcDebug.id == npcId);
     REQUIRE(npcDebug.kind == simple_platformer::ActorDebugKind::Npc);
     REQUIRE(npcDebug.npcState == simple_platformer::NpcState::Chase);
+    REQUIRE(npcDebug.pathFollower.has_value());
+    const simple_platformer::PathFollowerDebugInfo emptyPath =
+        npcDebug.pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});
+    REQUIRE_FALSE(emptyPath.hasPath);
+}
+
+TEST_CASE("Actor debug data describes path connections and progress", "[app][debug]")
+{
+    simple_platformer::PathFollower follower;
+    follower.path = simple_platformer::NavigationPath{
+        {1, 2},
+        {{{3, 2}, simple_platformer::Traversal::Walk, {}},
+         {{4, 1}, simple_platformer::Traversal::Jump, {}},
+         {{4, 3}, simple_platformer::Traversal::Fall, {}}}};
+    follower.nextStep = 1;
+    follower.destination = simple_platformer::GridPosition{4, 3};
+    follower.repathRemaining = 0.12F;
+
+    simple_platformer::Actor npc;
+    npc.body.bounds = {{16.0F, 32.0F}, {12.0F, 12.0F}};
+    npc.platformerMovement = simple_platformer::PlatformerMovement{};
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.senses = simple_platformer::NpcSenses{};
+    npc.pathFollower = follower;
+
+    simple_platformer::World world;
+    world.addActor(npc);
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"......", "######"});
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+
+    const simple_platformer::ActorDebugScene debug =
+        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+
+    REQUIRE(debug.actors.size() == 1);
+    REQUIRE(debug.actors.front().pathFollower.has_value());
+    const simple_platformer::PathFollowerDebugInfo path =
+        debug.actors.front().pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});
+    REQUIRE(path.hasPath);
+    REQUIRE(path.nextStep == 1);
+    REQUIRE(path.stepCount == 3);
+    REQUIRE(path.destination == simple_platformer::GridPosition{4, 3});
+    REQUIRE(path.repathRemaining == 0.12F);
+    REQUIRE(path.connections.size() == 3);
+
+    REQUIRE(path.connections[0].fromFeet == simple_platformer::navigationFeet({1, 2}));
+    REQUIRE(path.connections[0].toFeet == simple_platformer::navigationFeet({3, 2}));
+    REQUIRE(path.connections[0].traversal == simple_platformer::Traversal::Walk);
+    REQUIRE(path.connections[0].completed);
+    REQUIRE_FALSE(path.connections[0].next);
+
+    REQUIRE(path.connections[1].fromFeet == simple_platformer::navigationFeet({3, 2}));
+    REQUIRE(path.connections[1].toFeet == simple_platformer::navigationFeet({4, 1}));
+    REQUIRE(path.connections[1].traversal == simple_platformer::Traversal::Jump);
+    REQUIRE_FALSE(path.connections[1].completed);
+    REQUIRE(path.connections[1].next);
+
+    REQUIRE(path.connections[2].fromFeet == simple_platformer::navigationFeet({4, 1}));
+    REQUIRE(path.connections[2].toFeet == simple_platformer::navigationFeet({4, 3}));
+    REQUIRE(path.connections[2].traversal == simple_platformer::Traversal::Fall);
+    REQUIRE_FALSE(path.connections[2].completed);
+    REQUIRE_FALSE(path.connections[2].next);
+}
+
+TEST_CASE("Actor debug data samples the simulated jump curve", "[app][debug]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"..........", "....##....", "..........", "##########"});
+    const simple_platformer::PlatformerMovementConfig movementConfig;
+    const std::vector<simple_platformer::NavigationNeighbor> neighbors =
+        simple_platformer::platformerNeighbors(map, {2, 2}, {12.0F, 12.0F}, movementConfig);
+    const auto jump = std::find_if(
+        neighbors.begin(),
+        neighbors.end(),
+        [](const simple_platformer::NavigationNeighbor& neighbor)
+        { return neighbor.traversal == simple_platformer::Traversal::Jump; });
+    if (jump == neighbors.end())
+    {
+        throw std::logic_error("The test map did not produce a jump connection");
+    }
+
+    simple_platformer::Actor npc;
+    npc.body.bounds = {{0.0F, 0.0F}, {12.0F, 12.0F}};
+    npc.platformerMovement = simple_platformer::PlatformerMovement{movementConfig};
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.senses = simple_platformer::NpcSenses{};
+    npc.pathFollower = simple_platformer::PathFollower{
+        simple_platformer::NavigationPath{
+            {2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},
+        0,
+        0.0F,
+        jump->destination};
+
+    simple_platformer::World world;
+    world.addActor(npc);
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+
+    const simple_platformer::ActorDebugScene debug =
+        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+    const simple_platformer::PathFollowerDebugInfo path =
+        debug.actors.front().pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});
+
+    REQUIRE(path.connections.size() == 1);
+    REQUIRE(path.connections.front().sampledFeet.size() > 2);
+    const float takeoffY = simple_platformer::navigationFeet({2, 2}).y;
+    const bool risesAboveTakeoff = std::any_of(
+        path.connections.front().sampledFeet.begin(),
+        path.connections.front().sampledFeet.end(),
+        [takeoffY](glm::vec2 feet) { return feet.y < takeoffY; });
+    REQUIRE(risesAboveTakeoff);
 }
 
 TEST_CASE("Actor debug data rejects an invalid atlas width", "[app][debug]")
 {
     const simple_platformer::World world;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "####"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
     REQUIRE_THROWS_AS(
-        simple_platformer::makeActorDebugScene(world, cameraController, 0.0F),
+        simple_platformer::makeActorDebugScene(world, map, cameraController, 0.0F),
         std::invalid_argument);
 }

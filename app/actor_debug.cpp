@@ -3,17 +3,25 @@
 #include <cmath>
 #include <cstddef>
 #include <stdexcept>
+#include <vector>
 
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "simple_platformer/timing/fixed_step.hpp"
+#include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace
@@ -58,12 +66,88 @@ namespace
             static_cast<std::size_t>(sprite.region.position.y / sprite.region.size.y);
         return {bounds, atlasRow * atlasColumns + atlasColumn + 1, sprite.region.position};
     }
+
+    std::vector<glm::vec2> sampleAirborneTraversal(
+        const simple_platformer::Actor& actor,
+        const simple_platformer::TileMap& map,
+        simple_platformer::GridPosition start,
+        const simple_platformer::NavigationStep& step)
+    {
+        if ((step.traversal != simple_platformer::Traversal::Jump &&
+             step.traversal != simple_platformer::Traversal::Fall) ||
+            step.inputs.empty() || !actor.platformerMovement.has_value())
+        {
+            return {};
+        }
+
+        constexpr float SimulationStep = static_cast<float>(simple_platformer::FixedDeltaSeconds);
+        simple_platformer::Body body;
+        body.bounds.size = actor.body.bounds.size;
+        simple_platformer::placeFeetAt(body.bounds, simple_platformer::navigationFeet(start));
+        simple_platformer::PlatformerMovement movement{
+            actor.platformerMovement->config, true, 0.0F, 0.0F};
+        simple_platformer::Facing facing = step.destination.x < start.x
+                                               ? simple_platformer::Facing::Left
+                                               : simple_platformer::Facing::Right;
+        std::vector<glm::vec2> sampledFeet;
+        sampledFeet.push_back(simple_platformer::feetOf(body.bounds));
+
+        for (const simple_platformer::InputStep& input : step.inputs)
+        {
+            const long ticks = std::lround(input.duration / SimulationStep);
+            for (long tick = 0; tick < ticks; ++tick)
+            {
+                simple_platformer::updatePlatformerMovement(
+                    map, body, movement, input.intentions, facing, SimulationStep);
+                sampledFeet.push_back(simple_platformer::feetOf(body.bounds));
+            }
+        }
+        return sampledFeet;
+    }
+
+    simple_platformer::PathFollowerDebugInfo pathFollowerDebugInfo(
+        const simple_platformer::Actor& actor,
+        const simple_platformer::TileMap& map,
+        const simple_platformer::PathFollower& follower)
+    {
+        simple_platformer::PathFollowerDebugInfo info;
+        info.destination = follower.destination;
+        info.repathRemaining = follower.repathRemaining;
+        if (!follower.path.has_value())
+        {
+            return info;
+        }
+
+        info.hasPath = true;
+        info.nextStep = follower.nextStep;
+        info.stepCount = follower.path->steps.size();
+        info.connections.reserve(info.stepCount);
+
+        simple_platformer::GridPosition fromCell = follower.path->start;
+        glm::vec2 from = simple_platformer::navigationFeet(fromCell);
+        for (std::size_t index = 0; index < follower.path->steps.size(); ++index)
+        {
+            const simple_platformer::NavigationStep& step = follower.path->steps[index];
+            const glm::vec2 to = simple_platformer::navigationFeet(step.destination);
+            info.connections.push_back(
+                {from,
+                 to,
+                 step.traversal,
+                 index < follower.nextStep,
+                 index == follower.nextStep,
+                 sampleAirborneTraversal(actor, map, fromCell, step)});
+            fromCell = step.destination;
+            from = to;
+        }
+        return info;
+    }
 }
 
 namespace simple_platformer
 {
     ActorDebugScene makeActorDebugScene(
         const World& world,
+        const TileMap& map,
         const CameraController& cameraController,
         float atlasWidth)
     {
@@ -98,6 +182,10 @@ namespace simple_platformer
             if (actor.brain.has_value())
             {
                 info.npcState = actor.brain->state;
+            }
+            if (actor.pathFollower.has_value())
+            {
+                info.pathFollower = pathFollowerDebugInfo(actor, map, actor.pathFollower.value());
             }
             scene.actors.push_back(info);
         }

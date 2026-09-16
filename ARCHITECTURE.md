@@ -659,8 +659,12 @@ drawn after the internally scaled game image so HUD and inventory remain crisp a
 window resolution. The example application's F1 key toggles app-only actor debugging:
 each player or NPC gets a separate ImGui window, while white sprite bounds and red
 collision bounds are drawn over the game. Cyan camera bounds and the yellow camera dead
-zone are also shown. The reusable debug-data builder stays separate from the GLFW/ImGui
-presentation code so it can be tested without a window.
+zone are also shown. NPC paths are drawn as coloured connections: green for walking,
+magenta for jumping, orange for falling, and cyan for flying. Completed connections are
+grey and the next connection is thicker. Jump and fall connections replay their stored
+fixed-step input programs through the real movement and collision code, so their debug
+lines show the planned physical trajectory. The reusable debug-data builder stays
+separate from the GLFW/ImGui presentation code so it can be tested without a window.
 
 ## Loading and errors
 

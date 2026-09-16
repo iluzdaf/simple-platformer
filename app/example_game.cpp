@@ -244,7 +244,7 @@ namespace simple_platformer
     ActorDebugScene ExampleGame::actorDebugScene() const
     {
         constexpr float AtlasWidth = 160.0F;
-        return makeActorDebugScene(world, cameraControllerValue(), AtlasWidth);
+        return makeActorDebugScene(world, map, cameraControllerValue(), AtlasWidth);
     }
 
     Camera ExampleGame::currentCamera() const

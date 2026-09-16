@@ -1,4 +1,5 @@
 #include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
@@ -198,15 +199,7 @@ TEST_CASE(
         {"..........", "..........", "..........", "....###...", "..........", "##########"});
     // The bat must rise beside the platform before turning over its top edge.
     // Both endpoints are reachable with ample clearance for its 12 x 8 body.
-    glm::vec2 lowerFeet;
-    SECTION("Around the left corner")
-    {
-        lowerFeet = {56.0F, 80.0F};
-    }
-    SECTION("Around the right corner")
-    {
-        lowerFeet = {120.0F, 80.0F};
-    }
+    const glm::vec2 lowerFeet = GENERATE(glm::vec2{56.0F, 80.0F}, glm::vec2{120.0F, 80.0F});
     const glm::vec2 upperFeet{88.0F, 48.0F};
 
     simple_platformer::Actor bat;

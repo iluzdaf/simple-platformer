@@ -19,6 +19,8 @@ namespace simple_platformer
         glm::vec2 size = {0.0F, 0.0F};
         SpriteRegion source;
         bool flipHorizontal = false;
+        // Clockwise rotation around the sprite centre.
+        float rotationRadians = 0.0F;
     };
 
     struct RenderScene

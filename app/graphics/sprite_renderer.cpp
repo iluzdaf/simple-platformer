@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
@@ -9,6 +10,7 @@
 #include <vector>
 
 #include <glad/glad.h>
+#include <glm/vec2.hpp>
 #include <stb_image.h>
 
 #include "graphics/display_viewport.hpp"
@@ -17,6 +19,39 @@
 
 namespace
 {
+    glm::vec2 rotatedCorner(glm::vec2 centre, glm::vec2 offset, float cosine, float sine)
+    {
+        return {
+            centre.x + offset.x * cosine - offset.y * sine,
+            centre.y + offset.x * sine + offset.y * cosine};
+    }
+
+    std::array<float, 12> spritePositions(const simple_platformer::SpriteDrawCommand& command)
+    {
+        const glm::vec2 halfSize = command.size * 0.5F;
+        const glm::vec2 centre = command.position + halfSize;
+        const float cosine = std::cos(command.rotationRadians);
+        const float sine = std::sin(command.rotationRadians);
+
+        const glm::vec2 topLeft = rotatedCorner(centre, -halfSize, cosine, sine);
+        const glm::vec2 bottomLeft = rotatedCorner(centre, {-halfSize.x, halfSize.y}, cosine, sine);
+        const glm::vec2 bottomRight = rotatedCorner(centre, halfSize, cosine, sine);
+        const glm::vec2 topRight = rotatedCorner(centre, {halfSize.x, -halfSize.y}, cosine, sine);
+        return {
+            topLeft.x,
+            topLeft.y,
+            bottomLeft.x,
+            bottomLeft.y,
+            bottomRight.x,
+            bottomRight.y,
+            topLeft.x,
+            topLeft.y,
+            bottomRight.x,
+            bottomRight.y,
+            topRight.x,
+            topRight.y};
+    }
+
     unsigned int compileShader(unsigned int type, const char* source)
     {
         const unsigned int shader = glCreateShader(type);
@@ -225,12 +260,7 @@ namespace simple_platformer
             const float topUv = command.source.position.y / static_cast<float>(texture.height);
             const float bottomUv = (command.source.position.y + command.source.size.y) /
                                    static_cast<float>(texture.height);
-            const float left = command.position.x;
-            const float top = command.position.y;
-            const float right = left + command.size.x;
-            const float bottom = top + command.size.y;
-            const std::array<float, 12> positions = {
-                left, top, left, bottom, right, bottom, left, top, right, bottom, right, top};
+            const std::array<float, 12> positions = spritePositions(command);
             const std::array<float, 12> textureCoordinates = {
                 leftUv,
                 topUv,

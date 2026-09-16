@@ -1,4 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <cmath>
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -103,13 +107,13 @@ TEST_CASE("Actors without sprites do not produce draw commands", "[render][scene
     REQUIRE(scene.sprites.empty());
 }
 
-TEST_CASE("Projectile sprites are centred on their collision bounds", "[render][scene]")
+TEST_CASE("Projectile sprites are centred and rotated in their direction", "[render][scene]")
 {
     const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "...."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {64.0F, 32.0F}};
     simple_platformer::Projectile projectile;
     projectile.bounds = {{20.0F, 10.0F}, {4.0F, 2.0F}};
-    projectile.velocity = {-10.0F, 0.0F};
+    projectile.velocity = {0.0F, -10.0F};
     projectile.sprite = {3, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {6.0F, 4.0F}};
     simple_platformer::World world;
     world.addProjectile(projectile);
@@ -121,5 +125,8 @@ TEST_CASE("Projectile sprites are centred on their collision bounds", "[render][
     REQUIRE(scene.sprites.front().position.x == 19.0F);
     REQUIRE(scene.sprites.front().position.y == 9.0F);
     REQUIRE(scene.sprites.front().size.x == 6.0F);
-    REQUIRE(scene.sprites.front().flipHorizontal);
+    REQUIRE_FALSE(scene.sprites.front().flipHorizontal);
+    REQUIRE_THAT(
+        scene.sprites.front().rotationRadians,
+        Catch::Matchers::WithinAbs(-std::acos(-1.0F) * 0.5F, 0.0001F));
 }

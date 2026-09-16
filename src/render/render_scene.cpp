@@ -79,12 +79,14 @@ namespace simple_platformer
         {
             const glm::vec2 projectileCenter = centerOf(projectile.bounds);
             const glm::vec2 spritePosition = projectileCenter - projectile.sprite.size * 0.5F;
+            const float rotationRadians = std::atan2(projectile.velocity.y, projectile.velocity.x);
             scene.sprites.push_back(
                 {projectile.sprite.textureId,
                  worldToScreen(camera, spritePosition),
                  projectile.sprite.size,
                  projectile.sprite.region,
-                 projectile.velocity.x < 0.0F});
+                 false,
+                 rotationRadians});
         }
         return scene;
     }

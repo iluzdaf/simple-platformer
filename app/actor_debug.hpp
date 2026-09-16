@@ -53,6 +53,15 @@ namespace simple_platformer
         std::vector<PathConnectionDebugInfo> connections;
     };
 
+    struct SensorDebugInfo
+    {
+        glm::vec2 observerCenter = {0.0F, 0.0F};
+        float noticeDistance = 0.0F;
+        std::optional<glm::vec2> visibleTargetCenter;
+        std::optional<glm::vec2> rememberedTargetFeet;
+        float memoryRemaining = 0.0F;
+    };
+
     struct ActorDebugInfo
     {
         ActorId id;
@@ -62,6 +71,7 @@ namespace simple_platformer
         std::optional<AnimationName> animation;
         std::optional<NpcState> npcState;
         std::optional<PathFollowerDebugInfo> pathFollower;
+        std::optional<SensorDebugInfo> sensor;
     };
 
     struct ActorDebugScene

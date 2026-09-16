@@ -9,6 +9,7 @@
 #include "actor_debug.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -49,6 +50,7 @@ TEST_CASE("Actor debug data supports actors without presentation components", "[
     REQUIRE_FALSE(debug.actors.front().animation.has_value());
     REQUIRE_FALSE(debug.actors.front().npcState.has_value());
     REQUIRE_FALSE(debug.actors.front().pathFollower.has_value());
+    REQUIRE_FALSE(debug.actors.front().sensor.has_value());
 }
 
 TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][debug]")
@@ -106,6 +108,63 @@ TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][d
     const simple_platformer::PathFollowerDebugInfo emptyPath =
         npcDebug.pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});
     REQUIRE_FALSE(emptyPath.hasPath);
+    REQUIRE(npcDebug.sensor.has_value());
+    const simple_platformer::SensorDebugInfo emptySensor =
+        npcDebug.sensor.value_or(simple_platformer::SensorDebugInfo{});
+    REQUIRE_FALSE(emptySensor.visibleTargetCenter.has_value());
+    REQUIRE_FALSE(emptySensor.rememberedTargetFeet.has_value());
+}
+
+TEST_CASE("Actor debug data describes visible and remembered targets", "[app][debug]")
+{
+    simple_platformer::Actor player;
+    player.body.bounds = {{48.0F, 20.0F}, {12.0F, 12.0F}};
+    player.platformerMovement = simple_platformer::PlatformerMovement{};
+    player.team = simple_platformer::Team::Player;
+
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = world.addActor(player);
+    world.setPlayer(playerId, {54.0F, 32.0F});
+
+    simple_platformer::Actor visibleNpc;
+    visibleNpc.body.bounds = {{16.0F, 20.0F}, {12.0F, 12.0F}};
+    visibleNpc.platformerMovement = simple_platformer::PlatformerMovement{};
+    visibleNpc.team = simple_platformer::Team::Enemy;
+    visibleNpc.brain = simple_platformer::NpcBrain{};
+    visibleNpc.brain->target = playerId;
+    visibleNpc.brain->targetVisible = true;
+    visibleNpc.brain->targetMemoryRemaining = 1.5F;
+    visibleNpc.senses = simple_platformer::NpcSenses{80.0F, 1.5F};
+    visibleNpc.pathFollower = simple_platformer::PathFollower{};
+    world.addActor(visibleNpc);
+
+    simple_platformer::Actor rememberedNpc = visibleNpc;
+    rememberedNpc.body.bounds.position = {80.0F, 20.0F};
+    rememberedNpc.brain->targetVisible = false;
+    rememberedNpc.brain->lastSeenTargetFeet = {40.0F, 32.0F};
+    rememberedNpc.brain->targetMemoryRemaining = 0.6F;
+    world.addActor(rememberedNpc);
+
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({".......", "#######"});
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+    const simple_platformer::ActorDebugScene debug =
+        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+
+    REQUIRE_FALSE(debug.actors[0].sensor.has_value());
+    const simple_platformer::SensorDebugInfo visible =
+        debug.actors[1].sensor.value_or(simple_platformer::SensorDebugInfo{});
+    REQUIRE(visible.observerCenter == glm::vec2{22.0F, 26.0F});
+    REQUIRE(visible.noticeDistance == 80.0F);
+    REQUIRE(visible.visibleTargetCenter == glm::vec2{54.0F, 26.0F});
+    REQUIRE_FALSE(visible.rememberedTargetFeet.has_value());
+
+    const simple_platformer::SensorDebugInfo remembered =
+        debug.actors[2].sensor.value_or(simple_platformer::SensorDebugInfo{});
+    REQUIRE_FALSE(remembered.visibleTargetCenter.has_value());
+    REQUIRE(remembered.rememberedTargetFeet == glm::vec2{40.0F, 32.0F});
+    REQUIRE(remembered.memoryRemaining == 0.6F);
 }
 
 TEST_CASE("Actor debug data describes path connections and progress", "[app][debug]")

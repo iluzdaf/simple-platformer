@@ -9,6 +9,7 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
@@ -141,6 +142,30 @@ namespace
         }
         return info;
     }
+
+    simple_platformer::SensorDebugInfo sensorDebugInfo(
+        const simple_platformer::Actor& actor,
+        const simple_platformer::NpcBrain& brain,
+        const simple_platformer::NpcSenses& senses,
+        const simple_platformer::Actor* player)
+    {
+        simple_platformer::SensorDebugInfo info;
+        info.observerCenter = simple_platformer::centerOf(actor.body.bounds);
+        info.noticeDistance = senses.noticeDistance;
+        info.memoryRemaining = brain.targetMemoryRemaining;
+
+        if (brain.targetVisible && player != nullptr &&
+            player->life == simple_platformer::LifeState::Alive &&
+            simple_platformer::areOpponents(actor.team, player->team))
+        {
+            info.visibleTargetCenter = simple_platformer::centerOf(player->body.bounds);
+        }
+        else if (brain.target.has_value() && brain.targetMemoryRemaining > 0.0F)
+        {
+            info.rememberedTargetFeet = brain.lastSeenTargetFeet;
+        }
+        return info;
+    }
 }
 
 namespace simple_platformer
@@ -164,6 +189,7 @@ namespace simple_platformer
                 (cameraController.camera.viewportSize - cameraController.deadZoneSize) * 0.5F,
             cameraController.deadZoneSize};
         scene.actors.reserve(world.actors().size());
+        const Actor* player = world.findActor(world.playerId());
 
         for (const Actor& actor : world.actors())
         {
@@ -186,6 +212,11 @@ namespace simple_platformer
             if (actor.pathFollower.has_value())
             {
                 info.pathFollower = pathFollowerDebugInfo(actor, map, actor.pathFollower.value());
+            }
+            if (actor.brain.has_value() && actor.senses.has_value())
+            {
+                info.sensor =
+                    sensorDebugInfo(actor, actor.brain.value(), actor.senses.value(), player);
             }
             scene.actors.push_back(info);
         }

@@ -4,6 +4,7 @@
 #include "graphics/display_viewport.hpp"
 
 #include <cstddef>
+#include <cstdio>
 #include <optional>
 #include <string>
 
@@ -236,6 +237,61 @@ namespace
         }
     }
 
+    void drawActorSensor(
+        ImDrawList& drawList,
+        const simple_platformer::ActorDebugInfo& actor,
+        const simple_platformer::ActorDebugScene& scene,
+        const GameViewport& viewport)
+    {
+        if (!actor.sensor.has_value())
+        {
+            return;
+        }
+
+        const simple_platformer::SensorDebugInfo& sensor = actor.sensor.value();
+        const ImVec2 observer = screenPosition(sensor.observerCenter, scene, viewport);
+        drawList.AddCircle(
+            observer,
+            sensor.noticeDistance * viewport.scale.x,
+            IM_COL32(160, 96, 255, 110),
+            48,
+            1.0F);
+
+        if (sensor.visibleTargetCenter.has_value())
+        {
+            drawList.AddLine(
+                observer,
+                screenPosition(sensor.visibleTargetCenter.value(), scene, viewport),
+                IM_COL32(80, 255, 96, 230),
+                2.0F);
+        }
+
+        if (sensor.rememberedTargetFeet.has_value())
+        {
+            constexpr float MarkerRadius = 4.0F;
+            const ImU32 memoryColour = IM_COL32(255, 224, 64, 240);
+            const ImVec2 remembered =
+                screenPosition(sensor.rememberedTargetFeet.value(), scene, viewport);
+            drawList.AddLine(observer, remembered, memoryColour, 1.5F);
+            drawList.AddLine(
+                {remembered.x - MarkerRadius, remembered.y - MarkerRadius},
+                {remembered.x + MarkerRadius, remembered.y + MarkerRadius},
+                memoryColour,
+                2.0F);
+            drawList.AddLine(
+                {remembered.x - MarkerRadius, remembered.y + MarkerRadius},
+                {remembered.x + MarkerRadius, remembered.y - MarkerRadius},
+                memoryColour,
+                2.0F);
+            char memoryLabel[32]{};
+            std::snprintf(memoryLabel, sizeof(memoryLabel), "%.2fs", sensor.memoryRemaining);
+            drawList.AddText(
+                {remembered.x + MarkerRadius + 2.0F, remembered.y - MarkerRadius},
+                memoryColour,
+                memoryLabel);
+        }
+    }
+
     void drawActorWorldLabel(
         ImDrawList& drawList,
         const simple_platformer::ActorDebugInfo& actor,
@@ -348,6 +404,7 @@ namespace simple_platformer
                 continue;
             }
 
+            drawActorSensor(*drawList, actor, scene, *viewport);
             drawActorPath(*drawList, actor, scene, *viewport);
 
             if (actor.sprite.has_value())

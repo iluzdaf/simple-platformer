@@ -120,6 +120,13 @@ namespace
         }
     }
 
+    simple_platformer::RangedWeapon makeRangedWeapon(int textureId)
+    {
+        simple_platformer::RangedWeapon weapon;
+        weapon.projectileSprite = {textureId, {{4.0F, 0.0F}, {1.0F, 1.0F}}, weapon.projectileSize};
+        return weapon;
+    }
+
     simple_platformer::Actor makePlayer(int textureId)
     {
         simple_platformer::Actor player;
@@ -131,39 +138,56 @@ namespace
         player.animator = simple_platformer::Animator{};
         player.health = simple_platformer::Health{3, 3};
         player.team = simple_platformer::Team::Player;
-        simple_platformer::RangedWeapon weapon;
-        weapon.projectileSprite = {textureId, {{4.0F, 0.0F}, {1.0F, 1.0F}}, weapon.projectileSize};
-        player.rangedWeapon = weapon;
+        player.rangedWeapon = makeRangedWeapon(textureId);
         return player;
     }
 
-    simple_platformer::Actor makeBitingNpc(int textureId)
+    simple_platformer::Actor makeNpc(
+        int textureId,
+        glm::vec2 position,
+        simple_platformer::Patrol patrol)
     {
         simple_platformer::Actor npc;
-        npc.body = {{{450.0F, 196.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
-        npc.platformerMovement = simple_platformer::PlatformerMovement{};
-        npc.platformerMovement->grounded = true;
+        npc.body = {{position, {12.0F, 12.0F}}, {0.0F, 0.0F}};
         npc.facing = simple_platformer::Facing::Left;
         npc.sprite = simple_platformer::Sprite{
             textureId, {{2.0F, 0.0F}, {1.0F, 1.0F}}, npc.body.bounds.size};
         npc.animator = simple_platformer::Animator{};
         npc.health = simple_platformer::Health{3, 3};
         npc.team = simple_platformer::Team::Enemy;
-        npc.bite = simple_platformer::BiteAttack{};
         npc.brain = simple_platformer::NpcBrain{};
         npc.senses = simple_platformer::NpcSenses{};
-        npc.patrol = simple_platformer::Patrol{{456.0F, 208.0F}, {488.0F, 176.0F}, true};
+        npc.patrol = patrol;
         npc.pathFollower = simple_platformer::PathFollower{};
+        return npc;
+    }
+
+    simple_platformer::Actor makeBitingNpc(int textureId)
+    {
+        simple_platformer::Actor npc =
+            makeNpc(textureId, {450.0F, 196.0F}, {{456.0F, 208.0F}, {488.0F, 176.0F}, true});
+        npc.platformerMovement = simple_platformer::PlatformerMovement{};
+        npc.platformerMovement->grounded = true;
+        npc.bite = simple_platformer::BiteAttack{};
         return npc;
     }
 
     simple_platformer::Actor makeFlyingNpc(int textureId)
     {
-        simple_platformer::Actor npc = makeBitingNpc(textureId);
-        npc.body.bounds.position = {170.0F, 132.0F};
-        npc.platformerMovement.reset();
+        simple_platformer::Actor npc =
+            makeNpc(textureId, {170.0F, 132.0F}, {{176.0F, 144.0F}, {248.0F, 96.0F}, true});
         npc.flyingMovement = simple_platformer::FlyingMovement{};
-        npc.patrol = simple_platformer::Patrol{{176.0F, 144.0F}, {248.0F, 96.0F}, true};
+        npc.bite = simple_platformer::BiteAttack{};
+        return npc;
+    }
+
+    simple_platformer::Actor makeShootingNpc(int textureId)
+    {
+        simple_platformer::Actor npc =
+            makeNpc(textureId, {280.0F, 196.0F}, {{286.0F, 208.0F}, {350.0F, 208.0F}, true});
+        npc.platformerMovement = simple_platformer::PlatformerMovement{};
+        npc.platformerMovement->grounded = true;
+        npc.rangedWeapon = makeRangedWeapon(textureId);
         return npc;
     }
 }
@@ -176,6 +200,7 @@ namespace simple_platformer
         world.setPlayer(player, {38.0F, 208.0F});
         world.addActor(makeBitingNpc(textureId));
         world.addActor(makeFlyingNpc(textureId));
+        world.addActor(makeShootingNpc(textureId));
     }
 
     void ExampleGame::update(const InputIntentions& intentions, float deltaTime)

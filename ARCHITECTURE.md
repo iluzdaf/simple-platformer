@@ -21,7 +21,7 @@ building, tested phases so it can later become a staged student exercise.
 - Generic lowest-cost grid search with an optional A* heuristic and separate flying
   and platformer navigation policies.
 - Platformer paths that include walking, falling, and jumping.
-- Straight left/right projectiles for the player and a deliberate timed bite for NPCs.
+- Straight left/right projectiles for the player and ranged NPCs, plus a deliberate timed bite.
 - A small configurable inventory, pickups, health, a key, and a level exit.
 - ImGui HUD and a paused inventory example.
 - Automated tests for major gameplay and render-scene-building paths.
@@ -170,8 +170,8 @@ struct InputIntentions
 Platformer movement reads only `direction.x`; flying movement reads both axes. Facing
 is actor state. Nonzero horizontal input changes it; otherwise the last facing
 direction remains. `primaryAttackPressed` uses the actor's configured primary attack:
-the player fires a projectile and an NPC begins a bite. This keeps controllers and
-brains independent of concrete attack types.
+the player and a ranged NPC fire a projectile, while a biting NPC begins a bite. This
+keeps controllers and brains independent of concrete attack types.
 
 GLFW events update held, pressed, and released button state. Pressed and released
 edges remain pending until the first fixed update consumes them, even if a rendered
@@ -299,11 +299,13 @@ a dead player are pure tested behaviour.
 
 ## NPC patrol and finite state machine
 
-The example includes two NPCs:
+The example includes three NPCs:
 
 - A ground creature that patrols, uses platformer path search, jumps, chases, and bites.
 - A flying creature that patrols, uses ordinary four-direction grid paths, chases, and
   bites.
+- A ranged creature that patrols, chases the player, then stops and fires projectiles
+  while the player remains visible.
 
 Both use the same concrete enum-and-switch FSM. A patrol has two authored feet-based
 endpoints. The NPC pathfinds to the current endpoint and swaps endpoints after arriving.
@@ -339,8 +341,9 @@ The state transitions are explicit:
 - Idle enters Patrol when a patrol is configured.
 - Patrol follows its current endpoint and enters Chase when the player is detected.
 - Chase follows the player's last seen feet, enters Bite when a visible player is in
-  bite range and the NPC has a `BiteAttack`, and returns to Patrol when target memory
-  expires. An NPC without a bite continues chasing at close range.
+  bite range and the NPC has a `BiteAttack`, or stops and requests an attack when a
+  visible player can be shot with a `RangedWeapon`. It returns to Patrol when target
+  memory expires. An NPC without an attack continues chasing at close range.
 - Bite faces the player, stops horizontal input, requests the bite once, and returns
   to Chase after windup, active, and recovery phases complete.
 
@@ -494,8 +497,9 @@ team, and a sprite. Its collision bounds and sprite display size are independent
 configurable world-pixel dimensions. The player's primary attack fires it in the
 retained left or right facing direction. Each tick it casts the swept
 segment from its previous to proposed position against solid tiles and eligible actor
-AABBs, selects the earliest hit, applies one damage request, and disappears. It does
-not pierce, bounce, home, or cause splash damage.
+AABBs, selects the earliest hit, applies one damage request, and disappears. A ranged
+NPC uses the same component and attack system as the player; its brain only supplies
+the attack intention. Projectiles do not pierce, bounce, home, or cause splash damage.
 
 ## Life and death
 
@@ -635,6 +639,7 @@ Each phase must configure, build, and pass all tests before the next begins.
   player, chases, and performs a timed bite.
 - A ground NPC follows a path that includes at least one successful jump and exercises
   the same patrol, chase, and bite FSM.
+- A ranged NPC stops and fires straight projectiles while it can see the player.
 - All automated tests pass without a graphics context.
 - The documented manual graphics smoke test passes.
 - The code and documentation preserve the boundaries in this document.

@@ -41,10 +41,23 @@ namespace
         npc.flyingMovement = simple_platformer::FlyingMovement{20.0F};
         npc.health = simple_platformer::Health{3, 3};
         npc.team = simple_platformer::Team::Enemy;
-        npc.bite = simple_platformer::BiteAttack{};
         npc.brain = simple_platformer::NpcBrain{};
         npc.senses = simple_platformer::NpcSenses{64.0F, 1.0F};
         npc.pathFollower = simple_platformer::PathFollower{};
+        return npc;
+    }
+
+    simple_platformer::Actor makeBitingNpc(glm::vec2 position)
+    {
+        simple_platformer::Actor npc = makeNpc(position);
+        npc.bite = simple_platformer::BiteAttack{};
+        return npc;
+    }
+
+    simple_platformer::Actor makeShootingNpc(glm::vec2 position)
+    {
+        simple_platformer::Actor npc = makeNpc(position);
+        npc.rangedWeapon = simple_platformer::RangedWeapon{};
         return npc;
     }
 
@@ -195,7 +208,7 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
-    const simple_platformer::ActorId npcId = world.addActor(makeNpc({16.0F, 16.0F}));
+    const simple_platformer::ActorId npcId = world.addActor(makeBitingNpc({16.0F, 16.0F}));
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
     brain(world, npcId).targetVisible = true;
@@ -224,9 +237,7 @@ TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]"
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
-    simple_platformer::Actor npc = makeNpc({16.0F, 16.0F});
-    npc.bite.reset();
-    const simple_platformer::ActorId npcId = world.addActor(npc);
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({16.0F, 16.0F}));
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
     brain(world, npcId).targetVisible = true;
@@ -236,6 +247,26 @@ TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]"
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
     REQUIRE_FALSE(actor(world, npcId).intentions.primaryAttackPressed);
     REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
+}
+
+TEST_CASE("A ranged NPC stops and requests an attack while its target is visible", "[npc][fsm]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({48.0F, 16.0F}));
+    world.setPlayer(playerId, {54.0F, 28.0F});
+    const simple_platformer::ActorId npcId = world.addActor(makeShootingNpc({16.0F, 16.0F}));
+    brain(world, npcId).target = playerId;
+    brain(world, npcId).lastSeenTargetFeet = {54.0F, 28.0F};
+    brain(world, npcId).targetVisible = true;
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
+    REQUIRE(actor(world, npcId).facing == simple_platformer::Facing::Right);
+    REQUIRE(actor(world, npcId).intentions.direction == glm::vec2{0.0F, 0.0F});
+    REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
 }
 
 TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][fsm]")

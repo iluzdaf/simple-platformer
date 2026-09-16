@@ -84,6 +84,41 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
     REQUIRE(storedNpc->body.bounds.position.x > 16.0F);
 }
 
+TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][simulation]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    simple_platformer::World world;
+
+    simple_platformer::Actor player;
+    player.body.bounds = {{48.0F, 16.0F}, {12.0F, 12.0F}};
+    player.platformerMovement = simple_platformer::PlatformerMovement{};
+    player.health = simple_platformer::Health{3, 3};
+    player.team = simple_platformer::Team::Player;
+    const simple_platformer::ActorId playerId = world.addActor(player);
+    world.setPlayer(playerId, {54.0F, 28.0F});
+
+    simple_platformer::Actor npc;
+    npc.body.bounds = {{16.0F, 16.0F}, {12.0F, 12.0F}};
+    npc.flyingMovement = simple_platformer::FlyingMovement{60.0F};
+    npc.health = simple_platformer::Health{3, 3};
+    npc.team = simple_platformer::Team::Enemy;
+    npc.rangedWeapon = simple_platformer::RangedWeapon{};
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.senses = simple_platformer::NpcSenses{96.0F, 1.0F};
+    npc.pathFollower = simple_platformer::PathFollower{};
+    const simple_platformer::ActorId npcId = world.addActor(npc);
+
+    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+
+    REQUIRE(world.projectiles().size() == 1);
+    REQUIRE(world.projectiles().front().owner == npcId);
+    REQUIRE(world.projectiles().front().velocity.x > 0.0F);
+    const simple_platformer::Actor* storedNpc = world.findActor(npcId);
+    REQUIRE(storedNpc != nullptr);
+    REQUIRE(storedNpc->body.bounds.position.x == 16.0F);
+}
+
 TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulation]")
 {
     const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(

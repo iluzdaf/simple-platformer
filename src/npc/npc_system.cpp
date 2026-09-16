@@ -253,6 +253,12 @@ namespace
             changeState(brain, simple_platformer::NpcState::Bite);
             return;
         }
+        if (brain.targetVisible && actor.rangedWeapon.has_value())
+        {
+            simple_platformer::clearPath(follower);
+            actor.intentions.primaryAttackPressed = true;
+            return;
+        }
         followDestination(map, actor, follower, brain.lastSeenTargetFeet, deltaTime);
     }
 

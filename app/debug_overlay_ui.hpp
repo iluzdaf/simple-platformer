@@ -1,14 +1,12 @@
 #pragma once
 
-struct GLFWwindow;
+#include <optional>
+
+#include "graphics/display_viewport.hpp"
 
 namespace simple_platformer
 {
     struct DebugOverlay;
 
-    void drawDebugOverlay(
-        const DebugOverlay& scene,
-        GLFWwindow* window,
-        int framebufferWidth,
-        int framebufferHeight);
+    void drawDebugOverlay(const DebugOverlay& scene, const std::optional<WindowViewport>& viewport);
 }

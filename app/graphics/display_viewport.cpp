@@ -30,6 +30,29 @@ namespace simple_platformer
         return DisplayViewport{{lowerMargin.x, topMargin}, lowerMargin.y, size, scale};
     }
 
+    std::optional<WindowViewport> makeWindowViewport(
+        glm::ivec2 windowSize,
+        glm::ivec2 framebufferSize)
+    {
+        if (windowSize.x <= 0 || windowSize.y <= 0)
+        {
+            return std::nullopt;
+        }
+
+        const std::optional<DisplayViewport> viewport = makeDisplayViewport(framebufferSize);
+        if (!viewport.has_value())
+        {
+            return std::nullopt;
+        }
+
+        const glm::vec2 framebufferToWindow = {
+            static_cast<float>(windowSize.x) / static_cast<float>(framebufferSize.x),
+            static_cast<float>(windowSize.y) / static_cast<float>(framebufferSize.y)};
+        return WindowViewport{
+            glm::vec2(viewport->topLeftMargin) * framebufferToWindow,
+            glm::vec2(static_cast<float>(viewport->scale)) * framebufferToWindow};
+    }
+
     std::optional<glm::vec2> windowToInternal(
         glm::vec2 windowPosition,
         glm::ivec2 windowSize,

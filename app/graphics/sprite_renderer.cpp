@@ -223,6 +223,17 @@ namespace simple_platformer
         return static_cast<int>(textures.size() - 1);
     }
 
+    TextureView SpriteRenderer::textureView(int textureId) const
+    {
+        if (textureId < 0 || static_cast<std::size_t>(textureId) >= textures.size())
+        {
+            throw std::out_of_range("Unknown texture ID");
+        }
+
+        const Texture& texture = textures[static_cast<std::size_t>(textureId)];
+        return {texture.handle, texture.width, texture.height};
+    }
+
     void SpriteRenderer::render(
         const RenderScene& scene,
         int framebufferWidth,

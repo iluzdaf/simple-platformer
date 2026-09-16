@@ -8,9 +8,6 @@
 #include <optional>
 #include <string>
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-
 #include <imgui.h>
 
 #include "simple_platformer/math/aabb.hpp"
@@ -96,51 +93,15 @@ namespace
         return "Actor";
     }
 
-    struct GameViewport
-    {
-        ImVec2 position;
-        ImVec2 scale;
-    };
-
-    std::optional<GameViewport> gameViewport(
-        GLFWwindow* window,
-        int framebufferWidth,
-        int framebufferHeight)
-    {
-        int windowWidth = 0;
-        int windowHeight = 0;
-        glfwGetWindowSize(window, &windowWidth, &windowHeight);
-        if (windowWidth <= 0 || windowHeight <= 0)
-        {
-            return std::nullopt;
-        }
-
-        const std::optional<simple_platformer::DisplayViewport> displayViewport =
-            simple_platformer::makeDisplayViewport({framebufferWidth, framebufferHeight});
-        if (!displayViewport.has_value())
-        {
-            return std::nullopt;
-        }
-        const float framebufferToWindowX =
-            static_cast<float>(windowWidth) / static_cast<float>(framebufferWidth);
-        const float framebufferToWindowY =
-            static_cast<float>(windowHeight) / static_cast<float>(framebufferHeight);
-        return GameViewport{
-            {displayViewport->topLeftMargin.x * framebufferToWindowX,
-             displayViewport->topLeftMargin.y * framebufferToWindowY},
-            {displayViewport->scale * framebufferToWindowX,
-             displayViewport->scale * framebufferToWindowY}};
-    }
-
     ImVec2 screenPosition(
         glm::vec2 worldPosition,
         const simple_platformer::DebugOverlay& scene,
-        const GameViewport& viewport)
+        const simple_platformer::WindowViewport& viewport)
     {
         return {
-            viewport.position.x +
+            viewport.topLeft.x +
                 (worldPosition.x - scene.cameraBounds.position.x) * viewport.scale.x,
-            viewport.position.y +
+            viewport.topLeft.y +
                 (worldPosition.y - scene.cameraBounds.position.y) * viewport.scale.y};
     }
 
@@ -148,7 +109,7 @@ namespace
         ImDrawList& drawList,
         const simple_platformer::Aabb& bounds,
         const simple_platformer::DebugOverlay& scene,
-        const GameViewport& viewport,
+        const simple_platformer::WindowViewport& viewport,
         ImU32 colour)
     {
         const ImVec2 minimum = screenPosition(bounds.position, scene, viewport);
@@ -185,7 +146,7 @@ namespace
         ImDrawList& drawList,
         const simple_platformer::ActorDebugInfo& actor,
         const simple_platformer::DebugOverlay& scene,
-        const GameViewport& viewport)
+        const simple_platformer::WindowViewport& viewport)
     {
         if (!actor.pathFollower.has_value())
         {
@@ -241,7 +202,7 @@ namespace
         ImDrawList& drawList,
         const simple_platformer::ActorDebugInfo& actor,
         const simple_platformer::DebugOverlay& scene,
-        const GameViewport& viewport)
+        const simple_platformer::WindowViewport& viewport)
     {
         if (!actor.sensor.has_value())
         {
@@ -296,7 +257,7 @@ namespace
         ImDrawList& drawList,
         const simple_platformer::ActorDebugInfo& actor,
         const simple_platformer::DebugOverlay& scene,
-        const GameViewport& viewport)
+        const simple_platformer::WindowViewport& viewport)
     {
         const glm::vec2 labelWorldPosition =
             actor.sprite.has_value() ? actor.sprite->bounds.position : actor.collider.position;
@@ -323,7 +284,7 @@ namespace
         ImDrawList& drawList,
         const simple_platformer::ProjectileDebugInfo& projectile,
         const simple_platformer::DebugOverlay& scene,
-        const GameViewport& viewport)
+        const simple_platformer::WindowViewport& viewport)
     {
         const ImU32 colour = IM_COL32(255, 160, 64, 255);
         drawWorldBounds(drawList, projectile.bounds, scene, viewport, colour);
@@ -430,14 +391,8 @@ namespace
 
 namespace simple_platformer
 {
-    void drawDebugOverlay(
-        const DebugOverlay& scene,
-        GLFWwindow* window,
-        int framebufferWidth,
-        int framebufferHeight)
+    void drawDebugOverlay(const DebugOverlay& scene, const std::optional<WindowViewport>& viewport)
     {
-        const std::optional<GameViewport> viewport =
-            gameViewport(window, framebufferWidth, framebufferHeight);
         ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 
         if (viewport.has_value())

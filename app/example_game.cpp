@@ -247,6 +247,16 @@ namespace simple_platformer
         return makeDebugOverlay(world, map, cameraControllerValue(), AtlasWidth);
     }
 
+    Health ExampleGame::playerHealth() const
+    {
+        const Actor* player = world.findActor(world.playerId());
+        if (player == nullptr || !player->health.has_value())
+        {
+            throw std::logic_error("The example player is missing its health");
+        }
+        return *player->health;
+    }
+
     Camera ExampleGame::currentCamera() const
     {
         return cameraControllerValue().camera;

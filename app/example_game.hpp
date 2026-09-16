@@ -11,6 +11,7 @@
 
 namespace simple_platformer
 {
+    struct Health;
     struct InputIntentions;
     struct RenderScene;
 
@@ -23,6 +24,7 @@ namespace simple_platformer
         glm::vec2 playerAimDirection(glm::vec2 screenPosition) const;
         RenderScene buildScene() const;
         DebugOverlay debugOverlay() const;
+        Health playerHealth() const;
 
     private:
         CameraController& cameraControllerValue();

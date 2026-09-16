@@ -125,6 +125,7 @@ add_executable(
     app/example_game.cpp
     app/graphics/display_viewport.cpp
     app/graphics/sprite_renderer.cpp
+    app/health_hud_ui.cpp
     app/main.cpp
 )
 target_compile_features(simple_platformer PRIVATE cxx_std_17)

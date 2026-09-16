@@ -21,6 +21,7 @@
 #include "example_game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/sprite_renderer.hpp"
+#include "health_hud_ui.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/render/render_scene.hpp"
@@ -188,6 +189,7 @@ namespace simple_platformer
 
         SpriteRenderer renderer;
         const int atlas = renderer.loadTexture("assets/sprites.png");
+        const TextureView atlasTexture = renderer.textureView(atlas);
         ExampleGame game(atlas);
         FixedStep fixedStep;
         double previousTime = glfwGetTime();
@@ -246,10 +248,15 @@ namespace simple_platformer
 
             const simple_platformer::RenderScene scene = game.buildScene();
             renderer.render(scene, framebufferWidth, framebufferHeight);
+            const std::optional<WindowViewport> windowViewport = makeWindowViewport(
+                {windowWidth, windowHeight}, {framebufferWidth, framebufferHeight});
+            if (windowViewport.has_value())
+            {
+                drawHealthHud(game.playerHealth(), atlasTexture, *windowViewport);
+            }
             if (context.showDebugOverlay)
             {
-                drawDebugOverlay(
-                    game.debugOverlay(), window.get(), framebufferWidth, framebufferHeight);
+                drawDebugOverlay(game.debugOverlay(), windowViewport);
             }
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

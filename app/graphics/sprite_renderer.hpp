@@ -7,6 +7,13 @@ namespace simple_platformer
 {
     struct RenderScene;
 
+    struct TextureView
+    {
+        unsigned int handle = 0;
+        int width = 0;
+        int height = 0;
+    };
+
     class SpriteRenderer
     {
     public:
@@ -17,6 +24,7 @@ namespace simple_platformer
         SpriteRenderer& operator=(const SpriteRenderer&) = delete;
 
         int loadTexture(const std::string& path);
+        TextureView textureView(int textureId) const;
         void render(const RenderScene& scene, int framebufferWidth, int framebufferHeight);
 
     private:

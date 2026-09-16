@@ -37,7 +37,8 @@ cd build/mac-debug
 Use A and D or the left and right arrow keys to move, Space to jump, the mouse to aim, the left
 mouse button to fire, and Escape to close the window. Press F1 to show or hide the
 debug overlay text and the in-game sprite, collider, camera, dead-zone, and NPC path
-overlays.
+overlays. The hearts at the top-left of the game viewport show the player's current
+and maximum health.
 
 ## Windows: create and use the Visual Studio solution
 

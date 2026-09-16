@@ -23,6 +23,16 @@ namespace
         return *viewport;
     }
 
+    simple_platformer::WindowViewport required(
+        const std::optional<simple_platformer::WindowViewport>& viewport)
+    {
+        if (!viewport.has_value())
+        {
+            throw std::logic_error("Test window viewport was not created");
+        }
+        return *viewport;
+    }
+
     glm::vec2 required(const std::optional<glm::vec2>& position)
     {
         if (!position.has_value())
@@ -60,6 +70,15 @@ TEST_CASE("Window cursor positions account for high DPI and letterboxing", "[app
 
     REQUIRE_THAT(internal.x, WithinAbs(160.0F, 0.0001F));
     REQUIRE_THAT(internal.y, WithinAbs(90.0F, 0.0001F));
+}
+
+TEST_CASE("Window viewport coordinates account for high DPI", "[app][viewport]")
+{
+    const simple_platformer::WindowViewport viewport =
+        required(simple_platformer::makeWindowViewport({500, 300}, {1000, 600}));
+
+    REQUIRE(viewport.topLeft == glm::vec2{10.0F, 15.0F});
+    REQUIRE(viewport.scale == glm::vec2{1.5F, 1.5F});
 }
 
 TEST_CASE("Cursor positions in the letterbox are rejected", "[app][viewport]")

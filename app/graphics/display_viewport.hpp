@@ -15,7 +15,16 @@ namespace simple_platformer
         int scale = 1;
     };
 
+    struct WindowViewport
+    {
+        glm::vec2 topLeft = {0.0F, 0.0F};
+        glm::vec2 scale = {1.0F, 1.0F};
+    };
+
     std::optional<DisplayViewport> makeDisplayViewport(glm::ivec2 framebufferSize);
+    std::optional<WindowViewport> makeWindowViewport(
+        glm::ivec2 windowSize,
+        glm::ivec2 framebufferSize);
 
     // GLFW cursor coordinates use window points, which can differ from framebuffer pixels on
     // high-DPI displays. Positions in the black letterbox area return nullopt.

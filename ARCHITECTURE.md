@@ -656,7 +656,11 @@ and sprite rectangles at the actor's feet.
 A small OpenGL `SpriteRenderer` submits textured quads using one uncomplicated shader.
 There is no scene graph, material system, lighting, or general render graph. ImGui is
 drawn after the internally scaled game image so HUD and inventory remain crisp at the
-window resolution. The example application's F1 key toggles the app-only debug overlay:
+window resolution. The health HUD draws one heart for each maximum-health point and
+selects a filled or empty atlas region from the player's current health. HUD and debug
+graphics share the same window-space viewport conversion, so both remain aligned with
+the game through letterboxing and high-DPI scaling. The example application's F1 key
+toggles the app-only debug overlay:
 one plain text list shows each player or NPC and its runtime details, while white sprite bounds and red
 collision bounds are drawn over the game. Cyan camera bounds and the yellow camera dead
 zone are also shown. NPC paths are drawn as coloured connections: green for walking,

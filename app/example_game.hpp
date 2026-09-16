@@ -3,12 +3,12 @@
 #include <glm/vec2.hpp>
 
 #include "actor_debug.hpp"
+#include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
 {
-    struct Camera;
     struct InputIntentions;
     struct RenderScene;
 
@@ -27,5 +27,6 @@ namespace simple_platformer
 
         TileMap map;
         World world;
+        CameraController cameraController;
     };
 }

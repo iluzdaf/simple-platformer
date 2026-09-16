@@ -14,7 +14,7 @@ building, tested phases so it can later become a staged student exercise.
 - Responsive platformer movement: running, variable-height jumping, coyote time,
   jump buffering, gravity, and terminal velocity.
 - Simple axis-separated AABB collision against a grid of solid tiles.
-- A tile map larger than the viewport and a camera locked to the player.
+- A tile map larger than the viewport and a camera that follows the player through a dead zone.
 - Player and NPC actors assembled from the same components.
 - Player and NPC control expressed through `InputIntentions`.
 - Explicit C++ enum-and-switch finite state machines for NPC decisions.
@@ -282,9 +282,16 @@ kill height remains as a safety check for invalid or exceptional positions.
 
 ## Camera
 
-The camera locks directly to the centre of the player's collider and clamps its view
-to the tile map bounds. Small maps are centred on the relevant axis. Rendering rounds
-the final camera translation to internal pixels to keep pixel art stable.
+`Camera` is the final lightweight view used by rendering and coordinate conversion.
+`CameraController` retains the previous view position. It begins locked to the centre
+of the player's collider, then moves only enough to return the player's centre to a
+configurable dead zone. The example uses an 80 by 45 internal-pixel dead zone.
+
+The view remains clamped to the tile map bounds. Small maps are centred on the relevant
+axis. Camera movement is rounded to internal pixels to keep pixel art stable. The game
+updates the controller after world simulation so rendering and mouse aiming share the
+same final camera snapshot. The F1 debug overlay draws the viewport bounds in cyan and
+the dead zone in yellow.
 
 ## NPC sensing and target memory
 
@@ -669,7 +676,7 @@ Catch2 tests are grouped by subsystem. Major coverage includes:
 - flying movement normalization, speed, two-axis intentions, and tile collision;
 - collision on all four sides, corners, arbitrary body sizes, map bounds, and high
   allowed speeds;
-- camera lock, clamping, centring, and pixel rounding;
+- camera dead-zone following, clamping, centring, and pixel rounding;
 - NPC distance and line-of-sight sensing, target memory, patrol endpoint changes, FSM
   transitions, bite eligibility, and path-recalculation cooldown;
 - generic lowest-cost search, optional Manhattan heuristic, flying neighbours,
@@ -699,7 +706,7 @@ Each phase must configure, build, and pass all tests before the next begins.
 3. **Player movement**: input state, two-dimensional `InputIntentions`, consolidated
    platformer movement, facing, and movement tests.
 4. **Rendering and camera**: textures, named animation clips, render-scene commands,
-   simple OpenGL sprites, fixed internal resolution, and locked camera.
+   simple OpenGL sprites, fixed internal resolution, and dead-zone camera.
 5. **Composition and lifecycle**: Actor aggregate, stable IDs, world requests, health,
    death, removal, and player respawn.
 6. **Combat**: player ranged weapon, left/right projectiles, NPC bite phases and

@@ -24,11 +24,15 @@ TEST_CASE("Actor debug data supports actors without presentation components", "[
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(actor);
     const simple_platformer::Camera camera{{4.0F, 5.0F}, {320.0F, 180.0F}};
+    const simple_platformer::CameraController cameraController{camera, {80.0F, 40.0F}};
 
     const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, camera, 128.0F);
+        simple_platformer::makeActorDebugScene(world, cameraController, 128.0F);
 
-    REQUIRE(debug.cameraPosition == camera.position);
+    REQUIRE(debug.cameraBounds.position == camera.position);
+    REQUIRE(debug.cameraBounds.size == camera.viewportSize);
+    REQUIRE(debug.cameraDeadZone.position == glm::vec2{124.0F, 75.0F});
+    REQUIRE(debug.cameraDeadZone.size == cameraController.deadZoneSize);
     REQUIRE(debug.actors.size() == 1);
     REQUIRE(debug.actors.front().id == id);
     REQUIRE(debug.actors.front().kind == simple_platformer::ActorDebugKind::Actor);
@@ -67,8 +71,10 @@ TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][d
     const simple_platformer::ActorId npcId = world.addActor(npc);
     world.setPlayer(playerId, {38.0F, 208.0F});
 
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
     const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, simple_platformer::Camera{}, 128.0F);
+        simple_platformer::makeActorDebugScene(world, cameraController, 128.0F);
 
     REQUIRE(debug.actors.size() == 2);
     const simple_platformer::ActorDebugInfo& playerDebug = debug.actors.front();
@@ -91,8 +97,10 @@ TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][d
 TEST_CASE("Actor debug data rejects an invalid atlas width", "[app][debug]")
 {
     const simple_platformer::World world;
-    const simple_platformer::Camera camera;
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
 
     REQUIRE_THROWS_AS(
-        simple_platformer::makeActorDebugScene(world, camera, 0.0F), std::invalid_argument);
+        simple_platformer::makeActorDebugScene(world, cameraController, 0.0F),
+        std::invalid_argument);
 }

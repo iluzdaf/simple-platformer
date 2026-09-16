@@ -14,10 +14,24 @@ namespace simple_platformer
         glm::vec2 viewportSize = {320.0F, 180.0F};
     };
 
+    struct CameraController
+    {
+        Camera camera;
+        glm::vec2 deadZoneSize = {0.0F, 0.0F};
+    };
+
     Camera makeLockedCamera(
         const TileMap& map,
         const Aabb& target,
         glm::vec2 viewportSize = {320.0F, 180.0F});
+
+    CameraController makeCameraController(
+        const TileMap& map,
+        const Aabb& target,
+        glm::vec2 deadZoneSize,
+        glm::vec2 viewportSize = {320.0F, 180.0F});
+
+    void followTarget(CameraController& controller, const TileMap& map, const Aabb& target);
 
     glm::vec2 worldToScreen(const Camera& camera, glm::vec2 worldPosition);
     glm::vec2 screenToWorld(const Camera& camera, glm::vec2 screenPosition);

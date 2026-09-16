@@ -62,7 +62,10 @@ namespace
 
 namespace simple_platformer
 {
-    ActorDebugScene makeActorDebugScene(const World& world, const Camera& camera, float atlasWidth)
+    ActorDebugScene makeActorDebugScene(
+        const World& world,
+        const CameraController& cameraController,
+        float atlasWidth)
     {
         if (!std::isfinite(atlasWidth) || atlasWidth <= 0.0F)
         {
@@ -70,7 +73,12 @@ namespace simple_platformer
         }
 
         ActorDebugScene scene;
-        scene.cameraPosition = camera.position;
+        scene.cameraBounds = {
+            cameraController.camera.position, cameraController.camera.viewportSize};
+        scene.cameraDeadZone = {
+            cameraController.camera.position +
+                (cameraController.camera.viewportSize - cameraController.deadZoneSize) * 0.5F,
+            cameraController.deadZoneSize};
         scene.actors.reserve(world.actors().size());
 
         for (const Actor& actor : world.actors())

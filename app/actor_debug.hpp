@@ -12,7 +12,7 @@
 namespace simple_platformer
 {
     class World;
-    struct Camera;
+    struct CameraController;
     enum class AnimationName;
     enum class NpcState;
 
@@ -43,8 +43,12 @@ namespace simple_platformer
     struct ActorDebugScene
     {
         std::vector<ActorDebugInfo> actors;
-        glm::vec2 cameraPosition = {0.0F, 0.0F};
+        Aabb cameraBounds;
+        Aabb cameraDeadZone;
     };
 
-    ActorDebugScene makeActorDebugScene(const World& world, const Camera& camera, float atlasWidth);
+    ActorDebugScene makeActorDebugScene(
+        const World& world,
+        const CameraController& cameraController,
+        float atlasWidth);
 }

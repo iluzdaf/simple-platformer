@@ -112,8 +112,10 @@ namespace
         const GameViewport& viewport)
     {
         return {
-            viewport.position.x + (worldPosition.x - scene.cameraPosition.x) * viewport.scale.x,
-            viewport.position.y + (worldPosition.y - scene.cameraPosition.y) * viewport.scale.y};
+            viewport.position.x +
+                (worldPosition.x - scene.cameraBounds.position.x) * viewport.scale.x,
+            viewport.position.y +
+                (worldPosition.y - scene.cameraBounds.position.y) * viewport.scale.y};
     }
 
     void drawWorldBounds(
@@ -191,6 +193,18 @@ namespace simple_platformer
     {
         const GameViewport viewport = gameViewport(window, framebufferWidth, framebufferHeight);
         ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+
+        if (viewport.scale.x > 0.0F && viewport.scale.y > 0.0F)
+        {
+            drawWorldBounds(
+                *drawList, scene.cameraBounds, scene, viewport, IM_COL32(64, 224, 255, 255));
+            drawWorldBounds(
+                *drawList, scene.cameraDeadZone, scene, viewport, IM_COL32(255, 224, 64, 255));
+            drawList->AddText(
+                screenPosition(scene.cameraDeadZone.position, scene, viewport),
+                IM_COL32(255, 224, 64, 255),
+                "camera dead zone");
+        }
 
         for (std::size_t index = 0; index < scene.actors.size(); ++index)
         {

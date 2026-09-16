@@ -190,6 +190,13 @@ namespace simple_platformer
             makeBat(textureId, {176.0F, 144.0F}, {{176.0F, 144.0F}, {248.0F, 96.0F}, true}));
         world.addActor(makeZombieSoldier(
             textureId, {286.0F, 208.0F}, {{286.0F, 208.0F}, {350.0F, 208.0F}, true}));
+
+        const Actor* playerActor = world.findActor(player);
+        if (playerActor == nullptr)
+        {
+            throw std::logic_error("The example game could not initialise its camera");
+        }
+        cameraController = makeCameraController(map, playerActor->body.bounds, {80.0F, 45.0F});
     }
 
     void ExampleGame::update(const InputIntentions& intentions, float deltaTime)
@@ -208,6 +215,7 @@ namespace simple_platformer
         {
             throw std::logic_error("The example game has no player after lifecycle update");
         }
+        followTarget(cameraController, map, player->body.bounds);
         simple_platformer::updateActorAnimations(world, deltaTime);
     }
 
@@ -236,17 +244,11 @@ namespace simple_platformer
     ActorDebugScene ExampleGame::actorDebugScene() const
     {
         constexpr float AtlasWidth = 160.0F;
-        return makeActorDebugScene(world, currentCamera(), AtlasWidth);
+        return makeActorDebugScene(world, cameraController, AtlasWidth);
     }
 
     Camera ExampleGame::currentCamera() const
     {
-        const Actor* player = world.findActor(world.playerId());
-        if (player == nullptr)
-        {
-            throw std::logic_error("The example game has no player");
-        }
-
-        return makeLockedCamera(map, player->body.bounds);
+        return cameraController.camera;
     }
 }

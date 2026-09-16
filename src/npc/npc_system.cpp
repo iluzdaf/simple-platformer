@@ -134,14 +134,10 @@ namespace
     void followDestination(
         const simple_platformer::TileMap& map,
         simple_platformer::Actor& actor,
+        simple_platformer::PathFollower& follower,
         glm::vec2 destination,
         float deltaTime)
     {
-        if (!actor.pathFollower.has_value())
-        {
-            throw std::logic_error("An NPC is missing its path follower");
-        }
-        simple_platformer::PathFollower& follower = *actor.pathFollower;
         requestPath(map, actor, follower, destination);
         if (actor.flyingMovement.has_value())
         {
@@ -154,17 +150,15 @@ namespace
         }
     }
 
-    void enterPatrolOrIdle(simple_platformer::Actor& actor)
+    void enterPatrolOrIdle(
+        simple_platformer::NpcBrain& brain,
+        simple_platformer::PathFollower& follower,
+        bool hasPatrol)
     {
-        if (!actor.brain.has_value() || !actor.pathFollower.has_value())
-        {
-            throw std::logic_error("An NPC is missing behaviour components");
-        }
-        simple_platformer::clearPath(*actor.pathFollower);
+        simple_platformer::clearPath(follower);
         changeState(
-            *actor.brain,
-            actor.patrol.has_value() ? simple_platformer::NpcState::Patrol
-                                     : simple_platformer::NpcState::Idle);
+            brain,
+            hasPatrol ? simple_platformer::NpcState::Patrol : simple_platformer::NpcState::Idle);
     }
 
     const simple_platformer::Actor* livingTarget(
@@ -181,6 +175,98 @@ namespace
                                                                                         : nullptr;
     }
 
+    void chooseNpcState(
+        simple_platformer::NpcBrain& brain,
+        simple_platformer::PathFollower& follower,
+        bool hasPatrol,
+        const simple_platformer::Actor* target)
+    {
+        if (brain.state == simple_platformer::NpcState::Bite)
+        {
+            return;
+        }
+
+        if (target != nullptr && brain.state != simple_platformer::NpcState::Chase)
+        {
+            simple_platformer::clearPath(follower);
+            changeState(brain, simple_platformer::NpcState::Chase);
+        }
+        else if (target == nullptr && brain.state == simple_platformer::NpcState::Chase)
+        {
+            enterPatrolOrIdle(brain, follower, hasPatrol);
+        }
+        else if (brain.state == simple_platformer::NpcState::Idle && hasPatrol)
+        {
+            changeState(brain, simple_platformer::NpcState::Patrol);
+        }
+    }
+
+    void updateBiteState(
+        simple_platformer::Actor& actor,
+        simple_platformer::NpcBrain& brain,
+        simple_platformer::PathFollower& follower,
+        const simple_platformer::BiteAttack& bite,
+        const simple_platformer::Actor* target)
+    {
+        faceToward(actor, brain.lastSeenTargetFeet);
+        if (bite.phase != simple_platformer::BitePhase::Ready || brain.stateTime <= 0.0F)
+        {
+            return;
+        }
+
+        if (target == nullptr)
+        {
+            enterPatrolOrIdle(brain, follower, actor.patrol.has_value());
+        }
+        else
+        {
+            changeState(brain, simple_platformer::NpcState::Chase);
+        }
+    }
+
+    void updatePatrolState(
+        const simple_platformer::TileMap& map,
+        simple_platformer::Actor& actor,
+        simple_platformer::PathFollower& follower,
+        float deltaTime)
+    {
+        if (!actor.patrol.has_value())
+        {
+            throw std::logic_error("A patrolling NPC is missing its patrol");
+        }
+        simple_platformer::Patrol& patrol = *actor.patrol;
+        followDestination(map, actor, follower, patrolDestination(patrol), deltaTime);
+        if (simple_platformer::pathComplete(follower))
+        {
+            patrol.headingToSecond = !patrol.headingToSecond;
+            simple_platformer::clearPath(follower);
+        }
+    }
+
+    void updateChaseState(
+        const simple_platformer::TileMap& map,
+        simple_platformer::Actor& actor,
+        simple_platformer::NpcBrain& brain,
+        simple_platformer::PathFollower& follower,
+        const simple_platformer::Actor* target,
+        float deltaTime)
+    {
+        if (target == nullptr)
+        {
+            return;
+        }
+
+        faceToward(actor, brain.lastSeenTargetFeet);
+        if (brain.targetVisible && targetIsInBiteRange(actor, *target))
+        {
+            simple_platformer::clearPath(follower);
+            actor.intentions.primaryAttackPressed = true;
+            changeState(brain, simple_platformer::NpcState::Bite);
+            return;
+        }
+        followDestination(map, actor, follower, brain.lastSeenTargetFeet, deltaTime);
+    }
+
     void updateNpcState(
         const simple_platformer::TileMap& map,
         simple_platformer::World& world,
@@ -192,69 +278,25 @@ namespace
             throw std::logic_error("An NPC is missing behaviour or attack components");
         }
         simple_platformer::NpcBrain& brain = *actor.brain;
+        simple_platformer::PathFollower& follower = *actor.pathFollower;
+        const simple_platformer::BiteAttack& bite = *actor.bite;
         const simple_platformer::Actor* target = livingTarget(world, brain);
+        chooseNpcState(brain, follower, actor.patrol.has_value(), target);
 
-        if (brain.state == simple_platformer::NpcState::Bite)
+        switch (brain.state)
         {
-            faceToward(actor, brain.lastSeenTargetFeet);
-            if (actor.bite->phase == simple_platformer::BitePhase::Ready && brain.stateTime > 0.0F)
-            {
-                if (target == nullptr)
-                {
-                    enterPatrolOrIdle(actor);
-                }
-                else
-                {
-                    changeState(brain, simple_platformer::NpcState::Chase);
-                }
-            }
-            return;
+        case simple_platformer::NpcState::Idle:
+            break;
+        case simple_platformer::NpcState::Patrol:
+            updatePatrolState(map, actor, follower, deltaTime);
+            break;
+        case simple_platformer::NpcState::Chase:
+            updateChaseState(map, actor, brain, follower, target, deltaTime);
+            break;
+        case simple_platformer::NpcState::Bite:
+            updateBiteState(actor, brain, follower, bite, target);
+            break;
         }
-
-        if (target != nullptr && brain.state != simple_platformer::NpcState::Chase)
-        {
-            simple_platformer::clearPath(*actor.pathFollower);
-            changeState(brain, simple_platformer::NpcState::Chase);
-        }
-        else if (target == nullptr && brain.state == simple_platformer::NpcState::Chase)
-        {
-            enterPatrolOrIdle(actor);
-        }
-        else if (brain.state == simple_platformer::NpcState::Idle && actor.patrol.has_value())
-        {
-            changeState(brain, simple_platformer::NpcState::Patrol);
-        }
-
-        if (brain.state == simple_platformer::NpcState::Patrol)
-        {
-            if (!actor.patrol.has_value())
-            {
-                throw std::logic_error("A patrolling NPC is missing its patrol");
-            }
-            simple_platformer::Patrol& patrol = *actor.patrol;
-            followDestination(map, actor, patrolDestination(patrol), deltaTime);
-            if (simple_platformer::pathComplete(*actor.pathFollower))
-            {
-                patrol.headingToSecond = !patrol.headingToSecond;
-                simple_platformer::clearPath(*actor.pathFollower);
-            }
-            return;
-        }
-
-        if (brain.state != simple_platformer::NpcState::Chase || target == nullptr)
-        {
-            return;
-        }
-
-        faceToward(actor, brain.lastSeenTargetFeet);
-        if (brain.targetVisible && targetIsInBiteRange(actor, *target))
-        {
-            simple_platformer::clearPath(*actor.pathFollower);
-            actor.intentions.primaryAttackPressed = true;
-            changeState(brain, simple_platformer::NpcState::Bite);
-            return;
-        }
-        followDestination(map, actor, brain.lastSeenTargetFeet, deltaTime);
     }
 }
 

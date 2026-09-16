@@ -319,6 +319,34 @@ namespace
         }
     }
 
+    void drawProjectile(
+        ImDrawList& drawList,
+        const simple_platformer::ProjectileDebugInfo& projectile,
+        const simple_platformer::ActorDebugScene& scene,
+        const GameViewport& viewport)
+    {
+        const ImU32 colour = IM_COL32(255, 160, 64, 255);
+        drawWorldBounds(drawList, projectile.bounds, scene, viewport, colour);
+
+        ImVec2 labelPosition = screenPosition(projectile.bounds.position, scene, viewport);
+        labelPosition.y += projectile.bounds.size.y * viewport.scale.y + 2.0F;
+        char label[64]{};
+        if (projectile.owner.has_value())
+        {
+            std::snprintf(
+                label,
+                sizeof(label),
+                "%u\n%.2f",
+                projectile.owner->value,
+                projectile.remainingLifetime);
+        }
+        else
+        {
+            std::snprintf(label, sizeof(label), "none\n%.2f", projectile.remainingLifetime);
+        }
+        drawList.AddText(labelPosition, colour, label);
+    }
+
     void drawActorWindow(const simple_platformer::ActorDebugInfo& actor, std::size_t index)
     {
         constexpr float WindowWidth = 180.0F;
@@ -419,6 +447,14 @@ namespace simple_platformer
             drawActorWorldLabel(*drawList, actor, scene, *viewport);
             drawWorldBounds(
                 *drawList, actor.collider, scene, *viewport, IM_COL32(255, 64, 64, 255));
+        }
+
+        if (viewport.has_value())
+        {
+            for (const ProjectileDebugInfo& projectile : scene.projectiles)
+            {
+                drawProjectile(*drawList, projectile, scene, *viewport);
+            }
         }
     }
 }

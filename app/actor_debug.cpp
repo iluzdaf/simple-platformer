@@ -221,6 +221,13 @@ namespace simple_platformer
             scene.actors.push_back(info);
         }
 
+        scene.projectiles.reserve(world.projectiles().size());
+        for (const Projectile& projectile : world.projectiles())
+        {
+            scene.projectiles.push_back(
+                {projectile.bounds, projectile.remainingLifetime, projectile.owner});
+        }
+
         return scene;
     }
 }

@@ -665,8 +665,10 @@ grey and the next connection is thicker. Jump and fall connections replay their 
 fixed-step input programs through the real movement and collision code, so their debug
 lines show the planned physical trajectory. NPC sensing draws a faint notice-radius
 circle, a green line to a visible opposing player, and a yellow marker and line for a
-remembered target position. The reusable debug-data builder stays separate from
-the GLFW/ImGui presentation code so it can be tested without a window.
+remembered target position. Projectiles show their collision bounds, owner, and remaining
+lifetime directly in world space without separate debug windows. The reusable debug-data
+builder stays separate from the GLFW/ImGui presentation code so it can be tested without
+a window.
 
 ## Loading and errors
 

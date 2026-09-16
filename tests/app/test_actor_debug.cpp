@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -165,6 +166,38 @@ TEST_CASE("Actor debug data describes visible and remembered targets", "[app][de
     REQUIRE_FALSE(remembered.visibleTargetCenter.has_value());
     REQUIRE(remembered.rememberedTargetFeet == glm::vec2{40.0F, 32.0F});
     REQUIRE(remembered.memoryRemaining == 0.6F);
+}
+
+TEST_CASE("Actor debug data describes projectiles", "[app][debug]")
+{
+    simple_platformer::World world;
+
+    simple_platformer::Projectile owned;
+    owned.bounds = {{24.0F, 32.0F}, {4.0F, 2.0F}};
+    owned.remainingLifetime = 1.25F;
+    owned.owner = simple_platformer::ActorId{7};
+    owned.sprite.size = {4.0F, 2.0F};
+    world.addProjectile(owned);
+
+    simple_platformer::Projectile unowned = owned;
+    unowned.bounds.position = {48.0F, 32.0F};
+    unowned.remainingLifetime = 0.5F;
+    unowned.owner = std::nullopt;
+    world.addProjectile(unowned);
+
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "####"});
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+    const simple_platformer::ActorDebugScene debug =
+        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+
+    REQUIRE(debug.projectiles.size() == 2);
+    REQUIRE(debug.projectiles[0].bounds.position == owned.bounds.position);
+    REQUIRE(debug.projectiles[0].bounds.size == owned.bounds.size);
+    REQUIRE(debug.projectiles[0].remainingLifetime == 1.25F);
+    REQUIRE(debug.projectiles[0].owner == simple_platformer::ActorId{7});
+    REQUIRE(debug.projectiles[1].remainingLifetime == 0.5F);
+    REQUIRE_FALSE(debug.projectiles[1].owner.has_value());
 }
 
 TEST_CASE("Actor debug data describes path connections and progress", "[app][debug]")

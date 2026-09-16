@@ -74,9 +74,17 @@ namespace simple_platformer
         std::optional<SensorDebugInfo> sensor;
     };
 
+    struct ProjectileDebugInfo
+    {
+        Aabb bounds;
+        float remainingLifetime = 0.0F;
+        std::optional<ActorId> owner;
+    };
+
     struct ActorDebugScene
     {
         std::vector<ActorDebugInfo> actors;
+        std::vector<ProjectileDebugInfo> projectiles;
         Aabb cameraBounds;
         Aabb cameraDeadZone;
     };

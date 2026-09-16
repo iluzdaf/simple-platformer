@@ -100,3 +100,27 @@ TEST_CASE("Generated jump inputs replay to their promised landing", "[navigation
         simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds)) ==
         jump.destination);
 }
+
+TEST_CASE(
+    "Airborne connection costs equal their input program durations in fixed ticks",
+    "[navigation][platformer]")
+{
+    const simple_platformer::PlatformerMovementConfig config;
+    constexpr float FixedDelta = static_cast<float>(simple_platformer::FixedDeltaSeconds);
+
+    const simple_platformer::TileMap jumpMap = simple_platformer::TileMap::fromAscii(
+        {"..........", "....##....", "..........", "##########"});
+    const auto jumpNeighbors =
+        simple_platformer::platformerNeighbors(jumpMap, {2, 2}, {12.0F, 12.0F}, config);
+    const simple_platformer::NavigationNeighbor& jump =
+        neighborWith(jumpNeighbors, simple_platformer::Traversal::Jump);
+    REQUIRE(jump.cost == std::lround(simple_platformer::durationOf(jump.inputs) / FixedDelta));
+
+    const simple_platformer::TileMap fallMap = simple_platformer::TileMap::fromAscii(
+        {"........", "###.....", "........", "........", "########"});
+    const auto fallNeighbors =
+        simple_platformer::platformerNeighbors(fallMap, {2, 0}, {12.0F, 12.0F}, config);
+    const simple_platformer::NavigationNeighbor& fall =
+        neighborWith(fallNeighbors, simple_platformer::Traversal::Fall);
+    REQUIRE(fall.cost == std::lround(simple_platformer::durationOf(fall.inputs) / FixedDelta));
+}

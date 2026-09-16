@@ -63,3 +63,24 @@ TEST_CASE("Dying actors ignore intentions but continue falling", "[actor][moveme
     REQUIRE(moved->body.bounds.position.y > 4.0F);
     REQUIRE(moved->body.velocity.y > 0.0F);
 }
+
+TEST_CASE("Aim direction controls horizontal facing independently of movement", "[actor][movement]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"..........", "##########"});
+    simple_platformer::Actor actor = makeActor({16.0F, 4.0F});
+    simple_platformer::PlatformerMovement movement;
+    movement.grounded = true;
+    actor.platformerMovement = movement;
+    actor.intentions.direction.x = 1.0F;
+    actor.intentions.aimDirection = {-1.0F, -1.0F};
+    simple_platformer::World world;
+    const simple_platformer::ActorId id = world.addActor(actor);
+
+    simple_platformer::updateActorMovement(map, world, 0.1F);
+
+    const simple_platformer::Actor* moved = world.findActor(id);
+    REQUIRE(moved != nullptr);
+    REQUIRE(moved->body.velocity.x > 0.0F);
+    REQUIRE(moved->facing == simple_platformer::Facing::Left);
+}

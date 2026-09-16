@@ -92,6 +92,17 @@ TEST_CASE("A quick press and release between fixed updates is preserved", "[inpu
     REQUIRE_FALSE(input.wasReleased(InputButton::Jump));
 }
 
+TEST_CASE("A button can be cleared before its pending edge is consumed", "[input]")
+{
+    InputState input;
+    input.setButton(InputButton::PrimaryAttack, true);
+
+    input.clearButton(InputButton::PrimaryAttack);
+
+    REQUIRE_FALSE(input.isHeld(InputButton::PrimaryAttack));
+    REQUIRE_FALSE(input.consumeIntentions().primaryAttackPressed);
+}
+
 TEST_CASE("The sentinel input button is rejected", "[input]")
 {
     InputState input;

@@ -254,11 +254,11 @@ TEST_CASE("A ranged NPC stops and requests an attack while its target is visible
     const simple_platformer::TileMap map =
         simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({48.0F, 16.0F}));
-    world.setPlayer(playerId, {54.0F, 28.0F});
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({48.0F, 0.0F}));
+    world.setPlayer(playerId, {54.0F, 12.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeShootingNpc({16.0F, 16.0F}));
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {54.0F, 28.0F};
+    brain(world, npcId).lastSeenTargetFeet = {54.0F, 12.0F};
     brain(world, npcId).targetVisible = true;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
@@ -266,6 +266,7 @@ TEST_CASE("A ranged NPC stops and requests an attack while its target is visible
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
     REQUIRE(actor(world, npcId).facing == simple_platformer::Facing::Right);
     REQUIRE(actor(world, npcId).intentions.direction == glm::vec2{0.0F, 0.0F});
+    REQUIRE(actor(world, npcId).intentions.aimDirection == glm::vec2{32.0F, -16.0F});
     REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
 }
 

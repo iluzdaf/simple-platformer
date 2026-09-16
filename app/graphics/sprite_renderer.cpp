@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -10,6 +11,7 @@
 #include <glad/glad.h>
 #include <stb_image.h>
 
+#include "graphics/display_viewport.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 
@@ -264,27 +266,23 @@ namespace simple_platformer
         glViewport(0, 0, framebufferWidth, framebufferHeight);
         glClearColor(0.0F, 0.0F, 0.0F, 1.0F);
         glClear(GL_COLOR_BUFFER_BIT);
-        const int scale =
-            std::min(framebufferWidth / InternalWidth, framebufferHeight / InternalHeight);
-        if (scale <= 0)
+        const std::optional<DisplayViewport> output =
+            makeDisplayViewport({framebufferWidth, framebufferHeight});
+        if (!output.has_value())
         {
             return;
         }
 
-        const int outputWidth = InternalWidth * scale;
-        const int outputHeight = InternalHeight * scale;
-        const int left = (framebufferWidth - outputWidth) / 2;
-        const int bottom = (framebufferHeight - outputHeight) / 2;
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
         glBlitFramebuffer(
             0,
             0,
             InternalWidth,
             InternalHeight,
-            left,
-            bottom,
-            left + outputWidth,
-            bottom + outputHeight,
+            output->topLeftMargin.x,
+            output->bottomMargin,
+            output->topLeftMargin.x + output->size.x,
+            output->bottomMargin + output->size.y,
             GL_COLOR_BUFFER_BIT,
             GL_NEAREST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -161,21 +161,30 @@ hierarchy.
 struct InputIntentions
 {
     glm::vec2 direction = {0.0f, 0.0f}; // each axis clamped to -1 through 1
+    glm::vec2 aimDirection = {0.0f, 0.0f};
     bool jumpPressed = false;
     bool jumpHeld = false;
     bool primaryAttackPressed = false;
 };
 ```
 
-Platformer movement reads only `direction.x`; flying movement reads both axes. Facing
-is actor state. Nonzero horizontal input changes it; otherwise the last facing
-direction remains. `primaryAttackPressed` uses the actor's configured primary attack:
+Platformer movement reads only `direction.x`; flying movement reads both axes.
+`aimDirection` is independent from movement and does not need to be normalized by the
+controller. Facing remains left or right for sprite flipping and follows the horizontal
+aim component independently from movement. `primaryAttackPressed` uses the actor's
+configured primary attack:
 the player and a ranged NPC fire a projectile, while a biting NPC begins a bite. This
 keeps controllers and brains independent of concrete attack types.
 
 GLFW events update held, pressed, and released button state. Pressed and released
 edges remain pending until the first fixed update consumes them, even if a rendered
 frame performs no fixed update. Held input is available to every fixed update.
+
+The application converts the mouse from window points to framebuffer pixels, removes
+the integer-scaled game's letterbox margin, and then converts internal screen position
+through the camera into a player aim direction. Clicks outside the game viewport are
+ignored. NPC behaviour writes a direction toward the target into the same intention,
+so the ranged attack system does not distinguish player and NPC controllers.
 
 When ImGui captures the keyboard, gameplay intentions are empty except for the key
 that closes the inventory.
@@ -530,8 +539,9 @@ creation to animation frames.
 
 The first projectile contains bounds, velocity, damage, remaining lifetime, owner,
 team, and a sprite. Its collision bounds and sprite display size are independently
-configurable world-pixel dimensions. The player's primary attack fires it in the
-retained left or right facing direction. Each tick it casts the swept
+configurable world-pixel dimensions. The ranged attack system normalizes the actor's
+aim intention, spawns the projectile beyond the actor body along that direction, and
+supports the full 360-degree range. Each tick it casts the swept
 segment from its previous to proposed position against solid tiles and eligible actor
 AABBs, selects the earliest hit, applies one damage request, and disappears. A ranged
 NPC uses the same component and attack system as the player; its brain only supplies

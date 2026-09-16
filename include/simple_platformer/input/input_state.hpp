@@ -21,6 +21,7 @@ namespace simple_platformer
     struct InputIntentions
     {
         glm::vec2 direction = {0.0F, 0.0F};
+        glm::vec2 aimDirection = {0.0F, 0.0F};
         bool jumpPressed = false;
         bool jumpHeld = false;
         bool primaryAttackPressed = false;
@@ -30,6 +31,7 @@ namespace simple_platformer
     {
     public:
         void setButton(InputButton button, bool down);
+        void clearButton(InputButton button);
 
         bool isHeld(InputButton button) const;
         bool wasPressed(InputButton button) const;

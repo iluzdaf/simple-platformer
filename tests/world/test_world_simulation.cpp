@@ -30,6 +30,7 @@ TEST_CASE("World simulation spawns a projectile after projectile movement", "[wo
     player.platformerMovement = simple_platformer::PlatformerMovement{};
     player.team = simple_platformer::Team::Player;
     player.rangedWeapon = simple_platformer::RangedWeapon{};
+    player.intentions.aimDirection = {1.0F, 0.0F};
     player.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId playerId = world.addActor(player);
 

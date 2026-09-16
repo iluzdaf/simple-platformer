@@ -5,12 +5,14 @@
 #include <stdexcept>
 #include <vector>
 
+#include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
@@ -34,16 +36,19 @@ namespace
         const simple_platformer::Actor& actor,
         const simple_platformer::RangedWeapon& weapon)
     {
-        const float direction = actor.facing == simple_platformer::Facing::Left ? -1.0F : 1.0F;
+        const glm::vec2 direction = glm::normalize(actor.intentions.aimDirection);
         const glm::vec2 actorCenter = simple_platformer::centerOf(actor.body.bounds);
-        const float left = direction > 0.0F
-                               ? actor.body.bounds.position.x + actor.body.bounds.size.x
-                               : actor.body.bounds.position.x - weapon.projectileSize.x;
+        const float actorRadius =
+            std::max(actor.body.bounds.size.x, actor.body.bounds.size.y) * 0.5F;
+        const float projectileRadius =
+            std::max(weapon.projectileSize.x, weapon.projectileSize.y) * 0.5F;
+        const glm::vec2 projectileCenter =
+            actorCenter + direction * (actorRadius + projectileRadius);
 
         simple_platformer::Projectile projectile;
         projectile.bounds = {
-            {left, actorCenter.y - weapon.projectileSize.y * 0.5F}, weapon.projectileSize};
-        projectile.velocity = {direction * weapon.projectileSpeed, 0.0F};
+            projectileCenter - weapon.projectileSize * 0.5F, weapon.projectileSize};
+        projectile.velocity = direction * weapon.projectileSpeed;
         projectile.damage = weapon.damage;
         projectile.remainingLifetime = weapon.projectileLifetime;
         projectile.owner = actor.id;
@@ -96,6 +101,17 @@ namespace
         {
             weapon.phaseTimeRemaining -= remaining;
         }
+    }
+
+    bool hasAimDirection(const simple_platformer::Actor& actor)
+    {
+        if (!simple_platformer::isFinite(actor.intentions.aimDirection))
+        {
+            return false;
+        }
+        const float lengthSquared =
+            glm::dot(actor.intentions.aimDirection, actor.intentions.aimDirection);
+        return std::isfinite(lengthSquared) && lengthSquared > 0.0F;
     }
 
     void beginBite(simple_platformer::BiteAttack& bite)
@@ -178,7 +194,8 @@ namespace simple_platformer
                     weapon.phaseTimeRemaining = 0.0F;
                 }
                 else if (
-                    weapon.phase == RangedPhase::Ready && actor.intentions.primaryAttackPressed)
+                    weapon.phase == RangedPhase::Ready && actor.intentions.primaryAttackPressed &&
+                    hasAimDirection(actor))
                 {
                     beginShot(actor, weapon, requests);
                 }

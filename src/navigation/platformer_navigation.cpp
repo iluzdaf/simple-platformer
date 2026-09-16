@@ -32,8 +32,8 @@ namespace
         const simple_platformer::InputIntentions& first,
         const simple_platformer::InputIntentions& second)
     {
-        return first.direction == second.direction && first.jumpPressed == second.jumpPressed &&
-               first.jumpHeld == second.jumpHeld &&
+        return first.direction == second.direction && first.aimDirection == second.aimDirection &&
+               first.jumpPressed == second.jumpPressed && first.jumpHeld == second.jumpHeld &&
                first.primaryAttackPressed == second.primaryAttackPressed;
     }
 

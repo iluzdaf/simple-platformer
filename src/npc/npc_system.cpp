@@ -257,6 +257,8 @@ namespace
         if (brain.targetVisible && actor.rangedWeapon.has_value())
         {
             simple_platformer::clearPath(follower);
+            actor.intentions.aimDirection = simple_platformer::centerOf(target->body.bounds) -
+                                            simple_platformer::centerOf(actor.body.bounds);
             actor.intentions.primaryAttackPressed = true;
             return;
         }

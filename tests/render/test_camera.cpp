@@ -42,6 +42,7 @@ TEST_CASE("The camera locks to the target centre", "[render][camera]")
 
     requireVector(camera.position, {100.0F, 70.0F});
     requireVector(simple_platformer::worldToScreen(camera, target.position), {45.0F, 25.0F});
+    requireVector(simple_platformer::screenToWorld(camera, {45.0F, 25.0F}), target.position);
 }
 
 TEST_CASE("The camera clamps to every map edge", "[render][camera]")

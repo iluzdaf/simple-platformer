@@ -36,6 +36,15 @@ namespace simple_platformer
             {
                 throw std::logic_error("An actor has no movement component");
             }
+
+            if (intentions.aimDirection.x < 0.0F)
+            {
+                actor.facing = Facing::Left;
+            }
+            else if (intentions.aimDirection.x > 0.0F)
+            {
+                actor.facing = Facing::Right;
+            }
         }
     }
 }

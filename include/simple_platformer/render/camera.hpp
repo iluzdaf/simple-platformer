@@ -20,4 +20,5 @@ namespace simple_platformer
         glm::vec2 viewportSize = {320.0F, 180.0F});
 
     glm::vec2 worldToScreen(const Camera& camera, glm::vec2 worldPosition);
+    glm::vec2 screenToWorld(const Camera& camera, glm::vec2 screenPosition);
 }

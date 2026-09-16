@@ -46,4 +46,9 @@ namespace simple_platformer
     {
         return worldPosition - camera.position;
     }
+
+    glm::vec2 screenToWorld(const Camera& camera, glm::vec2 screenPosition)
+    {
+        return screenPosition + camera.position;
+    }
 }

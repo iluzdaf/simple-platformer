@@ -211,6 +211,17 @@ namespace simple_platformer
         simple_platformer::updateActorAnimations(world, deltaTime);
     }
 
+    glm::vec2 ExampleGame::playerAimDirection(glm::vec2 screenPosition) const
+    {
+        const Actor* player = world.findActor(world.playerId());
+        if (player == nullptr)
+        {
+            throw std::logic_error("The example game has no player");
+        }
+
+        return screenToWorld(currentCamera(), screenPosition) - centerOf(player->body.bounds);
+    }
+
     RenderScene ExampleGame::buildScene() const
     {
         const Actor* player = world.findActor(world.playerId());
@@ -219,11 +230,16 @@ namespace simple_platformer
             throw std::logic_error("The example player is missing its sprite");
         }
 
-        const Camera camera = makeLockedCamera(map, player->body.bounds);
-        return buildRenderScene(map, player->sprite.value().textureId, camera, world);
+        return buildRenderScene(map, player->sprite.value().textureId, currentCamera(), world);
     }
 
     ActorDebugScene ExampleGame::actorDebugScene() const
+    {
+        constexpr float AtlasWidth = 160.0F;
+        return makeActorDebugScene(world, currentCamera(), AtlasWidth);
+    }
+
+    Camera ExampleGame::currentCamera() const
     {
         const Actor* player = world.findActor(world.playerId());
         if (player == nullptr)
@@ -231,8 +247,6 @@ namespace simple_platformer
             throw std::logic_error("The example game has no player");
         }
 
-        const Camera camera = makeLockedCamera(map, player->body.bounds);
-        constexpr float AtlasWidth = 160.0F;
-        return makeActorDebugScene(world, camera, AtlasWidth);
+        return makeLockedCamera(map, player->body.bounds);
     }
 }

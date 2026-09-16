@@ -34,8 +34,9 @@ cd build/mac-debug
 ./simple_platformer
 ```
 
-Use the left and right arrow keys to move, Space to jump, X to fire, and Escape to
-close the window. Press F1 to show or hide the actor debug windows and in-game bounds.
+Use the left and right arrow keys to move, Space to jump, the mouse to aim, the left
+mouse button to fire, and Escape to close the window. Press F1 to show or hide the
+actor debug windows and in-game bounds.
 
 ## Windows: create and use the Visual Studio solution
 

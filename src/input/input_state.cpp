@@ -38,6 +38,14 @@ namespace simple_platformer
         released[index] = released[index] || !down;
     }
 
+    void InputState::clearButton(InputButton button)
+    {
+        const std::size_t index = indexOf(button);
+        held[index] = false;
+        pressed[index] = false;
+        released[index] = false;
+    }
+
     bool InputState::isHeld(InputButton button) const
     {
         return held[indexOf(button)];

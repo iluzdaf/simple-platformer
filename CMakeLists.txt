@@ -123,6 +123,7 @@ add_executable(
     app/application.cpp
     app/example_animations.cpp
     app/example_game.cpp
+    app/graphics/display_viewport.cpp
     app/graphics/sprite_renderer.cpp
     app/main.cpp
 )
@@ -262,7 +263,9 @@ if(BUILD_TESTING)
     add_executable(
         simple_platformer_tests
         app/actor_debug.cpp
+        app/graphics/display_viewport.cpp
         tests/app/test_actor_debug.cpp
+        tests/app/test_display_viewport.cpp
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp
         tests/combat/test_attack_system.cpp

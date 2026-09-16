@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <stdexcept>
 
@@ -16,6 +17,8 @@
 
 namespace
 {
+    using Catch::Matchers::WithinAbs;
+
     simple_platformer::Actor makeActor(
         glm::vec2 position,
         simple_platformer::Team team,
@@ -74,13 +77,14 @@ namespace
     }
 }
 
-TEST_CASE("A ranged weapon queues a projectile in the actor's facing direction", "[combat][weapon]")
+TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][weapon]")
 {
     simple_platformer::World world;
     simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
-    actor.facing = simple_platformer::Facing::Left;
+    actor.facing = simple_platformer::Facing::Right;
     actor.rangedWeapon = simple_platformer::RangedWeapon{};
     actor.rangedWeapon->projectileSprite.size = {8.0F, 6.0F};
+    actor.intentions.aimDirection = {-1.0F, 0.0F};
     actor.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId shooter = world.addActor(actor);
     simple_platformer::WorldRequests requests;
@@ -101,11 +105,46 @@ TEST_CASE("A ranged weapon queues a projectile in the actor's facing direction",
     REQUIRE(projectile.sprite.size.x == 8.0F);
 }
 
+TEST_CASE("A ranged weapon normalises a diagonal aim direction", "[combat][weapon]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
+    actor.rangedWeapon = simple_platformer::RangedWeapon{};
+    actor.intentions.aimDirection = {3.0F, 4.0F};
+    actor.intentions.primaryAttackPressed = true;
+    world.addActor(actor);
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateAttacks(world, requests, 0.0F);
+    simple_platformer::updateLifeState(world, requests, 0.0F);
+
+    REQUIRE(world.projectiles().size() == 1);
+    REQUIRE_THAT(world.projectiles().front().velocity.x, WithinAbs(108.0F, 0.0001F));
+    REQUIRE_THAT(world.projectiles().front().velocity.y, WithinAbs(144.0F, 0.0001F));
+}
+
+TEST_CASE("A ranged weapon does not fire without an aim direction", "[combat][weapon]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
+    actor.rangedWeapon = simple_platformer::RangedWeapon{};
+    actor.intentions.primaryAttackPressed = true;
+    const simple_platformer::ActorId shooter = world.addActor(actor);
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateAttacks(world, requests, 0.0F);
+    simple_platformer::updateLifeState(world, requests, 0.0F);
+
+    REQUIRE(world.projectiles().empty());
+    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Ready);
+}
+
 TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
 {
     simple_platformer::World world;
     simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
     actor.rangedWeapon = simple_platformer::RangedWeapon{};
+    actor.intentions.aimDirection = {1.0F, 0.0F};
     actor.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId shooter = world.addActor(actor);
     simple_platformer::WorldRequests requests;

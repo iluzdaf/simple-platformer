@@ -19,6 +19,8 @@ namespace simple_platformer
     {
         GridPosition destination;
         Traversal traversal = Traversal::Fly;
+        // Cost must be greater than zero. All connections in one search must
+        // measure cost in the same unit, such as grid steps or simulation ticks.
         int cost = 1;
         InputProgram inputs;
     };

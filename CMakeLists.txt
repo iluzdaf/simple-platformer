@@ -69,7 +69,7 @@ add_library(
     src/math/validation.cpp
     src/movement/flying_movement.cpp
     src/movement/platformer_movement.cpp
-    src/navigation/a_star.cpp
+    src/navigation/path_search.cpp
     src/navigation/flying_navigation.cpp
     src/navigation/input_program.cpp
     src/navigation/path_follower.cpp
@@ -245,7 +245,7 @@ if(BUILD_TESTING)
         tests/math/test_validation.cpp
         tests/movement/test_flying_movement.cpp
         tests/movement/test_platformer_movement.cpp
-        tests/navigation/test_a_star.cpp
+        tests/navigation/test_path_search.cpp
         tests/navigation/test_flying_navigation.cpp
         tests/navigation/test_input_program.cpp
         tests/navigation/test_path_follower.cpp

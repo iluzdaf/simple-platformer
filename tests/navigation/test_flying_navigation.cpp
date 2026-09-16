@@ -30,3 +30,17 @@ TEST_CASE("Flying neighbors stay inside the map and avoid solid cells", "[naviga
     REQUIRE(neighbors.front().traversal == simple_platformer::Traversal::Fly);
     REQUIRE(simple_platformer::flyingNeighbors(map, {1, 0}).size() == 2);
 }
+
+TEST_CASE("Flying path search uses the flying navigation policy", "[navigation][flying]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"....", ".##.", "...."});
+
+    const auto path = simple_platformer::findFlyingPath(map, {0, 1}, {3, 1});
+
+    REQUIRE(path.has_value());
+    const simple_platformer::NavigationPath route =
+        path.value_or(simple_platformer::NavigationPath{});
+    REQUIRE(route.start == simple_platformer::GridPosition{0, 1});
+    REQUIRE(route.steps.back().destination == simple_platformer::GridPosition{3, 1});
+}

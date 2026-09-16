@@ -1,4 +1,4 @@
-#include "simple_platformer/navigation/a_star.hpp"
+#include "simple_platformer/navigation/path_search.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -23,11 +23,17 @@ namespace
         bool closed = false;
     };
 
-    int estimatedDistance(
-        simple_platformer::GridPosition first,
-        simple_platformer::GridPosition second)
+    int estimateRemainingCost(
+        const simple_platformer::GridHeuristicFunction& heuristic,
+        simple_platformer::GridPosition position,
+        simple_platformer::GridPosition goal)
     {
-        return std::abs(first.x - second.x) + std::abs(first.y - second.y);
+        const int estimate = heuristic(position, goal);
+        if (estimate < 0)
+        {
+            throw std::invalid_argument("A path heuristic cannot return a negative cost");
+        }
+        return estimate;
     }
 
     std::optional<std::size_t> findNode(
@@ -74,7 +80,7 @@ namespace
             const SearchNode& currentNode = nodes[current];
             if (!currentNode.connectionFromParent.has_value())
             {
-                throw std::logic_error("An A* node is missing its incoming connection");
+                throw std::logic_error("A path-search node is missing its incoming connection");
             }
             const simple_platformer::NavigationNeighbor connection =
                 currentNode.connectionFromParent.value_or(simple_platformer::NavigationNeighbor{});
@@ -88,18 +94,42 @@ namespace
 
 namespace simple_platformer
 {
-    std::optional<NavigationPath> findGridPath(
+    int manhattanHeuristic(GridPosition position, GridPosition goal)
+    {
+        return std::abs(position.x - goal.x) + std::abs(position.y - goal.y);
+    }
+
+    std::optional<NavigationPath> findLowestCostPath(
         GridPosition start,
         GridPosition goal,
         const GridNeighborFunction& neighbors)
     {
+        const GridHeuristicFunction noHeuristic = [](GridPosition, GridPosition) { return 0; };
+        return findLowestCostPath(start, goal, neighbors, noHeuristic);
+    }
+
+    std::optional<NavigationPath> findLowestCostPath(
+        GridPosition start,
+        GridPosition goal,
+        const GridNeighborFunction& neighbors,
+        const GridHeuristicFunction& heuristic)
+    {
         if (!neighbors)
         {
-            throw std::invalid_argument("A* requires a neighbor function");
+            throw std::invalid_argument("Path search requires a neighbor function");
+        }
+        if (!heuristic)
+        {
+            throw std::invalid_argument("Path search requires a heuristic function");
         }
 
         std::vector<SearchNode> nodes{
-            {start, 0, estimatedDistance(start, goal), std::nullopt, std::nullopt, false}};
+            {start,
+             0,
+             estimateRemainingCost(heuristic, start, goal),
+             std::nullopt,
+             std::nullopt,
+             false}};
         while (true)
         {
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);
@@ -120,11 +150,9 @@ namespace simple_platformer
 
             for (const NavigationNeighbor& neighbor : neighbors(currentPosition))
             {
-                const int minimumCost = estimatedDistance(currentPosition, neighbor.destination);
-                if (neighbor.cost <= 0 || neighbor.cost < minimumCost)
+                if (neighbor.cost <= 0)
                 {
-                    throw std::invalid_argument(
-                        "Navigation connection cost cannot be below its grid distance");
+                    throw std::invalid_argument("A navigation connection must have positive cost");
                 }
                 const int nextCost = costFromStart + neighbor.cost;
                 const std::optional<std::size_t> existingIndex =
@@ -134,7 +162,7 @@ namespace simple_platformer
                     nodes.push_back(
                         {neighbor.destination,
                          nextCost,
-                         nextCost + estimatedDistance(neighbor.destination, goal),
+                         nextCost + estimateRemainingCost(heuristic, neighbor.destination, goal),
                          currentIndex,
                          neighbor,
                          false});
@@ -142,13 +170,14 @@ namespace simple_platformer
                 }
 
                 SearchNode& existing = nodes[existingIndex.value()];
-                if (!existing.closed && nextCost < existing.costFromStart)
+                if (nextCost < existing.costFromStart)
                 {
                     existing.costFromStart = nextCost;
                     existing.estimatedTotalCost =
-                        nextCost + estimatedDistance(neighbor.destination, goal);
+                        nextCost + estimateRemainingCost(heuristic, neighbor.destination, goal);
                     existing.parent = currentIndex;
                     existing.connectionFromParent = neighbor;
+                    existing.closed = false;
                 }
             }
         }

@@ -187,8 +187,8 @@ TEST_CASE(
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(body, movement, follower, DeltaTime);
         brakedAfterWalking =
-            brakedAfterWalking || (follower.nextStep == 1 && follower.programElapsed == 0.0F &&
-                                   body.velocity.x != 0.0F && intentions.direction.x == 0.0F);
+            brakedAfterWalking ||
+            (follower.nextStep == 0 && body.velocity.x != 0.0F && intentions.direction.x == 0.0F);
         simple_platformer::updatePlatformerMovement(
             map, body, movement, intentions, facing, DeltaTime);
     }

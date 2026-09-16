@@ -1,14 +1,28 @@
 #include "simple_platformer/navigation/flying_navigation.hpp"
 
 #include <array>
+#include <optional>
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
 {
+    std::optional<NavigationPath> findFlyingPath(
+        const TileMap& map,
+        GridPosition start,
+        GridPosition goal)
+    {
+        const GridNeighborFunction neighbors = [&map](GridPosition position)
+        { return flyingNeighbors(map, position); };
+
+        // Remove manhattanHeuristic to compare this A* search with the default Dijkstra search.
+        return findLowestCostPath(start, goal, neighbors, manhattanHeuristic);
+    }
+
     std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition position)
     {
         constexpr std::array<GridPosition, 4> Directions{

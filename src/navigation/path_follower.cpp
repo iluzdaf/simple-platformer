@@ -179,15 +179,12 @@ namespace simple_platformer
 
             if (step.traversal == Traversal::Walk)
             {
-                if (arrivedAt(body, movement, step.destination))
+                if (readyForInputProgram(body, movement, step.destination))
                 {
                     ++follower.nextStep;
                     continue;
                 }
-                InputIntentions intentions;
-                intentions.direction.x =
-                    directionTowards(feetOf(body.bounds).x, navigationFeet(step.destination).x);
-                return intentions;
+                return approachAndBrake(body, movement, step.destination);
             }
 
             if (step.inputs.empty())

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstdlib>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -19,6 +18,7 @@
 #include "simple_platformer/navigation/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -26,7 +26,7 @@
 namespace
 {
     constexpr float SimulationStep = static_cast<float>(simple_platformer::FixedDeltaSeconds);
-    constexpr int MaximumSimulationTicks = 120;
+    constexpr int MaximumConnectionSimulationTicks = 120;
 
     bool sameIntentions(
         const simple_platformer::InputIntentions& first,
@@ -81,9 +81,39 @@ namespace
         return true;
     }
 
-    int gridDistance(simple_platformer::GridPosition first, simple_platformer::GridPosition second)
+    // Simulates a complete start-to-stop walk using the real path follower, movement,
+    // and collision code. Returns its fixed-update cost, or nullopt when the actor
+    // cannot reach and stop at the destination within the connection simulation limit.
+    std::optional<int> trySimulateWalkCost(
+        const simple_platformer::TileMap& map,
+        simple_platformer::GridPosition start,
+        simple_platformer::GridPosition destination,
+        glm::vec2 bodySize,
+        const simple_platformer::PlatformerMovementConfig& config)
     {
-        return std::abs(first.x - second.x) + std::abs(first.y - second.y);
+        simple_platformer::Body body{bodyAt(start, bodySize), {0.0F, 0.0F}};
+        simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
+        simple_platformer::Facing facing = destination.x < start.x
+                                               ? simple_platformer::Facing::Left
+                                               : simple_platformer::Facing::Right;
+        simple_platformer::PathFollower follower;
+        simple_platformer::setPath(
+            follower,
+            {start, {{destination, simple_platformer::Traversal::Walk, {}}}},
+            destination);
+
+        for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
+        {
+            const simple_platformer::InputIntentions intentions =
+                simple_platformer::followPlatformerPath(body, movement, follower, SimulationStep);
+            if (simple_platformer::pathComplete(follower))
+            {
+                return tick;
+            }
+            simple_platformer::updatePlatformerMovement(
+                map, body, movement, intentions, facing, SimulationStep);
+        }
+        return std::nullopt;
     }
 
     std::optional<simple_platformer::NavigationNeighbor> simulateTraversal(
@@ -103,7 +133,7 @@ namespace
         bool leftGround = false;
         std::optional<simple_platformer::GridPosition> landing;
 
-        for (int tick = 0; tick < MaximumSimulationTicks; ++tick)
+        for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
         {
             constexpr float WallTolerance = 0.001F;
             if ((direction < 0.0F && body.bounds.position.x <= WallTolerance) ||
@@ -150,8 +180,7 @@ namespace
                 return std::nullopt;
             }
             const int ticks = tick + 1;
-            return simple_platformer::NavigationNeighbor{
-                destination, traversal, std::max(ticks, gridDistance(start, destination)), program};
+            return simple_platformer::NavigationNeighbor{destination, traversal, ticks, program};
         }
         return std::nullopt;
     }
@@ -181,6 +210,48 @@ namespace
 
 namespace simple_platformer
 {
+    int platformerTickHeuristic(
+        GridPosition position,
+        GridPosition goal,
+        const PlatformerMovementConfig& movement)
+    {
+        if (!std::isfinite(movement.maximumSpeed) || movement.maximumSpeed < 0.0F)
+        {
+            throw std::invalid_argument(
+                "Platformer navigation maximum speed must be finite and non-negative");
+        }
+
+        const int columnDistance = std::abs(goal.x - position.x);
+        if (columnDistance == 0 || movement.maximumSpeed == 0.0F)
+        {
+            return 0;
+        }
+
+        // Reaching any point inside the goal column is sufficient. Ignoring acceleration,
+        // braking, obstacles, and vertical travel keeps this estimate optimistic.
+        const float minimumDistance =
+            (static_cast<float>(columnDistance) - 0.5F) * static_cast<float>(TileSize);
+        const float maximumDistancePerTick = movement.maximumSpeed * SimulationStep;
+        return static_cast<int>(std::ceil(minimumDistance / maximumDistancePerTick));
+    }
+
+    std::optional<NavigationPath> findPlatformerPath(
+        const TileMap& map,
+        GridPosition start,
+        GridPosition goal,
+        glm::vec2 bodySize,
+        const PlatformerMovementConfig& movement)
+    {
+        const GridNeighborFunction neighbors = [&map, bodySize, &movement](GridPosition position)
+        { return platformerNeighbors(map, position, bodySize, movement); };
+        const GridHeuristicFunction heuristic =
+            [&movement](GridPosition position, GridPosition goal)
+        { return platformerTickHeuristic(position, goal, movement); };
+
+        // Remove the final argument to compare A* with the default Dijkstra search.
+        return findLowestCostPath(start, goal, neighbors, heuristic);
+    }
+
     bool canStandAt(const TileMap& map, GridPosition position, glm::vec2 bodySize)
     {
         if (!isFinite(bodySize) || bodySize.x <= 0.0F || bodySize.y <= 0.0F)
@@ -210,7 +281,22 @@ namespace simple_platformer
             const GridPosition adjacent{position.x + direction, position.y};
             if (canStandAt(map, adjacent, bodySize))
             {
-                neighbors.push_back({adjacent, Traversal::Walk, 1, {}});
+                GridPosition walkDestination = adjacent;
+                while (canStandAt(map, walkDestination, bodySize))
+                {
+                    const std::optional<int> walkCost =
+                        trySimulateWalkCost(map, position, walkDestination, bodySize, movement);
+                    if (!walkCost.has_value())
+                    {
+                        // Destinations are checked nearest first. Once a continuous walk
+                        // exceeds the simulation limit, farther destinations are excluded.
+                        break;
+                    }
+
+                    neighbors.push_back(
+                        {walkDestination, Traversal::Walk, walkCost.value_or(1), {}});
+                    walkDestination.x += direction;
+                }
             }
             else
             {
@@ -228,7 +314,7 @@ namespace simple_platformer
                 }
             }
 
-            constexpr std::array<int, 2> JumpHoldTicks{1, MaximumSimulationTicks};
+            constexpr std::array<int, 2> JumpHoldTicks{1, MaximumConnectionSimulationTicks};
             for (const int holdTicks : JumpHoldTicks)
             {
                 const std::optional<NavigationNeighbor> jump = simulateTraversal(

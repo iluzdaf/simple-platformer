@@ -2,8 +2,8 @@
 
 Simple Platformer is a C++17 teaching engine and complete example game. The project
 is being built in independently testable phases. Phase 8 adds action-aware platformer
-A*, including walking, falling, and jumping NPC paths that replay through the real
-movement and collision systems.
+lowest-cost grid search, including walking, falling, and jumping NPC paths that replay
+through the real movement and collision systems.
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for the agreed design and implementation plan.
 

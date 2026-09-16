@@ -15,7 +15,6 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/a_star.hpp"
 #include "simple_platformer/navigation/flying_navigation.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -100,22 +99,12 @@ namespace
         std::optional<simple_platformer::NavigationPath> path;
         if (actor.flyingMovement.has_value())
         {
-            path = simple_platformer::findGridPath(
-                start,
-                goal,
-                [&map](simple_platformer::GridPosition position)
-                { return simple_platformer::flyingNeighbors(map, position); });
+            path = simple_platformer::findFlyingPath(map, start, goal);
         }
         else if (actor.platformerMovement.has_value())
         {
-            path = simple_platformer::findGridPath(
-                start,
-                goal,
-                [&map, &actor](simple_platformer::GridPosition position)
-                {
-                    return simple_platformer::platformerNeighbors(
-                        map, position, actor.body.bounds.size, actor.platformerMovement->config);
-                });
+            path = simple_platformer::findPlatformerPath(
+                map, start, goal, actor.body.bounds.size, actor.platformerMovement->config);
         }
         follower.destination = goal;
         follower.repathRemaining = follower.repathCooldown;

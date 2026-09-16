@@ -1,4 +1,4 @@
-#include "actor_debug.hpp"
+#include "debug_overlay.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -9,6 +9,7 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
@@ -54,7 +55,7 @@ namespace
             sprite.region.size.y <= 0.0F || sprite.size.x <= 0.0F || sprite.size.y <= 0.0F ||
             atlasWidth < sprite.region.size.x)
         {
-            throw std::logic_error("Actor debug requires a valid sprite region");
+            throw std::logic_error("Debug overlay requires a valid sprite region");
         }
 
         const simple_platformer::Aabb bounds =
@@ -170,7 +171,7 @@ namespace
 
 namespace simple_platformer
 {
-    ActorDebugScene makeActorDebugScene(
+    DebugOverlay makeDebugOverlay(
         const World& world,
         const TileMap& map,
         const CameraController& cameraController,
@@ -178,10 +179,10 @@ namespace simple_platformer
     {
         if (!std::isfinite(atlasWidth) || atlasWidth <= 0.0F)
         {
-            throw std::invalid_argument("Actor debug atlas width must be positive and finite");
+            throw std::invalid_argument("Debug overlay atlas width must be positive and finite");
         }
 
-        ActorDebugScene scene;
+        DebugOverlay scene;
         scene.cameraBounds = {
             cameraController.camera.position, cameraController.camera.viewportSize};
         scene.cameraDeadZone = {
@@ -217,6 +218,10 @@ namespace simple_platformer
             {
                 info.sensor =
                     sensorDebugInfo(actor, actor.brain.value(), actor.senses.value(), player);
+            }
+            if (actor.bite.has_value() && actor.bite->phase == BitePhase::Active)
+            {
+                info.biteHitbox = biteHitbox(actor.body.bounds, actor.bite.value(), actor.facing);
             }
             scene.actors.push_back(info);
         }

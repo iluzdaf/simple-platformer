@@ -7,10 +7,11 @@
 
 #include <glm/vec2.hpp>
 
-#include "actor_debug.hpp"
+#include "debug_overlay.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -23,7 +24,7 @@
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
-TEST_CASE("Actor debug data supports actors without presentation components", "[app][debug]")
+TEST_CASE("Debug overlay data supports actors without presentation components", "[app][debug]")
 {
     simple_platformer::Actor actor;
     actor.body.bounds = {{12.0F, 20.0F}, {8.0F, 10.0F}};
@@ -35,8 +36,8 @@ TEST_CASE("Actor debug data supports actors without presentation components", "[
     const simple_platformer::Camera camera{{4.0F, 5.0F}, {320.0F, 180.0F}};
     const simple_platformer::CameraController cameraController{camera, {80.0F, 40.0F}};
 
-    const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug =
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
 
     REQUIRE(debug.cameraBounds.position == camera.position);
     REQUIRE(debug.cameraBounds.size == camera.viewportSize);
@@ -52,9 +53,10 @@ TEST_CASE("Actor debug data supports actors without presentation components", "[
     REQUIRE_FALSE(debug.actors.front().npcState.has_value());
     REQUIRE_FALSE(debug.actors.front().pathFollower.has_value());
     REQUIRE_FALSE(debug.actors.front().sensor.has_value());
+    REQUIRE_FALSE(debug.actors.front().biteHitbox.has_value());
 }
 
-TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][debug]")
+TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app][debug]")
 {
     const simple_platformer::SpriteRegion region{{64.0F, 24.0F}, {32.0F, 24.0F}};
     simple_platformer::Animator animator;
@@ -86,8 +88,8 @@ TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][d
 
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
-    const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug =
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
 
     REQUIRE(debug.actors.size() == 2);
     const simple_platformer::ActorDebugInfo& playerDebug = debug.actors.front();
@@ -116,7 +118,7 @@ TEST_CASE("Actor debug data reports player presentation and NPC state", "[app][d
     REQUIRE_FALSE(emptySensor.rememberedTargetFeet.has_value());
 }
 
-TEST_CASE("Actor debug data describes visible and remembered targets", "[app][debug]")
+TEST_CASE("Debug overlay data describes visible and remembered targets", "[app][debug]")
 {
     simple_platformer::Actor player;
     player.body.bounds = {{48.0F, 20.0F}, {12.0F, 12.0F}};
@@ -150,8 +152,8 @@ TEST_CASE("Actor debug data describes visible and remembered targets", "[app][de
         simple_platformer::TileMap::fromAscii({".......", "#######"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
-    const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug =
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
 
     REQUIRE_FALSE(debug.actors[0].sensor.has_value());
     const simple_platformer::SensorDebugInfo visible =
@@ -168,7 +170,7 @@ TEST_CASE("Actor debug data describes visible and remembered targets", "[app][de
     REQUIRE(remembered.memoryRemaining == 0.6F);
 }
 
-TEST_CASE("Actor debug data describes projectiles", "[app][debug]")
+TEST_CASE("Debug overlay data describes projectiles", "[app][debug]")
 {
     simple_platformer::World world;
 
@@ -188,8 +190,8 @@ TEST_CASE("Actor debug data describes projectiles", "[app][debug]")
     const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "####"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
-    const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug =
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
 
     REQUIRE(debug.projectiles.size() == 2);
     REQUIRE(debug.projectiles[0].bounds.position == owned.bounds.position);
@@ -200,7 +202,40 @@ TEST_CASE("Actor debug data describes projectiles", "[app][debug]")
     REQUIRE_FALSE(debug.projectiles[1].owner.has_value());
 }
 
-TEST_CASE("Actor debug data describes path connections and progress", "[app][debug]")
+TEST_CASE("Debug overlay data shows only an active bite hitbox", "[app][debug]")
+{
+    simple_platformer::Actor activeBiter;
+    activeBiter.body.bounds = {{16.0F, 20.0F}, {12.0F, 12.0F}};
+    activeBiter.platformerMovement = simple_platformer::PlatformerMovement{};
+    activeBiter.facing = simple_platformer::Facing::Right;
+    activeBiter.team = simple_platformer::Team::Enemy;
+    activeBiter.bite = simple_platformer::BiteAttack{};
+    activeBiter.bite->phase = simple_platformer::BitePhase::Active;
+    activeBiter.bite->phaseTimeRemaining = 0.05F;
+
+    simple_platformer::Actor recoveringBiter = activeBiter;
+    recoveringBiter.body.bounds.position = {48.0F, 20.0F};
+    recoveringBiter.bite->phase = simple_platformer::BitePhase::Recovery;
+
+    simple_platformer::World world;
+    world.addActor(activeBiter);
+    world.addActor(recoveringBiter);
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "####"});
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+
+    const simple_platformer::DebugOverlay debug =
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+
+    REQUIRE(debug.actors[0].biteHitbox.has_value());
+    const simple_platformer::Aabb hitbox =
+        debug.actors[0].biteHitbox.value_or(simple_platformer::Aabb{});
+    REQUIRE(hitbox.position == glm::vec2{32.0F, 22.0F});
+    REQUIRE(hitbox.size == glm::vec2{10.0F, 8.0F});
+    REQUIRE_FALSE(debug.actors[1].biteHitbox.has_value());
+}
+
+TEST_CASE("Debug overlay data describes path connections and progress", "[app][debug]")
 {
     simple_platformer::PathFollower follower;
     follower.path = simple_platformer::NavigationPath{
@@ -226,8 +261,8 @@ TEST_CASE("Actor debug data describes path connections and progress", "[app][deb
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
-    const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug =
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
 
     REQUIRE(debug.actors.size() == 1);
     REQUIRE(debug.actors.front().pathFollower.has_value());
@@ -259,7 +294,7 @@ TEST_CASE("Actor debug data describes path connections and progress", "[app][deb
     REQUIRE_FALSE(path.connections[2].next);
 }
 
-TEST_CASE("Actor debug data samples the simulated jump curve", "[app][debug]")
+TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
 {
     const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
         {"..........", "....##....", "..........", "##########"});
@@ -293,8 +328,8 @@ TEST_CASE("Actor debug data samples the simulated jump curve", "[app][debug]")
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
-    const simple_platformer::ActorDebugScene debug =
-        simple_platformer::makeActorDebugScene(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug =
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
     const simple_platformer::PathFollowerDebugInfo path =
         debug.actors.front().pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});
 
@@ -308,7 +343,7 @@ TEST_CASE("Actor debug data samples the simulated jump curve", "[app][debug]")
     REQUIRE(risesAboveTakeoff);
 }
 
-TEST_CASE("Actor debug data rejects an invalid atlas width", "[app][debug]")
+TEST_CASE("Debug overlay data rejects an invalid atlas width", "[app][debug]")
 {
     const simple_platformer::World world;
     const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "####"});
@@ -316,6 +351,6 @@ TEST_CASE("Actor debug data rejects an invalid atlas width", "[app][debug]")
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
     REQUIRE_THROWS_AS(
-        simple_platformer::makeActorDebugScene(world, map, cameraController, 0.0F),
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 0.0F),
         std::invalid_argument);
 }

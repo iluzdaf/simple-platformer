@@ -72,6 +72,7 @@ namespace simple_platformer
         std::optional<NpcState> npcState;
         std::optional<PathFollowerDebugInfo> pathFollower;
         std::optional<SensorDebugInfo> sensor;
+        std::optional<Aabb> biteHitbox;
     };
 
     struct ProjectileDebugInfo
@@ -81,7 +82,7 @@ namespace simple_platformer
         std::optional<ActorId> owner;
     };
 
-    struct ActorDebugScene
+    struct DebugOverlay
     {
         std::vector<ActorDebugInfo> actors;
         std::vector<ProjectileDebugInfo> projectiles;
@@ -89,7 +90,7 @@ namespace simple_platformer
         Aabb cameraDeadZone;
     };
 
-    ActorDebugScene makeActorDebugScene(
+    DebugOverlay makeDebugOverlay(
         const World& world,
         const TileMap& map,
         const CameraController& cameraController,

@@ -4,10 +4,10 @@ struct GLFWwindow;
 
 namespace simple_platformer
 {
-    struct ActorDebugScene;
+    struct DebugOverlay;
 
-    void drawActorDebugUi(
-        const ActorDebugScene& scene,
+    void drawDebugOverlay(
+        const DebugOverlay& scene,
         GLFWwindow* window,
         int framebufferWidth,
         int framebufferHeight);

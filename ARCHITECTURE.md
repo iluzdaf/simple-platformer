@@ -656,7 +656,7 @@ and sprite rectangles at the actor's feet.
 A small OpenGL `SpriteRenderer` submits textured quads using one uncomplicated shader.
 There is no scene graph, material system, lighting, or general render graph. ImGui is
 drawn after the internally scaled game image so HUD and inventory remain crisp at the
-window resolution. The example application's F1 key toggles app-only actor debugging:
+window resolution. The example application's F1 key toggles the app-only debug overlay:
 one plain text list shows each player or NPC and its runtime details, while white sprite bounds and red
 collision bounds are drawn over the game. Cyan camera bounds and the yellow camera dead
 zone are also shown. NPC paths are drawn as coloured connections: green for walking,
@@ -666,9 +666,9 @@ fixed-step input programs through the real movement and collision code, so their
 lines show the planned physical trajectory. NPC sensing draws a faint notice-radius
 circle, a green line to a visible opposing player, and a yellow marker and line for a
 remembered target position. Projectiles show their collision bounds, owner, and remaining
-lifetime directly in world space without separate debug windows. The reusable debug-data
-builder stays separate from the GLFW/ImGui presentation code so it can be tested without
-a window.
+lifetime directly in world space without separate debug windows. An active bite shows its
+damaging hitbox in magenta. The reusable debug-data builder stays separate from the
+GLFW/ImGui presentation code so it can be tested without a window.
 
 ## Loading and errors
 

@@ -1,6 +1,6 @@
 #include "example_game.hpp"
 
-#include "actor_debug.hpp"
+#include "debug_overlay.hpp"
 #include "example_animations.hpp"
 
 #include <cstddef>
@@ -241,10 +241,10 @@ namespace simple_platformer
         return buildRenderScene(map, player->sprite.value().textureId, currentCamera(), world);
     }
 
-    ActorDebugScene ExampleGame::actorDebugScene() const
+    DebugOverlay ExampleGame::debugOverlay() const
     {
         constexpr float AtlasWidth = 160.0F;
-        return makeActorDebugScene(world, map, cameraControllerValue(), AtlasWidth);
+        return makeDebugOverlay(world, map, cameraControllerValue(), AtlasWidth);
     }
 
     Camera ExampleGame::currentCamera() const

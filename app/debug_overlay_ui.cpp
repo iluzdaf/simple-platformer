@@ -1,6 +1,6 @@
-#include "actor_debug_ui.hpp"
+#include "debug_overlay_ui.hpp"
 
-#include "actor_debug.hpp"
+#include "debug_overlay.hpp"
 #include "graphics/display_viewport.hpp"
 
 #include <cstddef>
@@ -134,7 +134,7 @@ namespace
 
     ImVec2 screenPosition(
         glm::vec2 worldPosition,
-        const simple_platformer::ActorDebugScene& scene,
+        const simple_platformer::DebugOverlay& scene,
         const GameViewport& viewport)
     {
         return {
@@ -147,7 +147,7 @@ namespace
     void drawWorldBounds(
         ImDrawList& drawList,
         const simple_platformer::Aabb& bounds,
-        const simple_platformer::ActorDebugScene& scene,
+        const simple_platformer::DebugOverlay& scene,
         const GameViewport& viewport,
         ImU32 colour)
     {
@@ -184,7 +184,7 @@ namespace
     void drawActorPath(
         ImDrawList& drawList,
         const simple_platformer::ActorDebugInfo& actor,
-        const simple_platformer::ActorDebugScene& scene,
+        const simple_platformer::DebugOverlay& scene,
         const GameViewport& viewport)
     {
         if (!actor.pathFollower.has_value())
@@ -240,7 +240,7 @@ namespace
     void drawActorSensor(
         ImDrawList& drawList,
         const simple_platformer::ActorDebugInfo& actor,
-        const simple_platformer::ActorDebugScene& scene,
+        const simple_platformer::DebugOverlay& scene,
         const GameViewport& viewport)
     {
         if (!actor.sensor.has_value())
@@ -295,7 +295,7 @@ namespace
     void drawActorWorldLabel(
         ImDrawList& drawList,
         const simple_platformer::ActorDebugInfo& actor,
-        const simple_platformer::ActorDebugScene& scene,
+        const simple_platformer::DebugOverlay& scene,
         const GameViewport& viewport)
     {
         const glm::vec2 labelWorldPosition =
@@ -322,7 +322,7 @@ namespace
     void drawProjectile(
         ImDrawList& drawList,
         const simple_platformer::ProjectileDebugInfo& projectile,
-        const simple_platformer::ActorDebugScene& scene,
+        const simple_platformer::DebugOverlay& scene,
         const GameViewport& viewport)
     {
         const ImU32 colour = IM_COL32(255, 160, 64, 255);
@@ -430,8 +430,8 @@ namespace
 
 namespace simple_platformer
 {
-    void drawActorDebugUi(
-        const ActorDebugScene& scene,
+    void drawDebugOverlay(
+        const DebugOverlay& scene,
         GLFWwindow* window,
         int framebufferWidth,
         int framebufferHeight)
@@ -463,6 +463,16 @@ namespace simple_platformer
 
             drawActorSensor(*drawList, actor, scene, *viewport);
             drawActorPath(*drawList, actor, scene, *viewport);
+
+            if (actor.biteHitbox.has_value())
+            {
+                drawWorldBounds(
+                    *drawList,
+                    actor.biteHitbox.value(),
+                    scene,
+                    *viewport,
+                    IM_COL32(255, 64, 224, 255));
+            }
 
             if (actor.sprite.has_value())
             {

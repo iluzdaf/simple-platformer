@@ -17,7 +17,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-#include "actor_debug_ui.hpp"
+#include "debug_overlay_ui.hpp"
 #include "example_game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/sprite_renderer.hpp"
@@ -85,7 +85,7 @@ namespace
     {
         simple_platformer::InputState input;
         glm::vec2 aimDirection = {1.0F, 0.0F};
-        bool showActorDebug = false;
+        bool showDebugOverlay = false;
     };
 
     std::optional<simple_platformer::InputButton> buttonForKey(int key)
@@ -117,7 +117,7 @@ namespace
         }
         if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
         {
-            context->showActorDebug = !context->showActorDebug;
+            context->showDebugOverlay = !context->showDebugOverlay;
             return;
         }
 
@@ -244,10 +244,10 @@ namespace simple_platformer
 
             const simple_platformer::RenderScene scene = game.buildScene();
             renderer.render(scene, framebufferWidth, framebufferHeight);
-            if (context.showActorDebug)
+            if (context.showDebugOverlay)
             {
-                drawActorDebugUi(
-                    game.actorDebugScene(), window.get(), framebufferWidth, framebufferHeight);
+                drawDebugOverlay(
+                    game.debugOverlay(), window.get(), framebufferWidth, framebufferHeight);
             }
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

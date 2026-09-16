@@ -118,8 +118,8 @@ enable_project_warnings(simple_platformer_core)
 
 add_executable(
     simple_platformer
-    app/actor_debug.cpp
-    app/actor_debug_ui.cpp
+    app/debug_overlay.cpp
+    app/debug_overlay_ui.cpp
     app/application.cpp
     app/example_animations.cpp
     app/example_game.cpp
@@ -262,9 +262,9 @@ if(BUILD_TESTING)
 
     add_executable(
         simple_platformer_tests
-        app/actor_debug.cpp
+        app/debug_overlay.cpp
         app/graphics/display_viewport.cpp
-        tests/app/test_actor_debug.cpp
+        tests/app/test_debug_overlay.cpp
         tests/app/test_display_viewport.cpp
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp

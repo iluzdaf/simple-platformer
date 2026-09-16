@@ -80,9 +80,10 @@ namespace
             throw std::invalid_argument("Animated actors require a sprite");
         }
         if (actor.animator.has_value() &&
-            (!std::isfinite(actor.animator->elapsed) || actor.animator->elapsed < 0.0F))
+            (!std::isfinite(actor.animator->elapsed) || actor.animator->elapsed < 0.0F ||
+             actor.animator->animationSet.clips.empty()))
         {
-            throw std::invalid_argument("Actor animation time must be finite and non-negative");
+            throw std::invalid_argument("Actor animation data is invalid");
         }
     }
 

@@ -130,7 +130,8 @@ namespace
         requestPath(map, actor, follower, destination);
         if (actor.flyingMovement.has_value())
         {
-            actor.intentions = simple_platformer::followFlyingPath(actor.body.bounds, follower);
+            actor.intentions = simple_platformer::followFlyingPath(
+                actor.body.bounds, *actor.flyingMovement, follower, deltaTime);
         }
         else if (actor.platformerMovement.has_value())
         {

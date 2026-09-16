@@ -56,6 +56,24 @@ target_include_directories(
 )
 
 add_library(
+    simple_platformer_imgui
+    external/imgui/imgui.cpp
+    external/imgui/imgui_draw.cpp
+    external/imgui/imgui_tables.cpp
+    external/imgui/imgui_widgets.cpp
+    external/imgui/backends/imgui_impl_glfw.cpp
+    external/imgui/backends/imgui_impl_opengl3.cpp
+)
+target_compile_features(simple_platformer_imgui PUBLIC cxx_std_17)
+target_include_directories(
+    simple_platformer_imgui
+    SYSTEM PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/backends
+)
+target_link_libraries(simple_platformer_imgui PUBLIC glfw)
+
+add_library(
     simple_platformer_core
     src/actor/actor.cpp
     src/actor/actor_system.cpp
@@ -81,6 +99,7 @@ add_library(
     src/render/animation.cpp
     src/render/camera.cpp
     src/render/render_scene.cpp
+    src/render/sprite.cpp
     src/timing/fixed_step.cpp
     src/world/tile_map.cpp
     src/world/world.cpp
@@ -98,7 +117,10 @@ enable_project_warnings(simple_platformer_core)
 
 add_executable(
     simple_platformer
+    app/actor_debug.cpp
+    app/actor_debug_ui.cpp
     app/application.cpp
+    app/example_animations.cpp
     app/example_game.cpp
     app/graphics/sprite_renderer.cpp
     app/main.cpp
@@ -110,10 +132,12 @@ target_link_libraries(
     PRIVATE
     simple_platformer_core
     simple_platformer_glad
+    simple_platformer_imgui
     simple_platformer_stb
     glfw
 )
 enable_project_warnings(simple_platformer)
+
 add_custom_command(
     TARGET simple_platformer
     POST_BUILD
@@ -236,6 +260,8 @@ if(BUILD_TESTING)
 
     add_executable(
         simple_platformer_tests
+        app/actor_debug.cpp
+        tests/app/test_actor_debug.cpp
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp
         tests/combat/test_attack_system.cpp
@@ -262,6 +288,7 @@ if(BUILD_TESTING)
         tests/world/test_world_simulation.cpp
     )
     target_compile_features(simple_platformer_tests PRIVATE cxx_std_17)
+    target_include_directories(simple_platformer_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/app)
     target_link_libraries(
         simple_platformer_tests
         PRIVATE

@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
 #include <stdexcept>
@@ -7,6 +8,7 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -32,21 +34,42 @@ TEST_CASE("A flying path follower produces intentions for its next step", "[navi
           {{1, 1}, simple_platformer::Traversal::Fly, {}}}},
         {1, 1});
     simple_platformer::Aabb bounds{{4.0F, 4.0F}, {8.0F, 12.0F}};
+    const simple_platformer::FlyingMovement movement;
+    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
 
     const simple_platformer::InputIntentions right =
-        simple_platformer::followFlyingPath(bounds, follower);
+        simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime);
     REQUIRE(right.direction.x == 1.0F);
     REQUIRE(right.direction.y == 0.0F);
 
     simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 0}));
     const simple_platformer::InputIntentions down =
-        simple_platformer::followFlyingPath(bounds, follower);
+        simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime);
     REQUIRE(down.direction.x == 0.0F);
     REQUIRE(down.direction.y == 1.0F);
 
     simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
-    REQUIRE(simple_platformer::followFlyingPath(bounds, follower).direction == glm::vec2{0.0F});
+    REQUIRE(
+        simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime).direction ==
+        glm::vec2{0.0F});
     REQUIRE(simple_platformer::pathComplete(follower));
+}
+
+TEST_CASE("A flying path follower uses the exact remaining waypoint distance", "[navigation][path]")
+{
+    simple_platformer::PathFollower follower;
+    simple_platformer::setPath(
+        follower, {{0, 0}, {{{1, 0}, simple_platformer::Traversal::Fly, {}}}}, {1, 0});
+    simple_platformer::Aabb bounds{{19.75F, 4.0F}, {8.0F, 12.0F}};
+    const simple_platformer::FlyingMovement movement{60.0F};
+    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
+
+    const simple_platformer::InputIntentions intentions =
+        simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime);
+
+    REQUIRE_THAT(intentions.direction.x, Catch::Matchers::WithinAbs(0.25F, 0.0001F));
+    REQUIRE(intentions.direction.y == 0.0F);
+    REQUIRE_FALSE(simple_platformer::pathComplete(follower));
 }
 
 TEST_CASE(

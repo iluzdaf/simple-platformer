@@ -1,7 +1,9 @@
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
 
+#include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -184,5 +186,68 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
     REQUIRE(reachedUpperEndpoint);
     REQUIRE(switchedTowardLowerEndpoint);
     REQUIRE(returnedToLowerEndpoint);
+    REQUIRE(completedPatrolLegs == 4);
+}
+
+TEST_CASE(
+    "A bat continuously patrols around a platform corner",
+    "[world][simulation][flying][regression]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"..........", "..........", "..........", "....###...", "..........", "##########"});
+    // The bat must rise beside the platform before turning over its top edge.
+    // Both endpoints are reachable with ample clearance for its 12 x 8 body.
+    glm::vec2 lowerFeet;
+    SECTION("Around the left corner")
+    {
+        lowerFeet = {56.0F, 80.0F};
+    }
+    SECTION("Around the right corner")
+    {
+        lowerFeet = {120.0F, 80.0F};
+    }
+    const glm::vec2 upperFeet{88.0F, 48.0F};
+
+    simple_platformer::Actor bat;
+    bat.body.bounds.size = {12.0F, 8.0F};
+    simple_platformer::placeFeetAt(bat.body.bounds, lowerFeet);
+    bat.flyingMovement = simple_platformer::FlyingMovement{};
+    bat.brain = simple_platformer::NpcBrain{};
+    bat.senses = simple_platformer::NpcSenses{};
+    bat.patrol = simple_platformer::Patrol{lowerFeet, upperFeet, true};
+    bat.pathFollower = simple_platformer::PathFollower{};
+    simple_platformer::World world;
+    const simple_platformer::ActorId batId = world.addActor(bat);
+
+    int completedPatrolLegs = 0;
+    bool headingToSecond = true;
+    for (int tick = 0; tick < 1200 && completedPatrolLegs < 4; ++tick)
+    {
+        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+        const simple_platformer::Actor* storedBat = world.findActor(batId);
+        REQUIRE(storedBat != nullptr);
+        if (!storedBat->patrol.has_value())
+        {
+            throw std::logic_error("The test bat has no patrol");
+        }
+        if (storedBat->patrol->headingToSecond != headingToSecond)
+        {
+            const glm::vec2 expectedFeet = headingToSecond ? upperFeet : lowerFeet;
+            const glm::vec2 actualFeet = simple_platformer::feetOf(storedBat->body.bounds);
+            CAPTURE(tick, completedPatrolLegs, actualFeet.x, actualFeet.y);
+            REQUIRE(glm::distance(actualFeet, expectedFeet) <= 2.0F);
+            ++completedPatrolLegs;
+            headingToSecond = storedBat->patrol->headingToSecond;
+        }
+    }
+
+    const simple_platformer::Actor* storedBat = world.findActor(batId);
+    REQUIRE(storedBat != nullptr);
+    if (!storedBat->pathFollower.has_value())
+    {
+        throw std::logic_error("The test bat has no path follower");
+    }
+    const glm::vec2 finalFeet = simple_platformer::feetOf(storedBat->body.bounds);
+    CAPTURE(finalFeet.x, finalFeet.y, storedBat->pathFollower->nextStep, completedPatrolLegs);
     REQUIRE(completedPatrolLegs == 4);
 }

@@ -125,12 +125,14 @@ namespace simple_platformer
             if (actor.rangedWeapon.has_value())
             {
                 RangedWeapon& weapon = *actor.rangedWeapon;
+                weapon.firedThisUpdate = false;
                 weapon.cooldownRemaining = std::max(0.0F, weapon.cooldownRemaining - deltaTime);
                 if (actor.life == LifeState::Alive && actor.intentions.primaryAttackPressed &&
                     weapon.cooldownRemaining == 0.0F)
                 {
                     requests.spawnProjectile(makeProjectile(actor, weapon));
                     weapon.cooldownRemaining = weapon.cooldown;
+                    weapon.firedThisUpdate = true;
                 }
             }
 

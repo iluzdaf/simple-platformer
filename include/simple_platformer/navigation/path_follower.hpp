@@ -12,6 +12,7 @@ namespace simple_platformer
 {
     struct Aabb;
     struct Body;
+    struct FlyingMovement;
     struct InputIntentions;
     struct PlatformerMovement;
 
@@ -30,7 +31,11 @@ namespace simple_platformer
     void setPath(PathFollower& follower, NavigationPath path, GridPosition destination);
     void clearPath(PathFollower& follower);
     bool pathComplete(const PathFollower& follower);
-    InputIntentions followFlyingPath(const Aabb& bounds, PathFollower& follower);
+    InputIntentions followFlyingPath(
+        const Aabb& bounds,
+        const FlyingMovement& movement,
+        PathFollower& follower,
+        float deltaTime);
     InputIntentions followPlatformerPath(
         const Body& body,
         const PlatformerMovement& movement,

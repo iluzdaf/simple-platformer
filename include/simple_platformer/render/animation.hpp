@@ -11,10 +11,10 @@ namespace simple_platformer
     enum class AnimationName
     {
         Idle,
-        Run,
+        Move,
         Jump,
         Fall,
-        Bite,
+        Attack,
         Death
     };
 
@@ -26,18 +26,24 @@ namespace simple_platformer
         bool looping = true;
     };
 
+    struct AnimationSet
+    {
+        std::vector<AnimationClip> clips;
+    };
+
     struct Animator
     {
         AnimationName current = AnimationName::Idle;
         float elapsed = 0.0F;
+        AnimationSet animationSet;
     };
 
+    const AnimationClip& clipFor(const AnimationSet& animationSet, AnimationName name);
     const SpriteRegion& frameAt(const AnimationClip& clip, float elapsedSeconds);
     void updateAnimation(
         Animator& animator,
         Sprite& sprite,
         AnimationName selected,
-        const AnimationClip& clip,
         float deltaTime);
     AnimationName selectActorAnimation(
         bool dying,

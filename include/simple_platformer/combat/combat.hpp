@@ -29,6 +29,7 @@ namespace simple_platformer
         float projectileLifetime = 2.0F;
         float cooldown = 0.25F;
         float cooldownRemaining = 0.0F;
+        bool firedThisUpdate = false;
         // Its display size is independent of projectileSize, just like an actor sprite and body.
         Sprite projectileSprite = {0, {}, {4.0F, 2.0F}};
     };

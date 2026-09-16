@@ -20,12 +20,26 @@ namespace
             return velocity.y < 0.0F ? AnimationName::Jump : AnimationName::Fall;
         }
 
-        return velocity.x == 0.0F ? AnimationName::Idle : AnimationName::Run;
+        return velocity == glm::vec2{0.0F, 0.0F} ? AnimationName::Idle : AnimationName::Move;
     }
 }
 
 namespace simple_platformer
 {
+    const AnimationClip& clipFor(const AnimationSet& animationSet, AnimationName name)
+    {
+        const auto clip = std::find_if(
+            animationSet.clips.begin(),
+            animationSet.clips.end(),
+            [name](const AnimationClip& candidate) { return candidate.name == name; });
+        if (clip == animationSet.clips.end())
+        {
+            throw std::invalid_argument(
+                "The animation set does not contain the selected animation");
+        }
+        return *clip;
+    }
+
     const SpriteRegion& frameAt(const AnimationClip& clip, float elapsedSeconds)
     {
         if (clip.frames.empty())
@@ -55,18 +69,12 @@ namespace simple_platformer
         Animator& animator,
         Sprite& sprite,
         AnimationName selected,
-        const AnimationClip& clip,
         float deltaTime)
     {
         if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
         {
             throw std::invalid_argument("Animation delta time must be finite and non-negative");
         }
-        if (clip.name != selected)
-        {
-            throw std::invalid_argument("The animation clip does not match the selected animation");
-        }
-
         if (animator.current != selected)
         {
             animator.current = selected;
@@ -77,7 +85,7 @@ namespace simple_platformer
             animator.elapsed += deltaTime;
         }
 
-        sprite.region = frameAt(clip, animator.elapsed);
+        sprite.region = frameAt(clipFor(animator.animationSet, selected), animator.elapsed);
     }
 
     AnimationName selectActorAnimation(
@@ -92,7 +100,7 @@ namespace simple_platformer
         }
         if (attacking)
         {
-            return AnimationName::Bite;
+            return AnimationName::Attack;
         }
         return selectMovementAnimation(grounded, velocity);
     }

@@ -3,6 +3,7 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/render_scene.hpp"
@@ -61,6 +62,29 @@ TEST_CASE("Facing right does not flip the player sprite", "[render][scene]")
         simple_platformer::buildRenderScene(map, 1, camera, world);
 
     REQUIRE_FALSE(scene.sprites.back().flipHorizontal);
+}
+
+TEST_CASE("A centre-anchored sprite surrounds a smaller flying body", "[render][scene]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"..."});
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, {48.0F, 32.0F}};
+    simple_platformer::Actor bat;
+    bat.body = {{{10.0F, 10.0F}, {12.0F, 8.0F}}, {0.0F, 0.0F}};
+    bat.flyingMovement = simple_platformer::FlyingMovement{};
+    bat.sprite = simple_platformer::Sprite{
+        1,
+        {{0.0F, 96.0F}, {32.0F, 24.0F}},
+        {32.0F, 24.0F},
+        simple_platformer::SpriteAnchor::BodyCenter};
+    simple_platformer::World world;
+    world.addActor(bat);
+
+    const simple_platformer::RenderScene scene =
+        simple_platformer::buildRenderScene(map, 1, camera, world);
+
+    REQUIRE(scene.sprites.size() == 1);
+    REQUIRE(scene.sprites.front().position == glm::vec2{0.0F, 2.0F});
+    REQUIRE(scene.sprites.front().size == glm::vec2{32.0F, 24.0F});
 }
 
 TEST_CASE("Actors without sprites do not produce draw commands", "[render][scene]")

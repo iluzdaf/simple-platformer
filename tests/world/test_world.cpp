@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <limits>
 #include <stdexcept>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -11,6 +12,7 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
+#include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace
@@ -74,6 +76,16 @@ TEST_CASE("World rejects invalid actor composition", "[world][actor]")
     simple_platformer::Actor animatorWithoutSprite = makeActor();
     animatorWithoutSprite.animator = simple_platformer::Animator{};
     REQUIRE_THROWS_AS(world.addActor(animatorWithoutSprite), std::invalid_argument);
+
+    simple_platformer::Actor invalidAnimator = makeActor();
+    invalidAnimator.sprite = simple_platformer::Sprite{};
+    invalidAnimator.animator = simple_platformer::Animator{};
+    REQUIRE_THROWS_AS(world.addActor(invalidAnimator), std::invalid_argument);
+
+    invalidAnimator.animator->animationSet.clips.push_back(
+        {simple_platformer::AnimationName::Idle, {{{0.0F, 0.0F}, {1.0F, 1.0F}}}});
+    invalidAnimator.animator->elapsed = std::numeric_limits<float>::infinity();
+    REQUIRE_THROWS_AS(world.addActor(invalidAnimator), std::invalid_argument);
 
     simple_platformer::Actor twoAttacks = makeActor();
     twoAttacks.team = simple_platformer::Team::Player;

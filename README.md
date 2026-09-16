@@ -30,11 +30,12 @@ ctest --preset mac-debug
 Run the Phase 8 application:
 
 ```sh
-./build/mac-debug/simple_platformer
+cd build/mac-debug
+./simple_platformer
 ```
 
 Use the left and right arrow keys to move, Space to jump, X to fire, and Escape to
-close the window.
+close the window. Press F1 to show or hide the actor debug windows and in-game bounds.
 
 ## Windows: create and use the Visual Studio solution
 
@@ -139,7 +140,7 @@ cmake --build --preset mac-debug --target header_self_containment
 
 ```text
 app/        executable entry point
-assets/     small example texture atlas
+assets/     finished runtime sprite atlas supplied with the example game
 include/    public core headers
 src/        core implementations
 tests/      Catch2 tests mirroring the core subjects

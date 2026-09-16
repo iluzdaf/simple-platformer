@@ -11,6 +11,7 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
@@ -19,6 +20,7 @@
 namespace
 {
     constexpr float ArrivalDistance = 1.0F;
+    constexpr float FlyingArrivalDistance = 0.001F;
     constexpr float StoppedSpeed = 0.001F;
 
     float directionTowards(float from, float to)
@@ -127,11 +129,26 @@ namespace simple_platformer
         return follower.path.has_value() && follower.nextStep >= follower.path->steps.size();
     }
 
-    InputIntentions followFlyingPath(const Aabb& bounds, PathFollower& follower)
+    InputIntentions followFlyingPath(
+        const Aabb& bounds,
+        const FlyingMovement& movement,
+        PathFollower& follower,
+        float deltaTime)
     {
+        if (!std::isfinite(deltaTime) || deltaTime <= 0.0F || !std::isfinite(movement.speed) ||
+            movement.speed < 0.0F)
+        {
+            throw std::invalid_argument(
+                "Flying path following requires positive finite timing and speed");
+        }
         if (!follower.path.has_value())
         {
             return {};
+        }
+        const float maximumMovement = movement.speed * deltaTime;
+        if (!std::isfinite(maximumMovement))
+        {
+            throw std::invalid_argument("Flying path movement must be finite");
         }
         const glm::vec2 feet = feetOf(bounds);
         while (follower.nextStep < follower.path->steps.size())
@@ -142,10 +159,13 @@ namespace simple_platformer
                 throw std::invalid_argument("A flying actor requires flying path steps");
             }
             const glm::vec2 offset = navigationFeet(step.destination) - feet;
-            if (glm::length(offset) > ArrivalDistance)
+            const float distance = glm::length(offset);
+            if (distance > FlyingArrivalDistance)
             {
                 InputIntentions intentions;
-                intentions.direction = glm::normalize(offset);
+                intentions.direction = maximumMovement > 0.0F && distance <= maximumMovement
+                                           ? offset / maximumMovement
+                                           : glm::normalize(offset);
                 return intentions;
             }
             ++follower.nextStep;

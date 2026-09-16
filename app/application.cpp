@@ -11,6 +11,11 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+
+#include "actor_debug_ui.hpp"
 #include "example_game.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "simple_platformer/input/input_state.hpp"
@@ -40,6 +45,45 @@ namespace
         GlfwSession& operator=(const GlfwSession&) = delete;
     };
 
+    class ImGuiSession
+    {
+    public:
+        explicit ImGuiSession(GLFWwindow* window)
+        {
+            IMGUI_CHECKVERSION();
+            ImGui::CreateContext();
+            ImGui::StyleColorsDark();
+
+            if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
+            {
+                ImGui::DestroyContext();
+                throw std::runtime_error("ImGui could not start its GLFW backend");
+            }
+            if (!ImGui_ImplOpenGL3_Init("#version 330 core"))
+            {
+                ImGui_ImplGlfw_Shutdown();
+                ImGui::DestroyContext();
+                throw std::runtime_error("ImGui could not start its OpenGL backend");
+            }
+        }
+
+        ~ImGuiSession()
+        {
+            ImGui_ImplOpenGL3_Shutdown();
+            ImGui_ImplGlfw_Shutdown();
+            ImGui::DestroyContext();
+        }
+
+        ImGuiSession(const ImGuiSession&) = delete;
+        ImGuiSession& operator=(const ImGuiSession&) = delete;
+    };
+
+    struct ApplicationContext
+    {
+        simple_platformer::InputState input;
+        bool showActorDebug = false;
+    };
+
     std::optional<simple_platformer::InputButton> buttonForKey(int key)
     {
         switch (key)
@@ -63,9 +107,16 @@ namespace
 
     void handleKey(GLFWwindow* window, int key, int, int action, int)
     {
+        auto* context = static_cast<ApplicationContext*>(glfwGetWindowUserPointer(window));
+
         if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+        if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
+        {
+            context->showActorDebug = !context->showActorDebug;
+            return;
         }
 
         if (action != GLFW_PRESS && action != GLFW_RELEASE)
@@ -79,8 +130,7 @@ namespace
             return;
         }
 
-        auto* input = static_cast<simple_platformer::InputState*>(glfwGetWindowUserPointer(window));
-        input->setButton(*button, action == GLFW_PRESS);
+        context->input.setButton(*button, action == GLFW_PRESS);
     }
 }
 
@@ -115,12 +165,13 @@ namespace simple_platformer
             throw std::runtime_error("GLAD could not load OpenGL");
         }
 
-        InputState input;
-        glfwSetWindowUserPointer(window.get(), &input);
+        ApplicationContext context;
+        glfwSetWindowUserPointer(window.get(), &context);
         glfwSetKeyCallback(window.get(), handleKey);
+        const ImGuiSession imgui(window.get());
 
         SpriteRenderer renderer;
-        const int atlas = renderer.loadTexture("assets/sprites.ppm");
+        const int atlas = renderer.loadTexture("assets/sprites.png");
         ExampleGame game(atlas);
         FixedStep fixedStep;
         double previousTime = glfwGetTime();
@@ -128,19 +179,31 @@ namespace simple_platformer
         while (glfwWindowShouldClose(window.get()) == GLFW_FALSE)
         {
             glfwPollEvents();
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
             const double currentTime = glfwGetTime();
             const double frameTime = currentTime - previousTime;
             previousTime = currentTime;
 
             fixedStep.advance(
                 frameTime,
-                [&](float deltaTime) { game.update(input.consumeIntentions(), deltaTime); });
+                [&](float deltaTime)
+                { game.update(context.input.consumeIntentions(), deltaTime); });
 
             int framebufferWidth = 0;
             int framebufferHeight = 0;
             glfwGetFramebufferSize(window.get(), &framebufferWidth, &framebufferHeight);
             const simple_platformer::RenderScene scene = game.buildScene();
             renderer.render(scene, framebufferWidth, framebufferHeight);
+            if (context.showActorDebug)
+            {
+                drawActorDebugUi(
+                    game.actorDebugScene(), window.get(), framebufferWidth, framebufferHeight);
+            }
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(window.get());
         }
 

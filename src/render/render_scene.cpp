@@ -66,13 +66,11 @@ namespace simple_platformer
                 continue;
             }
 
-            const glm::vec2 actorFeet = feetOf(actor.body.bounds);
-            const glm::vec2 spritePosition = {
-                actorFeet.x - actor.sprite->size.x * 0.5F, actorFeet.y - actor.sprite->size.y};
+            const Aabb bounds = spriteBounds(actor.body.bounds, *actor.sprite);
             scene.sprites.push_back(
                 {actor.sprite->textureId,
-                 worldToScreen(camera, spritePosition),
-                 actor.sprite->size,
+                 worldToScreen(camera, bounds.position),
+                 bounds.size,
                  actor.sprite->region,
                  actor.facing == Facing::Left});
         }

@@ -50,6 +50,16 @@ namespace
         }
         return actor->bite->phase;
     }
+
+    bool firedThisUpdate(const simple_platformer::World& world, simple_platformer::ActorId id)
+    {
+        const simple_platformer::Actor* actor = world.findActor(id);
+        if (actor == nullptr || !actor->rangedWeapon.has_value())
+        {
+            throw std::logic_error("Test actor has no ranged weapon");
+        }
+        return actor->rangedWeapon->firedThisUpdate;
+    }
 }
 
 TEST_CASE("A ranged weapon queues a projectile in the actor's facing direction", "[combat][weapon]")
@@ -66,6 +76,7 @@ TEST_CASE("A ranged weapon queues a projectile in the actor's facing direction",
     simple_platformer::updateAttacks(world, requests, 0.1F);
 
     REQUIRE(world.projectiles().empty());
+    REQUIRE(firedThisUpdate(world, shooter));
     simple_platformer::updateLifeState(world, requests, 0.0F);
     REQUIRE(world.projectiles().size() == 1);
     const simple_platformer::Projectile& projectile = world.projectiles().front();
@@ -89,6 +100,7 @@ TEST_CASE("A ranged weapon observes its cooldown", "[combat][weapon]")
     simple_platformer::updateAttacks(world, requests, 0.0F);
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::updateAttacks(world, requests, 0.1F);
+    REQUIRE_FALSE(firedThisUpdate(world, shooter));
     simple_platformer::updateLifeState(world, requests, 0.0F);
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectiles().front().velocity.x > 0.0F);
@@ -97,6 +109,7 @@ TEST_CASE("A ranged weapon observes its cooldown", "[combat][weapon]")
     REQUIRE(stored != nullptr);
     stored->intentions.primaryAttackPressed = true;
     simple_platformer::updateAttacks(world, requests, 0.15F);
+    REQUIRE(firedThisUpdate(world, shooter));
     simple_platformer::updateLifeState(world, requests, 0.0F);
     REQUIRE(world.projectiles().size() == 2);
 }

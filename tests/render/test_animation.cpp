@@ -9,6 +9,7 @@ namespace
 {
     using simple_platformer::AnimationClip;
     using simple_platformer::AnimationName;
+    using simple_platformer::AnimationSet;
     using simple_platformer::Animator;
     using simple_platformer::Sprite;
     using simple_platformer::SpriteRegion;
@@ -17,7 +18,7 @@ namespace
 TEST_CASE("Looping animation clips wrap around", "[render][animation]")
 {
     const AnimationClip clip{
-        AnimationName::Run,
+        AnimationName::Move,
         {{{1.0F, 0.0F}, {1.0F, 1.0F}}, {{2.0F, 0.0F}, {1.0F, 1.0F}}},
         0.1F,
         true};
@@ -40,19 +41,21 @@ TEST_CASE("Non-looping animation clips hold their last frame", "[render][animati
 
 TEST_CASE("Each animator keeps independent playback state", "[render][animation]")
 {
-    const AnimationClip run{
-        AnimationName::Run,
+    const AnimationClip move{
+        AnimationName::Move,
         {{{1.0F, 0.0F}, {1.0F, 1.0F}}, {{2.0F, 0.0F}, {1.0F, 1.0F}}},
         0.1F,
         true};
     Animator first;
     Animator second;
+    first.animationSet = AnimationSet{{move}};
+    second.animationSet = AnimationSet{{move}};
     Sprite firstSprite;
     Sprite secondSprite;
 
-    simple_platformer::updateAnimation(first, firstSprite, AnimationName::Run, run, 0.1F);
-    simple_platformer::updateAnimation(first, firstSprite, AnimationName::Run, run, 0.1F);
-    simple_platformer::updateAnimation(second, secondSprite, AnimationName::Run, run, 0.1F);
+    simple_platformer::updateAnimation(first, firstSprite, AnimationName::Move, 0.1F);
+    simple_platformer::updateAnimation(first, firstSprite, AnimationName::Move, 0.1F);
+    simple_platformer::updateAnimation(second, secondSprite, AnimationName::Move, 0.1F);
 
     REQUIRE(first.elapsed == 0.1F);
     REQUIRE(firstSprite.region.position.x == 2.0F);
@@ -63,14 +66,30 @@ TEST_CASE("Each animator keeps independent playback state", "[render][animation]
 TEST_CASE("Changing animation resets its playback time", "[render][animation]")
 {
     const AnimationClip death{AnimationName::Death, {{{5.0F, 0.0F}, {1.0F, 1.0F}}}, 0.4F, false};
-    Animator animator{AnimationName::Run, 0.3F};
+    Animator animator;
+    animator.current = AnimationName::Move;
+    animator.elapsed = 0.3F;
+    animator.animationSet = AnimationSet{{death}};
     Sprite sprite;
 
-    simple_platformer::updateAnimation(animator, sprite, AnimationName::Death, death, 0.1F);
+    simple_platformer::updateAnimation(animator, sprite, AnimationName::Death, 0.1F);
 
     REQUIRE(animator.current == AnimationName::Death);
     REQUIRE(animator.elapsed == 0.0F);
-    REQUIRE(sprite.region.position.x == 5.0F);
+    REQUIRE(sprite.region.position == glm::vec2{5.0F, 0.0F});
+}
+
+TEST_CASE("Animation sets find clips by name", "[render][animation]")
+{
+    const AnimationClip idle{
+        AnimationName::Idle, {SpriteRegion{{1.0F, 2.0F}, {3.0F, 4.0F}}}, 0.1F, true};
+    const AnimationSet animations{{idle}};
+
+    REQUIRE(
+        simple_platformer::clipFor(animations, AnimationName::Idle).frames.front().position.x ==
+        1.0F);
+    REQUIRE_THROWS_AS(
+        simple_platformer::clipFor(animations, AnimationName::Death), std::invalid_argument);
 }
 
 TEST_CASE(
@@ -82,7 +101,10 @@ TEST_CASE(
         AnimationName::Idle);
     REQUIRE(
         simple_platformer::selectActorAnimation(false, false, true, {1.0F, 0.0F}) ==
-        AnimationName::Run);
+        AnimationName::Move);
+    REQUIRE(
+        simple_platformer::selectActorAnimation(false, false, true, {0.0F, 1.0F}) ==
+        AnimationName::Move);
     REQUIRE(
         simple_platformer::selectActorAnimation(false, false, false, {0.0F, -1.0F}) ==
         AnimationName::Jump);
@@ -98,10 +120,10 @@ TEST_CASE("Actor animation selection gives death and attack priority", "[render]
         AnimationName::Death);
     REQUIRE(
         simple_platformer::selectActorAnimation(false, true, true, {1.0F, 0.0F}) ==
-        AnimationName::Bite);
+        AnimationName::Attack);
     REQUIRE(
         simple_platformer::selectActorAnimation(false, false, true, {1.0F, 0.0F}) ==
-        AnimationName::Run);
+        AnimationName::Move);
 }
 
 TEST_CASE("Animation clips reject missing frames and invalid timing", "[render][animation]")
@@ -117,10 +139,11 @@ TEST_CASE("Animation clips reject missing frames and invalid timing", "[render][
     Sprite sprite;
     const AnimationClip idle{
         AnimationName::Idle, {SpriteRegion{{0.0F, 0.0F}, {1.0F, 1.0F}}}, 0.1F, true};
+    animator.animationSet = AnimationSet{{idle}};
     REQUIRE_THROWS_AS(
-        simple_platformer::updateAnimation(animator, sprite, AnimationName::Run, idle, 0.1F),
+        simple_platformer::updateAnimation(animator, sprite, AnimationName::Move, 0.1F),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::updateAnimation(animator, sprite, AnimationName::Idle, idle, -0.1F),
+        simple_platformer::updateAnimation(animator, sprite, AnimationName::Idle, -0.1F),
         std::invalid_argument);
 }

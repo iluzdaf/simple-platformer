@@ -1,5 +1,8 @@
 #include "example_game.hpp"
 
+#include "actor_debug.hpp"
+#include "example_animations.hpp"
+
 #include <cstddef>
 #include <stdexcept>
 #include <utility>
@@ -25,6 +28,22 @@
 
 namespace
 {
+    simple_platformer::Animator makeAnimator(simple_platformer::AnimationSet animations)
+    {
+        simple_platformer::Animator animator;
+        animator.animationSet = std::move(animations);
+        return animator;
+    }
+
+    simple_platformer::Sprite makeActorSprite(
+        int textureId,
+        const simple_platformer::AnimationSet& animations)
+    {
+        const simple_platformer::AnimationClip& idle =
+            simple_platformer::clipFor(animations, simple_platformer::AnimationName::Idle);
+        return {textureId, idle.frames.front(), idle.frames.front().size};
+    }
+
     simple_platformer::TileMap makeLevel()
     {
         constexpr int Width = 60;
@@ -49,47 +68,8 @@ namespace
         fill(8, 42, 48);
         fill(11, 53, 57);
 
-        return {Width, Height, std::move(tiles), {{false}, {true, {{0.0F, 0.0F}, {1.0F, 1.0F}}}}};
-    }
-
-    const simple_platformer::AnimationClip& clipFor(simple_platformer::AnimationName name)
-    {
-        using simple_platformer::AnimationClip;
-        using simple_platformer::AnimationName;
-
-        static const AnimationClip idle{
-            AnimationName::Idle, {{{1.0F, 0.0F}, {1.0F, 1.0F}}}, 0.15F, true};
-        static const AnimationClip run{
-            AnimationName::Run,
-            {{{2.0F, 0.0F}, {1.0F, 1.0F}}, {{3.0F, 0.0F}, {1.0F, 1.0F}}},
-            0.12F,
-            true};
-        static const AnimationClip jump{
-            AnimationName::Jump, {{{4.0F, 0.0F}, {1.0F, 1.0F}}}, 0.15F, true};
-        static const AnimationClip fall{
-            AnimationName::Fall, {{{5.0F, 0.0F}, {1.0F, 1.0F}}}, 0.15F, true};
-        static const AnimationClip death{
-            AnimationName::Death, {{{1.0F, 0.0F}, {1.0F, 1.0F}}}, 0.4F, false};
-        static const AnimationClip bite{
-            AnimationName::Bite, {{{3.0F, 0.0F}, {1.0F, 1.0F}}}, 0.1F, true};
-
-        switch (name)
-        {
-        case AnimationName::Idle:
-            return idle;
-        case AnimationName::Run:
-            return run;
-        case AnimationName::Jump:
-            return jump;
-        case AnimationName::Fall:
-            return fall;
-        case AnimationName::Death:
-            return death;
-        case AnimationName::Bite:
-            return bite;
-        }
-
-        throw std::invalid_argument("Animation name is invalid");
+        return {
+            Width, Height, std::move(tiles), {{false}, {true, {{0.0F, 192.0F}, {16.0F, 16.0F}}}}};
     }
 
     void updateActorAnimations(simple_platformer::World& world, float deltaTime)
@@ -111,48 +91,59 @@ namespace
             }
 
             const bool biting = actor.bite.has_value() && actor.bite->phase != BitePhase::Ready;
+            const bool shooting =
+                actor.rangedWeapon.has_value() && actor.rangedWeapon->firedThisUpdate;
+            const bool attacking = biting || shooting;
             const bool grounded =
                 actor.platformerMovement.has_value() ? actor.platformerMovement->grounded : true;
             const AnimationName selected = simple_platformer::selectActorAnimation(
-                actor.life == LifeState::Dying, biting, grounded, actor.body.velocity);
-            simple_platformer::updateAnimation(
-                *actor.animator, *actor.sprite, selected, clipFor(selected), deltaTime);
+                actor.life == LifeState::Dying, attacking, grounded, actor.body.velocity);
+            simple_platformer::updateAnimation(*actor.animator, *actor.sprite, selected, deltaTime);
         }
     }
 
-    simple_platformer::RangedWeapon makeRangedWeapon(int textureId)
+    simple_platformer::RangedWeapon makeRangedWeapon(int textureId, simple_platformer::Team team)
     {
         simple_platformer::RangedWeapon weapon;
-        weapon.projectileSprite = {textureId, {{4.0F, 0.0F}, {1.0F, 1.0F}}, weapon.projectileSize};
+        const simple_platformer::SpriteRegion region =
+            team == simple_platformer::Team::Player
+                ? simple_platformer::SpriteRegion{{32.0F, 192.0F}, {8.0F, 4.0F}}
+                : simple_platformer::SpriteRegion{{64.0F, 192.0F}, {8.0F, 4.0F}};
+        weapon.projectileSprite = {textureId, region, region.size};
         return weapon;
     }
 
     simple_platformer::Actor makePlayer(int textureId)
     {
+        simple_platformer::AnimationSet animations = simple_platformer::makePlayerAnimations();
+
         simple_platformer::Actor player;
-        player.body = {{{32.0F, 196.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+        player.body = {{{32.0F, 188.0F}, {12.0F, 20.0F}}, {0.0F, 0.0F}};
         player.platformerMovement = simple_platformer::PlatformerMovement{};
         player.platformerMovement->grounded = true;
-        player.sprite = simple_platformer::Sprite{
-            textureId, {{1.0F, 0.0F}, {1.0F, 1.0F}}, player.body.bounds.size};
-        player.animator = simple_platformer::Animator{};
+        player.sprite = makeActorSprite(textureId, animations);
+        player.animator = makeAnimator(std::move(animations));
         player.health = simple_platformer::Health{3, 3};
         player.team = simple_platformer::Team::Player;
-        player.rangedWeapon = makeRangedWeapon(textureId);
+        player.rangedWeapon = makeRangedWeapon(textureId, player.team);
         return player;
     }
 
     simple_platformer::Actor makeNpc(
         int textureId,
-        glm::vec2 position,
-        simple_platformer::Patrol patrol)
+        glm::vec2 spawnFeet,
+        glm::vec2 bodySize,
+        simple_platformer::SpriteAnchor spriteAnchor,
+        simple_platformer::Patrol patrol,
+        simple_platformer::AnimationSet animations)
     {
         simple_platformer::Actor npc;
-        npc.body = {{position, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+        npc.body.bounds.size = bodySize;
+        simple_platformer::placeFeetAt(npc.body.bounds, spawnFeet);
         npc.facing = simple_platformer::Facing::Left;
-        npc.sprite = simple_platformer::Sprite{
-            textureId, {{2.0F, 0.0F}, {1.0F, 1.0F}}, npc.body.bounds.size};
-        npc.animator = simple_platformer::Animator{};
+        npc.sprite = makeActorSprite(textureId, animations);
+        npc.sprite->anchor = spriteAnchor;
+        npc.animator = makeAnimator(std::move(animations));
         npc.health = simple_platformer::Health{3, 3};
         npc.team = simple_platformer::Team::Enemy;
         npc.brain = simple_platformer::NpcBrain{};
@@ -162,32 +153,56 @@ namespace
         return npc;
     }
 
-    simple_platformer::Actor makeBitingNpc(int textureId)
+    simple_platformer::Actor makeZombie(
+        int textureId,
+        glm::vec2 spawnFeet,
+        simple_platformer::Patrol patrol)
     {
-        simple_platformer::Actor npc =
-            makeNpc(textureId, {450.0F, 196.0F}, {{456.0F, 208.0F}, {488.0F, 176.0F}, true});
+        simple_platformer::Actor npc = makeNpc(
+            textureId,
+            spawnFeet,
+            {12.0F, 20.0F},
+            simple_platformer::SpriteAnchor::BodyFeet,
+            patrol,
+            simple_platformer::makeZombieAnimations());
         npc.platformerMovement = simple_platformer::PlatformerMovement{};
         npc.platformerMovement->grounded = true;
         npc.bite = simple_platformer::BiteAttack{};
         return npc;
     }
 
-    simple_platformer::Actor makeFlyingNpc(int textureId)
+    simple_platformer::Actor makeBat(
+        int textureId,
+        glm::vec2 spawnFeet,
+        simple_platformer::Patrol patrol)
     {
-        simple_platformer::Actor npc =
-            makeNpc(textureId, {170.0F, 132.0F}, {{176.0F, 144.0F}, {248.0F, 96.0F}, true});
+        simple_platformer::Actor npc = makeNpc(
+            textureId,
+            spawnFeet,
+            {12.0F, 8.0F},
+            simple_platformer::SpriteAnchor::BodyCenter,
+            patrol,
+            simple_platformer::makeBatAnimations());
         npc.flyingMovement = simple_platformer::FlyingMovement{};
         npc.bite = simple_platformer::BiteAttack{};
         return npc;
     }
 
-    simple_platformer::Actor makeShootingNpc(int textureId)
+    simple_platformer::Actor makeZombieSoldier(
+        int textureId,
+        glm::vec2 spawnFeet,
+        simple_platformer::Patrol patrol)
     {
-        simple_platformer::Actor npc =
-            makeNpc(textureId, {280.0F, 196.0F}, {{286.0F, 208.0F}, {350.0F, 208.0F}, true});
+        simple_platformer::Actor npc = makeNpc(
+            textureId,
+            spawnFeet,
+            {12.0F, 20.0F},
+            simple_platformer::SpriteAnchor::BodyFeet,
+            patrol,
+            simple_platformer::makeZombieSoldierAnimations());
         npc.platformerMovement = simple_platformer::PlatformerMovement{};
         npc.platformerMovement->grounded = true;
-        npc.rangedWeapon = makeRangedWeapon(textureId);
+        npc.rangedWeapon = makeRangedWeapon(textureId, npc.team);
         return npc;
     }
 }
@@ -198,9 +213,12 @@ namespace simple_platformer
     {
         const ActorId player = world.addActor(makePlayer(textureId));
         world.setPlayer(player, {38.0F, 208.0F});
-        world.addActor(makeBitingNpc(textureId));
-        world.addActor(makeFlyingNpc(textureId));
-        world.addActor(makeShootingNpc(textureId));
+        world.addActor(
+            makeZombie(textureId, {456.0F, 208.0F}, {{456.0F, 208.0F}, {488.0F, 176.0F}, true}));
+        world.addActor(
+            makeBat(textureId, {176.0F, 144.0F}, {{176.0F, 144.0F}, {248.0F, 96.0F}, true}));
+        world.addActor(makeZombieSoldier(
+            textureId, {286.0F, 208.0F}, {{286.0F, 208.0F}, {350.0F, 208.0F}, true}));
     }
 
     void ExampleGame::update(const InputIntentions& intentions, float deltaTime)
@@ -232,5 +250,18 @@ namespace simple_platformer
 
         const Camera camera = makeLockedCamera(map, player->body.bounds);
         return buildRenderScene(map, player->sprite.value().textureId, camera, world);
+    }
+
+    ActorDebugScene ExampleGame::actorDebugScene() const
+    {
+        const Actor* player = world.findActor(world.playerId());
+        if (player == nullptr)
+        {
+            throw std::logic_error("The example game has no player");
+        }
+
+        const Camera camera = makeLockedCamera(map, player->body.bounds);
+        constexpr float AtlasWidth = 160.0F;
+        return makeActorDebugScene(world, camera, AtlasWidth);
     }
 }

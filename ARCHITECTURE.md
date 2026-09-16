@@ -307,8 +307,14 @@ The example includes three NPCs:
 - A ranged creature that patrols, chases the player, then stops and fires projectiles
   while the player remains visible.
 
-Both use the same concrete enum-and-switch FSM. A patrol has two authored feet-based
+All three use the same concrete enum-and-switch FSM. A patrol has two authored feet-based
 endpoints. The NPC pathfinds to the current endpoint and swaps endpoints after arriving.
+The example NPC factories also take a feet-based spawn point and patrol, so a level can
+place any number of zombies, bats, and zombie soldiers. Their shared factory accepts an
+explicit collision-body size: ground NPCs currently use `12 x 20` pixels while bats use
+the smaller `12 x 8` body. Sprite dimensions remain independent of these gameplay bodies.
+Ground sprites use a feet anchor; the bat uses a centre anchor so its small collider sits
+in the middle of its larger sprite without changing feet-based navigation coordinates.
 
 ```cpp
 enum class NpcState
@@ -362,6 +368,30 @@ Paths are recalculated when the target enters another grid cell, subject to a 0.
 second cooldown. Patrol paths also recalculate when the active endpoint changes or a
 path becomes invalid. If a patrol endpoint is unreachable, the NPC stops and retries
 after the cooldown; it never walks directly toward an endpoint without a valid path.
+Flying followers reduce their input magnitude for the final fraction of a movement
+step, reaching each waypoint before turning around a solid-tile corner.
+
+### Future improvement: movement-specific navigation anchors
+
+The current navigation code uses actor feet for both ground and flying NPCs. Feet are
+the natural reference point for a platformer actor because they identify the surface
+the actor is standing on, but they are an artificial reference point for a flying
+actor whose body moves freely through a grid cell.
+
+A future cleanup should make the distinction explicit:
+
+- Platformer navigation converts `feetOf(body.bounds)` to a grid cell and follows
+  waypoints positioned at the feet of standable cells.
+- Flying navigation converts `centerOf(body.bounds)` to a grid cell and follows the
+  centre of each empty cell.
+- `Patrol::firstFeet` and `Patrol::secondFeet` become the neutral `firstPoint` and
+  `secondPoint`. For a ground NPC these points describe feet; for a flying NPC they
+  describe body centres.
+
+This keeps the useful feet convention for platformer movement without forcing it onto
+flyers. It does not change `Aabb::position`, which remains the body's top-left corner,
+and it does not couple navigation to the sprite anchor. The flying corner regression
+tests should remain in place while making this change.
 
 ## Navigation
 
@@ -513,16 +543,50 @@ level's feet-based spawn with restored health and runtime movement state.
 
 ## Animation
 
-Sprites use named clips such as Idle, Run, Jump, Fall, Bite, and Death. There is no
-animation state machine. A pure priority function selects a clip from actor life state,
-bite phase, grounded state, velocity, and facing. Death has highest priority; a
-non-ready bite selects Bite. Render-scene tests cover selection, source frame, sprite
-placement, and horizontal flipping.
+Sprites use named clips such as Idle, Move, Jump, Fall, Attack, and Death. There is no
+animation state machine. Bite and ranged-weapon systems retain their distinct gameplay
+behaviour, but both select the actor's Attack clip. A pure priority function selects a
+clip from actor life state, an active attack, grounded state, and velocity. Death has
+highest priority, followed by Attack. A blocked shot during cooldown does not select
+Attack. Render-scene tests cover selection, source frame, sprite placement, and
+horizontal flipping.
 
-Each animated actor owns a small optional `Animator` component containing only its
-current animation and elapsed playback time. Game and behaviour code select named
-animations and provide game-specific clips; the reusable animation helper advances
-the component and writes the selected frame to the actor's `Sprite`.
+Each animated actor owns a small optional `Animator` component containing its current
+animation, elapsed playback time, and an `AnimationSet`. The set maps animation names
+to that character's own clips, so characters do not have to share atlas rows, frame
+counts, or layouts. The game layer defines separate sets for the soldier player,
+zombie, bat, and zombie soldier using explicit source regions; the engine neither
+assigns rows nor requires matching layouts. These sets live in
+`app/example_animations.*`, where their real atlas data can also be exercised by
+focused tests. The example game is supplied with one finished `160 x 216` atlas.
+Each actor uses two rows of four `32 x 24` frames, so wide attacks and death poses
+do not need to be reduced to fit a long single row. The fifth column holds a
+dedicated passing pose for the player, zombie, and zombie soldier without replacing
+their idle frames. Ground walk cycles play contact A, passing, contact B, passing.
+The bat's movement cycle plays wings up, out, down, and recovery at 0.10 seconds
+per frame. Its two additional poses occupy the fifth column of its two atlas rows.
+The source coordinates match
+integer coordinates in image editors such as Piskel. Artwork sources and atlas tooling
+are deliberately kept outside the student repository. The high-resolution originals
+are downsampled once while building the atlas; runtime frame dimensions then match
+their world-pixel display dimensions without stretching.
+Game and behaviour code select named animations; the reusable animation helper finds
+the clip in the actor's set, advances playback, and writes the selected frame to the
+actor's `Sprite`.
+
+### Future improvement: mixed-size animation frames
+
+`SpriteRegion` already describes an arbitrary source rectangle, and `AnimationClip`
+does not require every region to have the same dimensions. The example deliberately
+uses fixed `32 x 24` regions because animation playback currently changes only
+`Sprite::region`; `Sprite::size` remains fixed. Mixed-size regions would therefore be
+stretched into the same display rectangle.
+
+A future extension can replace each clip's bare `SpriteRegion` with an
+`AnimationFrame` containing a source region, display size, and pivot or offset. This
+would preserve pixel-for-pixel mixed-size artwork while keeping feet stable between
+frames. The actor's collision body must remain independent from these visual frame
+dimensions.
 
 ## Inventory, pickups, and exit
 
@@ -557,7 +621,10 @@ and sprite rectangles at the actor's feet.
 A small OpenGL `SpriteRenderer` submits textured quads using one uncomplicated shader.
 There is no scene graph, material system, lighting, or general render graph. ImGui is
 drawn after the internally scaled game image so HUD and inventory remain crisp at the
-window resolution.
+window resolution. The example application's F1 key toggles app-only actor debugging:
+each player or NPC gets a separate ImGui window, while white sprite bounds and red
+collision bounds are drawn over the game. The reusable debug-data builder stays
+separate from the GLFW/ImGui presentation code so it can be tested without a window.
 
 ## Loading and errors
 

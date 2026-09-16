@@ -113,13 +113,16 @@ namespace
         }
         const bool hasAnyNpcComponent = actor.brain.has_value() || actor.senses.has_value() ||
                                         actor.patrol.has_value() || actor.pathFollower.has_value();
-        const bool hasRequiredNpcComponents = actor.brain.has_value() && actor.senses.has_value() &&
-                                              actor.pathFollower.has_value() &&
-                                              actor.bite.has_value();
+        const bool hasRequiredNpcComponents =
+            actor.brain.has_value() && actor.senses.has_value() && actor.pathFollower.has_value();
         if (hasAnyNpcComponent && !hasRequiredNpcComponents)
         {
-            throw std::invalid_argument(
-                "NPC actors require a brain, senses, path follower, and bite");
+            throw std::invalid_argument("NPC actors require a brain, senses, and path follower");
+        }
+        if (actor.brain.has_value() && actor.brain->state == simple_platformer::NpcState::Bite &&
+            !actor.bite.has_value())
+        {
+            throw std::invalid_argument("An NPC in the Bite state requires a bite attack");
         }
         if (actor.brain.has_value() &&
             (!std::isfinite(actor.brain->stateTime) || actor.brain->stateTime < 0.0F ||

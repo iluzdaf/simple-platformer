@@ -217,6 +217,27 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
 }
 
+TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
+    world.setPlayer(playerId, {38.0F, 28.0F});
+    simple_platformer::Actor npc = makeNpc({16.0F, 16.0F});
+    npc.bite.reset();
+    const simple_platformer::ActorId npcId = world.addActor(npc);
+    brain(world, npcId).target = playerId;
+    brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
+    brain(world, npcId).targetVisible = true;
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
+    REQUIRE_FALSE(actor(world, npcId).intentions.primaryAttackPressed);
+    REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
+}
+
 TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =

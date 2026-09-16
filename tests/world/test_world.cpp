@@ -8,6 +8,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -91,6 +92,26 @@ TEST_CASE("World rejects invalid actor composition", "[world][actor]")
     simple_platformer::Actor incompleteNpc = makeActor();
     incompleteNpc.brain = simple_platformer::NpcBrain{};
     REQUIRE_THROWS_AS(world.addActor(incompleteNpc), std::invalid_argument);
+
+    simple_platformer::Actor invalidBitingNpc = makeActor();
+    invalidBitingNpc.brain = simple_platformer::NpcBrain{};
+    invalidBitingNpc.brain->state = simple_platformer::NpcState::Bite;
+    invalidBitingNpc.senses = simple_platformer::NpcSenses{};
+    invalidBitingNpc.pathFollower = simple_platformer::PathFollower{};
+    REQUIRE_THROWS_AS(world.addActor(invalidBitingNpc), std::invalid_argument);
+}
+
+TEST_CASE("NPC composition does not require a bite attack", "[world][actor]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor npc = makeActor();
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.senses = simple_platformer::NpcSenses{};
+    npc.pathFollower = simple_platformer::PathFollower{};
+
+    const simple_platformer::ActorId npcId = world.addActor(npc);
+
+    REQUIRE(world.findActor(npcId) != nullptr);
 }
 
 TEST_CASE("The world records the player and feet-based spawn", "[world][actor]")

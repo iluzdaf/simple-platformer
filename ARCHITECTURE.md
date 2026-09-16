@@ -339,7 +339,8 @@ The state transitions are explicit:
 - Idle enters Patrol when a patrol is configured.
 - Patrol follows its current endpoint and enters Chase when the player is detected.
 - Chase follows the player's last seen feet, enters Bite when a visible player is in
-  bite range, and returns to Patrol when target memory expires.
+  bite range and the NPC has a `BiteAttack`, and returns to Patrol when target memory
+  expires. An NPC without a bite continues chasing at close range.
 - Bite faces the player, stops horizontal input, requests the bite once, and returns
   to Chase after windup, active, and recovery phases complete.
 

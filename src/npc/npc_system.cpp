@@ -262,13 +262,12 @@ namespace
         simple_platformer::Actor& actor,
         float deltaTime)
     {
-        if (!actor.brain.has_value() || !actor.pathFollower.has_value() || !actor.bite.has_value())
+        if (!actor.brain.has_value() || !actor.pathFollower.has_value())
         {
-            throw std::logic_error("An NPC is missing behaviour or attack components");
+            throw std::logic_error("An NPC is missing behaviour components");
         }
         simple_platformer::NpcBrain& brain = *actor.brain;
         simple_platformer::PathFollower& follower = *actor.pathFollower;
-        const simple_platformer::BiteAttack& bite = *actor.bite;
         const simple_platformer::Actor* target = livingTarget(world, brain);
         chooseNpcState(brain, follower, actor.patrol.has_value(), target);
 
@@ -283,7 +282,11 @@ namespace
             updateChaseState(map, actor, brain, follower, target, deltaTime);
             break;
         case simple_platformer::NpcState::Bite:
-            updateBiteState(actor, brain, follower, bite, target);
+            if (!actor.bite.has_value())
+            {
+                throw std::logic_error("An NPC in the Bite state is missing its bite attack");
+            }
+            updateBiteState(actor, brain, follower, *actor.bite, target);
             break;
         }
     }

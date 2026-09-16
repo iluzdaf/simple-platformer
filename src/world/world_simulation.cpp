@@ -21,5 +21,6 @@ namespace simple_platformer
         updateAttacks(world, requests, deltaTime);
         updateProjectiles(map, world, requests, deltaTime);
         updateLifeState(world, requests, deltaTime);
+        applyWorldRequests(world, requests);
     }
 }

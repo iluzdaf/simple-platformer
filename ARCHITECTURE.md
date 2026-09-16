@@ -216,6 +216,11 @@ for each tick. A game supplies its `TileMap`, `World`, player intentions, and el
 without reproducing the engine update sequence. Game-specific animation clips and
 animation updating remain in the game layer as a separate presentation step.
 
+`updateLifeState` consumes queued damage and advances death timers. It may queue actor
+removals, but it does not structurally change the world's collections. Once every system
+has finished traversing the world, `applyWorldRequests` performs queued actor and
+projectile removals and projectile spawns.
+
 ## Platformer movement
 
 Movement has one readable configuration and one small runtime state:

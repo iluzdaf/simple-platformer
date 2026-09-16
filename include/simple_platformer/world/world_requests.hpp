@@ -27,10 +27,14 @@ namespace simple_platformer
         };
 
         friend void updateLifeState(World&, WorldRequests&, float, float);
+        friend void applyWorldRequests(World&, WorldRequests&);
 
         std::vector<DamageRequest> damageRequests;
         std::vector<ActorId> removalRequests;
         std::vector<Projectile> projectileSpawns;
         std::vector<std::size_t> projectileRemovals;
     };
+
+    // Applies queued structural changes after systems have finished traversing the World.
+    void applyWorldRequests(World& world, WorldRequests& requests);
 }

@@ -67,6 +67,7 @@ TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[c
     REQUIRE(healthOf(world, near) == 3);
     REQUIRE(world.projectiles().size() == 1);
     simple_platformer::updateLifeState(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(healthOf(world, near) == 2);
     REQUIRE(healthOf(world, far) == 3);
     REQUIRE(world.projectiles().empty());
@@ -84,6 +85,7 @@ TEST_CASE("A solid tile stops a projectile before an actor", "[combat][projectil
 
     simple_platformer::updateProjectiles(map, world, requests, 1.0F);
     simple_platformer::updateLifeState(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(healthOf(world, target) == 3);
     REQUIRE(world.projectiles().empty());
@@ -105,6 +107,7 @@ TEST_CASE("Projectiles ignore their owner and actors on the same team", "[combat
 
     simple_platformer::updateProjectiles(EmptyMap, world, requests, 0.5F);
     simple_platformer::updateLifeState(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(healthOf(world, owner) == 3);
     REQUIRE(healthOf(world, teammate) == 3);
@@ -121,7 +124,7 @@ TEST_CASE("A projectile is removed when its lifetime expires", "[combat][project
 
     simple_platformer::updateProjectiles(EmptyMap, world, requests, 0.1F);
     REQUIRE(world.projectiles().size() == 1);
-    simple_platformer::updateLifeState(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().empty());
 }
 
@@ -136,6 +139,7 @@ TEST_CASE("Separate projectile hits have no shared invulnerability", "[combat][p
 
     simple_platformer::updateProjectiles(EmptyMap, world, requests, 0.5F);
     simple_platformer::updateLifeState(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(healthOf(world, target) == 1);
     REQUIRE(world.projectiles().empty());

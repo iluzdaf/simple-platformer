@@ -7,7 +7,6 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
-#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 
@@ -50,6 +49,7 @@ namespace simple_platformer
                 actor->intentions = {};
             }
         }
+        requests.damageRequests.clear();
 
         for (const ActorId id : actorsAlreadyDying)
         {
@@ -74,31 +74,5 @@ namespace simple_platformer
                 requests.removalRequests.push_back(id);
             }
         }
-
-        for (const ActorId id : requests.removalRequests)
-        {
-            world.removeActor(id);
-        }
-
-        std::sort(requests.projectileRemovals.begin(), requests.projectileRemovals.end());
-        requests.projectileRemovals.erase(
-            std::unique(requests.projectileRemovals.begin(), requests.projectileRemovals.end()),
-            requests.projectileRemovals.end());
-        for (auto removal = requests.projectileRemovals.rbegin();
-             removal != requests.projectileRemovals.rend();
-             ++removal)
-        {
-            world.removeProjectile(*removal);
-        }
-
-        for (const Projectile& projectile : requests.projectileSpawns)
-        {
-            world.addProjectile(projectile);
-        }
-
-        requests.damageRequests.clear();
-        requests.removalRequests.clear();
-        requests.projectileSpawns.clear();
-        requests.projectileRemovals.clear();
     }
 }

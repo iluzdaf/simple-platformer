@@ -107,6 +107,8 @@ TEST_CASE("An NPC is removed after its death timer", "[actor][lifecycle]")
 
     simple_platformer::updateLifeState(world, requests, 0.4F);
 
+    REQUIRE(world.findActor(npc) != nullptr);
+    simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.findActor(npc) == nullptr);
 }
 
@@ -142,7 +144,7 @@ TEST_CASE("The player respawns with restored runtime state", "[actor][lifecycle]
     REQUIRE(movementOf(*respawned).jumpBufferRemaining == 0.0F);
 }
 
-TEST_CASE("Explicit removals are also deferred", "[actor][lifecycle]")
+TEST_CASE("Explicit removals are deferred until world requests are applied", "[world][requests]")
 {
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(makeActor());
@@ -150,8 +152,9 @@ TEST_CASE("Explicit removals are also deferred", "[actor][lifecycle]")
     requests.remove(id);
 
     REQUIRE(world.findActor(id) != nullptr);
-    simple_platformer::updateLifeState(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.findActor(id) == nullptr);
+    REQUIRE(requests.empty());
 }
 
 TEST_CASE("Invalid lifecycle requests and timing are rejected", "[actor][lifecycle]")

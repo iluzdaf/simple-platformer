@@ -32,6 +32,15 @@ namespace
         }
     }
 
+    void validateCamera(const simple_platformer::Camera& camera)
+    {
+        validateViewport(camera.viewportSize);
+        if (!simple_platformer::isFinite(camera.position))
+        {
+            throw std::invalid_argument("Camera position must be finite");
+        }
+    }
+
     float cameraAxis(float targetCenter, float mapSize, float viewportSize)
     {
         if (mapSize <= viewportSize)
@@ -72,6 +81,13 @@ namespace
 
 namespace simple_platformer
 {
+    CameraController::CameraController(Camera initialCamera, glm::vec2 initialDeadZoneSize)
+        : camera(initialCamera), deadZoneSize(initialDeadZoneSize)
+    {
+        validateCamera(camera);
+        validateDeadZone(deadZoneSize, camera.viewportSize);
+    }
+
     Camera makeLockedCamera(const TileMap& map, const Aabb& target, glm::vec2 viewportSize)
     {
         validateViewport(viewportSize);
@@ -91,14 +107,12 @@ namespace simple_platformer
         glm::vec2 deadZoneSize,
         glm::vec2 viewportSize)
     {
-        validateViewport(viewportSize);
-        validateDeadZone(deadZoneSize, viewportSize);
-        return {makeLockedCamera(map, target, viewportSize), deadZoneSize};
+        return CameraController{makeLockedCamera(map, target, viewportSize), deadZoneSize};
     }
 
     void followTarget(CameraController& controller, const TileMap& map, const Aabb& target)
     {
-        validateViewport(controller.camera.viewportSize);
+        validateCamera(controller.camera);
         validateDeadZone(controller.deadZoneSize, controller.camera.viewportSize);
 
         const glm::vec2 targetCenter = centerOf(target);

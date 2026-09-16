@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <glm/vec2.hpp>
 
 #include "actor_debug.hpp"
@@ -23,10 +25,12 @@ namespace simple_platformer
         ActorDebugScene actorDebugScene() const;
 
     private:
+        CameraController& cameraControllerValue();
+        const CameraController& cameraControllerValue() const;
         Camera currentCamera() const;
 
         TileMap map;
         World world;
-        CameraController cameraController;
+        std::optional<CameraController> cameraController;
     };
 }

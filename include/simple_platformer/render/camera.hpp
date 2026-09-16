@@ -16,8 +16,10 @@ namespace simple_platformer
 
     struct CameraController
     {
+        CameraController(Camera initialCamera, glm::vec2 initialDeadZoneSize);
+
         Camera camera;
-        glm::vec2 deadZoneSize = {0.0F, 0.0F};
+        glm::vec2 deadZoneSize;
     };
 
     Camera makeLockedCamera(

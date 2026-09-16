@@ -3,7 +3,9 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <cstddef>
+#include <limits>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 #include "simple_platformer/math/aabb.hpp"
@@ -33,6 +35,8 @@ namespace
         REQUIRE_THAT(actual.y, WithinAbs(expected.y, 0.0001F));
     }
 }
+
+static_assert(!std::is_default_constructible_v<CameraController>);
 
 TEST_CASE("The camera locks to the target centre", "[render][camera]")
 {
@@ -142,4 +146,12 @@ TEST_CASE("Camera dead zones must fit inside the viewport", "[render][camera]")
     REQUIRE_THROWS_AS(
         simple_platformer::makeCameraController(map, target, {101.0F, 20.0F}, {100.0F, 60.0F}),
         std::invalid_argument);
+}
+
+TEST_CASE("Camera controllers reject invalid initial camera data", "[render][camera]")
+{
+    Camera camera;
+    camera.position.x = std::numeric_limits<float>::quiet_NaN();
+
+    REQUIRE_THROWS_AS(CameraController(camera, {20.0F, 20.0F}), std::invalid_argument);
 }

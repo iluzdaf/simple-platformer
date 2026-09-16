@@ -291,7 +291,9 @@ kill height remains as a safety check for invalid or exceptional positions.
 `Camera` is the final lightweight view used by rendering and coordinate conversion.
 `CameraController` retains the previous view position. It begins locked to the centre
 of the player's collider, then moves only enough to return the player's centre to a
-configurable dead zone. The example uses an 80 by 45 internal-pixel dead zone.
+configurable dead zone. A controller requires a valid camera and dead-zone size when it
+is constructed; it has no misleading zero-sized default. The example uses an 80 by 45
+internal-pixel dead zone.
 
 The view remains clamped to the tile map bounds. Small maps are centred on the relevant
 axis. Camera movement is rounded to internal pixels to keep pixel art stable. The game

@@ -215,7 +215,7 @@ namespace simple_platformer
         {
             throw std::logic_error("The example game has no player after lifecycle update");
         }
-        followTarget(cameraController, map, player->body.bounds);
+        followTarget(cameraControllerValue(), map, player->body.bounds);
         simple_platformer::updateActorAnimations(world, deltaTime);
     }
 
@@ -244,11 +244,29 @@ namespace simple_platformer
     ActorDebugScene ExampleGame::actorDebugScene() const
     {
         constexpr float AtlasWidth = 160.0F;
-        return makeActorDebugScene(world, cameraController, AtlasWidth);
+        return makeActorDebugScene(world, cameraControllerValue(), AtlasWidth);
     }
 
     Camera ExampleGame::currentCamera() const
     {
-        return cameraController.camera;
+        return cameraControllerValue().camera;
+    }
+
+    CameraController& ExampleGame::cameraControllerValue()
+    {
+        if (!cameraController.has_value())
+        {
+            throw std::logic_error("The example game camera is not initialised");
+        }
+        return *cameraController;
+    }
+
+    const CameraController& ExampleGame::cameraControllerValue() const
+    {
+        if (!cameraController.has_value())
+        {
+            throw std::logic_error("The example game camera is not initialised");
+        }
+        return *cameraController;
     }
 }

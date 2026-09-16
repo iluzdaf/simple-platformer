@@ -1,9 +1,10 @@
 #include "actor_debug_ui.hpp"
 
 #include "actor_debug.hpp"
+#include "graphics/display_viewport.hpp"
 
-#include <algorithm>
 #include <cstddef>
+#include <optional>
 #include <string>
 
 #define GLFW_INCLUDE_NONE
@@ -12,7 +13,6 @@
 #include <imgui.h>
 
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 
@@ -81,29 +81,34 @@ namespace
         ImVec2 scale;
     };
 
-    GameViewport gameViewport(GLFWwindow* window, int framebufferWidth, int framebufferHeight)
+    std::optional<GameViewport> gameViewport(
+        GLFWwindow* window,
+        int framebufferWidth,
+        int framebufferHeight)
     {
         int windowWidth = 0;
         int windowHeight = 0;
         glfwGetWindowSize(window, &windowWidth, &windowHeight);
-        const int framebufferScale = std::min(
-            framebufferWidth / simple_platformer::InternalWidth,
-            framebufferHeight / simple_platformer::InternalHeight);
-        if (framebufferScale <= 0 || framebufferWidth <= 0 || framebufferHeight <= 0)
+        if (windowWidth <= 0 || windowHeight <= 0)
         {
-            return {};
+            return std::nullopt;
         }
 
+        const std::optional<simple_platformer::DisplayViewport> displayViewport =
+            simple_platformer::makeDisplayViewport({framebufferWidth, framebufferHeight});
+        if (!displayViewport.has_value())
+        {
+            return std::nullopt;
+        }
         const float framebufferToWindowX =
             static_cast<float>(windowWidth) / static_cast<float>(framebufferWidth);
         const float framebufferToWindowY =
             static_cast<float>(windowHeight) / static_cast<float>(framebufferHeight);
-        return {
-            {(framebufferWidth - simple_platformer::InternalWidth * framebufferScale) * 0.5F *
-                 framebufferToWindowX,
-             (framebufferHeight - simple_platformer::InternalHeight * framebufferScale) * 0.5F *
-                 framebufferToWindowY},
-            {framebufferScale * framebufferToWindowX, framebufferScale * framebufferToWindowY}};
+        return GameViewport{
+            {displayViewport->topLeftMargin.x * framebufferToWindowX,
+             displayViewport->topLeftMargin.y * framebufferToWindowY},
+            {displayViewport->scale * framebufferToWindowX,
+             displayViewport->scale * framebufferToWindowY}};
     }
 
     ImVec2 screenPosition(
@@ -191,17 +196,18 @@ namespace simple_platformer
         int framebufferWidth,
         int framebufferHeight)
     {
-        const GameViewport viewport = gameViewport(window, framebufferWidth, framebufferHeight);
+        const std::optional<GameViewport> viewport =
+            gameViewport(window, framebufferWidth, framebufferHeight);
         ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 
-        if (viewport.scale.x > 0.0F && viewport.scale.y > 0.0F)
+        if (viewport.has_value())
         {
             drawWorldBounds(
-                *drawList, scene.cameraBounds, scene, viewport, IM_COL32(64, 224, 255, 255));
+                *drawList, scene.cameraBounds, scene, *viewport, IM_COL32(64, 224, 255, 255));
             drawWorldBounds(
-                *drawList, scene.cameraDeadZone, scene, viewport, IM_COL32(255, 224, 64, 255));
+                *drawList, scene.cameraDeadZone, scene, *viewport, IM_COL32(255, 224, 64, 255));
             drawList->AddText(
-                screenPosition(scene.cameraDeadZone.position, scene, viewport),
+                screenPosition(scene.cameraDeadZone.position, scene, *viewport),
                 IM_COL32(255, 224, 64, 255),
                 "camera dead zone");
         }
@@ -210,7 +216,7 @@ namespace simple_platformer
         {
             const ActorDebugInfo& actor = scene.actors[index];
             drawActorWindow(actor, index);
-            if (viewport.scale.x <= 0.0F || viewport.scale.y <= 0.0F)
+            if (!viewport.has_value())
             {
                 continue;
             }
@@ -218,13 +224,18 @@ namespace simple_platformer
             if (actor.sprite.has_value())
             {
                 drawWorldBounds(
-                    *drawList, actor.sprite->bounds, scene, viewport, IM_COL32(255, 255, 255, 255));
+                    *drawList,
+                    actor.sprite->bounds,
+                    scene,
+                    *viewport,
+                    IM_COL32(255, 255, 255, 255));
                 const ImVec2 labelPosition =
-                    screenPosition(actor.sprite->bounds.position, scene, viewport);
+                    screenPosition(actor.sprite->bounds.position, scene, *viewport);
                 drawList->AddText(
                     labelPosition, IM_COL32(255, 255, 255, 255), labelFor(actor).c_str());
             }
-            drawWorldBounds(*drawList, actor.collider, scene, viewport, IM_COL32(255, 64, 64, 255));
+            drawWorldBounds(
+                *drawList, actor.collider, scene, *viewport, IM_COL32(255, 64, 64, 255));
         }
     }
 }

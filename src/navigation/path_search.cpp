@@ -13,13 +13,18 @@
 
 namespace
 {
+    struct IncomingConnection
+    {
+        std::size_t parentIndex;
+        simple_platformer::NavigationNeighbor neighbor;
+    };
+
     struct SearchNode
     {
         simple_platformer::GridPosition position;
         int costFromStart = 0;
         int estimatedTotalCost = 0;
-        std::optional<std::size_t> parent;
-        std::optional<simple_platformer::NavigationNeighbor> connectionFromParent;
+        std::optional<IncomingConnection> incoming;
         bool closed = false;
     };
 
@@ -60,8 +65,12 @@ namespace
             {
                 continue;
             }
-            if (!cheapest.has_value() ||
-                nodes[index].estimatedTotalCost < nodes[cheapest.value_or(0)].estimatedTotalCost)
+            if (!cheapest.has_value())
+            {
+                cheapest = index;
+                continue;
+            }
+            if (nodes[index].estimatedTotalCost < nodes[cheapest.value()].estimatedTotalCost)
             {
                 cheapest = index;
             }
@@ -75,17 +84,20 @@ namespace
     {
         std::vector<simple_platformer::NavigationStep> steps;
         std::size_t current = goalIndex;
-        while (nodes[current].parent.has_value())
+        while (true)
         {
             const SearchNode& currentNode = nodes[current];
-            if (!currentNode.connectionFromParent.has_value())
+            if (!currentNode.incoming.has_value())
             {
-                throw std::logic_error("A path-search node is missing its incoming connection");
+                break;
             }
-            const simple_platformer::NavigationNeighbor connection =
-                currentNode.connectionFromParent.value_or(simple_platformer::NavigationNeighbor{});
-            steps.push_back({connection.destination, connection.traversal, connection.inputs});
-            current = currentNode.parent.value_or(0);
+
+            const IncomingConnection& incoming = currentNode.incoming.value();
+            steps.push_back(
+                {incoming.neighbor.destination,
+                 incoming.neighbor.traversal,
+                 incoming.neighbor.inputs});
+            current = incoming.parentIndex;
         }
         std::reverse(steps.begin(), steps.end());
         return {nodes[current].position, std::move(steps)};
@@ -124,12 +136,7 @@ namespace simple_platformer
         }
 
         std::vector<SearchNode> nodes{
-            {start,
-             0,
-             estimateRemainingCost(heuristic, start, goal),
-             std::nullopt,
-             std::nullopt,
-             false}};
+            {start, 0, estimateRemainingCost(heuristic, start, goal), std::nullopt, false}};
         while (true)
         {
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);
@@ -163,8 +170,7 @@ namespace simple_platformer
                         {neighbor.destination,
                          nextCost,
                          nextCost + estimateRemainingCost(heuristic, neighbor.destination, goal),
-                         currentIndex,
-                         neighbor,
+                         IncomingConnection{currentIndex.value(), neighbor},
                          false});
                     continue;
                 }
@@ -175,8 +181,7 @@ namespace simple_platformer
                     existing.costFromStart = nextCost;
                     existing.estimatedTotalCost =
                         nextCost + estimateRemainingCost(heuristic, neighbor.destination, goal);
-                    existing.parent = currentIndex;
-                    existing.connectionFromParent = neighbor;
+                    existing.incoming = IncomingConnection{currentIndex.value(), neighbor};
                     existing.closed = false;
                 }
             }

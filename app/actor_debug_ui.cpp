@@ -347,55 +347,84 @@ namespace
         drawList.AddText(labelPosition, colour, label);
     }
 
-    void drawActorWindow(const simple_platformer::ActorDebugInfo& actor, std::size_t index)
+    void drawTextLine(
+        ImDrawList& drawList,
+        ImVec2& position,
+        const char* text,
+        ImU32 colour,
+        float indentation = 0.0F)
     {
-        constexpr float WindowWidth = 180.0F;
-        constexpr float WindowHeight = 120.0F;
-        constexpr float WindowMargin = 8.0F;
-        constexpr float WindowGap = 8.0F;
-        constexpr ImGuiWindowFlags Flags =
-            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-        const std::string label = labelFor(actor);
-        const std::string windowName =
-            label + " debug###actor-debug-" + std::to_string(actor.id.value);
-        const float windowX = WindowMargin + static_cast<float>(index) * (WindowWidth + WindowGap);
+        drawList.AddText({position.x + indentation, position.y}, colour, text);
+        position.y += ImGui::GetTextLineHeight();
+    }
 
-        ImGui::SetNextWindowPos({windowX, WindowMargin}, ImGuiCond_Always);
-        ImGui::SetNextWindowSize({WindowWidth, WindowHeight}, ImGuiCond_Always);
-        ImGui::SetNextWindowBgAlpha(0.3F);
-        if (ImGui::Begin(windowName.c_str(), nullptr, Flags))
+    void drawActorText(
+        ImDrawList& drawList,
+        const simple_platformer::ActorDebugInfo& actor,
+        ImVec2& position)
+    {
+        constexpr float Indentation = 12.0F;
+        constexpr float ActorGap = 4.0F;
+        constexpr ImU32 HeadingColour = IM_COL32(255, 255, 255, 255);
+        constexpr ImU32 DetailColour = IM_COL32(224, 224, 224, 255);
+
+        const std::string label = labelFor(actor);
+        drawTextLine(drawList, position, label.c_str(), HeadingColour);
+
+        char text[96]{};
+        std::snprintf(
+            text,
+            sizeof(text),
+            "pos:    %.1f, %.1f",
+            actor.collider.position.x,
+            actor.collider.position.y);
+        drawTextLine(drawList, position, text, DetailColour, Indentation);
+
+        if (actor.pathFollower.has_value())
         {
-            ImGui::Text("pos: %.1f, %.1f", actor.collider.position.x, actor.collider.position.y);
-            if (actor.pathFollower.has_value())
+            const simple_platformer::PathFollowerDebugInfo& follower = actor.pathFollower.value();
+            if (follower.hasPath)
             {
-                const simple_platformer::PathFollowerDebugInfo& follower =
-                    actor.pathFollower.value();
-                if (follower.hasPath)
-                {
-                    ImGui::Text("path: %zu / %zu", follower.nextStep, follower.stepCount);
-                }
-                else
-                {
-                    ImGui::Text("path: none");
-                }
-                if (follower.destination.has_value())
-                {
-                    ImGui::Text(
-                        "destination: %d, %d", follower.destination->x, follower.destination->y);
-                }
-                ImGui::Text("repath: %.2f", follower.repathRemaining);
+                std::snprintf(
+                    text, sizeof(text), "path:   %zu / %zu", follower.nextStep, follower.stepCount);
             }
-            if (actor.sprite.has_value())
+            else
             {
-                ImGui::Text(
-                    "frame: %zu (%.0f, %.0f)",
-                    actor.sprite->atlasFrame,
-                    actor.sprite->atlasPosition.x,
-                    actor.sprite->atlasPosition.y);
+                std::snprintf(text, sizeof(text), "path:   %d / %d", 0, 0);
             }
+            drawTextLine(drawList, position, text, DetailColour, Indentation);
+
+            if (follower.destination.has_value())
+            {
+                std::snprintf(
+                    text,
+                    sizeof(text),
+                    "dest:   %d, %d",
+                    follower.destination->x,
+                    follower.destination->y);
+            }
+            else
+            {
+                std::snprintf(text, sizeof(text), "dest:   none");
+            }
+            drawTextLine(drawList, position, text, DetailColour, Indentation);
+
+            std::snprintf(text, sizeof(text), "repath: %.2f", follower.repathRemaining);
+            drawTextLine(drawList, position, text, DetailColour, Indentation);
         }
-        ImGui::End();
+
+        if (actor.sprite.has_value())
+        {
+            std::snprintf(
+                text,
+                sizeof(text),
+                "frame:  %zu (%.0f, %.0f)",
+                actor.sprite->atlasFrame,
+                actor.sprite->atlasPosition.x,
+                actor.sprite->atlasPosition.y);
+            drawTextLine(drawList, position, text, DetailColour, Indentation);
+        }
+        position.y += ActorGap;
     }
 }
 
@@ -423,10 +452,10 @@ namespace simple_platformer
                 "camera dead zone");
         }
 
-        for (std::size_t index = 0; index < scene.actors.size(); ++index)
+        ImVec2 actorTextPosition = {8.0F, 8.0F};
+        for (const ActorDebugInfo& actor : scene.actors)
         {
-            const ActorDebugInfo& actor = scene.actors[index];
-            drawActorWindow(actor, index);
+            drawActorText(*drawList, actor, actorTextPosition);
             if (!viewport.has_value())
             {
                 continue;

@@ -657,7 +657,7 @@ A small OpenGL `SpriteRenderer` submits textured quads using one uncomplicated s
 There is no scene graph, material system, lighting, or general render graph. ImGui is
 drawn after the internally scaled game image so HUD and inventory remain crisp at the
 window resolution. The example application's F1 key toggles app-only actor debugging:
-each player or NPC gets a separate ImGui window, while white sprite bounds and red
+one plain text list shows each player or NPC and its runtime details, while white sprite bounds and red
 collision bounds are drawn over the game. Cyan camera bounds and the yellow camera dead
 zone are also shown. NPC paths are drawn as coloured connections: green for walking,
 magenta for jumping, orange for falling, and cyan for flying. Completed connections are

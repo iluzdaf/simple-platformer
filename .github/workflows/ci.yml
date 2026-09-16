@@ -40,19 +40,32 @@ jobs:
   macos:
     name: macOS / Apple Clang
     runs-on: macos-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+      - name: Set up compiler cache
+        uses: mozilla-actions/sccache-action@v0.0.11
+        with:
+          version: v0.17.0
       - name: Configure
-        run: cmake --preset mac-debug
+        run: >
+          cmake --preset mac-debug
+          -DCMAKE_C_COMPILER_LAUNCHER="$SCCACHE_PATH"
+          -DCMAKE_CXX_COMPILER_LAUNCHER="$SCCACHE_PATH"
       - name: Build
         run: cmake --build --preset mac-debug
+      - name: Show compiler cache statistics
+        run: '"$SCCACHE_PATH" --show-stats'
       - name: Test
         run: ctest --preset mac-debug
 
   windows:
     name: Windows / Visual Studio 2022
     runs-on: windows-2022
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -60,17 +73,40 @@ jobs:
         uses: microsoft/setup-msbuild@v3
         with:
           msbuild-architecture: x64
+      - name: Set up compiler cache
+        uses: mozilla-actions/sccache-action@v0.0.11
+        with:
+          version: v0.17.0
+      - name: Prepare compiler cache for MSBuild
+        run: |
+          $compilerCache = Join-Path $env:RUNNER_TEMP "sccache-msbuild"
+          New-Item -ItemType Directory -Force -Path $compilerCache | Out-Null
+          Copy-Item "$env:SCCACHE_PATH.exe" (Join-Path $compilerCache "cl.exe")
+          "SCCACHE_MSBUILD_PATH=$compilerCache" >> $env:GITHUB_ENV
       - name: Generate Visual Studio solution
-        run: cmake --preset windows-vs
+        run: >
+          cmake --preset windows-vs
+          -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
+          -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
       - name: Build Visual Studio solution
         run: >
           msbuild build\windows-vs\SimplePlatformer.sln
           /m
           /p:Configuration=Debug
           /p:Platform=x64
+          /p:CLToolExe=cl.exe
+          "/p:CLToolPath=$env:SCCACHE_MSBUILD_PATH"
+          /p:TrackFileAccess=false
+          /p:UseMultiToolTask=true
       - name: Run tests through Visual Studio project
         run: >
           msbuild build\windows-vs\run_tests.vcxproj
           /m
           /p:Configuration=Debug
           /p:Platform=x64
+          /p:CLToolExe=cl.exe
+          "/p:CLToolPath=$env:SCCACHE_MSBUILD_PATH"
+          /p:TrackFileAccess=false
+          /p:UseMultiToolTask=true
+      - name: Show compiler cache statistics
+        run: '& $env:SCCACHE_PATH --show-stats'

@@ -86,6 +86,11 @@ The Windows job generates the same solution as `setup-windows.bat`, builds the a
 `.sln` with MSBuild, and builds its generated `run_tests` project. CI does not launch
 the graphical game.
 
+The macOS and Windows jobs use a pinned `sccache` release backed by GitHub Actions'
+cache service. Only compiler outputs are cached; generated build directories are not.
+On Windows, CI still builds the generated Visual Studio solution and only replaces
+`cl.exe` with a cache wrapper for that build. This does not affect local student builds.
+
 A separate Linux quality job checks source formatting, runs clang-tidy, and verifies
 that every public header can compile on its own. These checks do not add any tools to
 the normal macOS or Visual Studio build.

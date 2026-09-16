@@ -93,3 +93,57 @@ TEST_CASE(
         simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds)) ==
         jump->destination);
 }
+
+TEST_CASE(
+    "A platformer path follower approaches and brakes without moving the body directly",
+    "[navigation][path][integration]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"..........", "....##....", "..........", "##########"});
+    const glm::vec2 bodySize{12.0F, 12.0F};
+    const simple_platformer::PlatformerMovementConfig config;
+    const std::vector<simple_platformer::NavigationNeighbor> neighbors =
+        simple_platformer::platformerNeighbors(map, {2, 2}, bodySize, config);
+    const auto jump = std::find_if(
+        neighbors.begin(),
+        neighbors.end(),
+        [](const simple_platformer::NavigationNeighbor& neighbor)
+        { return neighbor.traversal == simple_platformer::Traversal::Jump; });
+    if (jump == neighbors.end())
+    {
+        throw std::logic_error("The test level did not produce a jump");
+    }
+
+    simple_platformer::PathFollower follower;
+    simple_platformer::setPath(
+        follower,
+        {{2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},
+        jump->destination);
+    simple_platformer::Body body{{{0.0F, 0.0F}, bodySize}, {80.0F, 0.0F}};
+    simple_platformer::placeFeetAt(body.bounds, simple_platformer::navigationFeet({2, 2}));
+    body.bounds.position.x -= 6.0F;
+    simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
+    simple_platformer::Facing facing = simple_platformer::Facing::Right;
+    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
+    bool preparedForJump = false;
+
+    for (int tick = 0; tick < 240 && !simple_platformer::pathComplete(follower); ++tick)
+    {
+        const glm::vec2 positionBeforeFollowing = body.bounds.position;
+        const glm::vec2 velocityBeforeFollowing = body.velocity;
+        const simple_platformer::InputIntentions intentions =
+            simple_platformer::followPlatformerPath(body, movement, follower, DeltaTime);
+        preparedForJump = preparedForJump || follower.programElapsed == 0.0F;
+
+        REQUIRE(body.bounds.position == positionBeforeFollowing);
+        REQUIRE(body.velocity == velocityBeforeFollowing);
+        simple_platformer::updatePlatformerMovement(
+            map, body, movement, intentions, facing, DeltaTime);
+    }
+
+    REQUIRE(preparedForJump);
+    REQUIRE(simple_platformer::pathComplete(follower));
+    REQUIRE(
+        simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds)) ==
+        jump->destination);
+}

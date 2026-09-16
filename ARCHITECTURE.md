@@ -397,12 +397,10 @@ struct NavigationStep
 `InputProgram` durations are seconds. The fixed-step loop remains seconds-based; no
 integer tick counter is added to movement. At runtime the path follower uses elapsed
 seconds to replay each program one fixed update at a time. Before replaying a jump or
-fall, it aligns a grounded actor to the canonical feet position for the takeoff cell
-and clears residual horizontal velocity. The adjustment is at most the one-pixel path
-arrival tolerance and gives the generated program the same starting conditions it was
-tested with. This is explicitly a temporary snapping workaround. It will be replaced
-by an approach-and-brake preparation phase that reaches the takeoff conditions through
-normal movement without directly changing position or velocity.
+fall, it uses normal movement intentions to approach the takeoff cell and brake. The
+program begins only when the actor is grounded, within the one-pixel arrival tolerance,
+and horizontally stopped. Path following never changes an actor's position or velocity
+directly.
 
 Platformer jumping is an isolated advanced subsystem. For each candidate direction
 and short or fully held jump, neighbour generation copies the actor's body size and

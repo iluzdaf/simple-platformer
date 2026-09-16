@@ -32,7 +32,7 @@ namespace simple_platformer
     bool pathComplete(const PathFollower& follower);
     InputIntentions followFlyingPath(const Aabb& bounds, PathFollower& follower);
     InputIntentions followPlatformerPath(
-        Body& body,
+        const Body& body,
         const PlatformerMovement& movement,
         PathFollower& follower,
         float deltaTime);

@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <glm/vec2.hpp>
+
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -85,32 +87,21 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
 TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulation]")
 {
     const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {"............................................................",
-         "............................................................",
-         "............................................................",
-         "............................................................",
-         "............................................................",
-         "............................................................",
-         "............................................................",
-         "............................................................",
-         "..................#######.................#######...........",
-         "............................................................",
-         "......#######...............................................",
-         "..............................#########..............#####..",
-         "............................................................",
-         "############################################################"});
+        {"..........", "..........", "..........", "....###...", "..........", "##########"});
     simple_platformer::World world;
+    constexpr simple_platformer::GridPosition LowerEndpoint{2, 4};
+    constexpr simple_platformer::GridPosition UpperEndpoint{4, 2};
+    const glm::vec2 lowerFeet = simple_platformer::navigationFeet(LowerEndpoint);
+    const glm::vec2 upperFeet = simple_platformer::navigationFeet(UpperEndpoint);
 
     simple_platformer::Actor npc;
-    npc.body.bounds = {{450.0F, 196.0F}, {12.0F, 12.0F}};
+    npc.body.bounds = {{0.0F, 0.0F}, {12.0F, 12.0F}};
+    simple_platformer::placeFeetAt(npc.body.bounds, lowerFeet);
     npc.platformerMovement = simple_platformer::PlatformerMovement{};
     npc.platformerMovement->grounded = true;
-    npc.health = simple_platformer::Health{3, 3};
-    npc.team = simple_platformer::Team::Enemy;
-    npc.bite = simple_platformer::BiteAttack{};
     npc.brain = simple_platformer::NpcBrain{};
     npc.senses = simple_platformer::NpcSenses{};
-    npc.patrol = simple_platformer::Patrol{{456.0F, 208.0F}, {488.0F, 176.0F}, true};
+    npc.patrol = simple_platformer::Patrol{lowerFeet, upperFeet, true};
     npc.pathFollower = simple_platformer::PathFollower{};
     const simple_platformer::ActorId npcId = world.addActor(npc);
 
@@ -140,14 +131,12 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
         enteredPatrol =
             enteredPatrol || storedNpc->brain->state == simple_platformer::NpcState::Patrol;
         wasAirborne = wasAirborne || !movement.grounded;
-        reachedUpperEndpoint =
-            reachedUpperEndpoint ||
-            (movement.grounded && cell == simple_platformer::GridPosition{30, 10});
+        reachedUpperEndpoint = reachedUpperEndpoint || (movement.grounded && cell == UpperEndpoint);
         switchedTowardLowerEndpoint =
             switchedTowardLowerEndpoint || (reachedUpperEndpoint && !patrol.headingToSecond);
         returnedToLowerEndpoint =
-            returnedToLowerEndpoint || (switchedTowardLowerEndpoint && movement.grounded &&
-                                        cell == simple_platformer::GridPosition{28, 12});
+            returnedToLowerEndpoint ||
+            (switchedTowardLowerEndpoint && movement.grounded && cell == LowerEndpoint);
         if (patrol.headingToSecond != previousHeadingToSecond)
         {
             ++completedPatrolLegs;

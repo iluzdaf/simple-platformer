@@ -41,18 +41,26 @@ namespace
         }
     }
 
-    void validateActor(const simple_platformer::Actor& actor)
+    void validateIdentity(const simple_platformer::Actor& actor)
     {
         if (simple_platformer::isValid(actor.id))
         {
             throw std::invalid_argument("World assigns actor IDs");
         }
+    }
+
+    void validateBody(const simple_platformer::Actor& actor)
+    {
         if (!isFinite(actor.body.bounds.position) || !isFinite(actor.body.bounds.size) ||
             !isFinite(actor.body.velocity) || actor.body.bounds.size.x <= 0.0F ||
             actor.body.bounds.size.y <= 0.0F)
         {
             throw std::invalid_argument("Actors require finite positive-sized bodies");
         }
+    }
+
+    void validateMovement(const simple_platformer::Actor& actor)
+    {
         if (actor.platformerMovement.has_value() == actor.flyingMovement.has_value())
         {
             throw std::invalid_argument("Actors require exactly one movement component");
@@ -62,6 +70,10 @@ namespace
         {
             throw std::invalid_argument("Flying movement speed must be finite and non-negative");
         }
+    }
+
+    void validatePresentation(const simple_platformer::Actor& actor)
+    {
         if (actor.animator.has_value() && !actor.sprite.has_value())
         {
             throw std::invalid_argument("Animated actors require a sprite");
@@ -71,6 +83,10 @@ namespace
         {
             throw std::invalid_argument("Actor animation time must be finite and non-negative");
         }
+    }
+
+    void validateCombat(const simple_platformer::Actor& actor)
+    {
         if (actor.rangedWeapon.has_value())
         {
             const simple_platformer::RangedWeapon& weapon = *actor.rangedWeapon;
@@ -111,6 +127,10 @@ namespace
         {
             throw std::invalid_argument("Actor health must be within zero and its maximum");
         }
+    }
+
+    void validateNpc(const simple_platformer::Actor& actor)
+    {
         const bool hasAnyNpcComponent = actor.brain.has_value() || actor.senses.has_value() ||
                                         actor.patrol.has_value() || actor.pathFollower.has_value();
         const bool hasRequiredNpcComponents =
@@ -143,6 +163,10 @@ namespace
         {
             throw std::invalid_argument("NPC patrol endpoints must be finite");
         }
+    }
+
+    void validatePathFollower(const simple_platformer::Actor& actor)
+    {
         if (actor.pathFollower.has_value() &&
             (!std::isfinite(actor.pathFollower->repathCooldown) ||
              actor.pathFollower->repathCooldown <= 0.0F ||
@@ -153,6 +177,17 @@ namespace
         {
             throw std::invalid_argument("NPC path timing is invalid");
         }
+    }
+
+    void validateActor(const simple_platformer::Actor& actor)
+    {
+        validateIdentity(actor);
+        validateBody(actor);
+        validateMovement(actor);
+        validatePresentation(actor);
+        validateCombat(actor);
+        validateNpc(actor);
+        validatePathFollower(actor);
     }
 }
 

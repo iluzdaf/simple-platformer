@@ -96,9 +96,11 @@ namespace
                 weapon.projectileSize.x <= 0.0F || weapon.projectileSize.y <= 0.0F ||
                 !isFinitePositive(weapon.projectileSpeed) ||
                 !isFinitePositive(weapon.projectileLifetime) ||
-                !isFinitePositive(weapon.cooldown) || !std::isfinite(weapon.cooldownRemaining) ||
-                weapon.cooldownRemaining < 0.0F || !isFinite(weapon.projectileSprite.size) ||
-                weapon.projectileSprite.size.x <= 0.0F || weapon.projectileSprite.size.y <= 0.0F)
+                !isFinitePositive(weapon.shootDuration) ||
+                !isFinitePositive(weapon.recoveryDuration) ||
+                !std::isfinite(weapon.phaseTimeRemaining) || weapon.phaseTimeRemaining < 0.0F ||
+                !isFinite(weapon.projectileSprite.size) || weapon.projectileSprite.size.x <= 0.0F ||
+                weapon.projectileSprite.size.y <= 0.0F)
             {
                 throw std::invalid_argument("Actor ranged weapon data is invalid");
             }

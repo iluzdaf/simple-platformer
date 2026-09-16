@@ -52,6 +52,52 @@ namespace
         return projectile;
     }
 
+    void beginShot(
+        const simple_platformer::Actor& actor,
+        simple_platformer::RangedWeapon& weapon,
+        simple_platformer::WorldRequests& requests)
+    {
+        weapon.phase = simple_platformer::RangedPhase::Shoot;
+        weapon.phaseTimeRemaining = weapon.shootDuration;
+        weapon.firedThisUpdate = true;
+        requests.spawnProjectile(makeProjectile(actor, weapon));
+    }
+
+    void enterNextPhase(simple_platformer::RangedWeapon& weapon)
+    {
+        using simple_platformer::RangedPhase;
+
+        switch (weapon.phase)
+        {
+        case RangedPhase::Ready:
+            return;
+        case RangedPhase::Shoot:
+            weapon.phase = RangedPhase::Recovery;
+            weapon.phaseTimeRemaining = weapon.recoveryDuration;
+            return;
+        case RangedPhase::Recovery:
+            weapon.phase = RangedPhase::Ready;
+            weapon.phaseTimeRemaining = 0.0F;
+            return;
+        }
+    }
+
+    void advanceShot(simple_platformer::RangedWeapon& weapon, float deltaTime)
+    {
+        float remaining = deltaTime;
+        while (weapon.phase != simple_platformer::RangedPhase::Ready &&
+               remaining >= weapon.phaseTimeRemaining)
+        {
+            remaining -= weapon.phaseTimeRemaining;
+            enterNextPhase(weapon);
+        }
+
+        if (weapon.phase != simple_platformer::RangedPhase::Ready)
+        {
+            weapon.phaseTimeRemaining -= remaining;
+        }
+    }
+
     void beginBite(simple_platformer::BiteAttack& bite)
     {
         bite.phase = simple_platformer::BitePhase::Windup;
@@ -126,13 +172,19 @@ namespace simple_platformer
             {
                 RangedWeapon& weapon = *actor.rangedWeapon;
                 weapon.firedThisUpdate = false;
-                weapon.cooldownRemaining = std::max(0.0F, weapon.cooldownRemaining - deltaTime);
-                if (actor.life == LifeState::Alive && actor.intentions.primaryAttackPressed &&
-                    weapon.cooldownRemaining == 0.0F)
+                if (actor.life != LifeState::Alive)
                 {
-                    requests.spawnProjectile(makeProjectile(actor, weapon));
-                    weapon.cooldownRemaining = weapon.cooldown;
-                    weapon.firedThisUpdate = true;
+                    weapon.phase = RangedPhase::Ready;
+                    weapon.phaseTimeRemaining = 0.0F;
+                }
+                else if (
+                    weapon.phase == RangedPhase::Ready && actor.intentions.primaryAttackPressed)
+                {
+                    beginShot(actor, weapon, requests);
+                }
+                else
+                {
+                    advanceShot(weapon, deltaTime);
                 }
             }
 

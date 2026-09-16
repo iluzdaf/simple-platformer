@@ -522,6 +522,12 @@ frequency.
 
 ## Projectiles and damage
 
+Ranged attacks use a small explicit `Ready -> Shoot -> Recovery -> Ready` sequence.
+Entering Shoot creates exactly one projectile and holds the Attack animation for the
+configured shoot duration. Recovery prevents another projectile until the weapon
+returns to Ready. This makes the firing pose readable without coupling projectile
+creation to animation frames.
+
 The first projectile contains bounds, velocity, damage, remaining lifetime, owner,
 team, and a sprite. Its collision bounds and sprite display size are independently
 configurable world-pixel dimensions. The player's primary attack fires it in the
@@ -547,14 +553,18 @@ Sprites use named clips such as Idle, Move, Jump, Fall, Attack, and Death. There
 animation state machine. Bite and ranged-weapon systems retain their distinct gameplay
 behaviour, but both select the actor's Attack clip. A pure priority function selects a
 clip from actor life state, an active attack, grounded state, and velocity. Death has
-highest priority, followed by Attack. A blocked shot during cooldown does not select
-Attack. Render-scene tests cover selection, source frame, sprite placement, and
+highest priority, followed by Attack. A ranged weapon selects Attack throughout its
+Shoot phase, then returns to the appropriate movement animation during Recovery.
+Render-scene tests cover selection, source frame, sprite placement, and
 horizontal flipping.
 
 Each animated actor owns a small optional `Animator` component containing its current
 animation, elapsed playback time, and an `AnimationSet`. The set maps animation names
 to that character's own clips, so characters do not have to share atlas rows, frame
-counts, or layouts. The game layer defines separate sets for the soldier player,
+counts, or layouts. The engine's `updateActorAnimations` presentation system reads
+actor life, combat, and movement state to select and advance these clips. It remains a
+separate call after `updateWorldSimulation` because animation does not affect gameplay.
+The game layer defines separate sets for the soldier player,
 zombie, bat, and zombie soldier using explicit source regions; the engine neither
 assigns rows nor requires matching layouts. These sets live in
 `app/example_animations.*`, where their real atlas data can also be exercised by
@@ -654,6 +664,7 @@ Catch2 tests are grouped by subsystem. Major coverage includes:
   transitions, bite eligibility, and path-recalculation cooldown;
 - generic lowest-cost search, optional Manhattan heuristic, flying neighbours,
   standability, falls, jump clearance, and runtime replay of accepted jump arcs;
+- ranged shoot and recovery timing, one projectile per shot, and firing direction;
 - bite windup, active and recovery timing, forward hitbox placement, one hit per
   attack, committed attacks that can miss, harmless idle overlap, no lunge, no general
   post-hit invulnerability, and deferred damage;

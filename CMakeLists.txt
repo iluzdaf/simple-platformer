@@ -97,6 +97,7 @@ add_library(
     src/physics/collision.cpp
     src/physics/segment_cast.cpp
     src/render/animation.cpp
+    src/render/animation_system.cpp
     src/render/camera.cpp
     src/render/render_scene.cpp
     src/render/sprite.cpp
@@ -280,6 +281,7 @@ if(BUILD_TESTING)
         tests/physics/test_collision.cpp
         tests/physics/test_segment_cast.cpp
         tests/render/test_animation.cpp
+        tests/render/test_animation_system.cpp
         tests/render/test_camera.cpp
         tests/render/test_render_scene.cpp
         tests/timing/test_fixed_step.cpp

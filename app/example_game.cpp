@@ -19,6 +19,7 @@
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/render/animation.hpp"
+#include "simple_platformer/render/animation_system.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -70,36 +71,6 @@ namespace
 
         return {
             Width, Height, std::move(tiles), {{false}, {true, {{0.0F, 192.0F}, {16.0F, 16.0F}}}}};
-    }
-
-    void updateActorAnimations(simple_platformer::World& world, float deltaTime)
-    {
-        using simple_platformer::AnimationName;
-        using simple_platformer::BitePhase;
-        using simple_platformer::LifeState;
-
-        for (simple_platformer::Actor& actor : world.actors())
-        {
-            if (!actor.animator.has_value())
-            {
-                continue;
-            }
-            if ((!actor.platformerMovement.has_value() && !actor.flyingMovement.has_value()) ||
-                !actor.sprite.has_value())
-            {
-                throw std::logic_error("An animated actor is missing a required component");
-            }
-
-            const bool biting = actor.bite.has_value() && actor.bite->phase != BitePhase::Ready;
-            const bool shooting =
-                actor.rangedWeapon.has_value() && actor.rangedWeapon->firedThisUpdate;
-            const bool attacking = biting || shooting;
-            const bool grounded =
-                actor.platformerMovement.has_value() ? actor.platformerMovement->grounded : true;
-            const AnimationName selected = simple_platformer::selectActorAnimation(
-                actor.life == LifeState::Dying, attacking, grounded, actor.body.velocity);
-            simple_platformer::updateAnimation(*actor.animator, *actor.sprite, selected, deltaTime);
-        }
     }
 
     simple_platformer::RangedWeapon makeRangedWeapon(int textureId, simple_platformer::Team team)
@@ -237,7 +208,7 @@ namespace simple_platformer
         {
             throw std::logic_error("The example game has no player after lifecycle update");
         }
-        updateActorAnimations(world, deltaTime);
+        simple_platformer::updateActorAnimations(world, deltaTime);
     }
 
     RenderScene ExampleGame::buildScene() const

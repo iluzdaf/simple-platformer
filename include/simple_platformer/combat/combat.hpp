@@ -20,6 +20,13 @@ namespace simple_platformer
 
     bool areOpponents(Team first, Team second);
 
+    enum class RangedPhase
+    {
+        Ready,
+        Shoot,
+        Recovery
+    };
+
     struct RangedWeapon
     {
         int damage = 1;
@@ -27,8 +34,11 @@ namespace simple_platformer
         glm::vec2 projectileSize = {4.0F, 2.0F};
         float projectileSpeed = 180.0F;
         float projectileLifetime = 2.0F;
-        float cooldown = 0.25F;
-        float cooldownRemaining = 0.0F;
+        float shootDuration = 0.15F;
+        float recoveryDuration = 0.20F;
+
+        RangedPhase phase = RangedPhase::Ready;
+        float phaseTimeRemaining = 0.0F;
         bool firedThisUpdate = false;
         // Its display size is independent of projectileSize, just like an actor sprite and body.
         Sprite projectileSprite = {0, {}, {4.0F, 2.0F}};

@@ -60,6 +60,18 @@ namespace
         }
         return actor->rangedWeapon->firedThisUpdate;
     }
+
+    simple_platformer::RangedPhase rangedPhaseOf(
+        const simple_platformer::World& world,
+        simple_platformer::ActorId id)
+    {
+        const simple_platformer::Actor* actor = world.findActor(id);
+        if (actor == nullptr || !actor->rangedWeapon.has_value())
+        {
+            throw std::logic_error("Test actor has no ranged weapon");
+        }
+        return actor->rangedWeapon->phase;
+    }
 }
 
 TEST_CASE("A ranged weapon queues a projectile in the actor's facing direction", "[combat][weapon]")
@@ -77,6 +89,7 @@ TEST_CASE("A ranged weapon queues a projectile in the actor's facing direction",
 
     REQUIRE(world.projectiles().empty());
     REQUIRE(firedThisUpdate(world, shooter));
+    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Shoot);
     simple_platformer::updateLifeState(world, requests, 0.0F);
     REQUIRE(world.projectiles().size() == 1);
     const simple_platformer::Projectile& projectile = world.projectiles().front();
@@ -88,7 +101,7 @@ TEST_CASE("A ranged weapon queues a projectile in the actor's facing direction",
     REQUIRE(projectile.sprite.size.x == 8.0F);
 }
 
-TEST_CASE("A ranged weapon observes its cooldown", "[combat][weapon]")
+TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
 {
     simple_platformer::World world;
     simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
@@ -99,17 +112,25 @@ TEST_CASE("A ranged weapon observes its cooldown", "[combat][weapon]")
 
     simple_platformer::updateAttacks(world, requests, 0.0F);
     simple_platformer::updateLifeState(world, requests, 0.0F);
-    simple_platformer::updateAttacks(world, requests, 0.1F);
+    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Shoot);
+
+    simple_platformer::updateAttacks(world, requests, 0.15F);
     REQUIRE_FALSE(firedThisUpdate(world, shooter));
+    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Recovery);
     simple_platformer::updateLifeState(world, requests, 0.0F);
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectiles().front().velocity.x > 0.0F);
 
+    simple_platformer::updateAttacks(world, requests, 0.20F);
+    REQUIRE_FALSE(firedThisUpdate(world, shooter));
+    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Ready);
+
     simple_platformer::Actor* stored = world.findActor(shooter);
     REQUIRE(stored != nullptr);
     stored->intentions.primaryAttackPressed = true;
-    simple_platformer::updateAttacks(world, requests, 0.15F);
+    simple_platformer::updateAttacks(world, requests, 0.0F);
     REQUIRE(firedThisUpdate(world, shooter));
+    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Shoot);
     simple_platformer::updateLifeState(world, requests, 0.0F);
     REQUIRE(world.projectiles().size() == 2);
 }
@@ -190,12 +211,15 @@ TEST_CASE("Dying actors cannot begin attacks", "[combat][lifecycle]")
     simple_platformer::World world;
     simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
     actor.rangedWeapon = simple_platformer::RangedWeapon{};
+    actor.rangedWeapon->phase = simple_platformer::RangedPhase::Shoot;
+    actor.rangedWeapon->phaseTimeRemaining = actor.rangedWeapon->shootDuration;
     actor.intentions.primaryAttackPressed = true;
     actor.life = simple_platformer::LifeState::Dying;
-    world.addActor(actor);
+    const simple_platformer::ActorId actorId = world.addActor(actor);
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateAttacks(world, requests, 0.1F);
+    REQUIRE(rangedPhaseOf(world, actorId) == simple_platformer::RangedPhase::Ready);
     simple_platformer::updateLifeState(world, requests, 0.0F);
 
     REQUIRE(world.projectiles().empty());

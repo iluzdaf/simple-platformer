@@ -1,6 +1,7 @@
 #include "simple_platformer/world/world.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -259,6 +260,17 @@ namespace simple_platformer
     {
         validateProjectile(projectile);
         projectileStorage.push_back(projectile);
+    }
+
+    bool World::removeProjectile(std::size_t index)
+    {
+        if (index >= projectileStorage.size())
+        {
+            return false;
+        }
+
+        projectileStorage.erase(projectileStorage.begin() + static_cast<std::ptrdiff_t>(index));
+        return true;
     }
 
     std::vector<Projectile>& World::projectiles()

@@ -1,7 +1,6 @@
 #include "simple_platformer/actor/lifecycle.hpp"
 
 #include <algorithm>
-#include <cstddef>
 #include <cmath>
 #include <stdexcept>
 #include <vector>
@@ -89,11 +88,7 @@ namespace simple_platformer
              removal != requests.projectileRemovals.rend();
              ++removal)
         {
-            if (*removal < world.projectiles().size())
-            {
-                world.projectiles().erase(
-                    world.projectiles().begin() + static_cast<std::ptrdiff_t>(*removal));
-            }
+            world.removeProjectile(*removal);
         }
 
         for (const Projectile& projectile : requests.projectileSpawns)

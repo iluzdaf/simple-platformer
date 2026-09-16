@@ -114,6 +114,24 @@ TEST_CASE("NPC composition does not require a bite attack", "[world][actor]")
     REQUIRE(world.findActor(npcId) != nullptr);
 }
 
+TEST_CASE("World adds and removes projectiles through its public interface", "[world][projectile]")
+{
+    simple_platformer::World world;
+    simple_platformer::Projectile first;
+    first.bounds = {{8.0F, 8.0F}, {4.0F, 2.0F}};
+    first.sprite.size = {4.0F, 2.0F};
+    simple_platformer::Projectile second = first;
+    second.bounds.position = {16.0F, 8.0F};
+
+    world.addProjectile(first);
+    world.addProjectile(second);
+
+    REQUIRE(world.removeProjectile(0));
+    REQUIRE(world.projectiles().size() == 1);
+    REQUIRE(world.projectiles().front().bounds.position.x == 16.0F);
+    REQUIRE_FALSE(world.removeProjectile(1));
+}
+
 TEST_CASE("The world records the player and feet-based spawn", "[world][actor]")
 {
     simple_platformer::World world;

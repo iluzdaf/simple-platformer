@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -22,10 +23,16 @@ namespace simple_platformer
         Actor* findActor(ActorId id);
         const Actor* findActor(ActorId id) const;
 
+        // Systems may modify existing actors through this collection. Adding or removing actors
+        // must go through addActor() and removeActor() so World can preserve its invariants.
         std::vector<Actor>& actors();
         const std::vector<Actor>& actors() const;
 
         void addProjectile(Projectile projectile);
+        bool removeProjectile(std::size_t index);
+
+        // Systems may modify existing projectiles through this collection. Adding or removing
+        // projectiles must go through World so projectile data remains valid.
         std::vector<Projectile>& projectiles();
         const std::vector<Projectile>& projectiles() const;
 

@@ -34,7 +34,7 @@ cd build/mac-debug
 ./simple_platformer
 ```
 
-Use the left and right arrow keys to move, Space to jump, the mouse to aim, the left
+Use A and D or the left and right arrow keys to move, Space to jump, the mouse to aim, the left
 mouse button to fire, and Escape to close the window. Press F1 to show or hide the
 debug overlay text and the in-game sprite, collider, camera, dead-zone, and NPC path
 overlays.

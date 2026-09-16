@@ -92,8 +92,10 @@ namespace
     {
         switch (key)
         {
+        case GLFW_KEY_A:
         case GLFW_KEY_LEFT:
             return simple_platformer::InputButton::Left;
+        case GLFW_KEY_D:
         case GLFW_KEY_RIGHT:
             return simple_platformer::InputButton::Right;
         case GLFW_KEY_UP:

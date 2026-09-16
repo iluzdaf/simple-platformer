@@ -1,9 +1,9 @@
 # Simple Platformer
 
-Simple Platformer is a C++17 teaching engine and complete example game. The project
-is being built in independently testable phases. Phase 8 adds action-aware platformer
-lowest-cost grid search, including walking, falling, and jumping NPC paths that replay
-through the real movement and collision systems.
+Simple Platformer is a C++17 teaching engine and example game built in independently
+testable phases. The current implementation includes platformer movement, tile collision,
+scrolling, composed actors, NPC finite state machines, flying and platformer pathfinding,
+360-degree projectiles, animation, and ImGui debugging tools.
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for the agreed design and implementation plan.
 
@@ -27,7 +27,7 @@ cmake --build --preset mac-debug
 ctest --preset mac-debug
 ```
 
-Run the Phase 8 application:
+Run the example application:
 
 ```sh
 cd build/mac-debug
@@ -36,7 +36,7 @@ cd build/mac-debug
 
 Use the left and right arrow keys to move, Space to jump, the mouse to aim, the left
 mouse button to fire, and Escape to close the window. Press F1 to show or hide the
-actor debug windows and in-game bounds.
+actor debug windows and the in-game sprite, collider, camera, and dead-zone bounds.
 
 ## Windows: create and use the Visual Studio solution
 
@@ -67,7 +67,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-The Windows Phase 8 executable is:
+The Windows executable is:
 
 ```text
 build\windows-vs\Debug\simple_platformer.exe
@@ -137,7 +137,7 @@ they need themselves:
 cmake --build --preset mac-debug --target header_self_containment
 ```
 
-## Phase 8 layout
+## Repository layout
 
 ```text
 app/        executable entry point

@@ -163,8 +163,7 @@ namespace simple_platformer
 
         using Window = std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)>;
         Window window(
-            glfwCreateWindow(960, 540, "Simple Platformer - Phase 6", nullptr, nullptr),
-            glfwDestroyWindow);
+            glfwCreateWindow(960, 540, "Simple Platformer", nullptr, nullptr), glfwDestroyWindow);
         if (!window)
         {
             throw std::runtime_error("GLFW could not create the game window");

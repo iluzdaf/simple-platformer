@@ -21,7 +21,7 @@ building, tested phases so it can later become a staged student exercise.
 - Generic lowest-cost grid search with an optional A* heuristic and separate flying
   and platformer navigation policies.
 - Platformer paths that include walking, falling, and jumping.
-- Straight left/right projectiles for the player and ranged NPCs, plus a deliberate timed bite.
+- 360-degree aimed projectiles for the player and ranged NPCs, plus a deliberate timed bite.
 - A small configurable inventory, pickups, health, a key, and a level exit.
 - ImGui HUD and a paused inventory example.
 - Automated tests for major gameplay and render-scene-building paths.
@@ -212,9 +212,10 @@ World collections do not change while a system is traversing them. Systems appen
 plain requests to `WorldRequests`; `World` applies them at the end of the tick.
 
 `updateWorldSimulation` owns the fixed gameplay-system order and creates a request queue
-for each tick. A game supplies its `TileMap`, `World`, player intentions, and elapsed time
-without reproducing the engine update sequence. Game-specific animation clips and
-animation updating remain in the game layer as a separate presentation step.
+for each tick. A game writes the player's intentions, then supplies its `TileMap`, `World`,
+and elapsed time without reproducing the engine update sequence. Game-specific animation
+sets remain game data. The game invokes the engine's animation presentation system after
+simulation because animation does not affect gameplay.
 
 `updateLifeState` consumes queued damage and advances death timers. It may queue actor
 removals, but it does not structurally change the world's collections. Once every system
@@ -655,8 +656,9 @@ There is no scene graph, material system, lighting, or general render graph. ImG
 drawn after the internally scaled game image so HUD and inventory remain crisp at the
 window resolution. The example application's F1 key toggles app-only actor debugging:
 each player or NPC gets a separate ImGui window, while white sprite bounds and red
-collision bounds are drawn over the game. The reusable debug-data builder stays
-separate from the GLFW/ImGui presentation code so it can be tested without a window.
+collision bounds are drawn over the game. Cyan camera bounds and the yellow camera dead
+zone are also shown. The reusable debug-data builder stays separate from the GLFW/ImGui
+presentation code so it can be tested without a window.
 
 ## Loading and errors
 
@@ -714,7 +716,7 @@ Each phase must configure, build, and pass all tests before the next begins.
    simple OpenGL sprites, fixed internal resolution, and dead-zone camera.
 5. **Composition and lifecycle**: Actor aggregate, stable IDs, world requests, health,
    death, removal, and player respawn.
-6. **Combat**: player ranged weapon, left/right projectiles, NPC bite phases and
+6. **Combat**: player ranged weapon, 360-degree aimed projectiles, NPC bite phases and
    hitboxes, segment casts, damage, teams, and combat tests.
 7. **NPC behaviour and path search**: sensing, line of sight, target memory, two-point
    patrols, concrete NPC FSM, generic lowest-cost search, flying movement and navigation,
@@ -739,7 +741,7 @@ Each phase must configure, build, and pass all tests before the next begins.
   player, chases, and performs a timed bite.
 - A ground NPC follows a path that includes at least one successful jump and exercises
   the same patrol, chase, and bite FSM.
-- A ranged NPC stops and fires straight projectiles while it can see the player.
+- A ranged NPC stops and fires aimed projectiles while it can see the player.
 - All automated tests pass without a graphics context.
 - The documented manual graphics smoke test passes.
 - The code and documentation preserve the boundaries in this document.

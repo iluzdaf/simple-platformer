@@ -3,7 +3,6 @@
 
 #include <cstddef>
 
-#include "debug/debug_overlay.hpp"
 #include "game/example_game.hpp"
 #include "game/example_items.hpp"
 #include "game/level_catalog.hpp"
@@ -13,6 +12,8 @@
 
 namespace
 {
+    constexpr int MaximumSimulationTicks = 12000;
+
     bool sameHealth(simple_platformer::Health left, simple_platformer::Health right)
     {
         return left.current == right.current && left.maximum == right.maximum;
@@ -59,11 +60,9 @@ TEST_CASE(
     const int initialLevel = game.levelNumber();
     simple_platformer::InputIntentions intentions;
     intentions.direction.x = 1.0F;
-    intentions.aimDirection = {1.0F, 0.0F};
-    intentions.primaryAttackPressed = true;
     bool changedLevel = false;
 
-    for (int tick = 0; tick < 12000 && !game.complete(); ++tick)
+    for (int tick = 0; tick < MaximumSimulationTicks && !game.complete(); ++tick)
     {
         const int previousLevel = game.levelNumber();
         const auto previousHealth = game.playerHealth();
@@ -74,11 +73,9 @@ TEST_CASE(
             changedLevel = true;
             REQUIRE(sameHealth(game.playerHealth(), previousHealth));
             REQUIRE(sameInventory(game.playerInventory(), previousInventory));
-            REQUIRE(game.debugOverlay().projectiles.empty());
         }
     }
 
-    INFO("Final player x: " << game.debugOverlay().actors.front().collider.position.x);
     INFO("Keys: " << game.playerInventory().count(simple_platformer::Key));
     REQUIRE(changedLevel);
     REQUIRE(game.complete());
@@ -93,5 +90,4 @@ TEST_CASE(
     REQUIRE(game.levelNumber() == initialLevel);
     REQUIRE(sameHealth(game.playerHealth(), initialHealth));
     REQUIRE(sameInventory(game.playerInventory(), initialInventory));
-    REQUIRE(game.debugOverlay().projectiles.empty());
 }

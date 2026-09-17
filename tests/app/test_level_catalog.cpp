@@ -5,7 +5,7 @@
 
 #include "game/level_catalog.hpp"
 
-TEST_CASE("A level catalog maps stable numbers to arbitrary file names", "[app][content][json]")
+TEST_CASE("A level catalog maps stable IDs to arbitrary file names", "[app][content][json]")
 {
     const auto catalog = simple_platformer::parseLevelCatalog(
         R"({
@@ -37,7 +37,7 @@ TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content]
             std::invalid_argument);
     }
 
-    SECTION("level number is duplicated")
+    SECTION("level ID is duplicated")
     {
         REQUIRE_THROWS_AS(
             simple_platformer::parseLevelCatalog(
@@ -60,4 +60,11 @@ TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content]
                 "test catalog"),
             std::invalid_argument);
     }
+}
+
+TEST_CASE("A missing level catalog is rejected at the file boundary", "[app][content][json]")
+{
+    REQUIRE_THROWS_AS(
+        simple_platformer::loadLevelCatalog("tests/fixtures/levels/does_not_exist.json"),
+        std::invalid_argument);
 }

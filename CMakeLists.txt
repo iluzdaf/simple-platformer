@@ -138,6 +138,7 @@ add_executable(
     app/game/example_content.cpp
     app/game/example_game.cpp
     app/game/example_items.cpp
+    app/game/example_level_catalog.cpp
     app/game/example_level_data.cpp
     app/graphics/display_viewport.cpp
     app/graphics/sprite_renderer.cpp
@@ -288,12 +289,14 @@ if(BUILD_TESTING)
         app/game/example_content.cpp
         app/game/example_game.cpp
         app/game/example_items.cpp
+        app/game/example_level_catalog.cpp
         app/game/example_level_data.cpp
         app/graphics/display_viewport.cpp
         app/ui/inventory_layout.cpp
         tests/app/test_debug_overlay.cpp
         tests/app/test_display_viewport.cpp
         tests/app/test_example_content.cpp
+        tests/app/test_example_level_catalog.cpp
         tests/app/test_inventory_layout.cpp
         tests/app/test_example_level_data.cpp
         tests/app/test_level_transition.cpp
@@ -336,7 +339,15 @@ if(BUILD_TESTING)
         Catch2::Catch2WithMain
     )
     enable_project_warnings(simple_platformer_tests)
-    add_dependencies(simple_platformer_tests game_assets)
+    add_custom_target(
+        test_fixtures
+        COMMAND
+            ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures
+            $<TARGET_FILE_DIR:simple_platformer_tests>/tests/fixtures
+        COMMENT "Copying test fixtures beside the test executable"
+        VERBATIM
+    )
+    add_dependencies(simple_platformer_tests game_assets test_fixtures)
 
     if(
         CMAKE_CXX_COMPILER_ID MATCHES "Clang"

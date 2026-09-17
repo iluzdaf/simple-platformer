@@ -2,12 +2,11 @@
 
 #include "example_animations.hpp"
 #include "example_items.hpp"
+#include "example_level_catalog.hpp"
 #include "example_level_data.hpp"
 
-#include <filesystem>
 #include <optional>
 #include <stdexcept>
-#include <string>
 #include <utility>
 
 #include <glm/vec2.hpp>
@@ -150,16 +149,6 @@ namespace
         throw std::logic_error("Unknown example actor type");
     }
 
-    std::filesystem::path levelPath(int levelNumber)
-    {
-        if (levelNumber <= 0)
-        {
-            throw std::invalid_argument("Example level numbers must be positive");
-        }
-        return std::filesystem::path("assets/levels") /
-               ("level_" + std::to_string(levelNumber) + ".json");
-    }
-
     simple_platformer::TileMap makeMap(const simple_platformer::ExampleLevelData& data)
     {
         return simple_platformer::TileMap::fromAscii(
@@ -225,9 +214,12 @@ namespace
 
 namespace simple_platformer
 {
-    ExampleLevel makeExampleLevel(int levelNumber, int textureId)
+    ExampleLevel makeExampleLevel(
+        const ExampleLevelCatalog& catalog,
+        int levelNumber,
+        int textureId)
     {
-        const ExampleLevelData data = loadExampleLevelData(levelPath(levelNumber));
+        const ExampleLevelData data = loadExampleLevelData(exampleLevelPath(catalog, levelNumber));
         if (data.number != levelNumber)
         {
             throw std::invalid_argument("The example level file contains the wrong level number");

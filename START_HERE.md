@@ -45,8 +45,11 @@ Read [`app/game/example_game.hpp`](app/game/example_game.hpp) and
 current map and world. It passes input into the simulation, updates presentation state,
 changes levels, and builds a scene for rendering.
 
-Then open [`assets/levels/level_1.json`](assets/levels/level_1.json). It contains the
-map and placements for the first level. Follow that data into
+Then open [`assets/levels/levels.json`](assets/levels/levels.json). It chooses the
+starting level and maps level numbers to filenames, so level files can be freely
+renamed. Follow its first entry into
+[`assets/levels/level_1.json`](assets/levels/level_1.json), which contains the map and
+placements for that level. Follow that data into
 [`example_level_data.cpp`](app/game/example_level_data.cpp), which validates the JSON,
 and then [`example_content.cpp`](app/game/example_content.cpp), which turns known names
 such as `zombie` into composed C++ actors. These are game-content concerns, not general

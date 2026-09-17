@@ -411,14 +411,19 @@ requirement cannot be consumed twice. The simulation reports completion;
 callers cannot accidentally combine data from different levels. `ExampleGame` replaces
 that value at a transition, restores player health and inventory, and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
-The final exit shows completion text and R creates a fresh Level 1 game.
+The final exit shows completion text and R creates a fresh copy of the catalog's start
+level.
 
 ### Data-driven level boundary
 
-Files under `assets/levels` define tile rows, the player spawn, known NPC placements
-and patrol endpoints, pickups, and the exit. They select and place concepts rather than
-defining new engine behaviour. For example, `"type": "zombie"` selects the zombie
-factory in `example_content.cpp`; the JSON does not list arbitrary `Actor` components.
+`assets/levels/levels.json` is the level catalog. It selects the starting level and maps
+stable numeric level IDs to arbitrary filenames. Exits refer to those IDs, so students
+can rename, add, or remove level files by updating the catalog rather than changing C++.
+
+The level files define tile rows, the player spawn, known NPC placements and patrol
+endpoints, pickups, and the exit. They select and place concepts rather than defining
+new engine behaviour. For example, `"type": "zombie"` selects the zombie factory in
+`example_content.cpp`; the JSON does not list arbitrary `Actor` components.
 
 Map-aligned actor and patrol placement normally uses integer cells such as
 `"spawnCell": [28, 12]`. The loader converts a cell to its world-space feet position.
@@ -431,11 +436,16 @@ Level data does not specify actor, pickup, or exit bounds. The C++ example-conte
 factories own those collision sizes and create each runtime AABB around its loaded feet
 position. Visual anchoring remains an independent sprite concern.
 
-`example_level_data.cpp` is the only code that includes nlohmann/json. It parses a file
-into plain `ExampleLevelData`, reports invalid fields with their content path, and maps
-stable names such as `zombie_soldier` and `health_potion` to C++ values. The composition
-step then creates the existing `TileMap`, `World`, actors, pickups, and exit. Existing
-constructor and level validation remains authoritative.
+The JSON dependency stays at the application content boundary.
+`example_level_catalog.cpp` validates the catalog, and `example_level_data.cpp` parses a
+level into plain `ExampleLevelData`, reports invalid fields with their content path, and
+maps stable names such as `zombie_soldier` and `health_potion` to C++ values. The
+composition step then creates the existing `TileMap`, `World`, actors, pickups, and
+exit. Existing constructor and level validation remains authoritative.
+
+Parser tests use JSON strings, while transition tests use small files under
+`tests/fixtures`. One generic content check loads every entry in the editable catalog;
+it does not assume particular filenames, a fixed level count, or specific NPCs.
 
 Runtime-only state is never loaded: actor IDs, velocities, current paths, attack timers,
 and NPC decisions are created fresh whenever a level starts. Texture IDs and atlas

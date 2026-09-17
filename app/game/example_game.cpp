@@ -2,6 +2,7 @@
 
 #include "debug/debug_overlay.hpp"
 #include "example_content.hpp"
+#include "example_level_catalog.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -24,8 +25,14 @@
 
 namespace simple_platformer
 {
-    ExampleGame::ExampleGame(int textureId)
-        : level(makeExampleLevel(1, textureId)), atlasTextureId(textureId)
+    ExampleGame::ExampleGame(int textureId) : ExampleGame(textureId, loadExampleLevelCatalog())
+    {
+    }
+
+    ExampleGame::ExampleGame(int textureId, ExampleLevelCatalog catalog)
+        : levelCatalog(std::move(catalog)),
+          level(makeExampleLevel(levelCatalog, levelCatalog.startLevel, textureId)),
+          atlasTextureId(textureId)
     {
         startLevel(makeExamplePlayer(atlasTextureId));
     }
@@ -39,7 +46,7 @@ namespace simple_platformer
             nextPlayer.inventory = previousPlayer->inventory;
         }
         // No pointers, projectiles, requests or NPC state survive replacement of the world.
-        level = makeExampleLevel(levelNumber, atlasTextureId);
+        level = makeExampleLevel(levelCatalog, levelNumber, atlasTextureId);
         startLevel(std::move(nextPlayer));
     }
 
@@ -176,7 +183,7 @@ namespace simple_platformer
     void ExampleGame::restart()
     {
         gameComplete = false;
-        level = makeExampleLevel(1, atlasTextureId);
+        level = makeExampleLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId);
         startLevel(makeExamplePlayer(atlasTextureId));
     }
 

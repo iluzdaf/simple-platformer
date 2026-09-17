@@ -347,7 +347,10 @@ if(BUILD_TESTING)
 
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/extras)
     include(Catch)
-    catch_discover_tests(simple_platformer_tests)
+    catch_discover_tests(
+        simple_platformer_tests
+        WORKING_DIRECTORY $<TARGET_FILE_DIR:simple_platformer_tests>
+    )
 
     add_custom_target(
         run_tests

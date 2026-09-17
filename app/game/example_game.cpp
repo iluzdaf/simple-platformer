@@ -2,7 +2,6 @@
 
 #include "debug/debug_overlay.hpp"
 #include "example_content.hpp"
-#include "example_items.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -20,45 +19,43 @@
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/level_validation.hpp"
-#include "simple_platformer/world/tile_map.hpp"
-#include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
 
 namespace simple_platformer
 {
-    ExampleGame::ExampleGame(int textureId) : map(makeExampleLevel(1)), atlasTextureId(textureId)
+    ExampleGame::ExampleGame(int textureId)
+        : level(makeExampleLevel(1, textureId)), atlasTextureId(textureId)
     {
-        loadLevel(1);
+        startLevel(makeExamplePlayer(atlasTextureId));
     }
 
-    void ExampleGame::loadLevel(int level)
+    void ExampleGame::loadLevel(int levelNumber)
     {
-        if (level != 1 && level != 2)
-        {
-            throw std::invalid_argument("Unknown example level");
-        }
         Actor nextPlayer = makeExamplePlayer(atlasTextureId);
-        if (const Actor* previousPlayer = world.findActor(world.playerId()))
+        if (const Actor* previousPlayer = level.world.findActor(level.world.playerId()))
         {
             nextPlayer.health = previousPlayer->health;
             nextPlayer.inventory = previousPlayer->inventory;
         }
         // No pointers, projectiles, requests or NPC state survive replacement of the world.
-        map = makeExampleLevel(level);
-        world = World(makeExampleItems(atlasTextureId));
-        currentLevel = level;
-        const ActorId player = world.addActor(std::move(nextPlayer));
-        world.setPlayer(player, {38.0F, 208.0F});
-        populateExampleLevel(world, level, atlasTextureId);
-        validateLevelActors(map, world, level);
+        level = makeExampleLevel(levelNumber, atlasTextureId);
+        startLevel(std::move(nextPlayer));
+    }
 
-        const Actor* playerActor = world.findActor(player);
+    void ExampleGame::startLevel(Actor player)
+    {
+        const ActorId playerId = level.world.addActor(std::move(player));
+        level.world.setPlayer(playerId, {38.0F, 208.0F});
+        validateLevelActors(level.map, level.world, level.number);
+
+        const Actor* playerActor = level.world.findActor(playerId);
         if (playerActor == nullptr)
         {
             throw std::logic_error("The example game could not initialise its camera");
         }
-        cameraController = makeCameraController(map, playerActor->body.bounds, {80.0F, 45.0F});
+        cameraController =
+            makeCameraController(level.map, playerActor->body.bounds, {80.0F, 45.0F});
     }
 
     void ExampleGame::update(const InputIntentions& intentions, float deltaTime)
@@ -67,18 +64,18 @@ namespace simple_platformer
         {
             return;
         }
-        Actor* player = world.findActor(world.playerId());
+        Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr)
         {
             throw std::logic_error("The example game has no player");
         }
 
         player->intentions = intentions;
-        updateWorldSimulation(map, world, deltaTime);
+        updateWorldSimulation(level.map, level.world, deltaTime);
 
-        if (world.levelComplete())
+        if (level.world.levelComplete())
         {
-            const auto& completedExit = world.exit();
+            const auto& completedExit = level.world.exit();
             if (!completedExit.has_value())
             {
                 throw std::logic_error("A completed example level must have an exit");
@@ -95,18 +92,18 @@ namespace simple_platformer
             return;
         }
 
-        player = world.findActor(world.playerId());
+        player = level.world.findActor(level.world.playerId());
         if (player == nullptr)
         {
             throw std::logic_error("The example game has no player after lifecycle update");
         }
-        followTarget(cameraControllerValue(), map, player->body.bounds);
-        updateActorAnimations(world, deltaTime);
+        followTarget(cameraControllerValue(), level.map, player->body.bounds);
+        updateActorAnimations(level.world, deltaTime);
     }
 
     glm::vec2 ExampleGame::playerAimDirection(glm::vec2 screenPosition) const
     {
-        const Actor* player = world.findActor(world.playerId());
+        const Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr)
         {
             throw std::logic_error("The example game has no player");
@@ -117,24 +114,25 @@ namespace simple_platformer
 
     RenderScene ExampleGame::buildScene() const
     {
-        const Actor* player = world.findActor(world.playerId());
+        const Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr || !player->sprite.has_value())
         {
             throw std::logic_error("The example player is missing its sprite");
         }
 
-        return buildRenderScene(map, player->sprite.value().textureId, currentCamera(), world);
+        return buildRenderScene(
+            level.map, player->sprite.value().textureId, currentCamera(), level.world);
     }
 
     DebugOverlay ExampleGame::debugOverlay() const
     {
         constexpr float AtlasWidth = 160.0F;
-        return makeDebugOverlay(world, map, cameraControllerValue(), AtlasWidth);
+        return makeDebugOverlay(level.world, level.map, cameraControllerValue(), AtlasWidth);
     }
 
     Health ExampleGame::playerHealth() const
     {
-        const Actor* player = world.findActor(world.playerId());
+        const Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr || !player->health.has_value())
         {
             throw std::logic_error("The example player is missing its health");
@@ -149,7 +147,7 @@ namespace simple_platformer
 
     const Inventory& ExampleGame::playerInventory() const
     {
-        const Actor* player = world.findActor(world.playerId());
+        const Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr || !player->inventory.has_value())
         {
             throw std::logic_error("The example player is missing its inventory");
@@ -159,7 +157,7 @@ namespace simple_platformer
 
     const ItemDefinition& ExampleGame::itemDefinition(int id) const
     {
-        return world.itemDefinition(id);
+        return level.world.itemDefinition(id);
     }
 
     void ExampleGame::useInventoryItem(std::size_t slot)
@@ -169,21 +167,21 @@ namespace simple_platformer
             return;
         }
         WorldRequests requests;
-        requests.useItem(world.playerId(), slot);
+        requests.useItem(level.world.playerId(), slot);
         // UI requests are applied while paused without advancing movement, combat or timers.
-        applyWorldRequests(world, requests);
+        applyWorldRequests(level.world, requests);
     }
 
     void ExampleGame::restart()
     {
-        world = World{};
         gameComplete = false;
-        loadLevel(1);
+        level = makeExampleLevel(1, atlasTextureId);
+        startLevel(makeExamplePlayer(atlasTextureId));
     }
 
     int ExampleGame::levelNumber() const
     {
-        return currentLevel;
+        return level.number;
     }
 
     bool ExampleGame::complete() const
@@ -193,7 +191,7 @@ namespace simple_platformer
 
     std::optional<glm::vec2> ExampleGame::levelExitScreenPosition() const
     {
-        const auto& levelExit = world.exit();
+        const auto& levelExit = level.world.exit();
         if (!levelExit.has_value())
         {
             return std::nullopt;
@@ -205,8 +203,8 @@ namespace simple_platformer
 
     bool ExampleGame::exitReady() const
     {
-        const Actor* player = world.findActor(world.playerId());
-        const auto& levelExit = world.exit();
+        const Actor* player = level.world.findActor(level.world.playerId());
+        const auto& levelExit = level.world.exit();
         return player != nullptr && levelExit.has_value() &&
                exitUnlocked(levelExit.value(), *player);
     }

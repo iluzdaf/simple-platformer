@@ -1,12 +1,19 @@
 #pragma once
 
+#include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/world/world.hpp"
+
 namespace simple_platformer
 {
     struct Actor;
-    class TileMap;
-    class World;
 
-    TileMap makeExampleLevel(int level);
+    struct ExampleLevel
+    {
+        int number = 0;
+        TileMap map;
+        World world;
+    };
+
+    ExampleLevel makeExampleLevel(int levelNumber, int textureId);
     Actor makeExamplePlayer(int textureId);
-    void populateExampleLevel(World& world, int level, int textureId);
 }

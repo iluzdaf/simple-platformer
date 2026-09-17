@@ -6,9 +6,8 @@
 #include <glm/vec2.hpp>
 
 #include "debug/debug_overlay.hpp"
+#include "game/example_content.hpp"
 #include "simple_platformer/render/camera.hpp"
-#include "simple_platformer/world/tile_map.hpp"
-#include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
 {
@@ -40,16 +39,15 @@ namespace simple_platformer
         bool exitReady() const;
 
     private:
-        void loadLevel(int level);
+        void loadLevel(int levelNumber);
+        void startLevel(Actor player);
         CameraController& cameraControllerValue();
         const CameraController& cameraControllerValue() const;
         Camera currentCamera() const;
 
-        TileMap map;
-        World world;
+        ExampleLevel level;
         std::optional<CameraController> cameraController;
         int atlasTextureId = 0;
-        int currentLevel = 0;
         bool gameComplete = false;
     };
 }

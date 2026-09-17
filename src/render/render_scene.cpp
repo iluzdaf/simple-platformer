@@ -9,6 +9,8 @@
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/world/level_exit.hpp"
+#include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -57,6 +59,30 @@ namespace simple_platformer
                      map.definitionAt(tilePosition).sprite,
                      false});
             }
+        }
+
+        for (const Pickup& pickup : world.pickups())
+        {
+            const Sprite& sprite = world.itemDefinition(pickup.stack.item).icon;
+            const Aabb bounds = spriteBounds(pickup.bounds, sprite);
+            scene.sprites.push_back(
+                {sprite.textureId,
+                 worldToScreen(camera, bounds.position),
+                 bounds.size,
+                 sprite.region,
+                 false});
+        }
+
+        if (world.exit().has_value() && world.exit()->sprite.has_value())
+        {
+            const Sprite& sprite = *world.exit()->sprite;
+            const Aabb bounds = spriteBounds(world.exit()->bounds, sprite);
+            scene.sprites.push_back(
+                {sprite.textureId,
+                 worldToScreen(camera, bounds.position),
+                 bounds.size,
+                 sprite.region,
+                 false});
         }
 
         for (const Actor& actor : world.actors())

@@ -25,6 +25,7 @@
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "simple_platformer/world/pickup.hpp"
 
 namespace
 {
@@ -231,6 +232,12 @@ namespace simple_platformer
         {
             scene.projectiles.push_back(
                 {projectile.bounds, projectile.remainingLifetime, projectile.owner});
+        }
+
+        scene.pickups.reserve(world.pickups().size());
+        for (const Pickup& pickup : world.pickups())
+        {
+            scene.pickups.push_back({pickup.bounds, world.itemDefinition(pickup.stack.item).name});
         }
 
         return scene;

@@ -7,6 +7,8 @@
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/world/level_exit.hpp"
+#include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 
@@ -14,6 +16,10 @@ namespace simple_platformer
 {
     void updateWorldSimulation(const TileMap& map, World& world, float deltaTime)
     {
+        if (world.levelComplete())
+        {
+            return;
+        }
         WorldRequests requests;
         updateNpcSenses(map, world, deltaTime);
         updateNpcBehaviour(map, world, deltaTime);
@@ -21,6 +27,8 @@ namespace simple_platformer
         updateAttacks(world, requests, deltaTime);
         updateProjectiles(map, world, requests, deltaTime);
         updateLifeState(world, requests, deltaTime);
+        updatePickups(world, requests);
         applyWorldRequests(world, requests);
+        updateLevelExit(world);
     }
 }

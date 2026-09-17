@@ -68,6 +68,19 @@ The core can be built and tested without opening a window or creating a graphics
 context. OpenGL submission remains deliberately thin and receives a manual startup
 smoke test rather than automated integration tests.
 
+The application layer is grouped by responsibility:
+
+- `app/game`: example-game orchestration and its C++-constructed content;
+- `app/ui`: player-facing ImGui HUD and inventory;
+- `app/debug`: testable debug-overlay data and its ImGui presentation;
+- `app/graphics`: viewport conversion and OpenGL sprite submission.
+
+`application.cpp` keeps the startup, input, fixed-step, UI and rendering sequence in one
+place so students can trace the outer game loop. `ExampleGame` coordinates simulation,
+camera, rendering and level transitions. Actor factories, level geometry, pickups and
+exits live in `example_content.cpp`, keeping content construction separate from runtime
+orchestration without introducing a file for every actor type.
+
 ## Coordinates
 
 - Positive X points right.
@@ -203,10 +216,10 @@ The fixed update order is:
 4. Move every actor and resolve tile collision.
 5. Advance every attack and evaluate active bite hitboxes.
 6. Move projectiles and find their earliest collision.
-7. Detect pickups and level-exit overlap.
-8. Apply queued damage, collection, and level-completion requests.
-9. Begin deaths caused by damage applied this tick.
-10. Apply queued spawn, removal, and respawn requests.
+7. Apply damage and advance lifecycle state, including deaths and player respawn.
+8. Detect automatic player pickups using the resulting body and life state.
+9. Apply queued item use, pickup collection, actor/projectile removal and projectile spawns.
+10. Check exit overlap and requirements after collection, and latch level completion.
 
 World collections do not change while a system is traversing them. Systems append
 plain requests to `WorldRequests`; `World` applies them at the end of the tick.
@@ -220,7 +233,11 @@ simulation because animation does not affect gameplay.
 `updateLifeState` consumes queued damage and advances death timers. It may queue actor
 removals, but it does not structurally change the world's collections. Once every system
 has finished traversing the world, `applyWorldRequests` performs queued actor and
-projectile removals and projectile spawns.
+projectile removals, projectile spawns, item use, and pickup collection. Pickup indexes
+are local to this batch: duplicate indexes are removed and collection runs in descending
+index order so erasing a pickup cannot invalidate a later request. Do not retain these
+indexes across updates. If capacity is limited, the later-added overlapping pickup is
+collected first.
 
 ## Platformer movement
 
@@ -592,8 +609,8 @@ separate call after `updateWorldSimulation` because animation does not affect ga
 The game layer defines separate sets for the soldier player,
 zombie, bat, and zombie soldier using explicit source regions; the engine neither
 assigns rows nor requires matching layouts. These sets live in
-`app/example_animations.*`, where their real atlas data can also be exercised by
-focused tests. The example game is supplied with one finished `160 x 216` atlas.
+`app/game/example_animations.*`, where their real atlas data can also be exercised by
+focused tests. The example game is supplied with one finished `160 x 248` atlas.
 Each actor uses two rows of four `32 x 24` frames, so wide attacks and death poses
 do not need to be reduced to fit a long single row. The fifth column holds a
 dedicated passing pose for the player, zombie, and zombie soldier without replacing
@@ -625,21 +642,70 @@ dimensions.
 
 ## Inventory, pickups, and exit
 
-Inventory has a configurable number of slots. Each slot is empty or contains an item
-stack. Item definitions configure name, icon, maximum stack, effect kind, and effect
-amount. New behaviour remains an explicit C++ `switch`; data does not become a hidden
-scripting system.
+These are related by the level loop, but they are separate subjects in the code. `item.hpp`
+defines item data, `item_use.hpp` applies item effects, `pickup.hpp` handles automatic
+collection, and `level_exit.hpp` handles completion requirements. `World` owns their runtime
+state, while each subject implements its own rules instead of collecting unrelated behaviour
+in one `world_items` module.
+
+Inventory has a configurable number of slots. The example presents six slots as a minimal
+three-by-two icon grid, including empty slots, with each stack quantity drawn over the
+icon. The open grid is anchored immediately above the bottom-left inventory bag and uses
+the same viewport scaling. Each slot is empty or contains an item stack. Item definitions
+configure name, icon, maximum stack, effect kind, and effect amount. New behaviour remains
+an explicit C++ `switch`; data does not become a hidden scripting system.
 
 Adding an item first fills compatible stacks and then empty slots. Anything that does
 not fit remains in the world. The result reports added and remaining counts.
 
-The example includes coins, health potions, and a key. The ImGui HUD shows health and
-important counts. Pressing I pauses simulation and opens an inventory with selection
-and a Use button. UI emits requests rather than changing the world directly.
+`Inventory` owns its slots and exposes a const view; mutation goes through its operations.
+`World` owns immutable item definitions with positive integer IDs, and validates IDs when
+pickups and exit requirements are added. Actors optionally own an inventory. Pickups are
+stationary objects with AABB bounds and an item quantity, separate from actors. The living
+player collects automatically on strict body overlap; mere edge contact does not collect.
+NPCs do not collect items. Inventory survives player death and respawn.
+
+The example includes coins, health potions, and a key. The ImGui HUD shows health;
+item counts appear in the inventory. Clicking the bag at the bottom-left of the game viewport
+or pressing Q toggles the inventory and pauses simulation while it is open. Clicking a
+consumable item once requests its use; non-consumable items remain visible but do nothing
+when clicked. UI emits requests rather than changing the world directly.
+
+The bag's 16 x 16 atlas region is at (64, 216). Its ImGui hit area uses the same viewport
+scale as the hearts. The application builds the button before the simulation update and
+handles mouse-down immediately, so opening the inventory cannot also fire a projectile.
+
+Coins, potions and keys all occupy slots. A potion consumes one item only when it heals a
+living actor, and healing is clamped to maximum health. Item use is applied while the
+inventory is paused without advancing gameplay timers. Opening/closing the inventory clears
+gameplay input and resets the fixed-step accumulator; closing does not replay UI clicks or
+catch up time spent paused. Coins, potions and keys use individual 16 x 16 atlas regions;
+the bunker exit uses a 16 x 32 region. Source artwork and the packer remain in the separate
+`simple-platformer-art` folder. The packer fits each original once with preserved proportions
+and transparent padding. The 160 x 248 atlas retains all previous sprite coordinates.
 
 An exit has a configurable optional item requirement, count, and consume flag. The
 example level requires one key and does not consume it. Reaching an unlocked exit
 completes the level.
+
+`LevelExit::nextLevel` optionally names the next level by integer ID. Completion is latched,
+so a consuming exit removes its requirement exactly once. The simulation only reports
+completion; `ExampleGame` handles it after the simulation call returns. It replaces the
+map and world, creates fresh actors, and resets the camera at the new player spawn. Health
+and inventory carry over; velocities, projectiles, NPC state and old actor IDs do not.
+An exit without a next level pauses gameplay and shows minimal completion text above the
+door. Pressing R creates a fresh Level 1 world, player and camera. The example has two
+C++-constructed levels; JSON content comes later. The key is carried into level two.
+
+An integration test drives the example through both exits without graphics and checks
+health/inventory carry-over, clearing projectiles on transition, and final completion.
+It exercises the level loop rather than asserting particular animation frames or art data.
+
+Manual UI check: collect the starting items, open the inventory with Q, then click a potion after taking
+damage. Verify movement, projectiles and NPCs remain paused, Q closes the inventory, and
+closing does not fire a projectile. Reach the marked exit with the key, verify the camera
+resets in level two, then reach the final exit, confirm the completion text, and press R to
+restart with fresh health and inventory.
 
 ## Rendering
 
@@ -662,7 +728,7 @@ graphics share the same window-space viewport conversion, so both remain aligned
 the game through letterboxing and high-DPI scaling. The example application's F1 key
 toggles the app-only debug overlay:
 one plain text list shows each player or NPC and its runtime details, while white sprite bounds and red
-collision bounds are drawn over the game. Cyan camera bounds and the yellow camera dead
+collision bounds are drawn over the game. Pickup bounds are mint green. Cyan camera bounds and the yellow camera dead
 zone are also shown. NPC paths are drawn as coloured connections: green for walking,
 magenta for jumping, orange for falling, and cyan for flying. Completed connections are
 grey and the next connection is thicker. Jump and fall connections replay their stored

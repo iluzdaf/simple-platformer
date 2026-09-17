@@ -3,7 +3,8 @@
 Simple Platformer is a C++17 teaching engine and example game built in independently
 testable phases. The current implementation includes platformer movement, tile collision,
 scrolling, composed actors, NPC finite state machines, flying and platformer pathfinding,
-360-degree projectiles, animation, and ImGui debugging tools.
+360-degree projectiles, animation, inventory, automatic pickups, a two-level game loop,
+and ImGui debugging tools.
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for the agreed design and implementation plan.
 
@@ -34,11 +35,17 @@ cd build/mac-debug
 ./simple_platformer
 ```
 
-Use A and D or the left and right arrow keys to move, Space to jump, the mouse to aim, the left
+Use A and D or the left and right arrow keys to move, W or the up arrow to jump, the mouse to aim, the left
 mouse button to fire, and Escape to close the window. Press F1 to show or hide the
-debug overlay text and the in-game sprite, collider, camera, dead-zone, and NPC path
+debug overlay text and the in-game sprite, collider, pickup, camera, dead-zone, and NPC path
 overlays. The hearts at the top-left of the game viewport show the player's current
 and maximum health.
+
+Walk over items to collect them. Click the bag at the bottom-left or press Q to pause and
+open the inventory, then click a health potion to drink it. Click the bag or press Q again
+to resume. Find the key and reach
+the bunker door at the far right to change levels; the second exit completes the game.
+Press R at the completion message to restart from Level 1.
 
 ## Windows: create and use the Visual Studio solution
 

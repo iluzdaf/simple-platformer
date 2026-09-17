@@ -19,14 +19,6 @@
 
 namespace
 {
-    bool overlaps(const simple_platformer::Aabb& first, const simple_platformer::Aabb& second)
-    {
-        return first.position.x < second.position.x + second.size.x &&
-               first.position.x + first.size.x > second.position.x &&
-               first.position.y < second.position.y + second.size.y &&
-               first.position.y + first.size.y > second.position.y;
-    }
-
     bool hasHit(const simple_platformer::BiteAttack& bite, simple_platformer::ActorId id)
     {
         return std::find(bite.actorsHit.begin(), bite.actorsHit.end(), id) != bite.actorsHit.end();

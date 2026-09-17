@@ -82,6 +82,9 @@ add_library(
     src/combat/combat.cpp
     src/combat/projectile_system.cpp
     src/input/input_state.cpp
+    src/inventory/inventory.cpp
+    src/inventory/item.cpp
+    src/inventory/item_use.cpp
     src/math/aabb.cpp
     src/math/coordinates.cpp
     src/math/validation.cpp
@@ -104,6 +107,8 @@ add_library(
     src/timing/fixed_step.cpp
     src/world/tile_map.cpp
     src/world/world.cpp
+    src/world/level_exit.cpp
+    src/world/pickup.cpp
     src/world/world_requests.cpp
     src/world/world_simulation.cpp
 )
@@ -118,15 +123,19 @@ enable_project_warnings(simple_platformer_core)
 
 add_executable(
     simple_platformer
-    app/debug_overlay.cpp
-    app/debug_overlay_ui.cpp
     app/application.cpp
-    app/example_animations.cpp
-    app/example_game.cpp
+    app/debug/debug_overlay.cpp
+    app/debug/debug_overlay_ui.cpp
+    app/game/example_animations.cpp
+    app/game/example_content.cpp
+    app/game/example_game.cpp
+    app/game/example_items.cpp
     app/graphics/display_viewport.cpp
     app/graphics/sprite_renderer.cpp
-    app/health_hud_ui.cpp
     app/main.cpp
+    app/ui/completion_ui.cpp
+    app/ui/health_hud_ui.cpp
+    app/ui/inventory_ui.cpp
 )
 target_compile_features(simple_platformer PRIVATE cxx_std_17)
 target_include_directories(simple_platformer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/app)
@@ -263,15 +272,21 @@ if(BUILD_TESTING)
 
     add_executable(
         simple_platformer_tests
-        app/debug_overlay.cpp
+        app/debug/debug_overlay.cpp
+        app/game/example_animations.cpp
+        app/game/example_content.cpp
+        app/game/example_game.cpp
+        app/game/example_items.cpp
         app/graphics/display_viewport.cpp
         tests/app/test_debug_overlay.cpp
         tests/app/test_display_viewport.cpp
+        tests/app/test_level_transition.cpp
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp
         tests/combat/test_attack_system.cpp
         tests/combat/test_projectile_system.cpp
         tests/input/test_input_state.cpp
+        tests/inventory/test_inventory.cpp
         tests/math/test_coordinates.cpp
         tests/math/test_validation.cpp
         tests/movement/test_flying_movement.cpp
@@ -291,6 +306,7 @@ if(BUILD_TESTING)
         tests/timing/test_fixed_step.cpp
         tests/world/test_tile_map.cpp
         tests/world/test_world.cpp
+        tests/world/test_level_objects.cpp
         tests/world/test_world_simulation.cpp
     )
     target_compile_features(simple_platformer_tests PRIVATE cxx_std_17)

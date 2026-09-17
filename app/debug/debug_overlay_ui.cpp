@@ -407,7 +407,12 @@ namespace simple_platformer
                 "camera dead zone");
         }
 
-        ImVec2 actorTextPosition = {8.0F, 8.0F};
+        constexpr float ActorTextWidth = 180.0F;
+        constexpr float ActorTextMargin = 8.0F;
+        const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+        ImVec2 actorTextPosition = {
+            mainViewport->WorkPos.x + mainViewport->WorkSize.x - ActorTextWidth - ActorTextMargin,
+            mainViewport->WorkPos.y + ActorTextMargin};
         for (const ActorDebugInfo& actor : scene.actors)
         {
             drawActorText(*drawList, actor, actorTextPosition);
@@ -448,6 +453,15 @@ namespace simple_platformer
             for (const ProjectileDebugInfo& projectile : scene.projectiles)
             {
                 drawProjectile(*drawList, projectile, scene, *viewport);
+            }
+            for (const PickupDebugInfo& pickup : scene.pickups)
+            {
+                const ImU32 colour = IM_COL32(96, 255, 160, 255);
+                drawWorldBounds(*drawList, pickup.bounds, scene, *viewport, colour);
+                drawList->AddText(
+                    screenPosition(pickup.bounds.position, scene, *viewport),
+                    colour,
+                    pickup.itemName.c_str());
             }
         }
     }

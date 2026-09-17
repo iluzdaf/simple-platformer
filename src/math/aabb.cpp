@@ -16,4 +16,12 @@ namespace simple_platformer
     {
         box.position = {feet.x - box.size.x * 0.5F, feet.y - box.size.y};
     }
+
+    bool overlaps(const Aabb& first, const Aabb& second)
+    {
+        return first.position.x < second.position.x + second.size.x &&
+               first.position.x + first.size.x > second.position.x &&
+               first.position.y < second.position.y + second.size.y &&
+               first.position.y + first.size.y > second.position.y;
+    }
 }

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include <glm/vec2.hpp>
@@ -82,10 +83,17 @@ namespace simple_platformer
         std::optional<ActorId> owner;
     };
 
+    struct PickupDebugInfo
+    {
+        Aabb bounds;
+        std::string itemName;
+    };
+
     struct DebugOverlay
     {
         std::vector<ActorDebugInfo> actors;
         std::vector<ProjectileDebugInfo> projectiles;
+        std::vector<PickupDebugInfo> pickups;
         Aabb cameraBounds;
         Aabb cameraDeadZone;
     };

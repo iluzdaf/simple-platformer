@@ -14,4 +14,6 @@ namespace simple_platformer
     glm::vec2 centerOf(const Aabb& box);
     glm::vec2 feetOf(const Aabb& box);
     void placeFeetAt(Aabb& box, glm::vec2 feet);
+    // Edge contact alone is not an overlap.
+    bool overlaps(const Aabb& first, const Aabb& second);
 }

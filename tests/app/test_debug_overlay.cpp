@@ -7,7 +7,7 @@
 
 #include <glm/vec2.hpp>
 
-#include "debug_overlay.hpp"
+#include "debug/debug_overlay.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -22,6 +22,7 @@
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 TEST_CASE("Debug overlay data supports actors without presentation components", "[app][debug]")
@@ -200,6 +201,24 @@ TEST_CASE("Debug overlay data describes projectiles", "[app][debug]")
     REQUIRE(debug.projectiles[0].owner == simple_platformer::ActorId{7});
     REQUIRE(debug.projectiles[1].remainingLifetime == 0.5F);
     REQUIRE_FALSE(debug.projectiles[1].owner.has_value());
+}
+
+TEST_CASE("Debug overlay data describes pickup bounds", "[app][debug]")
+{
+    simple_platformer::World world({{1, "Coin", {}, 5}});
+    const simple_platformer::Aabb bounds{{24.0F, 32.0F}, {8.0F, 8.0F}};
+    world.addPickup({bounds, {1, 2}});
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "####"});
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+
+    const simple_platformer::DebugOverlay debug =
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+
+    REQUIRE(debug.pickups.size() == 1);
+    REQUIRE(debug.pickups.front().bounds.position == bounds.position);
+    REQUIRE(debug.pickups.front().bounds.size == bounds.size);
+    REQUIRE(debug.pickups.front().itemName == "Coin");
 }
 
 TEST_CASE("Debug overlay data shows only an active bite hitbox", "[app][debug]")

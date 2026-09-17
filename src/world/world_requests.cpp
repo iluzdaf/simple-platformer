@@ -6,6 +6,7 @@
 
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/inventory/item_use.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
@@ -41,11 +42,43 @@ namespace simple_platformer
     bool WorldRequests::empty() const
     {
         return damageRequests.empty() && removalRequests.empty() && projectileSpawns.empty() &&
-               projectileRemovals.empty();
+               projectileRemovals.empty() && pickupCollections.empty() && itemUses.empty();
+    }
+
+    void WorldRequests::collectPickup(std::size_t index)
+    {
+        pickupCollections.push_back(index);
+    }
+
+    void WorldRequests::useItem(ActorId actor, std::size_t slot)
+    {
+        if (!isValid(actor))
+        {
+            throw std::invalid_argument("Item use requires an actor");
+        }
+        itemUses.push_back({actor, slot});
     }
 
     void applyWorldRequests(World& world, WorldRequests& requests)
     {
+        for (const auto& use : requests.itemUses)
+        {
+            useItem(world, use.actor, use.slot);
+        }
+
+        std::sort(requests.pickupCollections.begin(), requests.pickupCollections.end());
+        requests.pickupCollections.erase(
+            std::unique(requests.pickupCollections.begin(), requests.pickupCollections.end()),
+            requests.pickupCollections.end());
+        for (auto pickup = requests.pickupCollections.rbegin();
+             pickup != requests.pickupCollections.rend();
+             ++pickup)
+        {
+            world.collectPickup(*pickup);
+        }
+        requests.itemUses.clear();
+        requests.pickupCollections.clear();
+
         for (const ActorId id : requests.removalRequests)
         {
             world.removeActor(id);

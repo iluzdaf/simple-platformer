@@ -5,6 +5,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -42,6 +43,7 @@ namespace simple_platformer
         std::optional<Sprite> sprite;
         std::optional<Animator> animator;
         std::optional<Health> health;
+        std::optional<Inventory> inventory;
         Team team = Team::Neutral;
         std::optional<RangedWeapon> rangedWeapon;
         std::optional<BiteAttack> bite;

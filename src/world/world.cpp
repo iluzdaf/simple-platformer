@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include <glm/vec2.hpp>
@@ -13,6 +14,7 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
@@ -197,6 +199,33 @@ namespace
 
 namespace simple_platformer
 {
+    World::World(std::vector<ItemDefinition> items) : itemDefinitions(std::move(items))
+    {
+        for (std::size_t index = 0; index < itemDefinitions.size(); ++index)
+        {
+            validateItemDefinition(itemDefinitions[index]);
+            for (std::size_t previous = 0; previous < index; ++previous)
+            {
+                if (itemDefinitions[previous].id == itemDefinitions[index].id)
+                {
+                    throw std::invalid_argument("Item IDs must be unique");
+                }
+            }
+        }
+    }
+
+    const ItemDefinition& World::itemDefinition(ItemId id) const
+    {
+        for (const ItemDefinition& definition : itemDefinitions)
+        {
+            if (definition.id == id)
+            {
+                return definition;
+            }
+        }
+        throw std::invalid_argument("Unknown item ID");
+    }
+
     ActorId World::addActor(Actor actor)
     {
         validateActor(actor);

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include <glm/vec2.hpp>
@@ -9,12 +10,28 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/inventory/item.hpp"
+#include "simple_platformer/world/level_exit.hpp"
+#include "simple_platformer/world/pickup.hpp"
 
 namespace simple_platformer
 {
     class World
     {
     public:
+        // Definitions are immutable for the lifetime of a world; IDs may be shared across levels.
+        explicit World(std::vector<ItemDefinition> items = {});
+        const ItemDefinition& itemDefinition(ItemId id) const;
+        void addPickup(Pickup pickup);
+        // Collection can erase pickups. Do not retain references/indexes across request batches.
+        const std::vector<Pickup>& pickups() const;
+        // Used when applying queued pickup requests, after iteration has finished.
+        void collectPickup(std::size_t index);
+        void setExit(LevelExit exit);
+        const std::optional<LevelExit>& exit() const;
+        bool levelComplete() const;
+        void completeLevel();
+
         ActorId addActor(Actor actor);
         bool removeActor(ActorId id);
 
@@ -42,6 +59,10 @@ namespace simple_platformer
         void respawnPlayer();
 
     private:
+        std::vector<ItemDefinition> itemDefinitions;
+        std::vector<Pickup> pickupStorage;
+        std::optional<LevelExit> levelExit;
+        bool completed = false;
         std::vector<Actor> actorStorage;
         std::vector<Projectile> projectileStorage;
         std::uint32_t nextActorId = 1;

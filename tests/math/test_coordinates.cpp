@@ -34,6 +34,23 @@ TEST_CASE("An arbitrary-sized AABB can be placed by its feet", "[math][coordinat
     requireVector(simple_platformer::feetOf(box), {40.0F, 128.0F});
 }
 
+TEST_CASE("AABBs overlap when their areas intersect", "[math][aabb]")
+{
+    const Aabb first{{10.0F, 10.0F}, {10.0F, 10.0F}};
+    const Aabb second{{15.0F, 15.0F}, {10.0F, 10.0F}};
+
+    REQUIRE(simple_platformer::overlaps(first, second));
+    REQUIRE(simple_platformer::overlaps(second, first));
+}
+
+TEST_CASE("AABBs that only touch at an edge do not overlap", "[math][aabb]")
+{
+    const Aabb first{{10.0F, 10.0F}, {10.0F, 10.0F}};
+    const Aabb second{{20.0F, 10.0F}, {10.0F, 10.0F}};
+
+    REQUIRE_FALSE(simple_platformer::overlaps(first, second));
+}
+
 TEST_CASE("Grid positions compare by both coordinates", "[math][coordinates]")
 {
     using simple_platformer::GridPosition;

@@ -2,6 +2,7 @@
 
 #include "debug/debug_overlay.hpp"
 #include "example_content.hpp"
+#include "level_catalog.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -24,8 +25,14 @@
 
 namespace simple_platformer
 {
-    ExampleGame::ExampleGame(int textureId)
-        : level(makeExampleLevel(1, textureId)), atlasTextureId(textureId)
+    ExampleGame::ExampleGame(int textureId) : ExampleGame(textureId, loadLevelCatalog())
+    {
+    }
+
+    ExampleGame::ExampleGame(int textureId, LevelCatalog catalog)
+        : levelCatalog(std::move(catalog)),
+          level(makeGameLevel(levelCatalog, levelCatalog.startLevel, textureId)),
+          atlasTextureId(textureId)
     {
         startLevel(makeExamplePlayer(atlasTextureId));
     }
@@ -39,14 +46,15 @@ namespace simple_platformer
             nextPlayer.inventory = previousPlayer->inventory;
         }
         // No pointers, projectiles, requests or NPC state survive replacement of the world.
-        level = makeExampleLevel(levelNumber, atlasTextureId);
+        level = makeGameLevel(levelCatalog, levelNumber, atlasTextureId);
         startLevel(std::move(nextPlayer));
     }
 
     void ExampleGame::startLevel(Actor player)
     {
+        placeFeetAt(player.body.bounds, level.playerSpawnFeet);
         const ActorId playerId = level.world.addActor(std::move(player));
-        level.world.setPlayer(playerId, {38.0F, 208.0F});
+        level.world.setPlayer(playerId, level.playerSpawnFeet);
         validateLevelActors(level.map, level.world, level.number);
 
         const Actor* playerActor = level.world.findActor(playerId);
@@ -78,7 +86,7 @@ namespace simple_platformer
             const auto& completedExit = level.world.exit();
             if (!completedExit.has_value())
             {
-                throw std::logic_error("A completed example level must have an exit");
+                throw std::logic_error("A completed game level must have an exit");
             }
             const auto nextLevel = completedExit->nextLevel;
             if (nextLevel.has_value())
@@ -175,7 +183,7 @@ namespace simple_platformer
     void ExampleGame::restart()
     {
         gameComplete = false;
-        level = makeExampleLevel(1, atlasTextureId);
+        level = makeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId);
         startLevel(makeExamplePlayer(atlasTextureId));
     }
 

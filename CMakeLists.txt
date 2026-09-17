@@ -35,6 +35,13 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glm
 )
 
+add_library(simple_platformer_json INTERFACE)
+target_include_directories(
+    simple_platformer_json
+    SYSTEM INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/nlohmann/single_include
+)
+
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -131,6 +138,8 @@ add_executable(
     app/game/example_content.cpp
     app/game/example_game.cpp
     app/game/example_items.cpp
+    app/game/example_level_data.cpp
+    app/game/level_catalog.cpp
     app/graphics/display_viewport.cpp
     app/graphics/sprite_renderer.cpp
     app/main.cpp
@@ -147,20 +156,21 @@ target_link_libraries(
     simple_platformer_core
     simple_platformer_glad
     simple_platformer_imgui
+    simple_platformer_json
     simple_platformer_stb
     glfw
 )
 enable_project_warnings(simple_platformer)
 
-add_custom_command(
-    TARGET simple_platformer
-    POST_BUILD
+add_custom_target(
+    game_assets
     COMMAND
         ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/assets
         $<TARGET_FILE_DIR:simple_platformer>/assets
-    COMMENT "Copying game assets beside the executable"
+    COMMENT "Copying game assets beside the executables"
     VERBATIM
 )
+add_dependencies(simple_platformer game_assets)
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT simple_platformer)
 set_target_properties(
     simple_platformer
@@ -279,12 +289,16 @@ if(BUILD_TESTING)
         app/game/example_content.cpp
         app/game/example_game.cpp
         app/game/example_items.cpp
+        app/game/example_level_data.cpp
+        app/game/level_catalog.cpp
         app/graphics/display_viewport.cpp
         app/ui/inventory_layout.cpp
         tests/app/test_debug_overlay.cpp
         tests/app/test_display_viewport.cpp
         tests/app/test_example_content.cpp
         tests/app/test_inventory_layout.cpp
+        tests/app/test_example_level_data.cpp
+        tests/app/test_level_catalog.cpp
         tests/app/test_level_transition.cpp
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp
@@ -321,9 +335,19 @@ if(BUILD_TESTING)
         simple_platformer_tests
         PRIVATE
         simple_platformer_core
+        simple_platformer_json
         Catch2::Catch2WithMain
     )
     enable_project_warnings(simple_platformer_tests)
+    add_custom_target(
+        test_fixtures
+        COMMAND
+            ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures
+            $<TARGET_FILE_DIR:simple_platformer_tests>/tests/fixtures
+        COMMENT "Copying test fixtures beside the test executable"
+        VERBATIM
+    )
+    add_dependencies(simple_platformer_tests game_assets test_fixtures)
 
     if(
         CMAKE_CXX_COMPILER_ID MATCHES "Clang"
@@ -334,7 +358,10 @@ if(BUILD_TESTING)
 
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/extras)
     include(Catch)
-    catch_discover_tests(simple_platformer_tests)
+    catch_discover_tests(
+        simple_platformer_tests
+        WORKING_DIRECTORY $<TARGET_FILE_DIR:simple_platformer_tests>
+    )
 
     add_custom_target(
         run_tests

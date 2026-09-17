@@ -51,14 +51,14 @@ window or graphics context.
 
 All third-party source is vendored under `external/` so the project builds offline and
 students use the same releases. The current dependencies include GLFW, GLM, ImGui,
-Catch2, and stb image loading.
+Catch2, stb image loading, and nlohmann/json.
 
 ### Application folders
 
 The application code is grouped by responsibility:
 
-- `app/game` contains the example game's orchestration, level content, items, and
-  animation sets;
+- `app/game` contains the example game's orchestration, level loader, actor factories,
+  items, and animation sets;
 - `app/ui` contains player-facing HUD, inventory, and completion UI;
 - `app/debug` builds and presents optional debugging information;
 - `app/graphics` contains display-viewport conversion and OpenGL sprite submission.
@@ -68,8 +68,9 @@ UI, and rendering. `ExampleGame` owns the current `TileMap`, `World`, and camera
 controller. It translates application input into game input, invokes the engine, builds
 the render scene, and replaces the world during a level transition.
 
-Example-specific content is kept out of general engine systems. Actor factories, map
-geometry, pickups, exits, item definitions, and animation clips live under `app/game`.
+Example-specific content is kept out of general engine systems. Level geometry and
+placements live in `assets/levels`; the loader, actor factories, item definitions, and
+animation clips live under `app/game`.
 
 ### Data, behaviour, and resources
 
@@ -281,15 +282,16 @@ empty. Each nonzero tile definition supplies a sprite region and whether the til
 solid. The same map layer supports rendering and collision.
 
 Examples and tests construct maps from ASCII strings using `.` for empty and `#` for
-solid. Actors, pickups, spawns, and exits are separate level data, not special tile
-IDs.
+solid. The example reads those rows from its level JSON. Actors, pickups, spawns, and
+exits are separate level data, not special tile IDs.
 
 Collision moves an arbitrary-sized AABB along X, resolves it against nearby full-tile
 AABBs, then repeats along Y. The result reports left, right, ground, and ceiling
 contacts. Actors do not physically collide with or push one another. The left, right,
 and bottom map boundaries block movement; the top remains open.
 
-After C++ level content is assembled, `validateLevelActors` checks it against the map.
+After level data is loaded and composed into runtime objects, `validateLevelActors`
+checks it against the map.
 Every actor spawn, the player's stored respawn, and every patrol endpoint need body
 clearance. Platformer actors also need ground support, while flying actors do not.
 Invalid content fails during loading with the level number, actor ID, and invalid
@@ -405,11 +407,50 @@ contains coins, health potions, and a key. Inventory persists through player dea
 
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. The simulation reports completion;
-`ExampleLevel` keeps a level number, map, and populated world together so callers cannot
-accidentally combine one level's map with another level's actors. `ExampleGame` replaces
+`GameLevel` keeps a level number, map, populated world, and player spawn together so
+callers cannot accidentally combine data from different levels. `ExampleGame` replaces
 that value at a transition, restores player health and inventory, and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
-The final exit shows completion text and R creates a fresh Level 1 game.
+The final exit shows completion text and R creates a fresh copy of the catalog's start
+level.
+
+### Data-driven level boundary
+
+`assets/levels/levels.json` is the level catalog. It selects the starting level and maps
+stable numeric level IDs to arbitrary filenames. Exits refer to those IDs, so students
+can rename, add, or remove level files by updating the catalog rather than changing C++.
+
+The level files define tile rows, the player spawn, known NPC placements and patrol
+endpoints, pickups, and the exit. They select and place concepts rather than defining
+new engine behaviour. For example, `"type": "zombie"` selects the zombie factory in
+`example_content.cpp`; the JSON does not list arbitrary `Actor` components.
+
+Map-aligned actor and patrol placement normally uses integer cells such as
+`"spawnCell": [28, 12]`. The loader converts a cell to its world-space feet position.
+An explicitly named `spawnFeet` remains available for intentional off-grid placement;
+the loader requires exactly one form. Actors, pickups, and exits share this convention,
+and the same rule applies to each patrol endpoint. Feet are a stable bottom-centre
+reference point and do not imply that an object must stand on the ground.
+
+Level data does not specify actor, pickup, or exit bounds. The C++ example-content
+factories own those collision sizes and create each runtime AABB around its loaded feet
+position. All example pickups use the same 16-by-16 collision bounds. Their item sprites
+remain independent, just like actor sprites and bodies.
+
+The JSON dependency stays at the application content boundary.
+`level_catalog.cpp` validates the catalog, and `example_level_data.cpp` parses a
+level into plain `ExampleLevelData`, reports invalid fields with their content path, and
+maps stable names such as `zombie_soldier` and `health_potion` to C++ values. The
+composition step then creates the existing `TileMap`, `World`, actors, pickups, and
+exit. Existing constructor and level validation remains authoritative.
+
+Parser tests use JSON strings, while transition tests use small files under
+`tests/fixtures`. One generic content check loads every entry in the editable catalog;
+it does not assume particular filenames, a fixed level count, or specific NPCs.
+
+Runtime-only state is never loaded: actor IDs, velocities, current paths, attack timers,
+and NPC decisions are created fresh whenever a level starts. Texture IDs and atlas
+regions also remain C++ application resources rather than values in the level files.
 
 The inventory UI is an example presentation, not an engine rule. It derives its rows
 from the configured slot count, uses at most three columns, pauses simulation while
@@ -527,12 +568,13 @@ teaching value here.
 Future ideas are collected here so the sections above continue to describe the current
 repository.
 
-### Data-driven content
+### Further data-driven content
 
-Levels, actors, items, and animation clips are currently constructed in C++. A future
-step can vendor a fixed `nlohmann/json` release and add validated JSON loaders. JSON
-types should remain inside loader implementation files rather than leaking into engine
-interfaces. Loading should preserve the same runtime structures and validation rules.
+Level geometry and placement are loaded from validated JSON. Item definitions,
+animation clips, and actor composition still live in C++. They can move to separate
+validated data files later, but should keep stable symbolic names, preserve the current
+runtime structures, and avoid turning level files into arbitrary component or behaviour
+scripts.
 
 ### Movement-specific navigation anchors
 

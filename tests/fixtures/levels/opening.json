@@ -1,0 +1,26 @@
+{
+  "number": 10,
+  "map": [
+    "............",
+    "............",
+    "............",
+    "############"
+  ],
+  "playerSpawnCell": [1, 2],
+  "actors": [],
+  "pickups": [
+    {
+      "item": "key",
+      "quantity": 1,
+      "spawnCell": [2, 2]
+    }
+  ],
+  "exit": {
+    "spawnCell": [5, 2],
+    "requirement": {
+      "item": "key",
+      "quantity": 1
+    },
+    "nextLevel": 25
+  }
+}

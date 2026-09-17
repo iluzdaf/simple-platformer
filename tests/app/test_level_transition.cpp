@@ -6,6 +6,7 @@
 #include "debug/debug_overlay.hpp"
 #include "game/example_game.hpp"
 #include "game/example_items.hpp"
+#include "game/level_catalog.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/inventory/inventory.hpp"
@@ -51,7 +52,8 @@ TEST_CASE(
     "The example carries progress across levels and restarts after the final exit",
     "[level-transition]")
 {
-    simple_platformer::ExampleGame game(0);
+    simple_platformer::ExampleGame game(
+        0, simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json"));
     const auto initialHealth = game.playerHealth();
     const auto initialInventory = game.playerInventory();
     const int initialLevel = game.levelNumber();
@@ -66,10 +68,6 @@ TEST_CASE(
         const int previousLevel = game.levelNumber();
         const auto previousHealth = game.playerHealth();
         const auto previousInventory = game.playerInventory();
-        const float playerX = game.debugOverlay().actors.front().collider.position.x;
-        intentions.jumpPressed =
-            previousInventory.count(simple_platformer::Key) > 0 && playerX < 880.0F;
-        intentions.jumpHeld = intentions.jumpPressed;
         game.update(intentions, 1.0F / 60.0F);
         if (game.levelNumber() != previousLevel)
         {

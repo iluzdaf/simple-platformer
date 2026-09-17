@@ -1,0 +1,29 @@
+#pragma once
+
+#include <filesystem>
+#include <string_view>
+#include <vector>
+
+namespace simple_platformer
+{
+    struct LevelCatalogEntry
+    {
+        int number = 0;
+        std::filesystem::path file;
+    };
+
+    struct LevelCatalog
+    {
+        int startLevel = 0;
+        std::filesystem::path directory;
+        std::vector<LevelCatalogEntry> levels;
+    };
+
+    LevelCatalog parseLevelCatalog(
+        std::string_view text,
+        std::string_view sourceName,
+        const std::filesystem::path& directory = {});
+    LevelCatalog loadLevelCatalog(const std::filesystem::path& path);
+    LevelCatalog loadLevelCatalog();
+    std::filesystem::path levelPath(const LevelCatalog& catalog, int levelNumber);
+}

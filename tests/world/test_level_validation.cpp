@@ -6,6 +6,7 @@
 #include <glm/vec2.hpp>
 
 #include "game/example_content.hpp"
+#include "game/level_catalog.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
@@ -114,13 +115,16 @@ TEST_CASE("Flying actors require clearance but not ground support", "[world][lev
     REQUIRE_NOTHROW(simple_platformer::validateLevelActors(map, world, 1));
 }
 
-TEST_CASE("The supplied example levels have valid actor placement", "[app][example-content]")
+TEST_CASE("Every catalog level has valid actor placement", "[app][example-content]")
 {
-    for (const int level : {1, 2})
+    const auto catalog = simple_platformer::loadLevelCatalog();
+    for (const simple_platformer::LevelCatalogEntry& entry : catalog.levels)
     {
-        auto content = simple_platformer::makeExampleLevel(level, 0);
-        const auto player = content.world.addActor(simple_platformer::makeExamplePlayer(0));
-        content.world.setPlayer(player, {38.0F, 208.0F});
+        auto content = simple_platformer::makeGameLevel(catalog, entry.number, 0);
+        simple_platformer::Actor player = simple_platformer::makeExamplePlayer(0);
+        simple_platformer::placeFeetAt(player.body.bounds, content.playerSpawnFeet);
+        const auto playerId = content.world.addActor(player);
+        content.world.setPlayer(playerId, content.playerSpawnFeet);
 
         REQUIRE_NOTHROW(
             simple_platformer::validateLevelActors(content.map, content.world, content.number));

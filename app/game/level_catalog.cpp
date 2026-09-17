@@ -67,7 +67,7 @@ namespace
         return result;
     }
 
-    std::filesystem::path relativeFile(
+    std::filesystem::path parseRelativeFile(
         const Json& value,
         std::string_view sourceName,
         std::string_view path)
@@ -95,12 +95,12 @@ namespace
     simple_platformer::LevelCatalog catalog(
         const Json& root,
         std::string_view sourceName,
-        const std::filesystem::path& directory)
+        const std::filesystem::path& levelDirectory)
     {
         simple_platformer::LevelCatalog result;
         result.startLevel = positiveInteger(
             member(root, "startLevel", sourceName, "root"), sourceName, "startLevel");
-        result.directory = directory;
+        result.levelDirectory = levelDirectory;
 
         const Json& levels = member(root, "levels", sourceName, "root");
         if (!levels.is_array() || levels.empty())
@@ -116,8 +116,8 @@ namespace
             simple_platformer::LevelCatalogEntry entry;
             entry.number = positiveInteger(
                 member(value, "number", sourceName, path), sourceName, path + ".number");
-            entry.file =
-                relativeFile(member(value, "file", sourceName, path), sourceName, path + ".file");
+            entry.relativeFile = parseRelativeFile(
+                member(value, "file", sourceName, path), sourceName, path + ".file");
 
             const auto duplicateNumber = std::find_if(
                 result.levels.begin(),
@@ -149,11 +149,11 @@ namespace simple_platformer
     LevelCatalog parseLevelCatalog(
         std::string_view text,
         std::string_view sourceName,
-        const std::filesystem::path& directory)
+        const std::filesystem::path& levelDirectory)
     {
         try
         {
-            return catalog(Json::parse(text.begin(), text.end()), sourceName, directory);
+            return catalog(Json::parse(text.begin(), text.end()), sourceName, levelDirectory);
         }
         catch (const Json::exception& exception)
         {
@@ -190,6 +190,6 @@ namespace simple_platformer
             throw std::invalid_argument(
                 "Level " + std::to_string(levelNumber) + " is not in the catalog");
         }
-        return catalog.directory / found->file;
+        return catalog.levelDirectory / found->relativeFile;
     }
 }

@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -64,6 +65,56 @@ TEST_CASE(
     REQUIRE(
         simple_platformer::findPlatformerStartCell(map, bounds) ==
         simple_platformer::GridPosition{4, 1});
+}
+
+TEST_CASE(
+    "A supported collider uses its ordinary platformer start cell",
+    "[navigation][platformer][exercise]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"....", "....", "####"});
+    simple_platformer::Aabb bounds{{0.0F, 0.0F}, {12.0F, 20.0F}};
+    simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
+
+    REQUIRE(
+        simple_platformer::findPlatformerStartCell(map, bounds) ==
+        simple_platformer::GridPosition{1, 1});
+}
+
+TEST_CASE(
+    "An unsupported collider has no platformer start cell",
+    "[navigation][platformer][exercise]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"....", "....", "...."});
+    simple_platformer::Aabb bounds{{0.0F, 0.0F}, {12.0F, 20.0F}};
+    simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
+
+    REQUIRE(simple_platformer::findPlatformerStartCell(map, bounds) == std::nullopt);
+}
+
+TEST_CASE(
+    "A platformer start cell supports bodies wider than one tile",
+    "[navigation][platformer][exercise]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"....", "....", "####"});
+    simple_platformer::Aabb bounds{{0.0F, 0.0F}, {20.0F, 20.0F}};
+    simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
+
+    REQUIRE(
+        simple_platformer::findPlatformerStartCell(map, bounds) ==
+        simple_platformer::GridPosition{1, 1});
+}
+
+TEST_CASE("Platformer start cells reject invalid bounds", "[navigation][platformer][exercise]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"....", "....", "####"});
+    const simple_platformer::Aabb bounds{{0.0F, 0.0F}, {0.0F, 20.0F}};
+
+    REQUIRE_THROWS_AS(
+        simple_platformer::findPlatformerStartCell(map, bounds), std::invalid_argument);
 }
 
 TEST_CASE(

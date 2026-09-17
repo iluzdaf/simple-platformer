@@ -19,6 +19,7 @@
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/world/level_exit.hpp"
+#include "simple_platformer/world/level_validation.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
@@ -50,6 +51,7 @@ namespace simple_platformer
         const ActorId player = world.addActor(std::move(nextPlayer));
         world.setPlayer(player, {38.0F, 208.0F});
         populateExampleLevel(world, level, atlasTextureId);
+        validateLevelActors(map, world, level);
 
         const Actor* playerActor = world.findActor(player);
         if (playerActor == nullptr)

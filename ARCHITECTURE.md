@@ -296,6 +296,12 @@ Early tests and examples construct maps from ASCII strings, using `.` for empty 
 `#` for solid. JSON loading arrives later. Entities, pickups, player spawn, and exit
 are separate level data rather than special tile IDs.
 
+After a level is populated, `validateLevelActors` checks the authored data against the
+tile map. Every actor spawn and patrol endpoint must have enough body clearance. Platformer
+actors must also have ground support, while flying actors do not. Invalid example content
+fails during level loading with the level number, actor ID, and invalid location. Tests
+exercise each rule and validate the supplied levels without fixing their exact coordinates.
+
 Collision moves an arbitrary-sized actor AABB along X, resolves against nearby full
 solid tile AABBs, then repeats along Y. It returns left, right, ground, and ceiling
 contacts. Actors do not physically collide with or push other actors.

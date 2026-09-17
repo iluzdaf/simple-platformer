@@ -108,6 +108,7 @@ add_library(
     src/world/tile_map.cpp
     src/world/world.cpp
     src/world/level_exit.cpp
+    src/world/level_validation.cpp
     src/world/pickup.cpp
     src/world/world_requests.cpp
     src/world/world_simulation.cpp
@@ -304,9 +305,10 @@ if(BUILD_TESTING)
         tests/render/test_camera.cpp
         tests/render/test_render_scene.cpp
         tests/timing/test_fixed_step.cpp
+        tests/world/test_level_objects.cpp
+        tests/world/test_level_validation.cpp
         tests/world/test_tile_map.cpp
         tests/world/test_world.cpp
-        tests/world/test_level_objects.cpp
         tests/world/test_world_simulation.cpp
     )
     target_compile_features(simple_platformer_tests PRIVATE cxx_std_17)

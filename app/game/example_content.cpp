@@ -211,7 +211,7 @@ namespace
         world.addActor(
             makeBat(textureId, {400.0F, 112.0F}, {{400.0F, 112.0F}, {480.0F, 144.0F}, true}));
         world.addActor(
-            makeZombie(textureId, {680.0F, 208.0F}, {{650.0F, 208.0F}, {730.0F, 208.0F}, true}));
+            makeZombie(textureId, {680.0F, 176.0F}, {{650.0F, 176.0F}, {730.0F, 176.0F}, true}));
 
         world.addPickup({{{80.0F, 196.0F}, {12.0F, 12.0F}}, {simple_platformer::Coin, 5}});
         world.addPickup({{{128.0F, 192.0F}, {16.0F, 16.0F}}, {simple_platformer::HealthPotion, 2}});

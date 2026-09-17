@@ -17,6 +17,29 @@
 
 namespace
 {
+    // Debug overlay palette. Adjust these values to tune every overlay colour.
+    constexpr ImU32 CompletedPathColour = IM_COL32(128, 128, 128, 180);
+    constexpr ImU32 FlyingPathColour = IM_COL32(64, 224, 255, 255);
+    constexpr ImU32 WalkingPathColour = IM_COL32(80, 224, 96, 255);
+    constexpr ImU32 FallingPathColour = IM_COL32(255, 160, 64, 255);
+    constexpr ImU32 JumpingPathColour = IM_COL32(224, 80, 255, 255);
+    constexpr ImU32 UnknownPathColour = IM_COL32(255, 255, 255, 255);
+    constexpr ImU32 PathLabelShadowColour = IM_COL32(0, 0, 0, 220);
+    constexpr ImU32 NextPathGuideColour = IM_COL32(255, 255, 255, 220);
+    constexpr ImU32 SensorRangeColour = IM_COL32(160, 96, 255, 110);
+    constexpr ImU32 VisibleTargetColour = IM_COL32(80, 255, 96, 230);
+    constexpr ImU32 RememberedTargetColour = IM_COL32(255, 224, 64, 240);
+    constexpr ImU32 WorldLabelColour = IM_COL32(255, 255, 255, 255);
+    constexpr ImU32 ProjectileColour = IM_COL32(255, 160, 64, 255);
+    constexpr ImU32 TextHeadingColour = IM_COL32(255, 255, 255, 255);
+    constexpr ImU32 TextDetailColour = IM_COL32(224, 224, 224, 255);
+    constexpr ImU32 CameraBoundsColour = IM_COL32(64, 224, 255, 255);
+    constexpr ImU32 CameraDeadZoneColour = IM_COL32(255, 224, 64, 255);
+    constexpr ImU32 BiteHitboxColour = IM_COL32(255, 64, 224, 255);
+    constexpr ImU32 SpriteBoundsColour = IM_COL32(255, 255, 255, 255);
+    constexpr ImU32 ColliderBoundsColour = IM_COL32(255, 64, 64, 255);
+    constexpr ImU32 PickupColour = IM_COL32(96, 255, 160, 255);
+
     const char* nameOf(simple_platformer::AnimationName animation)
     {
         using simple_platformer::AnimationName;
@@ -123,23 +146,23 @@ namespace
     {
         if (connection.completed)
         {
-            return IM_COL32(128, 128, 128, 180);
+            return CompletedPathColour;
         }
 
         using simple_platformer::Traversal;
         switch (connection.traversal)
         {
         case Traversal::Fly:
-            return IM_COL32(64, 224, 255, 255);
+            return FlyingPathColour;
         case Traversal::Walk:
-            return IM_COL32(80, 224, 96, 255);
+            return WalkingPathColour;
         case Traversal::Fall:
-            return IM_COL32(255, 160, 64, 255);
+            return FallingPathColour;
         case Traversal::Jump:
-            return IM_COL32(224, 80, 255, 255);
+            return JumpingPathColour;
         }
 
-        return IM_COL32(255, 255, 255, 255);
+        return UnknownPathColour;
     }
 
     void drawActorPath(
@@ -187,13 +210,13 @@ namespace
                 const char* traversalName = nameOf(connection.traversal);
                 drawList.AddText(
                     {labelPosition.x + 1.0F, labelPosition.y + 1.0F},
-                    IM_COL32(0, 0, 0, 220),
+                    PathLabelShadowColour,
                     traversalName);
                 drawList.AddText(labelPosition, colour, traversalName);
                 drawList.AddLine(
                     screenPosition(simple_platformer::feetOf(actor.collider), scene, viewport),
                     to,
-                    IM_COL32(255, 255, 255, 220));
+                    NextPathGuideColour);
             }
         }
     }
@@ -212,43 +235,38 @@ namespace
         const simple_platformer::SensorDebugInfo& sensor = actor.sensor.value();
         const ImVec2 observer = screenPosition(sensor.observerCenter, scene, viewport);
         drawList.AddCircle(
-            observer,
-            sensor.noticeDistance * viewport.scale.x,
-            IM_COL32(160, 96, 255, 110),
-            48,
-            1.0F);
+            observer, sensor.noticeDistance * viewport.scale.x, SensorRangeColour, 48, 1.0F);
 
         if (sensor.visibleTargetCenter.has_value())
         {
             drawList.AddLine(
                 observer,
                 screenPosition(sensor.visibleTargetCenter.value(), scene, viewport),
-                IM_COL32(80, 255, 96, 230),
+                VisibleTargetColour,
                 2.0F);
         }
 
         if (sensor.rememberedTargetFeet.has_value())
         {
             constexpr float MarkerRadius = 4.0F;
-            const ImU32 memoryColour = IM_COL32(255, 224, 64, 240);
             const ImVec2 remembered =
                 screenPosition(sensor.rememberedTargetFeet.value(), scene, viewport);
-            drawList.AddLine(observer, remembered, memoryColour, 1.5F);
+            drawList.AddLine(observer, remembered, RememberedTargetColour, 1.5F);
             drawList.AddLine(
                 {remembered.x - MarkerRadius, remembered.y - MarkerRadius},
                 {remembered.x + MarkerRadius, remembered.y + MarkerRadius},
-                memoryColour,
+                RememberedTargetColour,
                 2.0F);
             drawList.AddLine(
                 {remembered.x - MarkerRadius, remembered.y + MarkerRadius},
                 {remembered.x + MarkerRadius, remembered.y - MarkerRadius},
-                memoryColour,
+                RememberedTargetColour,
                 2.0F);
             char memoryLabel[32]{};
             std::snprintf(memoryLabel, sizeof(memoryLabel), "%.2fs", sensor.memoryRemaining);
             drawList.AddText(
                 {remembered.x + MarkerRadius + 2.0F, remembered.y - MarkerRadius},
-                memoryColour,
+                RememberedTargetColour,
                 memoryLabel);
         }
     }
@@ -264,19 +282,17 @@ namespace
         ImVec2 labelPosition = screenPosition(labelWorldPosition, scene, viewport);
         const float lineHeight = ImGui::GetTextLineHeight();
         const std::string actorLabel = labelFor(actor);
-        drawList.AddText(labelPosition, IM_COL32(255, 255, 255, 255), actorLabel.c_str());
+        drawList.AddText(labelPosition, WorldLabelColour, actorLabel.c_str());
 
         if (actor.animation.has_value())
         {
             labelPosition.y += lineHeight;
-            drawList.AddText(
-                labelPosition, IM_COL32(255, 255, 255, 255), nameOf(actor.animation.value()));
+            drawList.AddText(labelPosition, WorldLabelColour, nameOf(actor.animation.value()));
         }
         if (actor.npcState.has_value())
         {
             labelPosition.y += lineHeight;
-            drawList.AddText(
-                labelPosition, IM_COL32(255, 255, 255, 255), nameOf(actor.npcState.value()));
+            drawList.AddText(labelPosition, WorldLabelColour, nameOf(actor.npcState.value()));
         }
     }
 
@@ -286,8 +302,7 @@ namespace
         const simple_platformer::DebugOverlay& scene,
         const simple_platformer::WindowViewport& viewport)
     {
-        const ImU32 colour = IM_COL32(255, 160, 64, 255);
-        drawWorldBounds(drawList, projectile.bounds, scene, viewport, colour);
+        drawWorldBounds(drawList, projectile.bounds, scene, viewport, ProjectileColour);
 
         ImVec2 labelPosition = screenPosition(projectile.bounds.position, scene, viewport);
         labelPosition.y += projectile.bounds.size.y * viewport.scale.y + 2.0F;
@@ -305,7 +320,7 @@ namespace
         {
             std::snprintf(label, sizeof(label), "none\n%.2f", projectile.remainingLifetime);
         }
-        drawList.AddText(labelPosition, colour, label);
+        drawList.AddText(labelPosition, ProjectileColour, label);
     }
 
     void drawTextLine(
@@ -326,11 +341,9 @@ namespace
     {
         constexpr float Indentation = 12.0F;
         constexpr float ActorGap = 4.0F;
-        constexpr ImU32 HeadingColour = IM_COL32(255, 255, 255, 255);
-        constexpr ImU32 DetailColour = IM_COL32(224, 224, 224, 255);
 
         const std::string label = labelFor(actor);
-        drawTextLine(drawList, position, label.c_str(), HeadingColour);
+        drawTextLine(drawList, position, label.c_str(), TextHeadingColour);
 
         char text[96]{};
         std::snprintf(
@@ -339,7 +352,7 @@ namespace
             "pos:    %.1f, %.1f",
             actor.collider.position.x,
             actor.collider.position.y);
-        drawTextLine(drawList, position, text, DetailColour, Indentation);
+        drawTextLine(drawList, position, text, TextDetailColour, Indentation);
 
         if (actor.pathFollower.has_value())
         {
@@ -353,7 +366,7 @@ namespace
             {
                 std::snprintf(text, sizeof(text), "path:   %d / %d", 0, 0);
             }
-            drawTextLine(drawList, position, text, DetailColour, Indentation);
+            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
 
             if (follower.destination.has_value())
             {
@@ -368,10 +381,10 @@ namespace
             {
                 std::snprintf(text, sizeof(text), "dest:   none");
             }
-            drawTextLine(drawList, position, text, DetailColour, Indentation);
+            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
 
             std::snprintf(text, sizeof(text), "repath: %.2f", follower.repathRemaining);
-            drawTextLine(drawList, position, text, DetailColour, Indentation);
+            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         }
 
         if (actor.sprite.has_value())
@@ -383,7 +396,7 @@ namespace
                 actor.sprite->atlasFrame,
                 actor.sprite->atlasPosition.x,
                 actor.sprite->atlasPosition.y);
-            drawTextLine(drawList, position, text, DetailColour, Indentation);
+            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         }
         position.y += ActorGap;
     }
@@ -397,13 +410,12 @@ namespace simple_platformer
 
         if (viewport.has_value())
         {
+            drawWorldBounds(*drawList, scene.cameraBounds, scene, *viewport, CameraBoundsColour);
             drawWorldBounds(
-                *drawList, scene.cameraBounds, scene, *viewport, IM_COL32(64, 224, 255, 255));
-            drawWorldBounds(
-                *drawList, scene.cameraDeadZone, scene, *viewport, IM_COL32(255, 224, 64, 255));
+                *drawList, scene.cameraDeadZone, scene, *viewport, CameraDeadZoneColour);
             drawList->AddText(
                 screenPosition(scene.cameraDeadZone.position, scene, *viewport),
-                IM_COL32(255, 224, 64, 255),
+                CameraDeadZoneColour,
                 "camera dead zone");
         }
 
@@ -427,25 +439,16 @@ namespace simple_platformer
             if (actor.biteHitbox.has_value())
             {
                 drawWorldBounds(
-                    *drawList,
-                    actor.biteHitbox.value(),
-                    scene,
-                    *viewport,
-                    IM_COL32(255, 64, 224, 255));
+                    *drawList, actor.biteHitbox.value(), scene, *viewport, BiteHitboxColour);
             }
 
             if (actor.sprite.has_value())
             {
                 drawWorldBounds(
-                    *drawList,
-                    actor.sprite->bounds,
-                    scene,
-                    *viewport,
-                    IM_COL32(255, 255, 255, 255));
+                    *drawList, actor.sprite->bounds, scene, *viewport, SpriteBoundsColour);
             }
             drawActorWorldLabel(*drawList, actor, scene, *viewport);
-            drawWorldBounds(
-                *drawList, actor.collider, scene, *viewport, IM_COL32(255, 64, 64, 255));
+            drawWorldBounds(*drawList, actor.collider, scene, *viewport, ColliderBoundsColour);
         }
 
         if (viewport.has_value())
@@ -456,11 +459,10 @@ namespace simple_platformer
             }
             for (const PickupDebugInfo& pickup : scene.pickups)
             {
-                const ImU32 colour = IM_COL32(96, 255, 160, 255);
-                drawWorldBounds(*drawList, pickup.bounds, scene, *viewport, colour);
+                drawWorldBounds(*drawList, pickup.bounds, scene, *viewport, PickupColour);
                 drawList->AddText(
                     screenPosition(pickup.bounds.position, scene, *viewport),
-                    colour,
+                    PickupColour,
                     pickup.itemName.c_str());
             }
         }

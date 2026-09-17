@@ -75,7 +75,7 @@ target_link_libraries(simple_platformer_imgui PUBLIC glfw)
 
 add_library(
     simple_platformer_core
-    src/actor/actor.cpp
+    src/actor/actor_id.cpp
     src/actor/actor_system.cpp
     src/actor/lifecycle.cpp
     src/combat/attack_system.cpp

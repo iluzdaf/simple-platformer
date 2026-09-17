@@ -45,8 +45,9 @@ namespace simple_platformer
 
     void ExampleGame::startLevel(Actor player)
     {
+        placeFeetAt(player.body.bounds, level.playerSpawnFeet);
         const ActorId playerId = level.world.addActor(std::move(player));
-        level.world.setPlayer(playerId, {38.0F, 208.0F});
+        level.world.setPlayer(playerId, level.playerSpawnFeet);
         validateLevelActors(level.map, level.world, level.number);
 
         const Actor* playerActor = level.world.findActor(playerId);

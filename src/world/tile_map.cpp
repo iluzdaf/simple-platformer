@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <initializer_list>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -47,12 +48,25 @@ namespace simple_platformer
 
     TileMap TileMap::fromAscii(std::initializer_list<std::string_view> rows)
     {
-        if (rows.size() == 0)
+        std::vector<std::string> ownedRows;
+        ownedRows.reserve(rows.size());
+        for (const std::string_view row : rows)
+        {
+            ownedRows.emplace_back(row);
+        }
+        return fromAscii(ownedRows, {{false}, {true, {{0.0F, 0.0F}, {1.0F, 1.0F}}}});
+    }
+
+    TileMap TileMap::fromAscii(
+        const std::vector<std::string>& rows,
+        std::vector<TileDefinition> definitions)
+    {
+        if (rows.empty())
         {
             throw std::invalid_argument("An ASCII tile map needs at least one row");
         }
 
-        const int mapWidth = static_cast<int>(rows.begin()->size());
+        const int mapWidth = static_cast<int>(rows.front().size());
         if (mapWidth == 0)
         {
             throw std::invalid_argument("An ASCII tile map cannot have empty rows");
@@ -61,7 +75,7 @@ namespace simple_platformer
         std::vector<int> tiles;
         tiles.reserve(static_cast<std::size_t>(mapWidth) * rows.size());
 
-        for (const std::string_view row : rows)
+        for (const std::string& row : rows)
         {
             if (static_cast<int>(row.size()) != mapWidth)
             {
@@ -86,10 +100,7 @@ namespace simple_platformer
         }
 
         return TileMap(
-            mapWidth,
-            static_cast<int>(rows.size()),
-            std::move(tiles),
-            {{false}, {true, {{0.0F, 0.0F}, {1.0F, 1.0F}}}});
+            mapWidth, static_cast<int>(rows.size()), std::move(tiles), std::move(definitions));
     }
 
     int TileMap::width() const

@@ -45,9 +45,12 @@ Read [`app/game/example_game.hpp`](app/game/example_game.hpp) and
 current map and world. It passes input into the simulation, updates presentation state,
 changes levels, and builds a scene for rendering.
 
-Then look at [`app/game/example_content.cpp`](app/game/example_content.cpp). This is
-where the example's levels and composed actors are described. It is game content, not
-general engine behaviour.
+Then open [`assets/levels/level_1.json`](assets/levels/level_1.json). It contains the
+map and placements for the first level. Follow that data into
+[`example_level_data.cpp`](app/game/example_level_data.cpp), which validates the JSON,
+and then [`example_content.cpp`](app/game/example_content.cpp), which turns known names
+such as `zombie` into composed C++ actors. These are game-content concerns, not general
+engine behaviour.
 
 ### 3. Learn the core data model
 

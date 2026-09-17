@@ -2,11 +2,13 @@
 
 #include "example_animations.hpp"
 #include "example_items.hpp"
+#include "example_level_data.hpp"
 
-#include <cstddef>
+#include <filesystem>
+#include <optional>
 #include <stdexcept>
+#include <string>
 #include <utility>
-#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -60,7 +62,7 @@ namespace
         glm::vec2 spawnFeet,
         glm::vec2 bodySize,
         simple_platformer::SpriteAnchor spriteAnchor,
-        simple_platformer::Patrol patrol,
+        std::optional<simple_platformer::Patrol> patrol,
         simple_platformer::AnimationSet animations)
     {
         simple_platformer::Actor npc;
@@ -82,7 +84,7 @@ namespace
     simple_platformer::Actor makeZombie(
         int textureId,
         glm::vec2 spawnFeet,
-        simple_platformer::Patrol patrol)
+        std::optional<simple_platformer::Patrol> patrol)
     {
         simple_platformer::Actor npc = makeNpc(
             textureId,
@@ -100,7 +102,7 @@ namespace
     simple_platformer::Actor makeBat(
         int textureId,
         glm::vec2 spawnFeet,
-        simple_platformer::Patrol patrol)
+        std::optional<simple_platformer::Patrol> patrol)
     {
         simple_platformer::Actor npc = makeNpc(
             textureId,
@@ -117,7 +119,7 @@ namespace
     simple_platformer::Actor makeZombieSoldier(
         int textureId,
         glm::vec2 spawnFeet,
-        simple_platformer::Patrol patrol)
+        std::optional<simple_platformer::Patrol> patrol)
     {
         simple_platformer::Actor npc = makeNpc(
             textureId,
@@ -132,110 +134,92 @@ namespace
         return npc;
     }
 
-    simple_platformer::TileMap makeLevelOneMap()
+    simple_platformer::Actor makeActor(
+        int textureId,
+        const simple_platformer::ExampleActorPlacement& placement)
     {
-        constexpr int Width = 60;
-        constexpr int Height = 14;
-        std::vector<int> tiles(static_cast<std::size_t>(Width * Height), 0);
-        const auto fill = [&tiles](int row, int firstColumn, int lastColumn)
+        switch (placement.type)
         {
-            for (int column = firstColumn; column <= lastColumn; ++column)
-            {
-                const std::size_t index =
-                    static_cast<std::size_t>(row) * static_cast<std::size_t>(Width) +
-                    static_cast<std::size_t>(column);
-                tiles[index] = 1;
-            }
-        };
-
-        fill(Height - 1, 0, Width - 1);
-        fill(10, 6, 12);
-        fill(8, 18, 24);
-        fill(11, 30, 38);
-        fill(8, 42, 48);
-        fill(11, 53, 57);
-
-        return {
-            Width, Height, std::move(tiles), {{false}, {true, {{0.0F, 192.0F}, {16.0F, 16.0F}}}}};
+        case simple_platformer::ExampleActorType::Zombie:
+            return makeZombie(textureId, placement.spawnFeet, placement.patrol);
+        case simple_platformer::ExampleActorType::Bat:
+            return makeBat(textureId, placement.spawnFeet, placement.patrol);
+        case simple_platformer::ExampleActorType::ZombieSoldier:
+            return makeZombieSoldier(textureId, placement.spawnFeet, placement.patrol);
+        }
+        throw std::logic_error("Unknown example actor type");
     }
 
-    void populateLevelOne(simple_platformer::World& world, int textureId)
+    std::filesystem::path levelPath(int levelNumber)
     {
-        world.addActor(
-            makeZombie(textureId, {456.0F, 208.0F}, {{456.0F, 208.0F}, {488.0F, 176.0F}, true}));
-        world.addActor(
-            makeBat(textureId, {176.0F, 144.0F}, {{176.0F, 144.0F}, {248.0F, 96.0F}, true}));
-        world.addActor(makeZombieSoldier(
-            textureId, {286.0F, 208.0F}, {{286.0F, 208.0F}, {350.0F, 208.0F}, true}));
+        if (levelNumber <= 0)
+        {
+            throw std::invalid_argument("Example level numbers must be positive");
+        }
+        return std::filesystem::path("assets/levels") /
+               ("level_" + std::to_string(levelNumber) + ".json");
+    }
 
-        world.addPickup({{{80.0F, 196.0F}, {12.0F, 12.0F}}, {simple_platformer::Coin, 5}});
-        world.addPickup({{{128.0F, 192.0F}, {16.0F, 16.0F}}, {simple_platformer::HealthPotion, 2}});
-        world.addPickup({{{220.0F, 196.0F}, {12.0F, 12.0F}}, {simple_platformer::Key, 1}});
+    simple_platformer::TileMap makeMap(const simple_platformer::ExampleLevelData& data)
+    {
+        return simple_platformer::TileMap::fromAscii(
+            data.mapRows, {{false}, {true, {{0.0F, 192.0F}, {16.0F, 16.0F}}}});
+    }
 
+    glm::vec2 pickupSize(simple_platformer::ItemId item)
+    {
+        switch (item)
+        {
+        case simple_platformer::Coin:
+        case simple_platformer::Key:
+            return {12.0F, 12.0F};
+        case simple_platformer::HealthPotion:
+            return {16.0F, 16.0F};
+        default:
+            throw std::logic_error("Unknown example pickup item");
+        }
+    }
+
+    simple_platformer::Pickup makePickup(const simple_platformer::ExamplePickupPlacement& placement)
+    {
+        simple_platformer::Pickup pickup;
+        pickup.bounds.size = pickupSize(placement.stack.item);
+        simple_platformer::placeFeetAt(pickup.bounds, placement.spawnFeet);
+        pickup.stack = placement.stack;
+        return pickup;
+    }
+
+    simple_platformer::LevelExit makeExit(
+        int textureId,
+        const simple_platformer::ExampleExitPlacement& placement)
+    {
         simple_platformer::LevelExit exit;
-        exit.bounds = {{936.0F, 176.0F}, {16.0F, 32.0F}};
-        exit.requirement = simple_platformer::ItemStack{simple_platformer::Key, 1};
-        exit.nextLevel = 2;
+        exit.bounds.size = {16.0F, 32.0F};
+        simple_platformer::placeFeetAt(exit.bounds, placement.spawnFeet);
+        exit.requirement = placement.requirement;
+        exit.consumeItem = placement.consumeItem;
+        exit.nextLevel = placement.nextLevel;
         exit.sprite =
             simple_platformer::Sprite{textureId, {{48.0F, 216.0F}, {16.0F, 32.0F}}, {16.0F, 32.0F}};
-        world.setExit(exit);
+        return exit;
     }
 
-    simple_platformer::ExampleLevel makeLevelOne(int textureId)
+    simple_platformer::ExampleLevel composeLevel(
+        const simple_platformer::ExampleLevelData& data,
+        int textureId)
     {
         simple_platformer::World world(simple_platformer::makeExampleItems(textureId));
-        populateLevelOne(world, textureId);
-        return {1, makeLevelOneMap(), std::move(world)};
-    }
-
-    simple_platformer::TileMap makeLevelTwoMap()
-    {
-        constexpr int Width = 60;
-        constexpr int Height = 14;
-        std::vector<int> tiles(static_cast<std::size_t>(Width * Height), 0);
-        const auto fill = [&tiles](int row, int firstColumn, int lastColumn)
+        for (const simple_platformer::ExampleActorPlacement& placement : data.actors)
         {
-            for (int column = firstColumn; column <= lastColumn; ++column)
-            {
-                const std::size_t index =
-                    static_cast<std::size_t>(row) * static_cast<std::size_t>(Width) +
-                    static_cast<std::size_t>(column);
-                tiles[index] = 1;
-            }
-        };
+            world.addActor(makeActor(textureId, placement));
+        }
+        for (const simple_platformer::ExamplePickupPlacement& placement : data.pickups)
+        {
+            world.addPickup(makePickup(placement));
+        }
+        world.setExit(makeExit(textureId, data.exit));
 
-        fill(Height - 1, 0, Width - 1);
-        fill(11, 10, 16);
-        fill(9, 23, 28);
-        fill(11, 38, 46);
-
-        return {
-            Width, Height, std::move(tiles), {{false}, {true, {{0.0F, 192.0F}, {16.0F, 16.0F}}}}};
-    }
-
-    void populateLevelTwo(simple_platformer::World& world, int textureId)
-    {
-        world.addActor(
-            makeBat(textureId, {400.0F, 112.0F}, {{400.0F, 112.0F}, {480.0F, 144.0F}, true}));
-        world.addActor(
-            makeZombie(textureId, {680.0F, 176.0F}, {{650.0F, 176.0F}, {730.0F, 176.0F}, true}));
-
-        world.addPickup({{{80.0F, 196.0F}, {12.0F, 12.0F}}, {simple_platformer::Coin, 5}});
-        world.addPickup({{{128.0F, 192.0F}, {16.0F, 16.0F}}, {simple_platformer::HealthPotion, 2}});
-
-        simple_platformer::LevelExit exit;
-        exit.bounds = {{936.0F, 176.0F}, {16.0F, 32.0F}};
-        exit.requirement = simple_platformer::ItemStack{simple_platformer::Key, 1};
-        exit.sprite =
-            simple_platformer::Sprite{textureId, {{48.0F, 216.0F}, {16.0F, 32.0F}}, {16.0F, 32.0F}};
-        world.setExit(exit);
-    }
-
-    simple_platformer::ExampleLevel makeLevelTwo(int textureId)
-    {
-        simple_platformer::World world(simple_platformer::makeExampleItems(textureId));
-        populateLevelTwo(world, textureId);
-        return {2, makeLevelTwoMap(), std::move(world)};
+        return {data.number, makeMap(data), std::move(world), data.playerSpawnFeet};
     }
 }
 
@@ -243,15 +227,12 @@ namespace simple_platformer
 {
     ExampleLevel makeExampleLevel(int levelNumber, int textureId)
     {
-        switch (levelNumber)
+        const ExampleLevelData data = loadExampleLevelData(levelPath(levelNumber));
+        if (data.number != levelNumber)
         {
-        case 1:
-            return makeLevelOne(textureId);
-        case 2:
-            return makeLevelTwo(textureId);
-        default:
-            throw std::invalid_argument("Unknown example level");
+            throw std::invalid_argument("The example level file contains the wrong level number");
         }
+        return composeLevel(data, textureId);
     }
 
     Actor makeExamplePlayer(int textureId)
@@ -259,7 +240,7 @@ namespace simple_platformer
         AnimationSet animations = makePlayerAnimations();
 
         Actor player;
-        player.body = {{{32.0F, 188.0F}, {12.0F, 20.0F}}, {0.0F, 0.0F}};
+        player.body.bounds.size = {12.0F, 20.0F};
         player.platformerMovement = PlatformerMovement{};
         player.platformerMovement->grounded = true;
         player.sprite = makeActorSprite(textureId, animations);

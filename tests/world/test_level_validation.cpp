@@ -119,8 +119,10 @@ TEST_CASE("The supplied example levels have valid actor placement", "[app][examp
     for (const int level : {1, 2})
     {
         auto content = simple_platformer::makeExampleLevel(level, 0);
-        const auto player = content.world.addActor(simple_platformer::makeExamplePlayer(0));
-        content.world.setPlayer(player, {38.0F, 208.0F});
+        simple_platformer::Actor player = simple_platformer::makeExamplePlayer(0);
+        simple_platformer::placeFeetAt(player.body.bounds, content.playerSpawnFeet);
+        const auto playerId = content.world.addActor(player);
+        content.world.setPlayer(playerId, content.playerSpawnFeet);
 
         REQUIRE_NOTHROW(
             simple_platformer::validateLevelActors(content.map, content.world, content.number));

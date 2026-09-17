@@ -52,9 +52,9 @@ TEST_CASE("Every NPC patrol in the supplied levels makes progress", "[app][conte
             simple_platformer::ExampleLevel content = simple_platformer::makeExampleLevel(level, 0);
 
             simple_platformer::Actor player = simple_platformer::makeExamplePlayer(0);
-            const glm::vec2 playerSpawn = simple_platformer::feetOf(player.body.bounds);
+            simple_platformer::placeFeetAt(player.body.bounds, content.playerSpawnFeet);
             const simple_platformer::ActorId playerId = content.world.addActor(player);
-            content.world.setPlayer(playerId, playerSpawn);
+            content.world.setPlayer(playerId, content.playerSpawnFeet);
             simple_platformer::validateLevelActors(content.map, content.world, content.number);
 
             std::vector<PatrolObservation> patrols;

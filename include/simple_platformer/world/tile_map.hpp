@@ -1,6 +1,7 @@
 #pragma once
 
 #include <initializer_list>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -30,6 +31,9 @@ namespace simple_platformer
             std::vector<TileDefinition> definitions);
 
         static TileMap fromAscii(std::initializer_list<std::string_view> rows);
+        static TileMap fromAscii(
+            const std::vector<std::string>& rows,
+            std::vector<TileDefinition> definitions);
 
         int width() const;
         int height() const;

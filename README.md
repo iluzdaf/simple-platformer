@@ -159,7 +159,7 @@ cmake --build --preset mac-debug --target header_self_containment
 
 ```text
 app/        application shell, example game, graphics, UI, and debug tools
-assets/     finished runtime sprite atlas supplied with the example game
+assets/     runtime sprite atlas and editable example level JSON
 include/    public core headers
 src/        core implementations
 tests/      Catch2 tests mirroring the core subjects

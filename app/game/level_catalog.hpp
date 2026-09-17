@@ -6,24 +6,24 @@
 
 namespace simple_platformer
 {
-    struct ExampleLevelEntry
+    struct LevelCatalogEntry
     {
         int number = 0;
         std::filesystem::path file;
     };
 
-    struct ExampleLevelCatalog
+    struct LevelCatalog
     {
         int startLevel = 0;
         std::filesystem::path directory;
-        std::vector<ExampleLevelEntry> levels;
+        std::vector<LevelCatalogEntry> levels;
     };
 
-    ExampleLevelCatalog parseExampleLevelCatalog(
+    LevelCatalog parseLevelCatalog(
         std::string_view text,
         std::string_view sourceName,
         const std::filesystem::path& directory = {});
-    ExampleLevelCatalog loadExampleLevelCatalog(const std::filesystem::path& path);
-    ExampleLevelCatalog loadExampleLevelCatalog();
-    std::filesystem::path exampleLevelPath(const ExampleLevelCatalog& catalog, int levelNumber);
+    LevelCatalog loadLevelCatalog(const std::filesystem::path& path);
+    LevelCatalog loadLevelCatalog();
+    std::filesystem::path levelPath(const LevelCatalog& catalog, int levelNumber);
 }

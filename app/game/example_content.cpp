@@ -2,7 +2,7 @@
 
 #include "example_animations.hpp"
 #include "example_items.hpp"
-#include "example_level_catalog.hpp"
+#include "level_catalog.hpp"
 #include "example_level_data.hpp"
 
 #include <optional>
@@ -181,7 +181,7 @@ namespace
         return exit;
     }
 
-    simple_platformer::ExampleLevel composeLevel(
+    simple_platformer::GameLevel composeLevel(
         const simple_platformer::ExampleLevelData& data,
         int textureId)
     {
@@ -202,15 +202,12 @@ namespace
 
 namespace simple_platformer
 {
-    ExampleLevel makeExampleLevel(
-        const ExampleLevelCatalog& catalog,
-        int levelNumber,
-        int textureId)
+    GameLevel makeGameLevel(const LevelCatalog& catalog, int levelNumber, int textureId)
     {
-        const ExampleLevelData data = loadExampleLevelData(exampleLevelPath(catalog, levelNumber));
+        const ExampleLevelData data = loadExampleLevelData(levelPath(catalog, levelNumber));
         if (data.number != levelNumber)
         {
-            throw std::invalid_argument("The example level file contains the wrong level number");
+            throw std::invalid_argument("The level file contains the wrong level number");
         }
         return composeLevel(data, textureId);
     }

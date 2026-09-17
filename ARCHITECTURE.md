@@ -407,7 +407,7 @@ contains coins, health potions, and a key. Inventory persists through player dea
 
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. The simulation reports completion;
-`ExampleLevel` keeps a level number, map, populated world, and player spawn together so
+`GameLevel` keeps a level number, map, populated world, and player spawn together so
 callers cannot accidentally combine data from different levels. `ExampleGame` replaces
 that value at a transition, restores player health and inventory, and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
@@ -438,7 +438,7 @@ position. All example pickups use the same 16-by-16 collision bounds. Their item
 remain independent, just like actor sprites and bodies.
 
 The JSON dependency stays at the application content boundary.
-`example_level_catalog.cpp` validates the catalog, and `example_level_data.cpp` parses a
+`level_catalog.cpp` validates the catalog, and `example_level_data.cpp` parses a
 level into plain `ExampleLevelData`, reports invalid fields with their content path, and
 maps stable names such as `zombie_soldier` and `health_potion` to C++ values. The
 composition step then creates the existing `TileMap`, `World`, actors, pickups, and

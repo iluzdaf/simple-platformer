@@ -8,9 +8,9 @@
 namespace simple_platformer
 {
     struct Actor;
-    struct ExampleLevelCatalog;
+    struct LevelCatalog;
 
-    struct ExampleLevel
+    struct GameLevel
     {
         int number = 0;
         TileMap map;
@@ -18,9 +18,6 @@ namespace simple_platformer
         glm::vec2 playerSpawnFeet = {0.0F, 0.0F};
     };
 
-    ExampleLevel makeExampleLevel(
-        const ExampleLevelCatalog& catalog,
-        int levelNumber,
-        int textureId);
+    GameLevel makeGameLevel(const LevelCatalog& catalog, int levelNumber, int textureId);
     Actor makeExamplePlayer(int textureId);
 }

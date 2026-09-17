@@ -6,7 +6,7 @@
 #include "debug/debug_overlay.hpp"
 #include "game/example_game.hpp"
 #include "game/example_items.hpp"
-#include "game/example_level_catalog.hpp"
+#include "game/level_catalog.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/inventory/inventory.hpp"
@@ -53,7 +53,7 @@ TEST_CASE(
     "[level-transition]")
 {
     simple_platformer::ExampleGame game(
-        0, simple_platformer::loadExampleLevelCatalog("tests/fixtures/levels/levels.json"));
+        0, simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json"));
     const auto initialHealth = game.playerHealth();
     const auto initialInventory = game.playerInventory();
     const int initialLevel = game.levelNumber();

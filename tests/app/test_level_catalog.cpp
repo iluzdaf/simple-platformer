@@ -3,11 +3,11 @@
 #include <filesystem>
 #include <stdexcept>
 
-#include "game/example_level_catalog.hpp"
+#include "game/level_catalog.hpp"
 
 TEST_CASE("A level catalog maps stable numbers to arbitrary file names", "[app][content][json]")
 {
-    const auto catalog = simple_platformer::parseExampleLevelCatalog(
+    const auto catalog = simple_platformer::parseLevelCatalog(
         R"({
             "startLevel": 10,
             "levels": [
@@ -21,9 +21,9 @@ TEST_CASE("A level catalog maps stable numbers to arbitrary file names", "[app][
     REQUIRE(catalog.startLevel == 10);
     REQUIRE(catalog.levels.size() == 2);
     REQUIRE(
-        simple_platformer::exampleLevelPath(catalog, 25) ==
+        simple_platformer::levelPath(catalog, 25) ==
         std::filesystem::path("levels/areas/final_room.json"));
-    REQUIRE_THROWS_AS(simple_platformer::exampleLevelPath(catalog, 1), std::invalid_argument);
+    REQUIRE_THROWS_AS(simple_platformer::levelPath(catalog, 1), std::invalid_argument);
 }
 
 TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content][json]")
@@ -31,7 +31,7 @@ TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content]
     SECTION("start level is not listed")
     {
         REQUIRE_THROWS_AS(
-            simple_platformer::parseExampleLevelCatalog(
+            simple_platformer::parseLevelCatalog(
                 R"({"startLevel": 2, "levels": [{"number": 1, "file": "one.json"}]})",
                 "test catalog"),
             std::invalid_argument);
@@ -40,7 +40,7 @@ TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content]
     SECTION("level number is duplicated")
     {
         REQUIRE_THROWS_AS(
-            simple_platformer::parseExampleLevelCatalog(
+            simple_platformer::parseLevelCatalog(
                 R"({
                     "startLevel": 1,
                     "levels": [
@@ -55,7 +55,7 @@ TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content]
     SECTION("file escapes the level directory")
     {
         REQUIRE_THROWS_AS(
-            simple_platformer::parseExampleLevelCatalog(
+            simple_platformer::parseLevelCatalog(
                 R"({"startLevel": 1, "levels": [{"number": 1, "file": "../one.json"}]})",
                 "test catalog"),
             std::invalid_argument);

@@ -7,7 +7,7 @@
 
 #include "debug/debug_overlay.hpp"
 #include "game/example_content.hpp"
-#include "game/example_level_catalog.hpp"
+#include "game/level_catalog.hpp"
 #include "simple_platformer/render/camera.hpp"
 
 namespace simple_platformer
@@ -22,7 +22,7 @@ namespace simple_platformer
     {
     public:
         explicit ExampleGame(int textureId);
-        ExampleGame(int textureId, ExampleLevelCatalog catalog);
+        ExampleGame(int textureId, LevelCatalog catalog);
 
         void update(const InputIntentions& intentions, float deltaTime);
         glm::vec2 playerAimDirection(glm::vec2 screenPosition) const;
@@ -47,8 +47,8 @@ namespace simple_platformer
         const CameraController& cameraControllerValue() const;
         Camera currentCamera() const;
 
-        ExampleLevelCatalog levelCatalog;
-        ExampleLevel level;
+        LevelCatalog levelCatalog;
+        GameLevel level;
         std::optional<CameraController> cameraController;
         int atlasTextureId = 0;
         bool gameComplete = false;

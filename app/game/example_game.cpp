@@ -2,7 +2,7 @@
 
 #include "debug/debug_overlay.hpp"
 #include "example_content.hpp"
-#include "example_level_catalog.hpp"
+#include "level_catalog.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -25,13 +25,13 @@
 
 namespace simple_platformer
 {
-    ExampleGame::ExampleGame(int textureId) : ExampleGame(textureId, loadExampleLevelCatalog())
+    ExampleGame::ExampleGame(int textureId) : ExampleGame(textureId, loadLevelCatalog())
     {
     }
 
-    ExampleGame::ExampleGame(int textureId, ExampleLevelCatalog catalog)
+    ExampleGame::ExampleGame(int textureId, LevelCatalog catalog)
         : levelCatalog(std::move(catalog)),
-          level(makeExampleLevel(levelCatalog, levelCatalog.startLevel, textureId)),
+          level(makeGameLevel(levelCatalog, levelCatalog.startLevel, textureId)),
           atlasTextureId(textureId)
     {
         startLevel(makeExamplePlayer(atlasTextureId));
@@ -46,7 +46,7 @@ namespace simple_platformer
             nextPlayer.inventory = previousPlayer->inventory;
         }
         // No pointers, projectiles, requests or NPC state survive replacement of the world.
-        level = makeExampleLevel(levelCatalog, levelNumber, atlasTextureId);
+        level = makeGameLevel(levelCatalog, levelNumber, atlasTextureId);
         startLevel(std::move(nextPlayer));
     }
 
@@ -86,7 +86,7 @@ namespace simple_platformer
             const auto& completedExit = level.world.exit();
             if (!completedExit.has_value())
             {
-                throw std::logic_error("A completed example level must have an exit");
+                throw std::logic_error("A completed game level must have an exit");
             }
             const auto nextLevel = completedExit->nextLevel;
             if (nextLevel.has_value())
@@ -183,7 +183,7 @@ namespace simple_platformer
     void ExampleGame::restart()
     {
         gameComplete = false;
-        level = makeExampleLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId);
+        level = makeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId);
         startLevel(makeExamplePlayer(atlasTextureId));
     }
 

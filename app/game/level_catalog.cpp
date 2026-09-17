@@ -1,4 +1,4 @@
-#include "example_level_catalog.hpp"
+#include "level_catalog.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -92,12 +92,12 @@ namespace
         return file;
     }
 
-    simple_platformer::ExampleLevelCatalog catalog(
+    simple_platformer::LevelCatalog catalog(
         const Json& root,
         std::string_view sourceName,
         const std::filesystem::path& directory)
     {
-        simple_platformer::ExampleLevelCatalog result;
+        simple_platformer::LevelCatalog result;
         result.startLevel = positiveInteger(
             member(root, "startLevel", sourceName, "root"), sourceName, "startLevel");
         result.directory = directory;
@@ -113,7 +113,7 @@ namespace
         {
             const Json& value = levels[index];
             const std::string path = "levels[" + std::to_string(index) + "]";
-            simple_platformer::ExampleLevelEntry entry;
+            simple_platformer::LevelCatalogEntry entry;
             entry.number = positiveInteger(
                 member(value, "number", sourceName, path), sourceName, path + ".number");
             entry.file =
@@ -122,7 +122,7 @@ namespace
             const auto duplicateNumber = std::find_if(
                 result.levels.begin(),
                 result.levels.end(),
-                [&entry](const simple_platformer::ExampleLevelEntry& existing)
+                [&entry](const simple_platformer::LevelCatalogEntry& existing)
                 { return existing.number == entry.number; });
             if (duplicateNumber != result.levels.end())
             {
@@ -134,7 +134,7 @@ namespace
         const auto start = std::find_if(
             result.levels.begin(),
             result.levels.end(),
-            [&result](const simple_platformer::ExampleLevelEntry& entry)
+            [&result](const simple_platformer::LevelCatalogEntry& entry)
             { return entry.number == result.startLevel; });
         if (start == result.levels.end())
         {
@@ -146,7 +146,7 @@ namespace
 
 namespace simple_platformer
 {
-    ExampleLevelCatalog parseExampleLevelCatalog(
+    LevelCatalog parseLevelCatalog(
         std::string_view text,
         std::string_view sourceName,
         const std::filesystem::path& directory)
@@ -162,7 +162,7 @@ namespace simple_platformer
         }
     }
 
-    ExampleLevelCatalog loadExampleLevelCatalog(const std::filesystem::path& path)
+    LevelCatalog loadLevelCatalog(const std::filesystem::path& path)
     {
         std::ifstream file(path);
         if (!file)
@@ -171,24 +171,24 @@ namespace simple_platformer
         }
         const std::string contents{
             std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-        return parseExampleLevelCatalog(contents, path.string(), path.parent_path());
+        return parseLevelCatalog(contents, path.string(), path.parent_path());
     }
 
-    ExampleLevelCatalog loadExampleLevelCatalog()
+    LevelCatalog loadLevelCatalog()
     {
-        return loadExampleLevelCatalog(std::filesystem::path("assets/levels/levels.json"));
+        return loadLevelCatalog(std::filesystem::path("assets/levels/levels.json"));
     }
 
-    std::filesystem::path exampleLevelPath(const ExampleLevelCatalog& catalog, int levelNumber)
+    std::filesystem::path levelPath(const LevelCatalog& catalog, int levelNumber)
     {
         const auto found = std::find_if(
             catalog.levels.begin(),
             catalog.levels.end(),
-            [levelNumber](const ExampleLevelEntry& entry) { return entry.number == levelNumber; });
+            [levelNumber](const LevelCatalogEntry& entry) { return entry.number == levelNumber; });
         if (found == catalog.levels.end())
         {
             throw std::invalid_argument(
-                "Example level " + std::to_string(levelNumber) + " is not in the catalog");
+                "Level " + std::to_string(levelNumber) + " is not in the catalog");
         }
         return catalog.directory / found->file;
     }

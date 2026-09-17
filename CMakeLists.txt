@@ -138,8 +138,8 @@ add_executable(
     app/game/example_content.cpp
     app/game/example_game.cpp
     app/game/example_items.cpp
-    app/game/example_level_catalog.cpp
     app/game/example_level_data.cpp
+    app/game/level_catalog.cpp
     app/graphics/display_viewport.cpp
     app/graphics/sprite_renderer.cpp
     app/main.cpp
@@ -289,16 +289,16 @@ if(BUILD_TESTING)
         app/game/example_content.cpp
         app/game/example_game.cpp
         app/game/example_items.cpp
-        app/game/example_level_catalog.cpp
         app/game/example_level_data.cpp
+        app/game/level_catalog.cpp
         app/graphics/display_viewport.cpp
         app/ui/inventory_layout.cpp
         tests/app/test_debug_overlay.cpp
         tests/app/test_display_viewport.cpp
         tests/app/test_example_content.cpp
-        tests/app/test_example_level_catalog.cpp
         tests/app/test_inventory_layout.cpp
         tests/app/test_example_level_data.cpp
+        tests/app/test_level_catalog.cpp
         tests/app/test_level_transition.cpp
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp

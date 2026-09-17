@@ -47,7 +47,8 @@ changes levels, and builds a scene for rendering.
 
 Then open [`assets/levels/levels.json`](assets/levels/levels.json). It chooses the
 starting level and maps level numbers to filenames, so level files can be freely
-renamed. Follow its first entry into
+renamed. [`level_catalog.cpp`](app/game/level_catalog.cpp) validates that catalog and
+resolves its filenames. Follow its first entry into
 [`assets/levels/level_1.json`](assets/levels/level_1.json), which contains the map and
 placements for that level. Follow that data into
 [`example_level_data.cpp`](app/game/example_level_data.cpp), which validates the JSON,

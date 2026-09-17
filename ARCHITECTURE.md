@@ -290,9 +290,10 @@ contacts. Actors do not physically collide with or push one another. The left, r
 and bottom map boundaries block movement; the top remains open.
 
 After C++ level content is assembled, `validateLevelActors` checks it against the map.
-Every actor spawn and patrol endpoint needs body clearance. Platformer actors also need
-ground support, while flying actors do not. Invalid content fails during loading with
-the level number, actor ID, and invalid location.
+Every actor spawn, the player's stored respawn, and every patrol endpoint need body
+clearance. Platformer actors also need ground support, while flying actors do not.
+Invalid content fails during loading with the level number, actor ID, and invalid
+location.
 
 ## NPC behaviour
 

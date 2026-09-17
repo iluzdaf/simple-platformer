@@ -114,5 +114,11 @@ namespace simple_platformer
             validateAtFeet(map, actor, actor.patrol->firstFeet, level, "first patrol point");
             validateAtFeet(map, actor, actor.patrol->secondFeet, level, "second patrol point");
         }
+
+        const Actor* player = world.findActor(world.playerId());
+        if (player != nullptr)
+        {
+            validateAtFeet(map, *player, world.playerSpawnFeet(), level, "respawn");
+        }
     }
 }

@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 
 #include <stdexcept>
 
@@ -74,6 +75,33 @@ TEST_CASE("Platformer spawns and patrol points require ground support", "[world]
         world.addActor(actor);
         REQUIRE_THROWS_AS(
             simple_platformer::validateLevelActors(map, world, 1), std::invalid_argument);
+    }
+}
+
+TEST_CASE("The player respawn requires clearance and ground support", "[world][level-validation]")
+{
+    const auto map = simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+
+    SECTION("blocked respawn")
+    {
+        simple_platformer::World world;
+        const auto player = world.addActor(makePlatformer({24.0F, 32.0F}));
+        world.setPlayer(player, {24.0F, 48.0F});
+
+        REQUIRE_THROWS_WITH(
+            simple_platformer::validateLevelActors(map, world, 7),
+            "Level 7 actor 1 respawn overlaps a blocked tile");
+    }
+
+    SECTION("unsupported respawn")
+    {
+        simple_platformer::World world;
+        const auto player = world.addActor(makePlatformer({24.0F, 32.0F}));
+        world.setPlayer(player, {24.0F, 16.0F});
+
+        REQUIRE_THROWS_WITH(
+            simple_platformer::validateLevelActors(map, world, 7),
+            "Level 7 actor 1 respawn has no ground support");
     }
 }
 

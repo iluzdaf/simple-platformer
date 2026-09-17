@@ -5,6 +5,6 @@ namespace simple_platformer
     class TileMap;
     class World;
 
-    // Checks actor spawn positions and patrol endpoints against the level's tile map.
+    // Checks actor spawns, the player respawn, and patrol endpoints against the tile map.
     void validateLevelActors(const TileMap& map, const World& world, int level);
 }

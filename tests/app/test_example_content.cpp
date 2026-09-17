@@ -73,6 +73,8 @@ TEST_CASE("Every NPC patrol in the supplied levels makes progress", "[app][conte
                     {
                         FAIL("An NPC patrol disappeared during the simulation");
                     }
+                    const simple_platformer::Patrol patrol =
+                        actor->patrol.value_or(simple_platformer::Patrol{});
 
                     const glm::vec2 offset =
                         simple_platformer::feetOf(actor->body.bounds) - observation.initialFeet;
@@ -80,7 +82,7 @@ TEST_CASE("Every NPC patrol in the supplied levels makes progress", "[app][conte
                         std::max(observation.furthestDistanceSquared, glm::dot(offset, offset));
                     observation.changedEndpoint =
                         observation.changedEndpoint ||
-                        actor->patrol->headingToSecond != observation.initialHeadingToSecond;
+                        patrol.headingToSecond != observation.initialHeadingToSecond;
                 }
             }
 

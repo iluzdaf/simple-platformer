@@ -192,6 +192,72 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
 }
 
 TEST_CASE(
+    "A ground NPC resumes patrol after forgetting its target at a platform edge",
+    "[world][simulation][platformer][regression]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"........", "........", "..###...", "........", "########"});
+    simple_platformer::World world;
+
+    simple_platformer::Actor player;
+    player.body.bounds = {{98.0F, 52.0F}, {12.0F, 12.0F}};
+    player.platformerMovement = simple_platformer::PlatformerMovement{};
+    player.health = simple_platformer::Health{3, 3};
+    player.team = simple_platformer::Team::Player;
+    const simple_platformer::ActorId playerId = world.addActor(player);
+    world.setPlayer(playerId, simple_platformer::feetOf(player.body.bounds));
+
+    constexpr simple_platformer::GridPosition LeftPatrolCell{2, 1};
+    constexpr simple_platformer::GridPosition RightPatrolCell{4, 1};
+    const glm::vec2 leftPatrolFeet = simple_platformer::navigationFeet(LeftPatrolCell);
+    const glm::vec2 rightPatrolFeet = simple_platformer::navigationFeet(RightPatrolCell);
+
+    simple_platformer::Actor zombie;
+    zombie.body.bounds.size = {12.0F, 20.0F};
+    constexpr float PlatformRightEdge = 80.0F;
+    // Its feet have crossed into the unsupported cell, but the left side of its
+    // collider still overlaps the platform and remains grounded.
+    simple_platformer::placeFeetAt(zombie.body.bounds, {PlatformRightEdge + 0.5F, 32.0F});
+    // Preserve the movement that carried it toward the last-seen player position.
+    zombie.body.velocity.x = 100.0F;
+    zombie.platformerMovement = simple_platformer::PlatformerMovement{};
+    zombie.platformerMovement->grounded = true;
+    zombie.health = simple_platformer::Health{3, 3};
+    zombie.team = simple_platformer::Team::Enemy;
+    zombie.brain = simple_platformer::NpcBrain{};
+    zombie.brain->state = simple_platformer::NpcState::Chase;
+    zombie.brain->target = playerId;
+    zombie.brain->lastSeenTargetFeet = {88.0F, 32.0F};
+    zombie.brain->targetMemoryRemaining = 0.01F;
+    zombie.senses = simple_platformer::NpcSenses{16.0F, 0.01F};
+    zombie.patrol = simple_platformer::Patrol{leftPatrolFeet, rightPatrolFeet, false};
+    zombie.pathFollower = simple_platformer::PathFollower{};
+    const simple_platformer::ActorId zombieId = world.addActor(zombie);
+
+    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+
+    const simple_platformer::Actor* storedZombie = world.findActor(zombieId);
+    REQUIRE(storedZombie != nullptr);
+    if (!storedZombie->brain.has_value())
+    {
+        throw std::logic_error("The test zombie has no brain");
+    }
+    REQUIRE(storedZombie->brain->state == simple_platformer::NpcState::Patrol);
+    REQUIRE_FALSE(storedZombie->brain->target.has_value());
+
+    for (int tick = 0; tick < 180; ++tick)
+    {
+        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    }
+
+    storedZombie = world.findActor(zombieId);
+    REQUIRE(storedZombie != nullptr);
+    const glm::vec2 finalFeet = simple_platformer::feetOf(storedZombie->body.bounds);
+    CAPTURE(finalFeet.x, finalFeet.y);
+    REQUIRE(finalFeet.x < rightPatrolFeet.x);
+}
+
+TEST_CASE(
     "A bat continuously patrols around a platform corner",
     "[world][simulation][flying][regression]")
 {

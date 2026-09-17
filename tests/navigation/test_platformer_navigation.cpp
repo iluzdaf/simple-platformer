@@ -50,6 +50,23 @@ TEST_CASE("Standable cells require support and body clearance", "[navigation][pl
 }
 
 TEST_CASE(
+    "A platformer start cell comes from the collider support at a ledge",
+    "[navigation][platformer][regression]")
+{
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({"........", "........", "..###..."});
+    simple_platformer::Aabb bounds{{0.0F, 0.0F}, {12.0F, 20.0F}};
+    simple_platformer::placeFeetAt(bounds, {80.5F, 32.0F});
+
+    REQUIRE(
+        simple_platformer::navigationCell(simple_platformer::feetOf(bounds)) ==
+        simple_platformer::GridPosition{5, 1});
+    REQUIRE(
+        simple_platformer::findPlatformerStartCell(map, bounds) ==
+        simple_platformer::GridPosition{4, 1});
+}
+
+TEST_CASE(
     "Platformer tick heuristic is an optimistic horizontal estimate",
     "[navigation][platformer]")
 {

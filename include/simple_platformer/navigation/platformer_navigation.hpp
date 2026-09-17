@@ -11,6 +11,7 @@
 
 namespace simple_platformer
 {
+    struct Aabb;
     class TileMap;
 
     // Optimistic remaining travel time in fixed simulation ticks.
@@ -28,6 +29,10 @@ namespace simple_platformer
         const PlatformerMovementConfig& movement);
 
     bool canStandAt(const TileMap& map, GridPosition position, glm::vec2 bodySize);
+
+    // Finds the closest standable cell beneath a grounded body. The body's feet may
+    // extend beyond a ledge while part of its collider is still supported.
+    std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds);
 
     // Lower-level policy used by the generic path search.
     std::vector<NavigationNeighbor> platformerNeighbors(

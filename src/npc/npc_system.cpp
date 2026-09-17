@@ -67,8 +67,22 @@ namespace
         simple_platformer::PathFollower& follower,
         glm::vec2 goalFeet)
     {
-        const simple_platformer::GridPosition start =
+        simple_platformer::GridPosition start =
             simple_platformer::navigationCell(simple_platformer::feetOf(actor.body.bounds));
+        if (actor.platformerMovement.has_value())
+        {
+            if (!actor.platformerMovement->grounded)
+            {
+                return;
+            }
+            const std::optional<simple_platformer::GridPosition> supportedStart =
+                simple_platformer::findPlatformerStartCell(map, actor.body.bounds);
+            if (!supportedStart.has_value())
+            {
+                return;
+            }
+            start = supportedStart.value_or(start);
+        }
         const simple_platformer::GridPosition goal = simple_platformer::navigationCell(goalFeet);
         const bool destinationChanged =
             !follower.destination.has_value() || follower.destination.value_or(goal) != goal;
@@ -79,11 +93,6 @@ namespace
             return;
         }
         if (follower.repathRemaining > 0.0F)
-        {
-            return;
-        }
-
-        if (actor.platformerMovement.has_value() && !actor.platformerMovement->grounded)
         {
             return;
         }

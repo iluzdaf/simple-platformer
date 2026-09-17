@@ -300,6 +300,48 @@ namespace simple_platformer
                bodyFits(map, bodyAt(position, bodySize));
     }
 
+    std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds)
+    {
+        if (!isFinite(bounds.position) || !isFinite(bounds.size) || bounds.size.x <= 0.0F ||
+            bounds.size.y <= 0.0F)
+        {
+            throw std::invalid_argument(
+                "A platformer navigation body must have finite, positive-sized bounds");
+        }
+
+        const glm::vec2 feet = feetOf(bounds);
+        const GridPosition feetCell = navigationCell(feet);
+        if (canStandAt(map, feetCell, bounds.size))
+        {
+            return feetCell;
+        }
+
+        constexpr float Inside = 0.001F;
+        const float tileSize = static_cast<float>(TileSize);
+        const int firstColumn =
+            static_cast<int>(std::floor((bounds.position.x + Inside) / tileSize));
+        const int lastColumn =
+            static_cast<int>(std::floor((bounds.position.x + bounds.size.x - Inside) / tileSize));
+        std::optional<GridPosition> closest;
+        float closestDistance = 0.0F;
+        for (int column = firstColumn; column <= lastColumn; ++column)
+        {
+            const GridPosition candidate{column, feetCell.y};
+            if (!canStandAt(map, candidate, bounds.size))
+            {
+                continue;
+            }
+
+            const float distance = std::abs(navigationFeet(candidate).x - feet.x);
+            if (!closest.has_value() || distance < closestDistance)
+            {
+                closest = candidate;
+                closestDistance = distance;
+            }
+        }
+        return closest;
+    }
+
     std::vector<NavigationNeighbor> platformerNeighbors(
         const TileMap& map,
         GridPosition position,

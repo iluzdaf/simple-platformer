@@ -64,9 +64,10 @@ The application code is grouped by responsibility:
 - `app/graphics` contains display-viewport conversion and OpenGL sprite submission.
 
 `application.cpp` owns the outer loop: window events, input collection, fixed updates,
-UI, and rendering. `ExampleGame` owns the current `TileMap`, `World`, and camera
-controller. It translates application input into game input, invokes the engine, builds
-the render scene, and replaces the world during a level transition.
+UI, and rendering. `ExampleGame` owns the current `GameLevel` and camera controller.
+`GameLevel` keeps the level ID, `TileMap`, `World`, and player spawn together.
+`ExampleGame` translates application input into game input, invokes the engine, builds
+the render scene, and replaces the level during a transition.
 
 Example-specific content is kept out of general engine systems. Level geometry and
 placements live in `assets/levels`; the loader, actor factories, item definitions, and
@@ -294,7 +295,7 @@ After level data is loaded and composed into runtime objects, `validateLevelActo
 checks it against the map.
 Every actor spawn, the player's stored respawn, and every patrol endpoint need body
 clearance. Platformer actors also need ground support, while flying actors do not.
-Invalid content fails during loading with the level number, actor ID, and invalid
+Invalid content fails during loading with the level ID, actor ID, and invalid
 location.
 
 ## NPC behaviour
@@ -407,7 +408,7 @@ contains coins, health potions, and a key. Inventory persists through player dea
 
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. The simulation reports completion;
-`GameLevel` keeps a level number, map, populated world, and player spawn together so
+`GameLevel` keeps a level ID, map, populated world, and player spawn together so
 callers cannot accidentally combine data from different levels. `ExampleGame` replaces
 that value at a transition, restores player health and inventory, and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
@@ -416,21 +417,129 @@ level.
 
 ### Data-driven level boundary
 
-`assets/levels/levels.json` is the level catalog. It selects the starting level and maps
-stable numeric level IDs to arbitrary filenames. Exits refer to those IDs, so students
-can rename, add, or remove level files by updating the catalog rather than changing C++.
+The example game loads its levels from `assets/levels`. The files select and place known
+game concepts rather than defining new engine behaviour. For example,
+`"type": "zombie"` selects the zombie factory in `example_content.cpp`; the JSON does
+not list arbitrary `Actor` components.
 
-The level files define tile rows, the player spawn, known NPC placements and patrol
-endpoints, pickups, and the exit. They select and place concepts rather than defining
-new engine behaviour. For example, `"type": "zombie"` selects the zombie factory in
-`example_content.cpp`; the JSON does not list arbitrary `Actor` components.
+#### Level catalog
 
-Map-aligned actor and patrol placement normally uses integer cells such as
-`"spawnCell": [28, 12]`. The loader converts a cell to its world-space feet position.
-An explicitly named `spawnFeet` remains available for intentional off-grid placement;
-the loader requires exactly one form. Actors, pickups, and exits share this convention,
-and the same rule applies to each patrol endpoint. Feet are a stable bottom-centre
-reference point and do not imply that an object must stand on the ground.
+`assets/levels/levels.json` selects the starting level and assigns stable numeric level
+IDs to files:
+
+```json
+{
+  "startLevel": 1,
+  "levels": [
+    {"number": 1, "file": "level_1.json"},
+    {"number": 2, "file": "level_2.json"}
+  ]
+}
+```
+
+- `number` is a positive, unique level ID.
+- `file` is a path relative to the catalog's directory.
+- `startLevel` names one of the catalog entries.
+- An exit's `nextLevel` refers to a level ID in the catalog.
+
+Each catalog entry assigns a level ID to a level file. The referenced file contains that
+level's map and object placements. Students can rename, add, or remove level files by
+updating the catalog without changing C++.
+
+#### Level files
+
+A minimal level looks like this:
+
+```json
+{
+  "map": [
+    "........",
+    "........",
+    "########"
+  ],
+  "playerSpawnCell": [1, 1],
+  "actors": [],
+  "pickups": [],
+  "exit": {
+    "spawnCell": [6, 1]
+  }
+}
+```
+
+Every level requires `map`, one player spawn, `actors`, `pickups`, and `exit`. The actor
+and pickup arrays may be empty. An exit without `nextLevel` completes the game.
+
+#### Maps and positions
+
+Map rows have the same non-zero length. A `.` is an empty tile and a `#` is a solid
+tile. World coordinates begin at the top-left: positive X points right and positive Y
+points down. A cell position is `[column, row]`, also counted from the top-left.
+
+Actors, pickups, exits, and patrol endpoints support two placement forms:
+
+- `spawnCell` places the object's feet at the bottom-centre of a tile cell.
+- `spawnFeet` supplies that bottom-centre position directly in world pixels.
+
+The player spawn uses the corresponding names `playerSpawnCell` and `playerSpawnFeet`.
+Each placement uses exactly one form. Patrol endpoints use `firstCell` or `firstFeet`,
+and `secondCell` or `secondFeet`. Feet provide a stable bottom-centre reference point
+and do not imply that an object must stand on the ground.
+
+#### Actors
+
+An actor requires `type` and one spawn placement. The supported example types are
+`zombie`, `bat`, and `zombie_soldier`. A patrol is optional:
+
+```json
+{
+  "type": "zombie",
+  "spawnCell": [5, 8],
+  "patrol": {
+    "firstCell": [5, 8],
+    "secondCell": [10, 8]
+  }
+}
+```
+
+The C++ factories in `app/game/example_content.cpp` decide each actor's body size,
+movement, combat behaviour, sprite, and animation set.
+
+#### Pickups
+
+A pickup requires a supported item name, a positive quantity, and one spawn placement:
+
+```json
+{
+  "item": "health_potion",
+  "quantity": 2,
+  "spawnCell": [4, 8]
+}
+```
+
+The supported example items are `coin`, `health_potion`, and `key`. Their definitions
+and effects remain in C++.
+
+#### Exits
+
+An exit requires one spawn placement. It may also contain:
+
+- `requirement`, with an item and positive quantity;
+- `consumeItem`, which defaults to `false`;
+- `nextLevel`, which refers to a level ID in `levels.json`.
+
+```json
+{
+  "spawnCell": [18, 8],
+  "requirement": {
+    "item": "key",
+    "quantity": 1
+  },
+  "consumeItem": true,
+  "nextLevel": 2
+}
+```
+
+#### Loading and composition
 
 Level data does not specify actor, pickup, or exit bounds. The C++ example-content
 factories own those collision sizes and create each runtime AABB around its loaded feet
@@ -442,7 +551,7 @@ The JSON dependency stays at the application content boundary.
 level into plain `ExampleLevelData`, reports invalid fields with their content path, and
 maps stable names such as `zombie_soldier` and `health_potion` to C++ values. The
 composition step then creates the existing `TileMap`, `World`, actors, pickups, and
-exit. Existing constructor and level validation remains authoritative.
+exit. Existing construction and level validation remain authoritative.
 
 Parser tests use JSON strings, while transition tests use small files under
 `tests/fixtures`. One generic content check loads every entry in the editable catalog;
@@ -451,10 +560,6 @@ it does not assume particular filenames, a fixed level count, or specific NPCs.
 Runtime-only state is never loaded: actor IDs, velocities, current paths, attack timers,
 and NPC decisions are created fresh whenever a level starts. Texture IDs and atlas
 regions also remain C++ application resources rather than values in the level files.
-
-The inventory UI is an example presentation, not an engine rule. It derives its rows
-from the configured slot count, uses at most three columns, pauses simulation while
-open, and emits item use requests instead of changing the world directly.
 
 ## Presentation
 
@@ -521,6 +626,10 @@ F1 toggles the debug overlay. The overlay can show actor details, sprite and col
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing, and
 navigation paths. Debug data is built separately from its ImGui presentation so it can
 be tested without a window.
+
+The inventory UI is an example presentation, not an engine rule. It derives its rows
+from the configured slot count, uses at most three columns, pauses simulation while
+open, and emits item use requests instead of changing the world directly.
 
 ## Error handling and validation
 

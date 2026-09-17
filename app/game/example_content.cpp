@@ -183,6 +183,7 @@ namespace
 
     simple_platformer::GameLevel composeLevel(
         const simple_platformer::ExampleLevelData& data,
+        int levelNumber,
         int textureId)
     {
         simple_platformer::World world(simple_platformer::makeExampleItems(textureId));
@@ -196,7 +197,7 @@ namespace
         }
         world.setExit(makeExit(textureId, data.exit));
 
-        return {data.number, makeMap(data), std::move(world), data.playerSpawnFeet};
+        return {levelNumber, makeMap(data), std::move(world), data.playerSpawnFeet};
     }
 }
 
@@ -205,11 +206,7 @@ namespace simple_platformer
     GameLevel makeGameLevel(const LevelCatalog& catalog, int levelNumber, int textureId)
     {
         const ExampleLevelData data = loadExampleLevelData(levelPath(catalog, levelNumber));
-        if (data.number != levelNumber)
-        {
-            throw std::invalid_argument("The level file contains the wrong level number");
-        }
-        return composeLevel(data, textureId);
+        return composeLevel(data, levelNumber, textureId);
     }
 
     Actor makeExamplePlayer(int textureId)

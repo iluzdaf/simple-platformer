@@ -13,7 +13,6 @@ TEST_CASE(
 {
     const auto data = simple_platformer::parseExampleLevelData(
         R"({
-            "number": 3,
             "map": ["....", "####"],
             "playerSpawnCell": [1, 0],
             "actors": [
@@ -46,7 +45,6 @@ TEST_CASE(
         })",
         "test level");
 
-    REQUIRE(data.number == 3);
     REQUIRE(data.mapRows.size() == 2);
     REQUIRE(data.playerSpawnFeet.x == 24.0F);
     REQUIRE(data.actors.size() == 2);
@@ -75,7 +73,6 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
     REQUIRE_THROWS_AS(
         simple_platformer::parseExampleLevelData(
             R"({
-                "number": 1,
                 "map": ["....", "###"],
                 "playerSpawnFeet": [8, 8],
                 "actors": [],
@@ -88,7 +85,6 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
     REQUIRE_THROWS_AS(
         simple_platformer::parseExampleLevelData(
             R"({
-                "number": 1,
                 "map": ["....", "####"],
                 "playerSpawnFeet": [8, 8],
                 "actors": [{"type": "ghost", "spawnFeet": [8, 8]}],
@@ -101,7 +97,6 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
     REQUIRE_THROWS_AS(
         simple_platformer::parseExampleLevelData(
             R"({
-                "number": 1,
                 "map": ["....", "####"],
                 "playerSpawnCell": [1, 0],
                 "actors": [{

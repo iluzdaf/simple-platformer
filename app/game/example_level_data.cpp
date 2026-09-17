@@ -326,11 +326,6 @@ namespace
     simple_platformer::ExampleLevelData levelData(const Json& root, std::string_view sourceName)
     {
         simple_platformer::ExampleLevelData result;
-        result.number = integer(member(root, "number", sourceName, "root"), sourceName, "number");
-        if (result.number <= 0)
-        {
-            fail(sourceName, "number", "level number must be positive");
-        }
         result.mapRows = mapRows(member(root, "map", sourceName, "root"), sourceName);
         result.playerSpawnFeet =
             feetPosition(root, "playerSpawnCell", "playerSpawnFeet", sourceName, "root");

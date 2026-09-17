@@ -43,7 +43,6 @@ namespace simple_platformer
 
     struct ExampleLevelData
     {
-        int number = 0;
         std::vector<std::string> mapRows;
         glm::vec2 playerSpawnFeet = {0.0F, 0.0F};
         std::vector<ExampleActorPlacement> actors;

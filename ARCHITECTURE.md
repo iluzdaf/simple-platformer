@@ -434,7 +434,8 @@ reference point and do not imply that an object must stand on the ground.
 
 Level data does not specify actor, pickup, or exit bounds. The C++ example-content
 factories own those collision sizes and create each runtime AABB around its loaded feet
-position. Visual anchoring remains an independent sprite concern.
+position. All example pickups use the same 16-by-16 collision bounds. Their item sprites
+remain independent, just like actor sprites and bodies.
 
 The JSON dependency stays at the application content boundary.
 `example_level_catalog.cpp` validates the catalog, and `example_level_data.cpp` parses a

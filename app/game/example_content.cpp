@@ -29,6 +29,8 @@
 
 namespace
 {
+    constexpr float ExamplePickupSideLength = 16.0F;
+
     simple_platformer::Animator makeAnimator(simple_platformer::AnimationSet animations)
     {
         simple_platformer::Animator animator;
@@ -155,24 +157,10 @@ namespace
             data.mapRows, {{false}, {true, {{0.0F, 192.0F}, {16.0F, 16.0F}}}});
     }
 
-    glm::vec2 pickupSize(simple_platformer::ItemId item)
-    {
-        switch (item)
-        {
-        case simple_platformer::Coin:
-        case simple_platformer::Key:
-            return {12.0F, 12.0F};
-        case simple_platformer::HealthPotion:
-            return {16.0F, 16.0F};
-        default:
-            throw std::logic_error("Unknown example pickup item");
-        }
-    }
-
     simple_platformer::Pickup makePickup(const simple_platformer::ExamplePickupPlacement& placement)
     {
         simple_platformer::Pickup pickup;
-        pickup.bounds.size = pickupSize(placement.stack.item);
+        pickup.bounds.size = {ExamplePickupSideLength, ExamplePickupSideLength};
         simple_platformer::placeFeetAt(pickup.bounds, placement.spawnFeet);
         pickup.stack = placement.stack;
         return pickup;

@@ -9,6 +9,9 @@ on:
 jobs:
   quality:
     name: Formatting and static analysis
+    # Strict branch protection runs these checks before a pull request can merge.
+    # Do not repeat the uncached analysis on the resulting push to main.
+    if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     env:
       LLVM: 18
@@ -37,7 +40,16 @@ jobs:
       - name: Check headers stand alone
         run: cmake --build build/quality --target header_self_containment
       - name: Run static analysis
-        run: cmake --build build/quality --target tidy
+        shell: bash
+        run: |
+          {
+            find app src tests -type f -name '*.cpp' -print0
+            find app include -type f -name '*.hpp' -print0
+          } | xargs -0 -P"$(nproc)" -n1 \
+            "$CLANG_TIDY" \
+            -p build/quality \
+            --warnings-as-errors='*' \
+            --quiet
 
   macos:
     name: macOS / Apple Clang

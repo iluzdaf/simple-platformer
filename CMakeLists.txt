@@ -136,6 +136,7 @@ add_executable(
     app/main.cpp
     app/ui/completion_ui.cpp
     app/ui/health_hud_ui.cpp
+    app/ui/inventory_layout.cpp
     app/ui/inventory_ui.cpp
 )
 target_compile_features(simple_platformer PRIVATE cxx_std_17)
@@ -279,9 +280,11 @@ if(BUILD_TESTING)
         app/game/example_game.cpp
         app/game/example_items.cpp
         app/graphics/display_viewport.cpp
+        app/ui/inventory_layout.cpp
         tests/app/test_debug_overlay.cpp
         tests/app/test_display_viewport.cpp
         tests/app/test_example_content.cpp
+        tests/app/test_inventory_layout.cpp
         tests/app/test_level_transition.cpp
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp

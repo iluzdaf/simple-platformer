@@ -14,6 +14,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "ui/hud_layout.hpp"
+#include "ui/inventory_layout.hpp"
 
 namespace simple_platformer
 {
@@ -22,12 +23,16 @@ namespace simple_platformer
         const TextureView& atlas,
         const WindowViewport& viewport)
     {
-        constexpr std::size_t Columns = 3;
+        const auto& slots = game.playerInventory().slots();
+        const InventoryGridLayout layout = makeInventoryGridLayout(slots.size());
         const float slotSize = 20.0F * viewport.scale.x;
         const float iconPadding = 2.0F * viewport.scale.x;
         const float windowPadding = 2.0F * viewport.scale.x;
         const ImVec2 windowSize = {
-            slotSize * 3.0F + windowPadding * 4.0F, slotSize * 2.0F + windowPadding * 3.0F};
+            slotSize * static_cast<float>(layout.columns) +
+                windowPadding * static_cast<float>(layout.columns + 1),
+            slotSize * static_cast<float>(layout.rows) +
+                windowPadding * static_cast<float>(layout.rows + 1)};
         const ImVec2 inventoryBottomLeft = {
             viewport.topLeft.x + HudMargin * viewport.scale.x,
             viewport.topLeft.y +
@@ -45,7 +50,6 @@ namespace simple_platformer
                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
                     ImGuiWindowFlags_NoSavedSettings))
         {
-            const auto& slots = game.playerInventory().slots();
             for (std::size_t index = 0; index < slots.size(); ++index)
             {
                 ImGui::PushID(static_cast<int>(index));
@@ -90,7 +94,7 @@ namespace simple_platformer
                         slotToUse = index;
                     }
                 }
-                if ((index + 1) % Columns != 0 && index + 1 < slots.size())
+                if ((index + 1) % layout.columns != 0 && index + 1 < slots.size())
                 {
                     ImGui::SameLine();
                 }

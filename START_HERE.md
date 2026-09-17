@@ -41,20 +41,23 @@ fixed-step loop, UI, and graphics setup. Do not worry about the OpenGL details y
 ### 2. See what the example game coordinates
 
 Read [`app/game/example_game.hpp`](app/game/example_game.hpp) and
-[`app/game/example_game.cpp`](app/game/example_game.cpp). `ExampleGame` owns the
-current map and world. It passes input into the simulation, updates presentation state,
-changes levels, and builds a scene for rendering.
+[`app/game/example_game.cpp`](app/game/example_game.cpp). `ExampleGame` owns the current
+`GameLevel` and camera controller. `GameLevel` keeps the level ID, map, world, and player
+spawn together. `ExampleGame` passes input into the simulation, updates presentation
+state, changes levels, and builds a scene for rendering.
 
 Then open [`assets/levels/levels.json`](assets/levels/levels.json). It chooses the
-starting level and maps level numbers to filenames, so level files can be freely
-renamed. [`level_catalog.cpp`](app/game/level_catalog.cpp) validates that catalog and
+starting level and maps level IDs to filenames, so level files can be freely renamed.
+[`level_catalog.cpp`](app/game/level_catalog.cpp) validates that catalog and
 resolves its filenames. Follow its first entry into
 [`assets/levels/level_1.json`](assets/levels/level_1.json), which contains the map and
 placements for that level. Follow that data into
 [`example_level_data.cpp`](app/game/example_level_data.cpp), which validates the JSON,
 and then [`example_content.cpp`](app/game/example_content.cpp), which turns known names
 such as `zombie` into composed C++ actors. These are game-content concerns, not general
-engine behaviour.
+engine behaviour. The
+[`Data-driven level boundary`](ARCHITECTURE.md#data-driven-level-boundary) section is
+the complete reference when you are ready to edit or add levels.
 
 ### 3. Learn the core data model
 

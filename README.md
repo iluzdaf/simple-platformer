@@ -39,17 +39,17 @@ cd build/mac-debug
 ./simple_platformer
 ```
 
-Use A and D or the left and right arrow keys to move, W or the up arrow to jump, the mouse to aim, the left
-mouse button to fire, and Escape to close the window. Press F1 to show or hide the
-debug overlay text and the in-game sprite, collider, pickup, camera, dead-zone, and NPC path
-overlays. The hearts at the top-left of the game viewport show the player's current
-and maximum health.
+Use A and D or the left and right arrow keys to move, W or the up arrow to jump, the
+mouse to aim, the left mouse button to fire, and Escape to close the window. Press F1
+to show or hide the debug overlay text and the in-game sprite, collider, pickup, camera,
+dead-zone, and NPC path overlays. The hearts at the top-left of the game viewport show
+the player's current and maximum health.
 
-Walk over items to collect them. Click the bag at the bottom-left or press Q to pause and
-open the inventory, then click a health potion to drink it. Click the bag or press Q again
-to resume. Find the key and reach
-the bunker door at the far right to change levels; the second exit completes the game.
-Press R at the completion message to restart from Level 1.
+Walk over items to collect them. Click the bag at the bottom-left or press Q to pause
+and open the inventory, then click a health potion to drink it. Click the bag or press Q
+again to resume. Find the key and reach the bunker door at the far right to change
+levels; the second exit completes the game. Press R at the completion message to
+restart from the catalog's configured starting level.
 
 ## Windows: create and use the Visual Studio solution
 
@@ -93,10 +93,10 @@ should not be shared.
 ## Continuous integration
 
 GitHub Actions configures, builds, and runs all tests on both macOS with Apple Clang
-and Windows with Visual Studio 2022. The workflow runs for every push and pull request.
-The Windows job generates the same solution as `setup-windows.bat`, builds the actual
-`.sln` with MSBuild, and builds its generated `run_tests` project. CI does not launch
-the graphical game.
+and Windows with Visual Studio 2022. The workflow runs for pushes to `main` and for
+pull requests. The Windows job generates the same solution as `setup-windows.bat`,
+builds the actual `.sln` with MSBuild, and builds its generated `run_tests` project. CI
+does not launch the graphical game.
 
 The macOS and Windows jobs use a pinned `sccache` release backed by GitHub Actions'
 cache service. Only compiler outputs are cached; generated build directories are not.
@@ -162,7 +162,7 @@ app/        application shell, example game, graphics, UI, and debug tools
 assets/     runtime sprite atlas, level catalog, and editable level JSON
 include/    public core headers
 src/        core implementations
-tests/      Catch2 tests mirroring the core subjects
+tests/      Catch2 tests for core systems and testable application code
 external/   fixed third-party source releases
 .github/    continuous-integration workflow
 ```

@@ -1,97 +1,132 @@
 # Simple Platformer Architecture
 
-## Purpose
+This document explains the architecture that exists in the repository now: its main
+boundaries, data model, runtime flow, and the reasons behind them. It is a reference,
+not an implementation schedule.
 
-Simple Platformer is a small C++ teaching engine and complete example game. It keeps
-the strongest ideas from Platformer while making every major code path easy for a
-beginner to follow and test.
+If this is your first time in the project, follow [START_HERE.md](START_HERE.md) before
+reading this document from top to bottom.
 
-The reference engine comes first. Its implementation is divided into independently
-building, tested phases so it can later become a staged student exercise.
+## Purpose and scope
 
-## Goals
+Simple Platformer is a small C++17 teaching engine with a complete example game. It
+keeps the code explicit enough to trace in a debugger and separates gameplay rules
+from graphics so the major paths can be tested without opening a window.
 
-- Responsive platformer movement: running, variable-height jumping, coyote time,
-  jump buffering, gravity, and terminal velocity.
-- Simple axis-separated AABB collision against a grid of solid tiles.
-- A tile map larger than the viewport and a camera that follows the player through a dead zone.
-- Player and NPC actors assembled from the same components.
-- Player and NPC control expressed through `InputIntentions`.
-- Explicit C++ enum-and-switch finite state machines for NPC decisions.
-- Generic lowest-cost grid search with an optional A* heuristic and separate flying
-  and platformer navigation policies.
-- Platformer paths that include walking, falling, and jumping.
-- 360-degree aimed projectiles for the player and ranged NPCs, plus a deliberate timed bite.
-- A small configurable inventory, pickups, health, a key, and a level exit.
-- ImGui HUD and a paused inventory example.
-- Automated tests for major gameplay and render-scene-building paths.
-- A small cross-platform build using C++17, CMake, Apple Clang, and Visual Studio.
+The current example includes:
 
-## Non-goals for the first version
+- responsive platformer movement with variable-height jumping, coyote time, and jump
+  buffering;
+- arbitrary-sized AABB bodies colliding with a solid tile grid;
+- scrolling maps and a dead-zone camera;
+- actors assembled by composition;
+- player and NPC control through the same `InputIntentions`;
+- enum-and-switch NPC state machines, sensing, and target memory;
+- flying and platformer pathfinding;
+- 360-degree projectiles and a timed bite attack;
+- health, death, respawning, pickups, inventory, and two connected levels;
+- sprite animation, an ImGui HUD, and an optional debug overlay.
 
-- Slopes, steps, one-way platforms, or moving platforms
-- Dynamic rigid-body physics or actor-to-actor pushing
-- Multiplayer
-- Scripting or hot reload
-- An integrated level editor
-- Save games
-- Animation graphs or animation state machines
-- A general-purpose ECS
-- Advanced projectile modifiers such as homing, bouncing, or piercing
-- Automated OpenGL integration tests
-- Chunked or streaming worlds
+The project deliberately does not try to provide slopes, one-way or moving platforms,
+dynamic rigid-body physics, actor pushing, multiplayer, scripting, save games, an
+editor, an animation graph, a general ECS, or advanced projectile modifiers such as
+homing and piercing. OpenGL submission is checked manually rather than with automated
+graphics integration tests.
 
-## Technology
+## Project shape
 
-- C++17
-- CMake
-- OpenGL, GLFW, and GLM
-- ImGui
-- Catch2
-- `stb_image`
-- A fixed vendored release of `nlohmann/json`, introduced with data loading
+### Targets and dependency boundary
 
-Dependencies are vendored under `external/` so the project builds offline and every
-student uses the same versions. Third-party JSON types stay inside loader `.cpp`
-files and never appear in engine interfaces.
+The project has three main CMake targets:
 
-## Targets and dependency boundary
+- `simple_platformer_core` contains simulation and render-scene construction. It has
+  no dependency on GLFW, OpenGL, or ImGui.
+- `simple_platformer` contains the executable, window, input adapter, OpenGL renderer,
+  and ImGui presentation.
+- `simple_platformer_tests` contains Catch2 tests, primarily against the core.
 
-The project has three targets:
+This boundary is important for teaching and testing. A test can construct a `World`,
+run movement or a complete simulation tick, and inspect the result without needing a
+window or graphics context.
 
-- `simple_platformer_core`: world simulation and render-scene construction; no
-  GLFW, OpenGL, or ImGui dependency.
-- `simple_platformer`: window, keyboard, OpenGL renderer, ImGui UI, and main loop.
-- `simple_platformer_tests`: Catch2 tests linked primarily to the core.
+All third-party source is vendored under `external/` so the project builds offline and
+students use the same releases. The current dependencies include GLFW, GLM, ImGui,
+Catch2, and stb image loading.
 
-The core can be built and tested without opening a window or creating a graphics
-context. OpenGL submission remains deliberately thin and receives a manual startup
-smoke test rather than automated integration tests.
+### Application folders
 
-The application layer is grouped by responsibility:
+The application code is grouped by responsibility:
 
-- `app/game`: example-game orchestration and its C++-constructed content;
-- `app/ui`: player-facing ImGui HUD and inventory;
-- `app/debug`: testable debug-overlay data and its ImGui presentation;
-- `app/graphics`: viewport conversion and OpenGL sprite submission.
+- `app/game` contains the example game's orchestration, level content, items, and
+  animation sets;
+- `app/ui` contains player-facing HUD, inventory, and completion UI;
+- `app/debug` builds and presents optional debugging information;
+- `app/graphics` contains display-viewport conversion and OpenGL sprite submission.
 
-`application.cpp` keeps the startup, input, fixed-step, UI and rendering sequence in one
-place so students can trace the outer game loop. `ExampleGame` coordinates simulation,
-camera, rendering and level transitions. Actor factories, level geometry, pickups and
-exits live in `example_content.cpp`, keeping content construction separate from runtime
-orchestration without introducing a file for every actor type.
+`application.cpp` owns the outer loop: window events, input collection, fixed updates,
+UI, and rendering. `ExampleGame` owns the current `TileMap`, `World`, and camera
+controller. It translates application input into game input, invokes the engine, builds
+the render scene, and replaces the world during a level transition.
 
-## Coordinates
+Example-specific content is kept out of general engine systems. Actor factories, map
+geometry, pickups, exits, item definitions, and animation clips live under `app/game`.
+
+### Data, behaviour, and resources
+
+The project uses three simple forms rather than making every concept a class:
+
+- Plain structs hold state, such as `Body`, `PlatformerMovement`, `NpcBrain`, and
+  `Sprite`.
+- Namespace functions implement behaviour, such as `updatePlatformerMovement` and
+  `updateNpcBehaviour`.
+- Classes protect owned collections or external resources when invariants and lifetime
+  matter, such as `World`, `Inventory`, `CameraController`, and `SpriteRenderer`.
+
+This keeps state visible, makes inputs and outputs explicit, and lets tests call one
+piece of behaviour with small values. A class is used when it provides a useful
+ownership boundary, not merely to group functions with a familiar subject name.
+
+## Runtime flow
+
+The application gathers input and gives the player's intentions to `ExampleGame`.
+Simulation advances at a fixed 60 Hz (`1.0F / 60.0F`); rendering runs at the available
+frame rate. Frame time is clamped before it enters the fixed-step accumulator so a
+breakpoint or stall does not cause an excessive catch-up.
+
+`updateWorldSimulation` is the authoritative gameplay order:
+
+1. Update NPC sensing and target memory.
+2. Update NPC decisions, destinations, paths, and intentions.
+3. Move every actor and resolve tile collision.
+4. Advance attacks and evaluate active bite hitboxes.
+5. Move projectiles and find their earliest collision.
+6. Apply damage and advance actor life cycles.
+7. Detect automatic pickups.
+8. Apply queued world requests.
+9. Check the level exit.
+
+The player intentions are written before this sequence. Camera and actor animation are
+updated afterward because they present the resulting gameplay state and do not affect
+the simulation.
+
+Systems do not add or erase objects while another system may be traversing their
+collections. They append plain values to `WorldRequests`; the requests are applied near
+the end of the tick. This makes the mutation point explicit and avoids invalidating
+iterators and pointers during a system update.
+
+## Coordinates and time
 
 - Positive X points right.
 - Positive Y points down.
-- AABBs and tiles use top-left world positions.
-- Actor spawns, item spawns, and navigation destinations use feet: the bottom centre
-  of an actor's AABB.
-- The internal resolution is 320 by 180 pixels with 16-pixel tiles.
-- The window scales the internal image by an integer factor.
+- AABBs and tiles use a top-left world position.
+- Actor spawns, pickup placement, exits, patrol points, and navigation destinations use
+  world coordinates; actor and navigation placement helpers commonly use feet, the
+  bottom centre of an actor body.
+- The internal resolution is 320 by 180 pixels.
+- Tiles are 16 by 16 world pixels.
+- Window output is an integer-scaled internal image with letterboxing when required.
 
-The conversion is explicit:
+The two actor-position conventions are deliberately named:
 
 ```cpp
 struct Aabb
@@ -104,13 +139,13 @@ glm::vec2 feetOf(const Aabb& box);
 void placeFeetAt(Aabb& box, glm::vec2 feet);
 ```
 
-There is no ambiguous `Actor::setPosition`. Code uses `placeFeetAt` for actors and
-`body.bounds.position` for the physical top-left position.
+Physics code works with `body.bounds.position`. Content and ground navigation use
+`feetOf` and `placeFeetAt`. There is no ambiguous general `setPosition` function.
 
-## Identity and ownership
+## World ownership and identity
 
-`World` owns actors and projectiles in vectors. An actor has a stable, monotonically
-increasing typed ID that is not its vector index:
+`World` owns actors, projectiles, pickups, item definitions, and the current exit. An
+actor has a typed, monotonically increasing ID rather than exposing its vector index:
 
 ```cpp
 struct ActorId
@@ -119,19 +154,22 @@ struct ActorId
 };
 ```
 
-Zero is invalid and IDs are not reused during a play session. `World::findActor`
-performs a linear search, which is sufficient for the small example and preserves a
-simple public model if storage changes later.
+Zero is invalid. IDs are not reused within a world. `World::findActor` performs a
+linear search, which is appropriate for the example's small number of actors and keeps
+the public model simple.
 
-Projectiles hold an optional owner `ActorId` and a team. They use the owner to avoid
-hitting their shooter. Separate ID types are introduced only if another object needs
-stable external identity.
+Pointers returned by `findActor` and references to world-owned data are temporary
+views. Adding or removing objects, replacing a level, or restarting can invalidate
+them. Code that must remember an actor stores its `ActorId` and performs another lookup
+when needed.
 
-Systems do not retain actor pointers or references across world mutations.
+Mutable actor and projectile collections let systems update existing component state.
+Structural changes still go through `World` or `WorldRequests`, preserving identity and
+collection invariants.
 
-## Composition
+## Actor composition
 
-Player and NPC are roles applied to the same `Actor` aggregate rather than subclasses:
+Player and NPC are roles built from the same `Actor` aggregate, not subclasses:
 
 ```cpp
 struct Actor
@@ -139,695 +177,382 @@ struct Actor
     ActorId id;
     Body body;
     InputIntentions intentions;
-
     std::optional<PlatformerMovement> platformerMovement;
     std::optional<FlyingMovement> flyingMovement;
+    Facing facing = Facing::Right;
 
     LifeState life = LifeState::Alive;
-    float deathTimeRemaining = 0.0f;
+    float deathTimeRemaining = 0.0F;
 
     std::optional<Sprite> sprite;
+    std::optional<Animator> animator;
     std::optional<Health> health;
-    std::optional<RangedWeapon> weapon;
     std::optional<Inventory> inventory;
+    Team team = Team::Neutral;
+    std::optional<RangedWeapon> rangedWeapon;
+    std::optional<BiteAttack> bite;
     std::optional<NpcBrain> brain;
     std::optional<NpcSenses> senses;
     std::optional<Patrol> patrol;
     std::optional<PathFollower> pathFollower;
-    std::optional<BiteAttack> bite;
 };
 ```
 
-Keyboard control writes the player's intentions. An NPC brain and path follower write
-an NPC's intentions. `ActorSystem` executes both through the same movement, collision,
-weapon, and animation-observation pipeline.
+### Composition recipe
 
-An actor has exactly one movement component. The player and ground NPC use
-`PlatformerMovement`; the flying NPC uses `FlyingMovement`. Construction validates
-that neither zero nor two movement components are present. `ActorSystem` dispatches
-explicitly according to the component that exists rather than through an inheritance
-hierarchy.
+When creating a new actor, start with `Body` and add only the data required by its
+capabilities:
 
-## Input intentions
+| Role | Movement | Control | Combat and life | Presentation |
+| --- | --- | --- | --- | --- |
+| Player | `PlatformerMovement` | application writes `InputIntentions` | `Health`, `Inventory`, `Team::Player`, `RangedWeapon` | `Sprite`, `Animator` |
+| Zombie | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
+| Bat | `FlyingMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
+| Zombie soldier | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon` | `Sprite`, `Animator` |
+
+The recipe is additive. For example, making a second zombie does not require another
+type: call the same factory with different spawn and patrol data. A bat can use a
+smaller body while keeping a larger sprite because physical and visual sizes are
+independent.
+
+The important composition rules are:
+
+- an actor has exactly one movement component;
+- an NPC needs a brain, senses, and path follower; add a patrol only when it should
+  move between authored patrol points;
+- an actor has at most one configured primary attack in the example;
+- attacks use a non-neutral team so friend-or-foe filtering is defined;
+- an `Animator` is useful only with a `Sprite` and a complete `AnimationSet`.
+
+`World::addActor` rejects combinations that would make runtime dispatch ambiguous;
+level validation separately checks whether composed actors fit at their authored
+positions. Systems check for the component they operate on rather than using virtual
+methods or an inheritance hierarchy.
+
+## Input and movement
+
+### Shared intentions
 
 ```cpp
 struct InputIntentions
 {
-    glm::vec2 direction = {0.0f, 0.0f}; // each axis clamped to -1 through 1
-    glm::vec2 aimDirection = {0.0f, 0.0f};
+    glm::vec2 direction = {0.0F, 0.0F};
+    glm::vec2 aimDirection = {0.0F, 0.0F};
     bool jumpPressed = false;
     bool jumpHeld = false;
     bool primaryAttackPressed = false;
 };
 ```
 
-Platformer movement reads only `direction.x`; flying movement reads both axes.
-`aimDirection` is independent from movement and does not need to be normalized by the
-controller. Facing remains left or right for sprite flipping and follows the horizontal
-aim component independently from movement. `primaryAttackPressed` uses the actor's
-configured primary attack:
-the player and a ranged NPC fire a projectile, while a biting NPC begins a bite. This
-keeps controllers and brains independent of concrete attack types.
+Platformer movement reads the horizontal direction; flying movement reads both axes.
+Aim is independent of travel direction. Facing is still left or right for sprite
+flipping and follows horizontal aim when appropriate.
 
-GLFW events update held, pressed, and released button state. Pressed and released
-edges remain pending until the first fixed update consumes them, even if a rendered
-frame performs no fixed update. Held input is available to every fixed update.
+The application maps keyboard and mouse state to the player's intentions. NPC systems
+write the same structure from their decisions. Movement and attack systems therefore
+do not need separate player and NPC implementations.
 
-The application converts the mouse from window points to framebuffer pixels, removes
-the integer-scaled game's letterbox margin, and then converts internal screen position
-through the camera into a player aim direction. Clicks outside the game viewport are
-ignored. NPC behaviour writes a direction toward the target into the same intention,
-so the ranged attack system does not distinguish player and NPC controllers.
+GLFW events preserve pressed and released edges until a fixed update consumes them.
+The application converts the mouse from window coordinates through the letterboxed
+display viewport and camera into a world-space aim direction. Clicks outside the game
+viewport are ignored. When ImGui captures input, gameplay input is cleared.
 
-When ImGui captures the keyboard, gameplay intentions are empty except for the key
-that closes the inventory.
+### Platformer movement
 
-## Time and update order
+`PlatformerMovement` contains configuration plus a small runtime state for grounded,
+coyote, and jump-buffer timing. Its update performs horizontal acceleration or
+deceleration, starts a buffered jump when allowed, applies normal or jump-release
+gravity, and clamps fall speed.
 
-Simulation runs at a fixed 60 Hz (`1.0f / 60.0f`). Rendering runs at the available
-frame rate. Frame time is clamped to 0.25 seconds before entering the accumulator to
-avoid an excessive catch-up after a breakpoint or stall.
+Movement produces velocity. The collision module moves the body and returns contacts;
+movement then observes those contacts. This direction keeps platformer rules separate
+from tile collision and avoids a general ability framework.
 
-The fixed update order is:
+### Flying movement
 
-1. Observe the world and update NPC target memory.
-2. Update NPC FSMs, destinations, and paths.
-3. Produce player and NPC intentions.
-4. Move every actor and resolve tile collision.
-5. Advance every attack and evaluate active bite hitboxes.
-6. Move projectiles and find their earliest collision.
-7. Apply damage and advance lifecycle state, including deaths and player respawn.
-8. Detect automatic player pickups using the resulting body and life state.
-9. Apply queued item use, pickup collection, actor/projectile removal and projectile spawns.
-10. Check exit overlap and requirements after collection, and latch level completion.
+Flying movement normalizes a nonzero two-dimensional intention, multiplies it by the
+configured speed, and uses the same tile collision function. It has no gravity,
+jumping, or acceleration state.
 
-World collections do not change while a system is traversing them. Systems append
-plain requests to `WorldRequests`; `World` applies them at the end of the tick.
+## Tile map, collision, and validation
 
-`updateWorldSimulation` owns the fixed gameplay-system order and creates a request queue
-for each tick. A game writes the player's intentions, then supplies its `TileMap`, `World`,
-and elapsed time without reproducing the engine update sequence. Game-specific animation
-sets remain game data. The game invokes the engine's animation presentation system after
-simulation because animation does not affect gameplay.
+`TileMap` stores a rectangular row-major vector of integer tile IDs. Tile zero is
+empty. Each nonzero tile definition supplies a sprite region and whether the tile is
+solid. The same map layer supports rendering and collision.
 
-`updateLifeState` consumes queued damage and advances death timers. It may queue actor
-removals, but it does not structurally change the world's collections. Once every system
-has finished traversing the world, `applyWorldRequests` performs queued actor and
-projectile removals, projectile spawns, item use, and pickup collection. Pickup indexes
-are local to this batch: duplicate indexes are removed and collection runs in descending
-index order so erasing a pickup cannot invalidate a later request. Do not retain these
-indexes across updates. If capacity is limited, the later-added overlapping pickup is
-collected first.
+Examples and tests construct maps from ASCII strings using `.` for empty and `#` for
+solid. Actors, pickups, spawns, and exits are separate level data, not special tile
+IDs.
 
-## Platformer movement
+Collision moves an arbitrary-sized AABB along X, resolves it against nearby full-tile
+AABBs, then repeats along Y. The result reports left, right, ground, and ceiling
+contacts. Actors do not physically collide with or push one another. The left, right,
+and bottom map boundaries block movement; the top remains open.
 
-Movement has one readable configuration and one small runtime state:
+After C++ level content is assembled, `validateLevelActors` checks it against the map.
+Every actor spawn and patrol endpoint needs body clearance. Platformer actors also need
+ground support, while flying actors do not. Invalid content fails during loading with
+the level number, actor ID, and invalid location.
 
-```cpp
-struct PlatformerMovementConfig
-{
-    float maximumSpeed;
-    float groundAcceleration;
-    float airAcceleration;
-    float groundDeceleration;
-    float jumpSpeed;
-    float gravity;
-    float jumpReleaseGravity;
-    float maximumFallSpeed;
-    float coyoteTime;
-    float jumpBufferTime;
-};
+## NPC behaviour
 
-struct PlatformerMovement
-{
-    PlatformerMovementConfig config;
-    bool grounded = false;
-    float coyoteRemaining = 0.0f;
-    float jumpBufferRemaining = 0.0f;
-};
-```
+### Sensing and memory
 
-`PlatformerMovementSystem` is one module with short functions for timers, horizontal
-acceleration, starting a jump, and gravity. It produces velocity, collision moves the
-body, and movement observes returned contacts. There is no general ability framework.
+An NPC detects the living player when the player is within its notice distance and a
+tile segment cast finds clear line of sight. It stores the player's ID and last seen
+feet. When sight is lost, a configurable timer lets it continue toward the remembered
+position before forgetting the target.
 
-## Flying movement
+Sensing only records observations. It does not decide whether to patrol, chase, bite,
+or shoot. This keeps perception and decisions separately testable.
 
-```cpp
-struct FlyingMovement
-{
-    float speed = 60.0f;
-};
-```
+### Explicit state machine
 
-`FlyingMovementSystem` normalizes a nonzero two-dimensional intention direction,
-multiplies it by speed, and moves the body through the same tile collision system. It
-has no gravity, jumping, acceleration, or separate physics rules. This is sufficient
-for the flying NPC to follow ordinary four-direction grid paths while still respecting
-walls.
+`NpcState` is an enum and `updateNpcBehaviour` uses explicit branching. The main states
+are Idle, Patrol, Chase, and Bite. Ranged NPCs use the same pursuit state but request
+their ranged primary attack when the target is visible and in range.
 
-## Tile map and collision
-
-The first TileMap is one rectangular row-major vector of integer tile IDs. Tile ID
-zero is empty. Each nonzero definition provides a sprite region and whether it is
-solid. The same layer supplies rendering and collision.
-
-Early tests and examples construct maps from ASCII strings, using `.` for empty and
-`#` for solid. JSON loading arrives later. Entities, pickups, player spawn, and exit
-are separate level data rather than special tile IDs.
-
-After a level is populated, `validateLevelActors` checks the authored data against the
-tile map. Every actor spawn and patrol endpoint must have enough body clearance. Platformer
-actors must also have ground support, while flying actors do not. Invalid example content
-fails during level loading with the level number, actor ID, and invalid location. Tests
-exercise each rule and validate the supplied levels without fixing their exact coordinates.
-
-Collision moves an arbitrary-sized actor AABB along X, resolves against nearby full
-solid tile AABBs, then repeats along Y. It returns left, right, ground, and ceiling
-contacts. Actors do not physically collide with or push other actors.
-
-Left, right, and bottom map boundaries behave as solid. The top is open. A configurable
-kill height remains as a safety check for invalid or exceptional positions.
-
-## Camera
-
-`Camera` is the final lightweight view used by rendering and coordinate conversion.
-`CameraController` retains the previous view position. It begins locked to the centre
-of the player's collider, then moves only enough to return the player's centre to a
-configurable dead zone. A controller requires a valid camera and dead-zone size when it
-is constructed; it has no misleading zero-sized default. The example uses an 80 by 45
-internal-pixel dead zone.
-
-The view remains clamped to the tile map bounds. Small maps are centred on the relevant
-axis. Camera movement is rounded to internal pixels to keep pixel art stable. The game
-updates the controller after world simulation so rendering and mouse aiming share the
-same final camera snapshot. The F1 debug overlay draws the viewport bounds in cyan and
-the dead zone in yellow.
-
-## NPC sensing and target memory
-
-An NPC detects the living player only when the player is within its configurable
-notice distance and a tile segment cast reports clear line of sight. On detection it
-stores the player's `ActorId` and last seen feet. After losing sight it continues
-chasing the last seen feet for a configurable memory duration, initially 1.5 seconds,
-then returns to patrol.
-
-```cpp
-struct NpcSenses
-{
-    float noticeDistance = 96.0f;
-    float forgetAfter = 1.5f;
-};
-```
-
-Line of sight reuses the tile segment-cast foundation used by projectile collision,
-but ignores actors. Sensing, memory expiry, reacquisition, and the inability to target
-a dead player are pure tested behaviour.
-
-## NPC patrol and finite state machine
-
-The example includes three NPCs:
-
-- A ground creature that patrols, uses platformer path search, jumps, chases, and bites.
-- A flying creature that patrols, uses ordinary four-direction grid paths, chases, and
-  bites.
-- A ranged creature that patrols, chases the player, then stops and fires projectiles
-  while the player remains visible.
-
-All three use the same concrete enum-and-switch FSM. A patrol has two authored feet-based
-endpoints. The NPC pathfinds to the current endpoint and swaps endpoints after arriving.
-The example NPC factories also take a feet-based spawn point and patrol, so a level can
-place any number of zombies, bats, and zombie soldiers. Their shared factory accepts an
-explicit collision-body size: ground NPCs currently use `12 x 20` pixels while bats use
-the smaller `12 x 8` body. Sprite dimensions remain independent of these gameplay bodies.
-Ground sprites use a feet anchor; the bat uses a centre anchor so its small collider sits
-in the middle of its larger sprite without changing feet-based navigation coordinates.
-
-```cpp
-enum class NpcState
-{
-    Idle,
-    Patrol,
-    Chase,
-    Bite
-};
-
-struct NpcBrain
-{
-    NpcState state = NpcState::Idle;
-    float stateTime = 0.0f;
-    std::optional<ActorId> target;
-    glm::vec2 lastSeenTargetFeet;
-    float targetMemoryRemaining = 0.0f;
-};
-
-struct Patrol
-{
-    glm::vec2 firstFeet;
-    glm::vec2 secondFeet;
-    bool headingToSecond = true;
-};
-```
-
-The state transitions are explicit:
-
-- Idle enters Patrol when a patrol is configured.
-- Patrol follows its current endpoint and enters Chase when the player is detected.
-- Chase follows the player's last seen feet, enters Bite when a visible player is in
-  bite range and the NPC has a `BiteAttack`, or stops and requests an attack when a
-  visible player can be shot with a `RangedWeapon`. It returns to Patrol when target
-  memory expires. An NPC without an attack continues chasing at close range.
-- Bite faces the player, stops horizontal input, requests the bite once, and returns
-  to Chase after windup, active, and recovery phases complete.
-
-The bite does not lunge. Bite range must include the configured forward hitbox rather
-than using an unrelated centre-to-centre distance.
-
-The FSM chooses a goal or primary action; it does not directly manipulate velocity.
-
-- The FSM chooses a state and destination.
-- Lowest-cost search chooses navigation steps.
-- `PathFollower` converts the next step to `InputIntentions`.
-- `ActorSystem` sends those intentions to the actor's platformer or flying movement
-  system.
-
-Paths are recalculated when the target enters another grid cell, subject to a 0.25
-second cooldown. Patrol paths also recalculate when the active endpoint changes or a
-path becomes invalid. If a patrol endpoint is unreachable, the NPC stops and retries
-after the cooldown; it never walks directly toward an endpoint without a valid path.
-Flying followers reduce their input magnitude for the final fraction of a movement
-step, reaching each waypoint before turning around a solid-tile corner.
-
-### Future improvement: movement-specific navigation anchors
-
-The current navigation code uses actor feet for both ground and flying NPCs. Feet are
-the natural reference point for a platformer actor because they identify the surface
-the actor is standing on, but they are an artificial reference point for a flying
-actor whose body moves freely through a grid cell.
-
-A future cleanup should make the distinction explicit:
-
-- Platformer navigation converts `feetOf(body.bounds)` to a grid cell and follows
-  waypoints positioned at the feet of standable cells.
-- Flying navigation converts `centerOf(body.bounds)` to a grid cell and follows the
-  centre of each empty cell.
-- `Patrol::firstFeet` and `Patrol::secondFeet` become the neutral `firstPoint` and
-  `secondPoint`. For a ground NPC these points describe feet; for a flying NPC they
-  describe body centres.
-
-This keeps the useful feet convention for platformer movement without forcing it onto
-flyers. It does not change `Aabb::position`, which remains the body's top-left corner,
-and it does not couple navigation to the sprite anchor. The flying corner regression
-tests should remain in place while making this change.
+Behaviour chooses a destination or attack and writes intentions. It does not move the
+body directly. If a ground NPC reaches an awkward platform edge and loses its path,
+navigation can recover to a supported cell before repathing; regression tests cover
+this case.
 
 ## Navigation
 
-The generic weighted path search works on `GridPosition` and receives a neighbour
-function. It has no knowledge of tiles, actors, or platformer physics. With no
-heuristic it performs Dijkstra's lowest-cost search. Supplying an admissible heuristic
-uses A* ordering instead:
+Navigation is intentionally the most advanced subsystem. It separates a generic
+lowest-cost search from movement-specific neighbour policies.
 
-```cpp
-findLowestCostPath(start, goal, neighbors);
-findLowestCostPath(start, goal, neighbors, manhattanHeuristic);
+`path_search` accepts connections with positive costs and an optional heuristic.
+Supplying zero produces Dijkstra-style lowest-cost search. Flying navigation uses
+ordinary walkable grid neighbours and can use Manhattan distance. Platformer
+navigation uses fixed simulation ticks as the common connection cost and a conservative
+tick estimate as its heuristic.
+
+### Flying paths
+
+Flying navigation treats non-solid grid cells as nodes connected in four directions.
+The path follower steers toward successive cell destinations while collision keeps the
+body outside platforms. Arrival uses body-aware tolerances so a smaller bat does not
+remain stuck against a platform corner.
+
+### Platformer paths
+
+Platformer nodes are standable grid positions. Connections have an action: Walk, Fall,
+or Jump. Jump and fall connections also store an `InputProgram`, a sequence of
+intentions and tick counts that can be replayed by the path follower.
+
+Neighbour generation reuses the real platformer movement and collision functions at
+the fixed step. A simulated jump is accepted only when it lands on another standable
+cell. Walk connections scan continuously walkable cells and include braking at their
+destination. Because every action cost is measured in simulation ticks, the search can
+compare walking and jumping without mixing unrelated distance and time units.
+
+Path following never teleports an actor or writes its velocity. It emits intentions,
+and the ordinary actor movement system performs the motion. End-to-end tests replay
+generated input programs through the real simulation so navigation cannot quietly
+drift away from runtime movement.
+
+## Combat, projectiles, and life cycle
+
+### Primary attacks
+
+`primaryAttackPressed` triggers the configured attack component. A bite and a ranged
+weapon remain separate gameplay concepts even though both select the actor's Attack
+animation.
+
+A bite moves through Ready, Windup, Active, and Recovery. Its active AABB is placed in
+front of the actor according to facing. It has no lunge or knockback, and each eligible
+actor can be damaged once per bite. A committed bite completes even if fresh sensing
+would no longer start it; the forward hitbox can still miss.
+
+A ranged weapon moves through Ready, Shoot, Recovery, and back to Ready. Entering Shoot
+queues exactly one projectile, while the Shoot duration keeps the firing pose visible.
+The aim vector supports the full 360-degree range.
+
+### Projectiles and deferred damage
+
+A projectile contains bounds, velocity, damage, remaining lifetime, owner, team, and
+sprite data. Each tick it performs a swept segment cast from its previous to proposed
+position, chooses the earliest solid-tile or eligible-actor hit, queues damage, and is
+removed. Owner and team prevent hitting the shooter or allies.
+
+Damage is queued rather than applied while attacks and projectiles are being traversed.
+`updateLifeState` consumes the requests, changes an actor from Alive to Dying when
+health reaches zero, and advances its short death timer. Dying actors cannot decide,
+accept gameplay input, attack, or take another hit, but gravity and collision continue.
+At the end of the timer an NPC is removed; the player is respawned at its stored feet
+position with restored health and movement runtime state.
+
+## Inventory, pickups, and levels
+
+These features form one level loop but remain separate subjects:
+
+- `item.hpp` defines item data;
+- `inventory.hpp` owns slots and stacking rules;
+- `item_use.hpp` applies explicit item effects;
+- `pickup.hpp` detects automatic collection;
+- `level_exit.hpp` evaluates completion requirements.
+
+An inventory has a configurable slot count. Each slot is empty or contains an item
+stack. Adding an item fills compatible stacks, then empty slots, and reports anything
+that did not fit. Item effects use an explicit C++ switch rather than a hidden scripting
+system.
+
+The living player automatically collects pickups on strict body overlap. NPCs do not.
+A pickup that cannot fit completely remains with its uncollected quantity. The example
+contains coins, health potions, and a key. Inventory persists through player death.
+
+An exit can require an item and optionally consume it. Exit completion is latched so a
+requirement cannot be consumed twice. The simulation reports completion;
+`ExampleGame` then replaces the map and world, creates the next level, restores player
+health and inventory, and resets the camera. Velocities, projectiles, NPC state, and old
+actor IDs do not cross the level boundary. The final exit shows completion text and R
+creates a fresh Level 1 game.
+
+The inventory UI is an example presentation, not an engine rule. It draws six slots in
+a three-by-two grid above the bag button, pauses simulation while open, and emits item
+use requests instead of changing the world directly.
+
+## Presentation
+
+### Scene construction and rendering
+
+Gameplay objects never issue graphics calls. `buildRenderScene` reads the world and
+camera and returns ordered `SpriteDrawCommand` values. The OpenGL `SpriteRenderer`
+submits those commands with one small shader. There is no scene graph, material system,
+lighting system, or general render graph.
+
+This produces a one-way dependency:
+
+```text
+gameplay state -> render scene data -> OpenGL submission
 ```
 
-Students can add or remove the final argument to compare the two searches. A heuristic
-must use the same cost unit as its connections and must never overestimate the remaining
-cost. Manhattan distance is valid for the flying policy's four-direction unit-cost
-connections. Platformer navigation instead uses `platformerTickHeuristic`, an
-optimistic estimate in simulation ticks. It considers only the minimum horizontal
-distance to enter the goal column at maximum speed. It ignores acceleration, braking,
-obstacles, and vertical travel, so it cannot overestimate the remaining cost. Remove
-the heuristic argument inside `findPlatformerPath` to compare it with Dijkstra's search.
+Core tests cover scene construction, camera transforms, visible tiles, sprite placement,
+facing flips, projectile rotation, and draw order. They do not test the graphics driver.
 
-- A flying policy supplies four-direction neighbours through empty cells.
-- A platformer policy treats standable foot cells as positions and supplies Walk,
-  Fall, and Jump neighbours.
+### The different sizes
 
-Each neighbour records its destination, traversal type, cost, and any inputs needed
-to perform the connection. Path search preserves that information in its result rather
-than returning only a list of cells:
+The engine keeps visual and physical dimensions separate:
 
-```cpp
-enum class Traversal
-{
-    Fly,
-    Walk,
-    Fall,
-    Jump
-};
+- texture size is the full atlas size in source-image pixels;
+- `SpriteRegion` is one source rectangle inside that texture;
+- `Sprite::size` is the rectangle drawn in world pixels;
+- `Body::bounds.size` is the collision rectangle in world pixels.
 
-struct InputStep
-{
-    float duration;
-    InputIntentions intentions;
-};
+Matching sizes are assigned explicitly; the engine does not assume a sprite and body
+are equal. Actor sprites are normally positioned from the body's feet, which lets a
+tall image use a smaller collider. The bat additionally uses a centred sprite anchor so
+its smaller collider matches the creature in the middle of its frame.
 
-struct NavigationStep
-{
-    GridPosition destination;
-    Traversal traversal;
-    InputProgram inputs;
-};
-```
+### Animation
 
-`InputProgram` durations are seconds. The fixed-step loop remains seconds-based; no
-integer tick counter is added to movement. At runtime the path follower uses elapsed
-seconds to replay each program one fixed update at a time. Before replaying a jump or
-fall, it uses normal movement intentions to approach the takeoff cell and brake. The
-program begins only when the actor is grounded, within the one-pixel arrival tolerance,
-and horizontally stopped. Path following never changes an actor's position or velocity
-directly.
+Animations use named clips: Idle, Move, Jump, Fall, Attack, and Death. There is no
+animation state machine. A priority function selects a name from life, attack,
+grounded, and velocity state; death has highest priority, then attack.
 
-Platformer jumping is an isolated advanced subsystem. For each candidate direction
-and short or fully held jump, neighbour generation copies the actor's body size and
-`PlatformerMovementConfig`, then runs the real `updatePlatformerMovement` function at
-the fixed 60 Hz step. A connection is accepted only when collision reports a landing
-on another standable cell. Fall connections are generated by the same simulation and
-walk connections join continuously walkable standable cells on the same row. Offering
-longer Walk connections lets the search compare one continuous walk, with braking only
-at its destination, against a Jump or Fall connection. A generated airborne program also
-includes the short grounded deceleration after landing, preventing a later route from
-starting while the actor still carries velocity from the previous connection.
-Walk connections are simulated through the same movement and path-following functions,
-including their final braking. Walk, Fall, and Jump costs therefore all count fixed
-simulation updates.
+Each animated actor has an `Animator` with its current animation, elapsed time, and an
+`AnimationSet`. Each character therefore owns its clip definitions and can use different
+atlas positions and frame counts. `updateActorAnimations` selects and advances clips
+after simulation and writes the selected source region to the actor's `Sprite`.
 
-These neighbours are generated on demand rather than stored as an editor-visible
-graph. Tests replay generated programs through both the path follower and the real
-movement system, including an end-to-end ground NPC jump through
-`updateWorldSimulation`. This guards against navigation, path following, system order,
-and runtime movement drifting apart.
+The supplied atlas is 160 by 248 pixels. The example character clips use fixed 32 by
+24 source frames and separate animation sets for the player, zombie, bat, and zombie
+soldier. Artwork sources and atlas tooling live outside this student repository; this
+repository contains the finished runtime atlas.
 
-## NPC bite
+### Camera and display viewport
 
-NPC bite is an optional primary-attack component with explicit phases:
+`CameraController` stores the previous view position. It begins centred on the player,
+then moves only enough to return the player's centre to a configurable dead zone. The
+camera is clamped to the map and rounded to internal pixels for stable pixel art.
 
-```cpp
-enum class BitePhase
-{
-    Ready,
-    Windup,
-    Active,
-    Recovery
-};
+`DisplayViewport` describes where the integer-scaled internal image appears in the
+actual framebuffer. Rendering, mouse aiming, HUD layout, and debug UI reuse it so they
+agree about letterboxing and high-DPI coordinates.
 
-struct BiteAttack
-{
-    int damage = 1;
-    glm::vec2 hitboxSize = {10.0f, 8.0f};
-    float reach = 4.0f;
-    float windupDuration = 0.12f;
-    float activeDuration = 0.08f;
-    float recoveryDuration = 0.30f;
+### HUD and debug overlay
 
-    BitePhase phase = BitePhase::Ready;
-    float phaseTimeRemaining = 0.0f;
-    std::vector<ActorId> actorsHit;
-};
-```
+ImGui is used for the health HUD, inventory, completion message, and opt-in debug tools.
+F1 toggles the debug overlay. The overlay can show actor details, sprite and collision
+bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing, and
+navigation paths. Debug data is built separately from its ImGui presentation so it can
+be tested without a window.
 
-The windup telegraphs the attack, the active phase places the configured hitbox AABB
-in front of the NPC according to facing, and recovery prevents immediate repetition.
-The NPC does not lunge. An eligible actor can take damage at most once in one bite,
-and bite damage adds no knockback. Idle overlap with an NPC is harmless; this is
-intentionally different from Platformer's permanent whole-body contact damage.
+## Error handling and validation
 
-Once windup begins, the bite completes even if the target moves away or becomes
-occluded. The forward active hitbox can miss. Cancelling a committed attack based on
-fresh perception would couple sensing to attack timing and make the telegraph unreliable.
+Invalid programmer or content input throws descriptive exceptions at a boundary where
+it can be explained clearly. Examples include invalid dimensions, non-finite values,
+unknown item IDs, invalid actor composition, and unsupported spawn positions.
 
-Bite hitboxes are evaluated after every actor has moved, so actor iteration order
-cannot decide whether a bite reaches its target. Hits append damage requests rather
-than changing health immediately.
+Required assets do not silently fall back to placeholders. Startup catches exceptions
+once, prints the message, and exits. Runtime systems assume successfully constructed
+objects already satisfy their documented invariants.
 
-There is no general post-hit invulnerability in the first version. A bite records each
-actor it has hit and can therefore damage that actor only once before returning to
-Ready. A projectile disappears on its first collision, and bite recovery limits attack
-frequency.
+## Testing and quality checks
 
-## Projectiles and damage
-
-Ranged attacks use a small explicit `Ready -> Shoot -> Recovery -> Ready` sequence.
-Entering Shoot creates exactly one projectile and holds the Attack animation for the
-configured shoot duration. Recovery prevents another projectile until the weapon
-returns to Ready. This makes the firing pose readable without coupling projectile
-creation to animation frames.
-
-The first projectile contains bounds, velocity, damage, remaining lifetime, owner,
-team, and a sprite. Its collision bounds and sprite display size are independently
-configurable world-pixel dimensions. The ranged attack system normalizes the actor's
-aim intention, spawns the projectile beyond the actor body along that direction, and
-supports the full 360-degree range. Each tick it casts the swept
-segment from its previous to proposed position against solid tiles and eligible actor
-AABBs, selects the earliest hit, applies one damage request, and disappears. A ranged
-NPC uses the same component and attack system as the player; its brain only supplies
-the attack intention. Projectiles do not pierce, bounce, home, or cause splash damage.
-
-## Life and death
-
-When health reaches zero, an actor changes from Alive to Dying for a configurable
-short duration, initially 0.4 seconds. A dying actor cannot decide, accept gameplay
-input, fire, or take another hit. Gravity and tile collision continue. Animation
-selection gives Death highest priority.
-
-At the end of the timer an NPC is removed. A player is replaced or reset at the
-level's feet-based spawn with restored health and runtime movement state.
-
-## Animation
-
-Sprites use named clips such as Idle, Move, Jump, Fall, Attack, and Death. There is no
-animation state machine. Bite and ranged-weapon systems retain their distinct gameplay
-behaviour, but both select the actor's Attack clip. A pure priority function selects a
-clip from actor life state, an active attack, grounded state, and velocity. Death has
-highest priority, followed by Attack. A ranged weapon selects Attack throughout its
-Shoot phase, then returns to the appropriate movement animation during Recovery.
-Render-scene tests cover selection, source frame, sprite placement, and
-horizontal flipping.
-
-Each animated actor owns a small optional `Animator` component containing its current
-animation, elapsed playback time, and an `AnimationSet`. The set maps animation names
-to that character's own clips, so characters do not have to share atlas rows, frame
-counts, or layouts. The engine's `updateActorAnimations` presentation system reads
-actor life, combat, and movement state to select and advance these clips. It remains a
-separate call after `updateWorldSimulation` because animation does not affect gameplay.
-The game layer defines separate sets for the soldier player,
-zombie, bat, and zombie soldier using explicit source regions; the engine neither
-assigns rows nor requires matching layouts. These sets live in
-`app/game/example_animations.*`, where their real atlas data can also be exercised by
-focused tests. The example game is supplied with one finished `160 x 248` atlas.
-Each actor uses two rows of four `32 x 24` frames, so wide attacks and death poses
-do not need to be reduced to fit a long single row. The fifth column holds a
-dedicated passing pose for the player, zombie, and zombie soldier without replacing
-their idle frames. Ground walk cycles play contact A, passing, contact B, passing.
-The bat's movement cycle plays wings up, out, down, and recovery at 0.10 seconds
-per frame. Its two additional poses occupy the fifth column of its two atlas rows.
-The source coordinates match
-integer coordinates in image editors such as Piskel. Artwork sources and atlas tooling
-are deliberately kept outside the student repository. The high-resolution originals
-are downsampled once while building the atlas; runtime frame dimensions then match
-their world-pixel display dimensions without stretching.
-Game and behaviour code select named animations; the reusable animation helper finds
-the clip in the actor's set, advances playback, and writes the selected frame to the
-actor's `Sprite`.
-
-### Future improvement: mixed-size animation frames
-
-`SpriteRegion` already describes an arbitrary source rectangle, and `AnimationClip`
-does not require every region to have the same dimensions. The example deliberately
-uses fixed `32 x 24` regions because animation playback currently changes only
-`Sprite::region`; `Sprite::size` remains fixed. Mixed-size regions would therefore be
-stretched into the same display rectangle.
-
-A future extension can replace each clip's bare `SpriteRegion` with an
-`AnimationFrame` containing a source region, display size, and pivot or offset. This
-would preserve pixel-for-pixel mixed-size artwork while keeping feet stable between
-frames. The actor's collision body must remain independent from these visual frame
-dimensions.
-
-## Inventory, pickups, and exit
-
-These are related by the level loop, but they are separate subjects in the code. `item.hpp`
-defines item data, `item_use.hpp` applies item effects, `pickup.hpp` handles automatic
-collection, and `level_exit.hpp` handles completion requirements. `World` owns their runtime
-state, while each subject implements its own rules instead of collecting unrelated behaviour
-in one `world_items` module.
-
-Inventory has a configurable number of slots. The example presents six slots as a minimal
-three-by-two icon grid, including empty slots, with each stack quantity drawn over the
-icon. The open grid is anchored immediately above the bottom-left inventory bag and uses
-the same viewport scaling. Each slot is empty or contains an item stack. Item definitions
-configure name, icon, maximum stack, effect kind, and effect amount. New behaviour remains
-an explicit C++ `switch`; data does not become a hidden scripting system.
-
-Adding an item first fills compatible stacks and then empty slots. Anything that does
-not fit remains in the world. The result reports added and remaining counts.
-
-`Inventory` owns its slots and exposes a const view; mutation goes through its operations.
-`World` owns immutable item definitions with positive integer IDs, and validates IDs when
-pickups and exit requirements are added. Actors optionally own an inventory. Pickups are
-stationary objects with AABB bounds and an item quantity, separate from actors. The living
-player collects automatically on strict body overlap; mere edge contact does not collect.
-NPCs do not collect items. Inventory survives player death and respawn.
-
-The example includes coins, health potions, and a key. The ImGui HUD shows health;
-item counts appear in the inventory. Clicking the bag at the bottom-left of the game viewport
-or pressing Q toggles the inventory and pauses simulation while it is open. Clicking a
-consumable item once requests its use; non-consumable items remain visible but do nothing
-when clicked. UI emits requests rather than changing the world directly.
-
-The bag's 16 x 16 atlas region is at (64, 216). Its ImGui hit area uses the same viewport
-scale as the hearts. The application builds the button before the simulation update and
-handles mouse-down immediately, so opening the inventory cannot also fire a projectile.
-
-Coins, potions and keys all occupy slots. A potion consumes one item only when it heals a
-living actor, and healing is clamped to maximum health. Item use is applied while the
-inventory is paused without advancing gameplay timers. Opening/closing the inventory clears
-gameplay input and resets the fixed-step accumulator; closing does not replay UI clicks or
-catch up time spent paused. Coins, potions and keys use individual 16 x 16 atlas regions;
-the bunker exit uses a 16 x 32 region. Source artwork and the packer remain in the separate
-`simple-platformer-art` folder. The packer fits each original once with preserved proportions
-and transparent padding. The 160 x 248 atlas retains all previous sprite coordinates.
-
-An exit has a configurable optional item requirement, count, and consume flag. The
-example level requires one key and does not consume it. Reaching an unlocked exit
-completes the level.
-
-`LevelExit::nextLevel` optionally names the next level by integer ID. Completion is latched,
-so a consuming exit removes its requirement exactly once. The simulation only reports
-completion; `ExampleGame` handles it after the simulation call returns. It replaces the
-map and world, creates fresh actors, and resets the camera at the new player spawn. Health
-and inventory carry over; velocities, projectiles, NPC state and old actor IDs do not.
-An exit without a next level pauses gameplay and shows minimal completion text above the
-door. Pressing R creates a fresh Level 1 world, player and camera. The example has two
-C++-constructed levels; JSON content comes later. The key is carried into level two.
-
-An integration test drives the example through both exits without graphics and checks
-health/inventory carry-over, clearing projectiles on transition, and final completion.
-It exercises the level loop rather than asserting particular animation frames or art data.
-
-Manual UI check: collect the starting items, open the inventory with Q, then click a potion after taking
-damage. Verify movement, projectiles and NPCs remain paused, Q closes the inventory, and
-closing does not fire a projectile. Reach the marked exit with the key, verify the camera
-resets in level two, then reach the final exit, confirm the completion text, and press R to
-restart with fresh health and inventory.
-
-## Rendering
-
-Gameplay objects never issue graphics calls. A pure render-scene builder reads the
-world and camera and produces ordered `SpriteDrawCommand` values. Tests cover camera
-transforms, visible tile selection, animation frames, sprite placement, facing flips,
-and draw order.
-
-Texture dimensions and `SpriteRegion` rectangles are measured in source-image pixels.
-`Sprite::size` and `Body::bounds` are measured in world pixels and are independent;
-matching sizes must be assigned explicitly. Rendering aligns differently sized body
-and sprite rectangles at the actor's feet.
-
-A small OpenGL `SpriteRenderer` submits textured quads using one uncomplicated shader.
-There is no scene graph, material system, lighting, or general render graph. ImGui is
-drawn after the internally scaled game image so HUD and inventory remain crisp at the
-window resolution. The health HUD draws one heart for each maximum-health point and
-selects a filled or empty atlas region from the player's current health. HUD and debug
-graphics share the same window-space viewport conversion, so both remain aligned with
-the game through letterboxing and high-DPI scaling. The example application's F1 key
-toggles the app-only debug overlay:
-one plain text list shows each player or NPC and its runtime details, while white sprite bounds and red
-collision bounds are drawn over the game. Pickup bounds are mint green. Cyan camera bounds and the yellow camera dead
-zone are also shown. NPC paths are drawn as coloured connections: green for walking,
-magenta for jumping, orange for falling, and cyan for flying. Completed connections are
-grey and the next connection is thicker. Jump and fall connections replay their stored
-fixed-step input programs through the real movement and collision code, so their debug
-lines show the planned physical trajectory. NPC sensing draws a faint notice-radius
-circle, a green line to a visible opposing player, and a yellow marker and line for a
-remembered target position. Projectiles show their collision bounds, owner, and remaining
-lifetime directly in world space without separate debug windows. An active bite shows its
-damaging hitbox in magenta. The reusable debug-data builder stays separate from the
-GLFW/ImGui presentation code so it can be tested without a window.
-
-## Loading and errors
-
-The first phases construct maps and definitions in C++. Data loading is added only
-after runtime behaviour works. Loaders parse JSON into plain data structures, validate
-dimensions, IDs, ranges, references, and required fields, then construct runtime
-objects.
-
-Malformed required assets throw descriptive exceptions. Startup catches once, prints
-the error, and exits. There are no silent defaults or fallback textures for required
-content.
-
-## Testing strategy
-
-Catch2 tests are grouped by subsystem. Major coverage includes:
+Tests mirror the source subjects and focus on behaviour rather than private
+implementation. Important coverage includes:
 
 - coordinate and feet conversions;
 - fixed-step accumulation and input-edge consumption;
-- actor ID uniqueness, lookup, and removal;
-- movement acceleration, deceleration, air control, jumping, buffers, coyote time,
-  jump cutting, gravity, and fall-speed limits;
-- flying movement normalization, speed, two-axis intentions, and tile collision;
-- collision on all four sides, corners, arbitrary body sizes, map bounds, and high
-  allowed speeds;
+- actor identity, lookup, removal, and deferred requests;
+- platformer and flying movement;
+- arbitrary body sizes, four-sided tile collision, corners, and map boundaries;
 - camera dead-zone following, clamping, centring, and pixel rounding;
-- NPC distance and line-of-sight sensing, target memory, patrol endpoint changes, FSM
-  transitions, bite eligibility, and path-recalculation cooldown;
-- generic lowest-cost search, optional Manhattan heuristic, flying neighbours,
-  standability, falls, jump clearance, and runtime replay of accepted jump arcs;
-- ranged shoot and recovery timing, one projectile per shot, and firing direction;
-- bite windup, active and recovery timing, forward hitbox placement, one hit per
-  attack, committed attacks that can miss, harmless idle overlap, no lunge, no general
-  post-hit invulnerability, and deferred damage;
-- projectile lifetime, owner/team filtering, earliest swept hit, damage, and removal;
-- health, dying behaviour, NPC removal, and player respawn;
-- inventory stacking, capacity, partial collection, item use, and exit requirements;
-- animation selection and render-scene command generation;
-- valid and invalid data loading once JSON is introduced.
+- NPC sensing, memory, FSM transitions, continuous patrol, and edge recovery;
+- lowest-cost search, heuristics, flying paths, standability, falls, and replayed jump
+  programs;
+- bite and ranged attack phases;
+- swept projectiles, teams, damage, death, removal, and respawn;
+- inventory stacking and capacity, automatic pickup, item use, exit requirements, and
+  level transitions;
+- animation selection and render-scene generation;
+- supplied level validation and invalid-content diagnostics.
 
-Rendering submission and platform UI integration receive a documented manual smoke
-test. Tests use public behaviour wherever practical; small pure helpers can be tested
-directly when they represent a concept students are expected to learn.
+Tests that need an actor usually define a small local factory containing only the data
+relevant to that subject. This duplication is intentional: each test remains readable
+without discovering a large shared fixture full of unrelated defaults.
 
-## Implementation phases
+CI builds and tests on macOS with Apple Clang and on Windows through the same generated
+Visual Studio solution used by students. A Linux quality job checks formatting,
+clang-tidy, and public-header self-containment. OpenGL and ImGui integration remain a
+manual run because automated graphics-context tests would add more infrastructure than
+teaching value here.
 
-Each phase must configure, build, and pass all tests before the next begins.
+## Future work
 
-1. **Foundation**: CMake targets, vendored dependencies, math conventions, fixed-step
-   loop, and test harness.
-2. **Tile world**: ASCII TileMap, AABB, X-then-Y collision, arbitrary body sizes, map
-   boundaries, and tests.
-3. **Player movement**: input state, two-dimensional `InputIntentions`, consolidated
-   platformer movement, facing, and movement tests.
-4. **Rendering and camera**: textures, named animation clips, render-scene commands,
-   simple OpenGL sprites, fixed internal resolution, and dead-zone camera.
-5. **Composition and lifecycle**: Actor aggregate, stable IDs, world requests, health,
-   death, removal, and player respawn.
-6. **Combat**: player ranged weapon, 360-degree aimed projectiles, NPC bite phases and
-   hitboxes, segment casts, damage, teams, and combat tests.
-7. **NPC behaviour and path search**: sensing, line of sight, target memory, two-point
-   patrols, concrete NPC FSM, generic lowest-cost search, flying movement and navigation,
-   path follower, unreachable-path retry, and intention-driven NPC movement and attacks.
-8. **Platformer navigation**: standable cells, walking, falling, jump arcs, clearance,
-   runtime replay tests, and jumping ground NPC.
-9. **Inventory and level loop**: pickups, stacks, configurable effects, key requirement,
-   exit, ImGui HUD, and paused inventory.
-10. **Data-driven content**: vendored `nlohmann/json`, validated loaders for maps,
-    actors, items, animation clips, and example-level data.
-11. **Teaching polish**: complete example level, concise architecture-linked README,
-    diagrams, manual graphics smoke test, and a documented route for converting phases
-    into student exercises.
+Future ideas are collected here so the sections above continue to describe the current
+repository.
 
-## Definition of done
+### Data-driven content
 
-- macOS Apple Clang and Windows Visual Studio build the C++17 project from the vendored
-  repository using documented CMake commands.
-- The complete example can run, jump, scroll, shoot an NPC, collect and use an item,
-  collect a key, open the inventory, die and respawn, and reach the exit.
-- A flying NPC demonstrates ordinary grid path search, patrols, detects and remembers the
-  player, chases, and performs a timed bite.
-- A ground NPC follows a path that includes at least one successful jump and exercises
-  the same patrol, chase, and bite FSM.
-- A ranged NPC stops and fires aimed projectiles while it can see the player.
-- All automated tests pass without a graphics context.
-- The documented manual graphics smoke test passes.
-- The code and documentation preserve the boundaries in this document.
+Levels, actors, items, and animation clips are currently constructed in C++. A future
+step can vendor a fixed `nlohmann/json` release and add validated JSON loaders. JSON
+types should remain inside loader implementation files rather than leaking into engine
+interfaces. Loading should preserve the same runtime structures and validation rules.
+
+### Movement-specific navigation anchors
+
+Ground navigation naturally uses actor feet, while a flying actor is easier to reason
+about from its centre. The current API keeps feet-based destinations for both so the
+navigation data model stays uniform. A future revision can introduce an explicitly
+named navigation anchor, use feet for platformer actors and centres for flying actors,
+and rename patrol point fields so they are neutral about the chosen anchor.
+
+### Mixed-size animation frames
+
+`SpriteRegion` already supports arbitrary source rectangles, but animation playback
+currently changes only the region while `Sprite::size` and its anchor remain fixed.
+Fixed-size example frames avoid visible stretching.
+
+A future `AnimationFrame` could contain a source region, display size, and pivot or
+offset. That would support mixed-size pixel-for-pixel artwork while keeping feet or
+another visual anchor stable. Collision bodies must remain independent from animation
+frame dimensions.
+
+### Teaching packages
+
+The completed reference can later be divided into staged student exercises with focused
+starter code, diagrams, and checkpoints. Those teaching packages should link back to
+this current-design reference rather than turning it into a chronological build diary.

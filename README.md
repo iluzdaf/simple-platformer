@@ -1,12 +1,16 @@
 # Simple Platformer
 
-Simple Platformer is a C++17 teaching engine and example game built in independently
-testable phases. The current implementation includes platformer movement, tile collision,
+Simple Platformer is a C++17 teaching engine and example game built from independently
+testable systems. The current implementation includes platformer movement, tile collision,
 scrolling, composed actors, NPC finite state machines, flying and platformer pathfinding,
 360-degree projectiles, animation, inventory, automatic pickups, a two-level game loop,
 and ImGui debugging tools.
 
-Read [ARCHITECTURE.md](ARCHITECTURE.md) for the agreed design and implementation plan.
+New to the project? Start with [START_HERE.md](START_HERE.md). It gives a recommended
+route through the code and points out which details can wait until later.
+
+After that, read [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed design, ownership
+rules, runtime flow, and reasons behind the main decisions.
 
 ## Requirements
 
@@ -154,7 +158,7 @@ cmake --build --preset mac-debug --target header_self_containment
 ## Repository layout
 
 ```text
-app/        executable entry point
+app/        application shell, example game, graphics, UI, and debug tools
 assets/     finished runtime sprite atlas supplied with the example game
 include/    public core headers
 src/        core implementations
@@ -162,6 +166,9 @@ tests/      Catch2 tests mirroring the core subjects
 external/   fixed third-party source releases
 .github/    continuous-integration workflow
 ```
+
+The recommended code-reading route is in `START_HERE.md`; detailed design decisions are
+in `ARCHITECTURE.md`.
 
 ## License
 

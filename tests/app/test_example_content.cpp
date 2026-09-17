@@ -2,20 +2,18 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <stdexcept>
 #include <vector>
 
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
 #include "game/example_content.hpp"
-#include "game/example_items.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/level_validation.hpp"
-#include "simple_platformer/world/tile_map.hpp"
-#include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
 
 namespace
@@ -30,6 +28,17 @@ namespace
     };
 }
 
+TEST_CASE("Example level selection records the requested number", "[app][content]")
+{
+    for (const int requested : {1, 2})
+    {
+        const auto content = simple_platformer::makeExampleLevel(requested, 0);
+        REQUIRE(content.number == requested);
+    }
+
+    REQUIRE_THROWS_AS(simple_platformer::makeExampleLevel(3, 0), std::invalid_argument);
+}
+
 TEST_CASE("Every NPC patrol in the supplied levels makes progress", "[app][content][patrol]")
 {
     constexpr float FixedDeltaTime = 1.0F / 60.0F;
@@ -40,18 +49,16 @@ TEST_CASE("Every NPC patrol in the supplied levels makes progress", "[app][conte
     {
         DYNAMIC_SECTION("Level " << level)
         {
-            const simple_platformer::TileMap map = simple_platformer::makeExampleLevel(level);
-            simple_platformer::World world(simple_platformer::makeExampleItems(0));
+            simple_platformer::ExampleLevel content = simple_platformer::makeExampleLevel(level, 0);
 
             simple_platformer::Actor player = simple_platformer::makeExamplePlayer(0);
             const glm::vec2 playerSpawn = simple_platformer::feetOf(player.body.bounds);
-            const simple_platformer::ActorId playerId = world.addActor(player);
-            world.setPlayer(playerId, playerSpawn);
-            simple_platformer::populateExampleLevel(world, level, 0);
-            simple_platformer::validateLevelActors(map, world, level);
+            const simple_platformer::ActorId playerId = content.world.addActor(player);
+            content.world.setPlayer(playerId, playerSpawn);
+            simple_platformer::validateLevelActors(content.map, content.world, content.number);
 
             std::vector<PatrolObservation> patrols;
-            for (const simple_platformer::Actor& actor : world.actors())
+            for (const simple_platformer::Actor& actor : content.world.actors())
             {
                 if (actor.patrol.has_value())
                 {
@@ -65,10 +72,12 @@ TEST_CASE("Every NPC patrol in the supplied levels makes progress", "[app][conte
 
             for (int tick = 0; tick < SimulationTicks; ++tick)
             {
-                simple_platformer::updateWorldSimulation(map, world, FixedDeltaTime);
+                simple_platformer::updateWorldSimulation(
+                    content.map, content.world, FixedDeltaTime);
                 for (PatrolObservation& observation : patrols)
                 {
-                    const simple_platformer::Actor* actor = world.findActor(observation.actor);
+                    const simple_platformer::Actor* actor =
+                        content.world.findActor(observation.actor);
                     if (actor == nullptr || !actor->patrol.has_value())
                     {
                         FAIL("An NPC patrol disappeared during the simulation");

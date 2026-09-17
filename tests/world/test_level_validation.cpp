@@ -6,7 +6,6 @@
 #include <glm/vec2.hpp>
 
 #include "game/example_content.hpp"
-#include "game/example_items.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
@@ -14,7 +13,6 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/level_validation.hpp"
-#include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace
@@ -120,12 +118,11 @@ TEST_CASE("The supplied example levels have valid actor placement", "[app][examp
 {
     for (const int level : {1, 2})
     {
-        const auto map = simple_platformer::makeExampleLevel(level);
-        simple_platformer::World world(simple_platformer::makeExampleItems(0));
-        const auto player = world.addActor(simple_platformer::makeExamplePlayer(0));
-        world.setPlayer(player, {38.0F, 208.0F});
-        simple_platformer::populateExampleLevel(world, level, 0);
+        auto content = simple_platformer::makeExampleLevel(level, 0);
+        const auto player = content.world.addActor(simple_platformer::makeExamplePlayer(0));
+        content.world.setPlayer(player, {38.0F, 208.0F});
 
-        REQUIRE_NOTHROW(simple_platformer::validateLevelActors(map, world, level));
+        REQUIRE_NOTHROW(
+            simple_platformer::validateLevelActors(content.map, content.world, content.number));
     }
 }

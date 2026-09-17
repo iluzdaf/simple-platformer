@@ -181,6 +181,13 @@ namespace
         world.setExit(exit);
     }
 
+    simple_platformer::ExampleLevel makeLevelOne(int textureId)
+    {
+        simple_platformer::World world(simple_platformer::makeExampleItems(textureId));
+        populateLevelOne(world, textureId);
+        return {1, makeLevelOneMap(), std::move(world)};
+    }
+
     simple_platformer::TileMap makeLevelTwoMap()
     {
         constexpr int Width = 60;
@@ -223,18 +230,25 @@ namespace
             simple_platformer::Sprite{textureId, {{48.0F, 216.0F}, {16.0F, 32.0F}}, {16.0F, 32.0F}};
         world.setExit(exit);
     }
+
+    simple_platformer::ExampleLevel makeLevelTwo(int textureId)
+    {
+        simple_platformer::World world(simple_platformer::makeExampleItems(textureId));
+        populateLevelTwo(world, textureId);
+        return {2, makeLevelTwoMap(), std::move(world)};
+    }
 }
 
 namespace simple_platformer
 {
-    TileMap makeExampleLevel(int level)
+    ExampleLevel makeExampleLevel(int levelNumber, int textureId)
     {
-        switch (level)
+        switch (levelNumber)
         {
         case 1:
-            return makeLevelOneMap();
+            return makeLevelOne(textureId);
         case 2:
-            return makeLevelTwoMap();
+            return makeLevelTwo(textureId);
         default:
             throw std::invalid_argument("Unknown example level");
         }
@@ -257,18 +271,4 @@ namespace simple_platformer
         return player;
     }
 
-    void populateExampleLevel(World& world, int level, int textureId)
-    {
-        switch (level)
-        {
-        case 1:
-            populateLevelOne(world, textureId);
-            return;
-        case 2:
-            populateLevelTwo(world, textureId);
-            return;
-        default:
-            throw std::invalid_argument("Unknown example level");
-        }
-    }
 }

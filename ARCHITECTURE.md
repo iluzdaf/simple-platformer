@@ -405,14 +405,15 @@ contains coins, health potions, and a key. Inventory persists through player dea
 
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. The simulation reports completion;
-`ExampleGame` then replaces the map and world, creates the next level, restores player
-health and inventory, and resets the camera. Velocities, projectiles, NPC state, and old
-actor IDs do not cross the level boundary. The final exit shows completion text and R
-creates a fresh Level 1 game.
+`ExampleLevel` keeps a level number, map, and populated world together so callers cannot
+accidentally combine one level's map with another level's actors. `ExampleGame` replaces
+that value at a transition, restores player health and inventory, and resets the camera.
+Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
+The final exit shows completion text and R creates a fresh Level 1 game.
 
-The inventory UI is an example presentation, not an engine rule. It draws six slots in
-a three-by-two grid above the bag button, pauses simulation while open, and emits item
-use requests instead of changing the world directly.
+The inventory UI is an example presentation, not an engine rule. It derives its rows
+from the configured slot count, uses at most three columns, pauses simulation while
+open, and emits item use requests instead of changing the world directly.
 
 ## Presentation
 

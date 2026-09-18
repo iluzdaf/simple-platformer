@@ -27,6 +27,7 @@ namespace simple_platformer
         constexpr float PickupBobHeight = 2.0F;
         constexpr float PickupBobPeriodSeconds = 1.0F;
         constexpr int PickupBobPhaseCount = 4;
+        constexpr float ProjectileBurstFinalScale = 2.0F;
         constexpr float RadiansPerCycle = 6.28318530717958647692F;
 
         float actorOpacity(const Actor& actor)
@@ -190,6 +191,28 @@ namespace simple_platformer
                      rotationRadians});
             }
         }
+
+        void appendProjectileBursts(RenderScene& scene, const World& world, const Camera& camera)
+        {
+            for (const ProjectileBurst& burst : world.projectileBursts())
+            {
+                const float remainingFraction =
+                    std::clamp(burst.remainingLifetime / burst.duration, 0.0F, 1.0F);
+                const float progress = 1.0F - remainingFraction;
+                const float scale = 1.0F + progress * (ProjectileBurstFinalScale - 1.0F);
+                const glm::vec2 size = burst.sprite.size * scale;
+                const glm::vec2 position = burst.center - size * 0.5F;
+                const float rotationRadians = std::atan2(burst.direction.y, burst.direction.x);
+                scene.sprites.push_back(
+                    {burst.sprite.textureId,
+                     worldToScreen(camera, position),
+                     size,
+                     burst.sprite.region,
+                     false,
+                     rotationRadians,
+                     remainingFraction});
+            }
+        }
     }
 
     RenderScene buildRenderScene(
@@ -204,6 +227,7 @@ namespace simple_platformer
         appendExit(scene, world, camera);
         appendActors(scene, world, camera);
         appendProjectiles(scene, world, camera);
+        appendProjectileBursts(scene, world, camera);
         return scene;
     }
 }

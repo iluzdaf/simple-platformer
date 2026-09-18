@@ -47,6 +47,22 @@ namespace simple_platformer
             }
         }
 
+        void validateProjectileBurst(const simple_platformer::ProjectileBurst& burst)
+        {
+            const bool hasValidCause =
+                burst.cause == simple_platformer::ProjectileBurstCause::Impact ||
+                burst.cause == simple_platformer::ProjectileBurstCause::LifetimeExpired;
+            if (!hasValidCause || !isFinite(burst.center) || !isFinite(burst.direction) ||
+                (burst.direction.x == 0.0F && burst.direction.y == 0.0F) ||
+                !isFinite(burst.sprite.size) || burst.sprite.size.x <= 0.0F ||
+                burst.sprite.size.y <= 0.0F || !isFinitePositive(burst.duration) ||
+                !isFinitePositive(burst.remainingLifetime) ||
+                burst.remainingLifetime > burst.duration)
+            {
+                throw std::invalid_argument("Projectile burst data is invalid");
+            }
+        }
+
         void validateIdentity(const simple_platformer::Actor& actor)
         {
             if (simple_platformer::isValid(actor.id))
@@ -348,6 +364,34 @@ namespace simple_platformer
     const std::vector<Projectile>& World::projectiles() const
     {
         return projectileStorage;
+    }
+
+    void World::addProjectileBurst(ProjectileBurst burst)
+    {
+        validateProjectileBurst(burst);
+        projectileBurstStorage.push_back(burst);
+    }
+
+    bool World::removeProjectileBurst(std::size_t index)
+    {
+        if (index >= projectileBurstStorage.size())
+        {
+            return false;
+        }
+
+        projectileBurstStorage.erase(
+            projectileBurstStorage.begin() + static_cast<std::ptrdiff_t>(index));
+        return true;
+    }
+
+    std::vector<ProjectileBurst>& World::projectileBursts()
+    {
+        return projectileBurstStorage;
+    }
+
+    const std::vector<ProjectileBurst>& World::projectileBursts() const
+    {
+        return projectileBurstStorage;
     }
 
     void World::setPlayer(ActorId id, glm::vec2 spawnFeet)

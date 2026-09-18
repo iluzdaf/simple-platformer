@@ -169,6 +169,27 @@ TEST_CASE("World adds and removes projectiles through its public interface", "[w
     REQUIRE_FALSE(world.removeProjectile(1));
 }
 
+TEST_CASE("World validates and owns projectile bursts", "[world][projectile]")
+{
+    simple_platformer::World world;
+    simple_platformer::ProjectileBurst burst;
+    burst.center = {8.0F, 8.0F};
+    burst.sprite.size = {4.0F, 2.0F};
+
+    world.addProjectileBurst(burst);
+
+    REQUIRE(world.projectileBursts().size() == 1);
+    REQUIRE(world.removeProjectileBurst(0));
+    REQUIRE(world.projectileBursts().empty());
+    REQUIRE_FALSE(world.removeProjectileBurst(0));
+
+    burst.direction = {0.0F, 0.0F};
+    REQUIRE_THROWS_AS(world.addProjectileBurst(burst), std::invalid_argument);
+    burst.direction = {1.0F, 0.0F};
+    burst.remainingLifetime = burst.duration + 0.1F;
+    REQUIRE_THROWS_AS(world.addProjectileBurst(burst), std::invalid_argument);
+}
+
 TEST_CASE("The world records the player and feet-based spawn", "[world][actor]")
 {
     simple_platformer::World world;

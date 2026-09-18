@@ -151,8 +151,9 @@ Physics code works with `body.bounds.position`. Content and ground navigation us
 
 ## World ownership and identity
 
-`World` owns actors, projectiles, pickups, item definitions, and the current exit. An
-actor has a typed, monotonically increasing ID rather than exposing its vector index:
+`World` owns actors, projectiles, their short-lived burst effects, pickups, item
+definitions, and the current exit. An actor has a typed, monotonically increasing ID
+rather than exposing its vector index:
 
 ```cpp
 struct ActorId
@@ -398,7 +399,11 @@ The aim vector supports the full 360-degree range.
 A projectile contains bounds, velocity, damage, remaining lifetime, owner, team, and
 sprite data. Each tick it performs a swept segment cast from its previous to proposed
 position, chooses the earliest solid-tile or eligible-actor hit, queues damage, and is
-removed. Owner and team prevent hitting the shooter or allies.
+removed. Owner and team prevent hitting the shooter or allies. When a projectile ends,
+it queues a separate `ProjectileBurst` at its final position. The burst records whether
+the cause was an impact or an expired lifetime. Both causes currently reuse the projectile
+sprite and briefly expand and fade, but preserving the cause allows their presentation to
+diverge later. A burst cannot collide or deal damage.
 
 Damage is queued rather than applied while attacks and projectiles are being traversed.
 `updateLifeState` consumes the requests, records the current simulation time when damage

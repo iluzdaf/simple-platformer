@@ -11,4 +11,6 @@ namespace simple_platformer
         World& world,
         WorldRequests& requests,
         float deltaTime);
+
+    void updateProjectileBursts(World& world, WorldRequests& requests, float deltaTime);
 }

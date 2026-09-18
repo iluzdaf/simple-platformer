@@ -77,4 +77,20 @@ namespace simple_platformer
         Team team = Team::Neutral;
         Sprite sprite;
     };
+
+    enum class ProjectileBurstCause
+    {
+        Impact,
+        LifetimeExpired
+    };
+
+    struct ProjectileBurst
+    {
+        ProjectileBurstCause cause = ProjectileBurstCause::Impact;
+        glm::vec2 center = {0.0F, 0.0F};
+        glm::vec2 direction = {1.0F, 0.0F};
+        Sprite sprite;
+        float duration = 0.1F;
+        float remainingLifetime = 0.1F;
+    };
 }

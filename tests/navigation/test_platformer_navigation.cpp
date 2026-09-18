@@ -3,10 +3,11 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <vector>
+
+#include <glm/vec2.hpp>
 
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
@@ -115,6 +116,86 @@ TEST_CASE("Platformer start cells reject invalid bounds", "[navigation][platform
 
     REQUIRE_THROWS_AS(
         simple_platformer::findPlatformerStartCell(map, bounds), std::invalid_argument);
+}
+
+TEST_CASE("A platformer chase keeps an already standable target cell", "[navigation][platformer]")
+{
+    const auto map = simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {47.5F, 32.0F}, {12.0F, 20.0F}) ==
+        simple_platformer::GridPosition{2, 1});
+}
+
+TEST_CASE("Platformer chase destinations handle either platform edge", "[navigation][platformer]")
+{
+    const auto map = simple_platformer::TileMap::fromAscii(
+        {"........", "........", "..###...", "........", "########"});
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {31.5F, 32.0F}, {12.0F, 20.0F}) ==
+        simple_platformer::GridPosition{2, 1});
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {80.5F, 32.0F}, {12.0F, 20.0F}) ==
+        simple_platformer::GridPosition{4, 1});
+}
+
+TEST_CASE("An airborne chase target selects the closest standable feet", "[navigation][platformer]")
+{
+    const auto map = simple_platformer::TileMap::fromAscii(
+        {"........", "........", "..###...", "........", "########"});
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {31.0F, 20.0F}, {12.0F, 20.0F}) ==
+        simple_platformer::GridPosition{2, 1});
+}
+
+TEST_CASE("Chase destinations use the pursuing body size", "[navigation][platformer]")
+{
+    const auto map = simple_platformer::TileMap::fromAscii({"..#....", ".......", "#######"});
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {40.0F, 32.0F}, {12.0F, 12.0F}) ==
+        simple_platformer::GridPosition{2, 1});
+    // The taller NPC cannot fit under the ceiling. Equal-distance alternatives
+    // use row, then column order, so the cell on the left wins the tie.
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {40.0F, 32.0F}, {12.0F, 20.0F}) ==
+        simple_platformer::GridPosition{1, 1});
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {8.0F, 32.0F}, {20.0F, 12.0F}) ==
+        simple_platformer::GridPosition{1, 1});
+}
+
+TEST_CASE(
+    "Chase destinations handle missing support and outside targets",
+    "[navigation][platformer]")
+{
+    const auto blocked = simple_platformer::TileMap::fromAscii({"###", "###"});
+    REQUIRE_FALSE(
+        simple_platformer::findPlatformerChaseCell(blocked, {24.0F, 16.0F}, {12.0F, 20.0F}));
+    const auto map = simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {-16.0F, 32.0F}, {12.0F, 20.0F}) ==
+        simple_platformer::GridPosition{0, 1});
+}
+
+TEST_CASE("Chase destinations reject invalid inputs", "[navigation][platformer]")
+{
+    const auto map = simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    const float infinity = std::numeric_limits<float>::infinity();
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    REQUIRE_THROWS_AS(
+        simple_platformer::findPlatformerChaseCell(map, {infinity, 32.0F}, {12.0F, 20.0F}),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::findPlatformerChaseCell(map, {24.0F, nan}, {12.0F, 20.0F}),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::findPlatformerChaseCell(map, {24.0F, 32.0F}, {0.0F, 20.0F}),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::findPlatformerChaseCell(map, {24.0F, 32.0F}, {12.0F, -1.0F}),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::findPlatformerChaseCell(map, {24.0F, 32.0F}, {infinity, 20.0F}),
+        std::invalid_argument);
 }
 
 TEST_CASE(

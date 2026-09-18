@@ -263,7 +263,20 @@ namespace
             actor.intentions.primaryAttackPressed = true;
             return;
         }
-        followDestination(map, actor, follower, brain.lastSeenTargetFeet, deltaTime);
+        glm::vec2 destination = brain.lastSeenTargetFeet;
+        if (actor.platformerMovement.has_value())
+        {
+            const std::optional<simple_platformer::GridPosition> chaseCell =
+                simple_platformer::findPlatformerChaseCell(
+                    map, brain.lastSeenTargetFeet, actor.body.bounds.size);
+            if (!chaseCell.has_value())
+            {
+                simple_platformer::clearPath(follower);
+                return;
+            }
+            destination = simple_platformer::navigationFeet(chaseCell.value());
+        }
+        followDestination(map, actor, follower, destination, deltaTime);
     }
 
     void updateNpcState(

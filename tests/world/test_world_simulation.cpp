@@ -16,7 +16,9 @@
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
@@ -255,6 +257,177 @@ TEST_CASE(
     const glm::vec2 finalFeet = simple_platformer::feetOf(storedZombie->body.bounds);
     CAPTURE(finalFeet.x, finalFeet.y);
     REQUIRE(finalFeet.x < rightPatrolFeet.x);
+}
+
+TEST_CASE(
+    "A ground NPC pursues a remembered airborne position after losing sight of the player",
+    "[world][simulation][platformer][regression]")
+{
+    // The player jumps from the floor beside the raised platform. Its solid
+    // edge hides the player before the jump and again after landing.
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"..........", "..........", "...#######", "..........", "##########"});
+    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
+    constexpr int JumpAndLandingTicks = 40;
+    constexpr int RememberedChaseTicks = 30;
+
+    simple_platformer::World world;
+    simple_platformer::Actor player;
+    player.body.bounds.size = {12.0F, 20.0F};
+    simple_platformer::placeFeetAt(player.body.bounds, simple_platformer::navigationFeet({2, 3}));
+    player.platformerMovement = simple_platformer::PlatformerMovement{};
+    player.platformerMovement->grounded = true;
+    player.team = simple_platformer::Team::Player;
+    const simple_platformer::ActorId playerId = world.addActor(player);
+    world.setPlayer(playerId, simple_platformer::feetOf(player.body.bounds));
+
+    simple_platformer::Actor zombie;
+    zombie.body.bounds.size = {12.0F, 20.0F};
+    simple_platformer::placeFeetAt(zombie.body.bounds, simple_platformer::navigationFeet({7, 1}));
+    zombie.platformerMovement = simple_platformer::PlatformerMovement{};
+    zombie.platformerMovement->grounded = true;
+    zombie.team = simple_platformer::Team::Enemy;
+    zombie.brain = simple_platformer::NpcBrain{};
+    zombie.senses = simple_platformer::NpcSenses{};
+    zombie.pathFollower = simple_platformer::PathFollower{};
+    const simple_platformer::ActorId zombieId = world.addActor(zombie);
+
+    // Jump into view, then land behind the upper platform's solid edge.
+    // Sensing and behaviour, rather than the test, set the zombie's memory/state.
+    bool seenDuringJump = false;
+    for (int tick = 0; tick < JumpAndLandingTicks; ++tick)
+    {
+        simple_platformer::Actor* storedPlayer = world.findActor(playerId);
+        REQUIRE(storedPlayer != nullptr);
+        storedPlayer->intentions.jumpPressed = tick == 0;
+        storedPlayer->intentions.jumpHeld = tick < 25;
+        simple_platformer::updateWorldSimulation(map, world, DeltaTime);
+        const simple_platformer::Actor* storedZombie = world.findActor(zombieId);
+        REQUIRE(storedZombie != nullptr);
+        if (!storedZombie->brain.has_value())
+        {
+            throw std::logic_error("The test zombie has no brain");
+        }
+        seenDuringJump = seenDuringJump ||
+                         (storedZombie->brain.value().targetVisible &&
+                          storedZombie->brain.value().state == simple_platformer::NpcState::Chase);
+    }
+    REQUIRE(seenDuringJump);
+    const simple_platformer::Actor* rememberedZombie = world.findActor(zombieId);
+    REQUIRE(rememberedZombie != nullptr);
+    if (!rememberedZombie->brain.has_value())
+    {
+        throw std::logic_error("The test zombie has no brain");
+    }
+    REQUIRE_FALSE(rememberedZombie->brain.value().targetVisible);
+    REQUIRE(rememberedZombie->brain.value().target == playerId);
+    REQUIRE(rememberedZombie->brain.value().targetMemoryRemaining > 0.0F);
+    REQUIRE(rememberedZombie->brain.value().state == simple_platformer::NpcState::Chase);
+    const glm::vec2 lastSeenFeet = rememberedZombie->brain.value().lastSeenTargetFeet;
+    REQUIRE_FALSE(simple_platformer::canStandAt(
+        map, simple_platformer::navigationCell(lastSeenFeet), rememberedZombie->body.bounds.size));
+    const float startingDistance =
+        glm::distance(simple_platformer::feetOf(rememberedZombie->body.bounds), lastSeenFeet);
+
+    // The remembered point is in the air, but the zombie can approach the
+    // platform edge toward it. Check progress without prescribing a goal cell.
+    float distanceToRememberedPosition = startingDistance;
+    for (int tick = 0; tick < RememberedChaseTicks; ++tick)
+    {
+        simple_platformer::updateWorldSimulation(map, world, DeltaTime);
+        const simple_platformer::Actor* storedZombie = world.findActor(zombieId);
+        REQUIRE(storedZombie != nullptr);
+        if (!storedZombie->brain.has_value())
+        {
+            throw std::logic_error("The test zombie has no brain");
+        }
+        REQUIRE_FALSE(storedZombie->brain.value().targetVisible);
+        REQUIRE(storedZombie->brain.value().target == playerId);
+        REQUIRE(storedZombie->brain.value().targetMemoryRemaining > 0.0F);
+        REQUIRE(storedZombie->brain.value().lastSeenTargetFeet == lastSeenFeet);
+        REQUIRE(storedZombie->brain.value().state == simple_platformer::NpcState::Chase);
+        distanceToRememberedPosition =
+            glm::distance(simple_platformer::feetOf(storedZombie->body.bounds), lastSeenFeet);
+    }
+    CAPTURE(startingDistance, distanceToRememberedPosition);
+    constexpr float MinimumPursuitProgress = 0.5F * simple_platformer::TileSize;
+    REQUIRE(distanceToRememberedPosition < startingDistance - MinimumPursuitProgress);
+}
+
+TEST_CASE(
+    "A ground NPC approaches a visible player supported at a platform edge",
+    "[world][simulation][platformer][regression]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"..........", "..........", "..#######.", "..........", "##########"});
+    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
+    constexpr int MaximumChaseTicks = 180;
+    const glm::vec2 upperPlatformFeet = simple_platformer::navigationFeet({2, 1});
+    const float platformLeftEdge = simple_platformer::gridToWorld({2, 2}).x;
+    // Control: feet at the first cell's centre. Regression: feet just outside
+    // the platform, while part of the player's collider is still supported.
+    const bool feetOutsidePlatform = GENERATE(false, true);
+    const glm::vec2 playerFeet{
+        feetOutsidePlatform ? platformLeftEdge - 0.5F : upperPlatformFeet.x, upperPlatformFeet.y};
+    CAPTURE(feetOutsidePlatform);
+
+    simple_platformer::World world;
+    simple_platformer::Actor player;
+    player.body.bounds.size = {12.0F, 20.0F};
+    simple_platformer::placeFeetAt(player.body.bounds, playerFeet);
+    player.platformerMovement = simple_platformer::PlatformerMovement{};
+    player.platformerMovement->grounded = true;
+    player.team = simple_platformer::Team::Player;
+    const simple_platformer::ActorId playerId = world.addActor(player);
+    world.setPlayer(playerId, playerFeet);
+
+    simple_platformer::Actor zombie;
+    zombie.body.bounds.size = {12.0F, 20.0F};
+    simple_platformer::placeFeetAt(zombie.body.bounds, simple_platformer::navigationFeet({6, 1}));
+    zombie.platformerMovement = simple_platformer::PlatformerMovement{};
+    zombie.platformerMovement->grounded = true;
+    zombie.team = simple_platformer::Team::Enemy;
+    zombie.bite = simple_platformer::BiteAttack{};
+    zombie.brain = simple_platformer::NpcBrain{};
+    zombie.senses = simple_platformer::NpcSenses{};
+    zombie.pathFollower = simple_platformer::PathFollower{};
+    const simple_platformer::ActorId zombieId = world.addActor(zombie);
+
+    simple_platformer::updateWorldSimulation(map, world, DeltaTime);
+
+    const simple_platformer::Actor* chasingZombie = world.findActor(zombieId);
+    REQUIRE(chasingZombie != nullptr);
+    if (!chasingZombie->brain.has_value())
+    {
+        throw std::logic_error("The test zombie has no brain");
+    }
+    REQUIRE(chasingZombie->brain.value().targetVisible);
+    REQUIRE(chasingZombie->brain.value().state == simple_platformer::NpcState::Chase);
+    const float startingDistance =
+        glm::distance(simple_platformer::feetOf(chasingZombie->body.bounds), playerFeet);
+    constexpr float CloseDistance = 2.0F * simple_platformer::TileSize;
+    REQUIRE(startingDistance > CloseDistance);
+
+    float distanceToPlayer = startingDistance;
+    for (int tick = 0; tick < MaximumChaseTicks && distanceToPlayer > CloseDistance; ++tick)
+    {
+        simple_platformer::updateWorldSimulation(map, world, DeltaTime);
+        const simple_platformer::Actor* storedZombie = world.findActor(zombieId);
+        const simple_platformer::Actor* storedPlayer = world.findActor(playerId);
+        REQUIRE(storedZombie != nullptr);
+        REQUIRE(storedPlayer != nullptr);
+        if (!storedZombie->brain.has_value() || !storedPlayer->platformerMovement.has_value())
+        {
+            throw std::logic_error("The test actors are missing chase components");
+        }
+        REQUIRE(storedZombie->brain.value().targetVisible);
+        REQUIRE(storedPlayer->platformerMovement.value().grounded);
+        REQUIRE(simple_platformer::feetOf(storedPlayer->body.bounds) == playerFeet);
+        distanceToPlayer =
+            glm::distance(simple_platformer::feetOf(storedZombie->body.bounds), playerFeet);
+    }
+    CAPTURE(startingDistance, distanceToPlayer);
+    REQUIRE(distanceToPlayer <= CloseDistance);
 }
 
 TEST_CASE(

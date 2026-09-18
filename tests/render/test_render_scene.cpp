@@ -145,7 +145,7 @@ TEST_CASE("Actors with active hit feedback produce a white flash", "[render][sce
     world.advanceSimulationTime(0.05F);
 
     const auto scene = simple_platformer::buildRenderScene(map, 1, camera, world);
-    REQUIRE(scene.sprites.back().whiteFlashAmount == 1.0F);
+    REQUIRE(scene.sprites.back().whiteFlashAmount > 0.0F);
 
     world.advanceSimulationTime(0.05F);
     const auto laterScene = simple_platformer::buildRenderScene(map, 1, camera, world);

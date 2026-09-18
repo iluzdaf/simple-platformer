@@ -8,6 +8,27 @@ Build and run the project using the instructions in [README.md](README.md) befor
 starting the tour. Keep a matching test file open beside each implementation file;
 the tests often provide the smallest examples of how a subject is meant to be used.
 
+There are two routes through this document:
+
+- If you are new to the engine, follow the
+  [recommended reading route](#recommended-reading-route) first.
+- If you are starting a project requirement, use the
+  [platformer gameplay](#platformer-gameplay-requirements) or
+  [enemy behaviour](#enemy-behaviour-requirements) starting points.
+
+## Everyday development loop
+
+Keep each change small enough to verify directly:
+
+1. Change the subject that owns the rule.
+2. Build using the platform instructions in [README.md](README.md).
+3. Run its focused test while working, then run the complete test suite.
+4. Launch the example game when the change affects interaction or presentation.
+
+The focused tests provide fast feedback about one rule. The complete suite checks its
+interaction with the rest of the engine, while running the game covers presentation
+and graphics behaviour that automated tests deliberately leave out.
+
 ## The big picture
 
 The outer flow is:
@@ -29,6 +50,82 @@ ExampleGame::buildScene()
 ```
 
 This separation lets most game behaviour run in tests without opening a window.
+
+## Starting project work
+
+Use this section to find the code involved in common project requirements. Platformer
+mechanics and enemy behaviour share the same movement, collision, combat, and input
+systems: an NPC produces the same `InputIntentions` that the application produces for
+the player.
+
+### Platformer gameplay requirements
+
+For movement mechanics and other platformer gameplay, start with this path:
+
+```text
+keyboard and mouse
+  -> InputState
+  -> InputIntentions
+  -> PlatformerMovement
+  -> collision
+  -> Body
+```
+
+A practical route through the implementation is:
+
+1. Trace an ordinary run and jump through
+   [`input_state.cpp`](src/input/input_state.cpp),
+   [`platformer_movement.cpp`](src/movement/platformer_movement.cpp), and
+   [`collision.cpp`](src/physics/collision.cpp).
+2. Tune speed, acceleration, braking, gravity, and jump configuration, then observe
+   how those values change the feel of the example game.
+3. Read the tests for the existing variable-height jump, coyote-time, and jump-buffer
+   rules before changing them.
+4. Add one focused movement ability, such as a double jump, dash, wall slide, or wall
+   jump. Keep the rule in the movement layer and cover it with tests before adding its
+   animation or effects.
+5. Turn the mechanics into a game by composing actors, authoring JSON levels, adding
+   pickups or combat rules, and providing animation and HUD feedback.
+
+The engine currently provides the ordinary platformer baseline. It does not already
+contain a generic movement-ability framework. The
+[movement extension recipe](ARCHITECTURE.md#adding-a-movement-ability) explains where
+a movement feature belongs; the more scalable optional-component design remains a
+clearly labelled [future direction](ARCHITECTURE.md#optional-movement-abilities).
+
+### Enemy behaviour requirements
+
+For finite-state behaviour, sensing, and pathfinding requirements, follow this path:
+
+```text
+senses and memory
+  -> finite-state decision
+  -> pathfinding and path following
+  -> InputIntentions
+  -> the same movement and combat systems
+```
+
+A practical route through the implementation is:
+
+1. Trace the explicit `NpcState` enum and state branches in
+   [`npc_system.cpp`](src/npc/npc_system.cpp).
+2. Change sensing distance and memory duration, using the debug overlay to observe
+   visible targets, remembered positions, patrol points, destinations, and paths.
+3. Add one state such as Search, Guard, Retreat, or Recover and test its transitions
+   separately from movement.
+4. Read generic lowest-cost search and flying navigation before studying simulated
+   platformer jumps.
+5. Create an enemy with a deliberate combination of movement, senses, state rules,
+   navigation, attack, and animation.
+
+The [NPC-state recipe](ARCHITECTURE.md#adding-an-npc-state) and
+[enemy-composition recipe](ARCHITECTURE.md#creating-a-new-enemy) list the files and
+boundaries involved. More general brain tactics are future work and are not required
+to extend the current NPC behaviour.
+
+Movement work does not require reading NPC or navigation code. Enemy work builds on
+the ordinary movement and collision path, so those systems are useful context when an
+enemy does not move as intended.
 
 ## Recommended reading route
 

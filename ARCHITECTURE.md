@@ -369,8 +369,10 @@ intentions and tick counts that can be replayed by the path follower.
 Neighbour generation reuses the real platformer movement and collision functions at
 the fixed step. A simulated jump is accepted only when it lands on another standable
 cell. Walk connections scan continuously walkable cells and include braking at their
-destination. Because every action cost is measured in simulation ticks, the search can
-compare walking and jumping without mixing unrelated distance and time units.
+destination. Raw connection durations are measured in simulation ticks. The
+high-level platformer search can add a configurable jump-start penalty, also expressed
+in ticks, so a marginal shortcut does not make a grounded NPC hop unnecessarily.
+Setting that penalty to zero selects strictly by simulated travel time.
 
 Path following never teleports an actor or writes its velocity. It emits intentions,
 and the ordinary actor movement system performs the motion. End-to-end tests replay
@@ -676,6 +678,91 @@ be tested without a window.
 The inventory UI is an example presentation, not an engine rule. It derives its rows
 from the configured slot count, uses at most three columns, pauses simulation while
 open, and emits item use requests instead of changing the world directly.
+
+## Extension recipes for project work
+
+These recipes identify the existing boundaries a project feature should follow. They
+are routes through the current code, not requirements for a generic plugin system.
+
+### Adding a movement ability
+
+A movement ability belongs between intentions and collision. It may change velocity,
+gravity, or whether ordinary controls are available, but it should not render itself,
+edit the tile map, or move the body through a second collision implementation.
+
+For a focused ability:
+
+1. Add any new button edge or held input to `InputState` and `InputIntentions`.
+2. Give configuration and runtime state clear names. Keep them separate from input so
+   the ability can be driven by either a player or an NPC.
+3. Decide visibly how the ability interacts with ordinary horizontal control,
+   jumping, gravity, and collision.
+4. Apply movement through the existing platformer movement and collision path.
+5. Add focused tests for starting, continuing, ending, and resetting the ability, then
+   add a small number of interaction tests.
+6. Select animation and effects from the resulting state rather than using animation
+   frames to drive the mechanic.
+
+A first small feature can extend the existing platformer subject directly. If a game
+adds several optional abilities, use the component-and-modifier direction described
+under [Optional movement abilities](#optional-movement-abilities) instead of filling
+`PlatformerMovement` with unrelated flags.
+
+### Adding an NPC state
+
+`NpcState` represents what an NPC is doing now. To add a state such as Search, Guard,
+Retreat, or Recover:
+
+1. Add the state to the enum and give its entry and exit conditions explicit branches
+   in the NPC system.
+2. Reset state-local timing in the same place as the other transitions.
+3. Let the state choose a destination, facing, or attack intention.
+4. Continue to move and attack through `InputIntentions`; NPC decision code should not
+   write body position or bypass combat systems.
+5. Test entry, sustained behaviour, exit, and the most important interaction with
+   sensing or target memory.
+6. Add the state name to the debug presentation so it can be inspected while playing.
+
+Keep the enum and explicit state branches while the number of states is small. A
+behaviour tree, virtual brain hierarchy, or callback registry would make transitions
+and state ownership harder to follow without solving a current requirement.
+
+### Creating a new enemy
+
+First decide whether the enemy is only a differently configured existing role. If it
+uses the same capabilities, reuse the existing factory with different level data. A
+genuinely new example enemy normally involves:
+
+1. a symbolic actor type in the level-data parser;
+2. a factory branch in `app/game/example_content.cpp`;
+3. an actor composed from only the movement, sensing, path-following, health, attack,
+   and presentation components it needs;
+4. an animation set and atlas regions in the example application;
+5. valid spawn and patrol data in a level JSON file;
+6. focused tests for its new decision rule, with broader simulation coverage only for
+   interactions between systems.
+
+Species, capabilities, and decisions are separate concerns. Artwork does not determine
+the brain, and possessing a ranged weapon does not require a `Shooter` subclass. The
+future [NPC tactics](#npc-tactics) section describes how to introduce multiple reusable
+decision policies once the game contains a real second policy.
+
+### Choosing the layer
+
+| Change | Primary location |
+| --- | --- |
+| Input binding or mouse conversion | `app/application.cpp` |
+| Movement or collision rule | `src/movement` or `src/physics` |
+| NPC perception or decision | `src/npc` |
+| Generic search or movement-specific neighbours | `src/navigation` |
+| Damage, attacks, or projectiles | `src/combat` |
+| Example actor values, clips, or item definitions | `app/game` |
+| Level geometry and placements | `assets/levels` |
+| HUD or debugging presentation | `app/ui` or `app/debug` |
+
+When a feature crosses layers, keep its rule in the simulation and pass plain state to
+presentation. Add the smallest test at the layer that owns the rule before adding an
+end-to-end test.
 
 ## Error handling and validation
 

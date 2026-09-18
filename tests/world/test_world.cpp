@@ -57,6 +57,27 @@ TEST_CASE("Actor IDs are not vector indexes", "[world][actor]")
     REQUIRE(second.value != 0);
 }
 
+TEST_CASE("World owns a validated simulation clock", "[world][time]")
+{
+    simple_platformer::World world;
+
+    REQUIRE(world.simulationTimeSeconds() == 0.0F);
+
+    world.advanceSimulationTime(0.25F);
+    world.advanceSimulationTime(0.25F);
+
+    REQUIRE(world.simulationTimeSeconds() == 0.5F);
+    REQUIRE_THROWS_AS(world.advanceSimulationTime(-0.1F), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        world.advanceSimulationTime(std::numeric_limits<float>::infinity()), std::invalid_argument);
+
+    simple_platformer::World overflowingWorld;
+    overflowingWorld.advanceSimulationTime(std::numeric_limits<float>::max());
+    REQUIRE_THROWS_AS(
+        overflowingWorld.advanceSimulationTime(std::numeric_limits<float>::max()),
+        std::overflow_error);
+}
+
 TEST_CASE("World rejects invalid actor composition", "[world][actor]")
 {
     simple_platformer::World world;

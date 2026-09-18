@@ -6,7 +6,6 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/render/animation.hpp"
-#include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
@@ -39,14 +38,6 @@ namespace simple_platformer
                 updateAnimation(*actor.animator, *actor.sprite, selected, deltaTime);
             }
         }
-
-        void updatePickupAnimations(World& world, float deltaTime)
-        {
-            for (Pickup& pickup : world.pickups())
-            {
-                pickup.ageSeconds += deltaTime;
-            }
-        }
     }
 
     void updateWorldAnimations(World& world, float deltaTime)
@@ -56,6 +47,5 @@ namespace simple_platformer
             throw std::invalid_argument("Animation delta time must be finite and non-negative");
         }
         updateActorAnimations(world, deltaTime);
-        updatePickupAnimations(world, deltaTime);
     }
 }

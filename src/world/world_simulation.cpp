@@ -20,6 +20,7 @@ namespace simple_platformer
         {
             return;
         }
+        world.advanceSimulationTime(deltaTime);
         WorldRequests requests;
         updateNpcSenses(map, world, deltaTime);
         updateNpcBehaviour(map, world, deltaTime);

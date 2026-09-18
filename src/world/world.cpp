@@ -214,6 +214,26 @@ namespace simple_platformer
         }
     }
 
+    float World::simulationTimeSeconds() const
+    {
+        return elapsedSimulationTimeSeconds;
+    }
+
+    void World::advanceSimulationTime(float deltaTime)
+    {
+        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
+        {
+            throw std::invalid_argument("Simulation delta time must be finite and non-negative");
+        }
+
+        const float advancedTime = elapsedSimulationTimeSeconds + deltaTime;
+        if (!std::isfinite(advancedTime))
+        {
+            throw std::overflow_error("Simulation time has overflowed");
+        }
+        elapsedSimulationTimeSeconds = advancedTime;
+    }
+
     const ItemDefinition& World::itemDefinition(ItemId id) const
     {
         for (const ItemDefinition& definition : itemDefinitions)

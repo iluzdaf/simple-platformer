@@ -105,8 +105,8 @@ namespace simple_platformer
             {
                 const Sprite& sprite = world.itemDefinition(pickup.stack.item).icon;
                 Aabb bounds = spriteBounds(pickup.bounds, sprite);
-                bounds.position.y +=
-                    pickupVerticalOffset(pickup.ageSeconds + pickupPhaseOffset(pickup.bounds));
+                bounds.position.y += pickupVerticalOffset(
+                    world.simulationTimeSeconds() + pickupPhaseOffset(pickup.bounds));
                 scene.sprites.push_back(
                     {sprite.textureId,
                      worldToScreen(camera, bounds.position),

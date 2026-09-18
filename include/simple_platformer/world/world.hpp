@@ -33,6 +33,11 @@ namespace simple_platformer
         bool levelComplete() const;
         void completeLevel();
 
+        // Elapsed active fixed-step time for this world.
+        float simulationTimeSeconds() const;
+        // The simulation loop calls this once at the start of each active update.
+        void advanceSimulationTime(float deltaTime);
+
         ActorId addActor(Actor actor);
         bool removeActor(ActorId id);
 
@@ -64,6 +69,7 @@ namespace simple_platformer
         std::vector<Pickup> pickupStorage;
         std::optional<LevelExit> levelExit;
         bool completed = false;
+        float elapsedSimulationTimeSeconds = 0.0F;
         std::vector<Actor> actorStorage;
         std::vector<Projectile> projectileStorage;
         std::uint32_t nextActorId = 1;

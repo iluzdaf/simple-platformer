@@ -14,6 +14,13 @@ namespace simple_platformer
     struct Aabb;
     class TileMap;
 
+    struct PlatformerNavigationConfig
+    {
+        // Added whenever a route starts a jump, so a small time saving does not
+        // make grounded actors hop unnecessarily.
+        int jumpStartPenaltyTicks = 30;
+    };
+
     // Optimistic remaining travel time in fixed simulation ticks.
     int platformerTickHeuristic(
         GridPosition position,
@@ -26,7 +33,8 @@ namespace simple_platformer
         GridPosition start,
         GridPosition goal,
         glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement);
+        const PlatformerMovementConfig& movement,
+        const PlatformerNavigationConfig& navigation = {});
 
     bool canStandAt(const TileMap& map, GridPosition position, glm::vec2 bodySize);
 

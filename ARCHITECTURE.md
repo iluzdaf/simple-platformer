@@ -297,6 +297,11 @@ AABBs, then repeats along Y. The result reports left, right, ground, and ceiling
 contacts. Actors do not physically collide with or push one another. The left, right,
 and bottom map boundaries block movement; the top remains open.
 
+`segmentCast` finds the first point where a line enters one AABB.
+`segmentCastSolidTiles` applies that operation to the relevant part of a tile map and
+can account for a moving box size. Projectile collision and NPC sight share this tile
+cast while keeping their own gameplay rules.
+
 After level data is loaded and composed into runtime objects, `validateLevelActors`
 checks it against the map.
 Every actor spawn, the player's stored respawn, and every patrol endpoint need body

@@ -17,64 +17,68 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 
-namespace
+namespace simple_platformer
 {
-    glm::vec2 rotatedCorner(glm::vec2 centre, glm::vec2 offset, float cosine, float sine)
+    namespace
     {
-        return {
-            centre.x + offset.x * cosine - offset.y * sine,
-            centre.y + offset.x * sine + offset.y * cosine};
-    }
-
-    std::array<float, 12> spritePositions(const simple_platformer::SpriteDrawCommand& command)
-    {
-        const glm::vec2 halfSize = command.size * 0.5F;
-        const glm::vec2 centre = command.position + halfSize;
-        const float cosine = std::cos(command.rotationRadians);
-        const float sine = std::sin(command.rotationRadians);
-
-        const glm::vec2 topLeft = rotatedCorner(centre, -halfSize, cosine, sine);
-        const glm::vec2 bottomLeft = rotatedCorner(centre, {-halfSize.x, halfSize.y}, cosine, sine);
-        const glm::vec2 bottomRight = rotatedCorner(centre, halfSize, cosine, sine);
-        const glm::vec2 topRight = rotatedCorner(centre, {halfSize.x, -halfSize.y}, cosine, sine);
-        return {
-            topLeft.x,
-            topLeft.y,
-            bottomLeft.x,
-            bottomLeft.y,
-            bottomRight.x,
-            bottomRight.y,
-            topLeft.x,
-            topLeft.y,
-            bottomRight.x,
-            bottomRight.y,
-            topRight.x,
-            topRight.y};
-    }
-
-    unsigned int compileShader(unsigned int type, const char* source)
-    {
-        const unsigned int shader = glCreateShader(type);
-        glShaderSource(shader, 1, &source, nullptr);
-        glCompileShader(shader);
-
-        int succeeded = 0;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &succeeded);
-        if (succeeded == GL_TRUE)
+        glm::vec2 rotatedCorner(glm::vec2 centre, glm::vec2 offset, float cosine, float sine)
         {
-            return shader;
+            return {
+                centre.x + offset.x * cosine - offset.y * sine,
+                centre.y + offset.x * sine + offset.y * cosine};
         }
 
-        std::array<char, 1024> message{};
-        glGetShaderInfoLog(shader, static_cast<int>(message.size()), nullptr, message.data());
-        glDeleteShader(shader);
-        throw std::runtime_error(
-            "OpenGL shader compilation failed: " + std::string(message.data()));
-    }
+        std::array<float, 12> spritePositions(const SpriteDrawCommand& command)
+        {
+            const glm::vec2 halfSize = command.size * 0.5F;
+            const glm::vec2 centre = command.position + halfSize;
+            const float cosine = std::cos(command.rotationRadians);
+            const float sine = std::sin(command.rotationRadians);
 
-    unsigned int createShaderProgram()
-    {
-        constexpr const char* VertexSource = R"(
+            const glm::vec2 topLeft = rotatedCorner(centre, -halfSize, cosine, sine);
+            const glm::vec2 bottomLeft =
+                rotatedCorner(centre, {-halfSize.x, halfSize.y}, cosine, sine);
+            const glm::vec2 bottomRight = rotatedCorner(centre, halfSize, cosine, sine);
+            const glm::vec2 topRight =
+                rotatedCorner(centre, {halfSize.x, -halfSize.y}, cosine, sine);
+            return {
+                topLeft.x,
+                topLeft.y,
+                bottomLeft.x,
+                bottomLeft.y,
+                bottomRight.x,
+                bottomRight.y,
+                topLeft.x,
+                topLeft.y,
+                bottomRight.x,
+                bottomRight.y,
+                topRight.x,
+                topRight.y};
+        }
+
+        unsigned int compileShader(unsigned int type, const char* source)
+        {
+            const unsigned int shader = glCreateShader(type);
+            glShaderSource(shader, 1, &source, nullptr);
+            glCompileShader(shader);
+
+            int succeeded = 0;
+            glGetShaderiv(shader, GL_COMPILE_STATUS, &succeeded);
+            if (succeeded == GL_TRUE)
+            {
+                return shader;
+            }
+
+            std::array<char, 1024> message{};
+            glGetShaderInfoLog(shader, static_cast<int>(message.size()), nullptr, message.data());
+            glDeleteShader(shader);
+            throw std::runtime_error(
+                "OpenGL shader compilation failed: " + std::string(message.data()));
+        }
+
+        unsigned int createShaderProgram()
+        {
+            constexpr const char* VertexSource = R"(
             #version 330 core
             layout (location = 0) in vec2 vertexPosition;
             layout (location = 1) in vec2 vertexUv;
@@ -88,45 +92,46 @@ namespace
                 textureUv = vertexUv;
             }
         )";
-        constexpr const char* FragmentSource = R"(
+            constexpr const char* FragmentSource = R"(
             #version 330 core
             in vec2 textureUv;
             uniform sampler2D spriteTexture;
             uniform float spriteOpacity;
+            uniform float spriteWhiteFlashAmount;
             out vec4 colour;
 
             void main()
             {
                 colour = texture(spriteTexture, textureUv);
+                colour.rgb = mix(colour.rgb, vec3(1.0), spriteWhiteFlashAmount);
                 colour.a *= spriteOpacity;
             }
         )";
 
-        const unsigned int vertex = compileShader(GL_VERTEX_SHADER, VertexSource);
-        const unsigned int fragment = compileShader(GL_FRAGMENT_SHADER, FragmentSource);
-        const unsigned int program = glCreateProgram();
-        glAttachShader(program, vertex);
-        glAttachShader(program, fragment);
-        glLinkProgram(program);
-        glDeleteShader(vertex);
-        glDeleteShader(fragment);
+            const unsigned int vertex = compileShader(GL_VERTEX_SHADER, VertexSource);
+            const unsigned int fragment = compileShader(GL_FRAGMENT_SHADER, FragmentSource);
+            const unsigned int program = glCreateProgram();
+            glAttachShader(program, vertex);
+            glAttachShader(program, fragment);
+            glLinkProgram(program);
+            glDeleteShader(vertex);
+            glDeleteShader(fragment);
 
-        int succeeded = 0;
-        glGetProgramiv(program, GL_LINK_STATUS, &succeeded);
-        if (succeeded == GL_TRUE)
-        {
-            return program;
+            int succeeded = 0;
+            glGetProgramiv(program, GL_LINK_STATUS, &succeeded);
+            if (succeeded == GL_TRUE)
+            {
+                return program;
+            }
+
+            std::array<char, 1024> message{};
+            glGetProgramInfoLog(program, static_cast<int>(message.size()), nullptr, message.data());
+            glDeleteProgram(program);
+            throw std::runtime_error(
+                "OpenGL shader linking failed: " + std::string(message.data()));
         }
-
-        std::array<char, 1024> message{};
-        glGetProgramInfoLog(program, static_cast<int>(message.size()), nullptr, message.data());
-        glDeleteProgram(program);
-        throw std::runtime_error("OpenGL shader linking failed: " + std::string(message.data()));
     }
-}
 
-namespace simple_platformer
-{
     SpriteRenderer::SpriteRenderer() : shader(createShaderProgram())
     {
         glGenVertexArrays(1, &vertexArray);
@@ -155,6 +160,7 @@ namespace simple_platformer
 
         viewportLocation = glGetUniformLocation(shader, "viewportSize");
         opacityLocation = glGetUniformLocation(shader, "spriteOpacity");
+        whiteFlashLocation = glGetUniformLocation(shader, "spriteWhiteFlashAmount");
         glUseProgram(shader);
         glUniform1i(glGetUniformLocation(shader, "spriteTexture"), 0);
 
@@ -292,6 +298,7 @@ namespace simple_platformer
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture.handle);
             glUniform1f(opacityLocation, command.opacity);
+            glUniform1f(whiteFlashLocation, command.whiteFlashAmount);
             glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
             glBufferSubData(
                 GL_ARRAY_BUFFER,

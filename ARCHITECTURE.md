@@ -130,6 +130,8 @@ iterators and pointers during a system update.
 - Window output is an integer-scaled internal image with letterboxing when required.
 - `World` owns elapsed simulation time. It advances once per fixed simulation update and
   provides a shared clock for effects that do not need their own resettable timer.
+  Actors store damage timestamps against this clock, while rendering decides how recent
+  damage should look.
 
 The two actor-position conventions are deliberately named:
 
@@ -188,6 +190,7 @@ struct Actor
 
     LifeState life = LifeState::Alive;
     float deathTimeRemaining = 0.0F;
+    std::optional<float> lastDamageTimeSeconds;
 
     std::optional<Sprite> sprite;
     std::optional<Animator> animator;
@@ -393,13 +396,14 @@ position, chooses the earliest solid-tile or eligible-actor hit, queues damage, 
 removed. Owner and team prevent hitting the shooter or allies.
 
 Damage is queued rather than applied while attacks and projectiles are being traversed.
-`updateLifeState` consumes the requests, changes an actor from Alive to Dying when
-health reaches zero, and advances its short death timer. Dying actors cannot decide,
-accept gameplay input, attack, or take another hit, but gravity and collision continue.
-Their sprites fade during the final part of this explicit lifecycle duration. At the end
-of the timer an NPC is removed; the player is respawned at its stored feet position with
-restored health and movement runtime state. Lifecycle timing does not depend on the
-length of an animation clip.
+`updateLifeState` consumes the requests, records the current simulation time when damage
+is applied, and changes an actor from Alive to Dying when health reaches zero.
+Render-scene construction turns recent damage into a short white flash. Dying actors
+cannot decide, accept gameplay input, attack, or take another hit, but gravity and
+collision continue. Their sprites fade during the final part of the explicit death
+duration. At the end of the timer an NPC is removed; the player is respawned at its
+stored feet position with restored health and movement runtime state. Lifecycle timing
+does not depend on the length of an animation clip.
 
 ## Inventory, pickups, and levels
 

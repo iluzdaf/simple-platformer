@@ -22,6 +22,8 @@ namespace simple_platformer
     namespace
     {
         constexpr float DeathFadeDurationSeconds = 0.2F;
+        constexpr float HitFlashDurationSeconds = 0.1F;
+        constexpr float HitFlashAmount = 0.1F;
         constexpr float PickupBobHeight = 2.0F;
         constexpr float PickupBobPeriodSeconds = 1.0F;
         constexpr int PickupBobPhaseCount = 4;
@@ -34,6 +36,15 @@ namespace simple_platformer
                 return 1.0F;
             }
             return std::clamp(actor.deathTimeRemaining / DeathFadeDurationSeconds, 0.0F, 1.0F);
+        }
+
+        float actorWhiteFlashAmount(const Actor& actor, float simulationTimeSeconds)
+        {
+            const bool wasRecentlyDamaged =
+                actor.lastDamageTimeSeconds.has_value() &&
+                simulationTimeSeconds - actor.lastDamageTimeSeconds.value() <
+                    HitFlashDurationSeconds;
+            return wasRecentlyDamaged ? HitFlashAmount : 0.0F;
         }
 
         float pickupVerticalOffset(float animationTime)
@@ -157,7 +168,8 @@ namespace simple_platformer
                      actor.sprite->region,
                      actor.facing == Facing::Left,
                      0.0F,
-                     actorOpacity(actor)});
+                     actorOpacity(actor),
+                     actorWhiteFlashAmount(actor, world.simulationTimeSeconds())});
             }
         }
 

@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <optional>
 #include <stdexcept>
@@ -11,6 +13,7 @@
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/inventory/item_use.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/render/animation_system.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -288,7 +291,7 @@ TEST_CASE("Pickups and exits produce camera-relative sprite commands", "[render]
     auto definitions = items();
     definitions[0].icon = {7, {{4.0F, 8.0F}, {6.0F, 10.0F}}, {6.0F, 10.0F}};
     simple_platformer::World world(definitions);
-    world.addPickup({{{20.0F, 20.0F}, {12.0F, 16.0F}}, {1, 1}});
+    world.addPickup({{{20.0F, 20.0F}, {12.0F, 16.0F}}, {1, 1}, 0.5F});
     simple_platformer::LevelExit exit;
     exit.bounds = {{50.0F, 20.0F}, {16.0F, 32.0F}};
     exit.sprite = simple_platformer::Sprite{8, {{8.0F, 8.0F}, {16.0F, 32.0F}}, {16.0F, 32.0F}};
@@ -303,6 +306,30 @@ TEST_CASE("Pickups and exits produce camera-relative sprite commands", "[render]
     REQUIRE(scene.sprites[0].position.y == 21.0F);
     REQUIRE(scene.sprites[1].textureId == 8);
     REQUIRE(scene.sprites[1].position.x == 40.0F);
+}
+
+TEST_CASE(
+    "Pickup sprites use position-based bobbing without moving their bounds",
+    "[render][pickups]")
+{
+    auto definitions = items();
+    definitions[0].icon = {7, {{4.0F, 8.0F}, {6.0F, 10.0F}}, {6.0F, 10.0F}};
+    simple_platformer::World world(definitions);
+    world.addPickup({{{0.0F, 0.0F}, {16.0F, 16.0F}}, {1, 1}});
+    world.addPickup({{{16.0F, 0.0F}, {16.0F, 16.0F}}, {1, 1}});
+    const auto map = simple_platformer::TileMap::fromAscii({"......", "......", "......"});
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, {320.0F, 180.0F}};
+
+    const auto initialScene = simple_platformer::buildRenderScene(map, 0, camera, world);
+    simple_platformer::updateWorldAnimations(world, 0.5F);
+    const auto advancedScene = simple_platformer::buildRenderScene(map, 0, camera, world);
+
+    REQUIRE_THAT(initialScene.sprites[0].position.y, Catch::Matchers::WithinAbs(6.0F, 0.0001F));
+    REQUIRE_THAT(initialScene.sprites[1].position.y, Catch::Matchers::WithinAbs(5.0F, 0.0001F));
+    REQUIRE_THAT(advancedScene.sprites[0].position.y, Catch::Matchers::WithinAbs(4.0F, 0.0001F));
+    REQUIRE_THAT(advancedScene.sprites[1].position.y, Catch::Matchers::WithinAbs(5.0F, 0.0001F));
+    REQUIRE(world.pickups()[0].bounds.position == glm::vec2{0.0F, 0.0F});
+    REQUIRE(world.pickups()[1].bounds.position == glm::vec2{16.0F, 0.0F});
 }
 
 TEST_CASE("World rejects invalid level object data", "[pickups][exit]")

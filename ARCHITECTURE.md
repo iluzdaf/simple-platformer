@@ -413,7 +413,8 @@ system.
 
 The living player automatically collects pickups on strict body overlap. NPCs do not.
 A pickup that cannot fit completely remains with its uncollected quantity. The example
-contains coins, health potions, and a key. Inventory persists through player death.
+contains coins, health potions, and a key. Pickup sprites bob without moving their
+collection bounds. Inventory persists through player death.
 
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. The simulation reports completion;

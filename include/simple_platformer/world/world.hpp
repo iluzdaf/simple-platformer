@@ -24,6 +24,7 @@ namespace simple_platformer
         const ItemDefinition& itemDefinition(ItemId id) const;
         void addPickup(Pickup pickup);
         // Collection can erase pickups. Do not retain references/indexes across request batches.
+        std::vector<Pickup>& pickups();
         const std::vector<Pickup>& pickups() const;
         // Used when applying queued pickup requests, after iteration has finished.
         void collectPickup(std::size_t index);

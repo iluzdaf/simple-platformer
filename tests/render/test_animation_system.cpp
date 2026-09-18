@@ -96,13 +96,13 @@ TEST_CASE("A ranged actor uses Attack only during its Shoot phase", "[render][an
     rangedActor.rangedWeapon->phaseTimeRemaining = rangedActor.rangedWeapon->shootDuration;
     const simple_platformer::ActorId id = world.addActor(rangedActor);
 
-    simple_platformer::updateActorAnimations(world, 0.0F);
+    simple_platformer::updateWorldAnimations(world, 0.0F);
     REQUIRE(animator(world, id).current == simple_platformer::AnimationName::Attack);
 
     rangedWeapon(world, id).phase = simple_platformer::RangedPhase::Recovery;
     rangedWeapon(world, id).phaseTimeRemaining = rangedWeapon(world, id).recoveryDuration;
     actor(world, id).body.velocity.x = 10.0F;
-    simple_platformer::updateActorAnimations(world, 0.0F);
+    simple_platformer::updateWorldAnimations(world, 0.0F);
     REQUIRE(animator(world, id).current == simple_platformer::AnimationName::Move);
 }
 
@@ -121,7 +121,7 @@ TEST_CASE("Every committed bite phase uses Attack", "[render][animation][system]
          })
     {
         bite(world, id).phase = phase;
-        simple_platformer::updateActorAnimations(world, 0.0F);
+        simple_platformer::updateWorldAnimations(world, 0.0F);
         REQUIRE(animator(world, id).current == simple_platformer::AnimationName::Attack);
     }
 }
@@ -137,7 +137,20 @@ TEST_CASE("Death animation has priority over a shot", "[render][animation][syste
     dyingActor.rangedWeapon->phaseTimeRemaining = dyingActor.rangedWeapon->shootDuration;
     const simple_platformer::ActorId id = world.addActor(dyingActor);
 
-    simple_platformer::updateActorAnimations(world, 0.0F);
+    simple_platformer::updateWorldAnimations(world, 0.0F);
 
     REQUIRE(animator(world, id).current == simple_platformer::AnimationName::Death);
+}
+
+TEST_CASE("Pickup animation advances each pickup age", "[render][animation][system]")
+{
+    simple_platformer::World world({{1, "Coin", {}, 5}});
+    world.addPickup({{{8.0F, 8.0F}, {16.0F, 16.0F}}, {1, 1}});
+
+    simple_platformer::updateWorldAnimations(world, 0.25F);
+    simple_platformer::updateWorldAnimations(world, 0.25F);
+
+    REQUIRE(world.pickups().front().ageSeconds == 0.5F);
+    REQUIRE_THROWS_AS(
+        simple_platformer::updateWorldAnimations(world, -0.1F), std::invalid_argument);
 }

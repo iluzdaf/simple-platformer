@@ -1,5 +1,25 @@
 {
   "tileLegend": { ".": "empty", "#": "stone", "G": "grass", "X": "glass" },
+  "objectLegend": {
+    "P": { "type": "player" },
+    "Z": {
+      "type": "zombie",
+      "patrol": {
+        "firstCell": [24, 14],
+        "secondCell": [28, 14]
+      }
+    },
+    "K": { "type": "pickup", "item": "key", "quantity": 1 },
+    "E": {
+      "type": "exit",
+      "requirement": {
+        "item": "key",
+        "quantity": 1
+      },
+      "consumeItem": true,
+      "nextLevel": 2
+    }
+  },
   "map": [
     "................................................",
     "................................................",
@@ -15,19 +35,10 @@
     "..................................#####.........",
     "..................................#####.........",
     "..................#####.........XXXX#####.......",
-    ".....####..GGG....#####.........#########.......",
+    "..P..####..GGG....#####...Z.....#########..K..E.",
     "################################################"
   ],
-  "playerSpawnCell": [2, 14],
   "actors": [
-    {
-      "type": "zombie",
-      "spawnCell": [26, 14],
-      "patrol": {
-        "firstCell": [24, 14],
-        "secondCell": [28, 14]
-      }
-    },
     {
       "type": "zombie",
       "spawnCell": [13, 14],
@@ -47,20 +58,6 @@
       "item": "health_potion",
       "quantity": 1,
       "spawnCell": [36, 10]
-    },
-    {
-      "item": "key",
-      "quantity": 1,
-      "spawnCell": [43, 14]
     }
-  ],
-  "exit": {
-    "spawnCell": [46, 14],
-    "requirement": {
-      "item": "key",
-      "quantity": 1
-    },
-    "consumeItem": true,
-    "nextLevel": 2
-  }
+  ]
 }

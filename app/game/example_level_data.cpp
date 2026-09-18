@@ -206,9 +206,8 @@ namespace simple_platformer
         ExampleActorPlacement actor(
             const Json& value,
             std::string_view sourceName,
-            std::size_t index)
+            const std::string& path)
         {
-            const std::string path = "actors[" + std::to_string(index) + "]";
             ExampleActorPlacement result;
             result.type =
                 actorType(member(value, "type", sourceName, path), sourceName, path + ".type");
@@ -224,14 +223,16 @@ namespace simple_platformer
         ExamplePickupPlacement pickup(
             const Json& value,
             std::string_view sourceName,
-            std::size_t index)
+            const std::string& path)
         {
-            const std::string path = "pickups[" + std::to_string(index) + "]";
             const int quantity = integer(
                 member(value, "quantity", sourceName, path), sourceName, path + ".quantity");
             if (quantity <= 0)
             {
-                fail(sourceName, path + ".quantity", "quantity must be positive");
+                fail(
+                    sourceName,
+                    path + ".quantity",
+                    "expected a positive integer, got " + std::to_string(quantity));
             }
             return {
                 feetPosition(value, "spawnCell", "spawnFeet", sourceName, path),
@@ -239,41 +240,46 @@ namespace simple_platformer
                  quantity}};
         }
 
-        ExampleExitPlacement levelExit(const Json& value, std::string_view sourceName)
+        ExampleExitPlacement levelExit(
+            const Json& value,
+            std::string_view sourceName,
+            const std::string& path = "exit")
         {
-            constexpr std::string_view Path = "exit";
             ExampleExitPlacement result;
-            result.spawnFeet = feetPosition(value, "spawnCell", "spawnFeet", sourceName, Path);
+            result.spawnFeet = feetPosition(value, "spawnCell", "spawnFeet", sourceName, path);
 
             if (const auto found = value.find("requirement"); found != value.end())
             {
                 const Json& requirement = *found;
                 const int quantity = integer(
-                    member(requirement, "quantity", sourceName, "exit.requirement"),
+                    member(requirement, "quantity", sourceName, path + ".requirement"),
                     sourceName,
-                    "exit.requirement.quantity");
+                    path + ".requirement.quantity");
                 if (quantity <= 0)
                 {
-                    fail(sourceName, "exit.requirement.quantity", "quantity must be positive");
+                    fail(
+                        sourceName,
+                        path + ".requirement.quantity",
+                        "expected a positive integer, got " + std::to_string(quantity));
                 }
                 result.requirement = ItemStack{
                     itemId(
-                        member(requirement, "item", sourceName, "exit.requirement"),
+                        member(requirement, "item", sourceName, path + ".requirement"),
                         sourceName,
-                        "exit.requirement.item"),
+                        path + ".requirement.item"),
                     quantity};
             }
 
             if (const auto found = value.find("consumeItem"); found != value.end())
             {
-                result.consumeItem = boolean(*found, sourceName, "exit.consumeItem");
+                result.consumeItem = boolean(*found, sourceName, path + ".consumeItem");
             }
             if (const auto found = value.find("nextLevel"); found != value.end())
             {
-                const int nextLevel = integer(*found, sourceName, "exit.nextLevel");
+                const int nextLevel = integer(*found, sourceName, path + ".nextLevel");
                 if (nextLevel <= 0)
                 {
-                    fail(sourceName, "exit.nextLevel", "level number must be positive");
+                    fail(sourceName, path + ".nextLevel", "level number must be positive");
                 }
                 result.nextLevel = nextLevel;
             }
@@ -307,18 +313,157 @@ namespace simple_platformer
                 }
                 else if (row.size() != width)
                 {
-                    fail(sourceName, path, "every map row must have the same width");
+                    fail(
+                        sourceName,
+                        path,
+                        "expected " + std::to_string(width) + " columns, got " +
+                            std::to_string(row.size()));
                 }
-                for (const char symbol : row)
+                for (std::size_t column = 0; column < row.size(); ++column)
                 {
+                    const char symbol = row[column];
                     if (legend.find(symbol) == legend.end())
                     {
-                        fail(sourceName, path, "map symbol is not defined in tileLegend");
+                        fail(
+                            sourceName,
+                            path + "[" + std::to_string(column) + "]",
+                            "unknown symbol '" + std::string(1, symbol) +
+                                "'; define it in tileLegend or objectLegend");
                     }
                 }
                 rows.push_back(std::move(row));
             }
             return rows;
+        }
+
+        // Expand the authoring shorthand into the existing placement format, so both
+        // ways of placing objects use the same parsing and validation below.
+        Json expandObjectLegend(Json root, std::string_view sourceName)
+        {
+            if (!root.contains("objectLegend"))
+            {
+                return root;
+            }
+            const Json legend = root.at("objectLegend");
+            if (!legend.is_object())
+            {
+                fail(sourceName, "objectLegend", "expected an object");
+            }
+            if (!root.contains("tileLegend"))
+            {
+                root["tileLegend"] = {{".", "empty"}, {"#", "stone"}};
+            }
+            if (!root.at("tileLegend").is_object() || root.at("tileLegend").empty())
+            {
+                fail(sourceName, "tileLegend", "expected a nonempty object");
+            }
+            for (const auto& entry : legend.items())
+            {
+                const std::string path = "objectLegend." + entry.key();
+                if (entry.key().size() != 1)
+                {
+                    fail(sourceName, path, "symbols must be one character");
+                }
+                if (root.at("tileLegend").contains(entry.key()))
+                {
+                    fail(sourceName, path, "symbol is also defined in tileLegend");
+                }
+                const Json& object = entry.value();
+                const std::string type =
+                    text(member(object, "type", sourceName, path), sourceName, path + ".type");
+                if (object.contains("spawnCell") || object.contains("spawnFeet"))
+                {
+                    fail(sourceName, path, "position comes from the map symbol");
+                }
+                // Validate unused definitions too; the actual cell is supplied when scanning.
+                Json placement = object;
+                placement["spawnCell"] = {0, 0};
+                if (type == "pickup")
+                {
+                    pickup(placement, sourceName, path);
+                }
+                else if (type == "exit")
+                {
+                    levelExit(placement, sourceName, path);
+                }
+                else if (type != "player")
+                {
+                    actor(placement, sourceName, path);
+                }
+                // The marker creates an object, not a terrain tile.
+                root["tileLegend"][entry.key()] = "empty";
+            }
+            for (const auto* key : {"actors", "pickups"})
+            {
+                if (!root.contains(key))
+                {
+                    root[key] = Json::array();
+                }
+                if (!root.at(key).is_array())
+                {
+                    fail(sourceName, key, "expected an array");
+                }
+            }
+            const Json& rows = member(root, "map", sourceName, "root");
+            if (!rows.is_array())
+            {
+                fail(sourceName, "map", "expected an array");
+            }
+            std::string playerLocation =
+                root.contains("playerSpawnCell")
+                    ? "playerSpawnCell"
+                    : (root.contains("playerSpawnFeet") ? "playerSpawnFeet" : "");
+            std::string exitLocation = root.contains("exit") ? "exit" : "";
+            for (std::size_t row = 0; row < rows.size(); ++row)
+            {
+                const std::string cells =
+                    text(rows[row], sourceName, "map[" + std::to_string(row) + "]");
+                for (std::size_t column = 0; column < cells.size(); ++column)
+                {
+                    const auto found = legend.find(std::string(1, cells[column]));
+                    if (found == legend.end())
+                    {
+                        continue;
+                    }
+                    Json placement = *found;
+                    const std::string type = placement.at("type").get<std::string>();
+                    placement["spawnCell"] = {column, row};
+                    const std::string location =
+                        "map[" + std::to_string(row) + "][" + std::to_string(column) + "]";
+                    if (type == "player")
+                    {
+                        if (root.contains("playerSpawnCell") || root.contains("playerSpawnFeet"))
+                        {
+                            fail(
+                                sourceName,
+                                location,
+                                "second player marker '" + std::string(1, cells[column]) +
+                                    "'; player already placed at " + playerLocation);
+                        }
+                        root["playerSpawnCell"] = placement.at("spawnCell");
+                        playerLocation = location;
+                    }
+                    else if (type == "exit")
+                    {
+                        if (root.contains("exit"))
+                        {
+                            fail(
+                                sourceName,
+                                location,
+                                "second exit marker '" + std::string(1, cells[column]) +
+                                    "'; exit already placed at " + exitLocation);
+                        }
+                        root["exit"] = std::move(placement);
+                        exitLocation = location;
+                    }
+                    else
+                    {
+                        root[type == "pickup" ? "pickups" : "actors"].push_back(
+                            std::move(placement));
+                    }
+                }
+            }
+            return root;
         }
 
         ExampleLevelData levelData(const Json& root, std::string_view sourceName)
@@ -355,7 +500,8 @@ namespace simple_platformer
             result.actors.reserve(actors.size());
             for (std::size_t index = 0; index < actors.size(); ++index)
             {
-                result.actors.push_back(actor(actors[index], sourceName, index));
+                result.actors.push_back(
+                    actor(actors[index], sourceName, "actors[" + std::to_string(index) + "]"));
             }
 
             const Json& pickups = member(root, "pickups", sourceName, "root");
@@ -366,7 +512,8 @@ namespace simple_platformer
             result.pickups.reserve(pickups.size());
             for (std::size_t index = 0; index < pickups.size(); ++index)
             {
-                result.pickups.push_back(pickup(pickups[index], sourceName, index));
+                result.pickups.push_back(
+                    pickup(pickups[index], sourceName, "pickups[" + std::to_string(index) + "]"));
             }
 
             result.exit = levelExit(member(root, "exit", sourceName, "root"), sourceName);
@@ -378,7 +525,29 @@ namespace simple_platformer
     {
         try
         {
-            return levelData(Json::parse(text.begin(), text.end()), sourceName);
+            return levelData(
+                expandObjectLegend(Json::parse(text.begin(), text.end()), sourceName), sourceName);
+        }
+        catch (const Json::parse_error& exception)
+        {
+            // JSON reports a one-based byte position, including one past the end at EOF.
+            std::size_t line = 1;
+            std::size_t column = 1;
+            for (std::size_t index = 0; index < text.size() && index + 1 < exception.byte; ++index)
+            {
+                if (text[index] == '\n')
+                {
+                    ++line;
+                    column = 1;
+                }
+                else
+                {
+                    ++column;
+                }
+            }
+            throw std::invalid_argument(
+                std::string(sourceName) + ": line " + std::to_string(line) + ", column " +
+                std::to_string(column) + ": invalid JSON: " + exception.what());
         }
         catch (const Json::exception& exception)
         {

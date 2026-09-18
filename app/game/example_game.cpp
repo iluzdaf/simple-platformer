@@ -106,7 +106,7 @@ namespace simple_platformer
             throw std::logic_error("The example game has no player after lifecycle update");
         }
         followTarget(cameraControllerValue(), level.map, player->body.bounds);
-        updateActorAnimations(level.world, deltaTime);
+        updateWorldAnimations(level.world, deltaTime);
     }
 
     glm::vec2 ExampleGame::playerAimDirection(glm::vec2 screenPosition) const

@@ -17,6 +17,34 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
+namespace
+{
+    constexpr float PickupBobHeight = 2.0F;
+    constexpr float PickupBobPeriodSeconds = 1.0F;
+    constexpr int PickupBobPhaseCount = 4;
+    constexpr float RadiansPerCycle = 6.28318530717958647692F;
+
+    float pickupVerticalOffset(float animationTime)
+    {
+        const float cycleRadians = animationTime * RadiansPerCycle / PickupBobPeriodSeconds;
+        return -PickupBobHeight * 0.5F * (1.0F - std::cos(cycleRadians));
+    }
+
+    float pickupPhaseOffset(const simple_platformer::Aabb& bounds)
+    {
+        // Spread level-start pickups across four phases instead of bobbing in lockstep.
+        const simple_platformer::GridPosition cell =
+            simple_platformer::worldToGrid(bounds.position);
+        int phaseIndex = (cell.x + cell.y) % PickupBobPhaseCount;
+        if (phaseIndex < 0)
+        {
+            phaseIndex += PickupBobPhaseCount;
+        }
+        return static_cast<float>(phaseIndex) * PickupBobPeriodSeconds /
+               static_cast<float>(PickupBobPhaseCount);
+    }
+}
+
 namespace simple_platformer
 {
     RenderScene buildRenderScene(
@@ -64,7 +92,9 @@ namespace simple_platformer
         for (const Pickup& pickup : world.pickups())
         {
             const Sprite& sprite = world.itemDefinition(pickup.stack.item).icon;
-            const Aabb bounds = spriteBounds(pickup.bounds, sprite);
+            Aabb bounds = spriteBounds(pickup.bounds, sprite);
+            bounds.position.y +=
+                pickupVerticalOffset(pickup.ageSeconds + pickupPhaseOffset(pickup.bounds));
             scene.sprites.push_back(
                 {sprite.textureId,
                  worldToScreen(camera, bounds.position),

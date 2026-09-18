@@ -1,5 +1,6 @@
 #include "simple_platformer/world/pickup.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <stdexcept>
 #include <vector>
@@ -29,6 +30,10 @@ namespace
         {
             throw std::invalid_argument("Pickups require a positive quantity");
         }
+        if (!std::isfinite(pickup.ageSeconds) || pickup.ageSeconds < 0.0F)
+        {
+            throw std::invalid_argument("Pickup age must be finite and non-negative");
+        }
     }
 }
 
@@ -41,6 +46,11 @@ namespace simple_platformer
     }
 
     const std::vector<Pickup>& World::pickups() const
+    {
+        return pickupStorage;
+    }
+
+    std::vector<Pickup>& World::pickups()
     {
         return pickupStorage;
     }

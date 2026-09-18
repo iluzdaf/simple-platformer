@@ -22,6 +22,10 @@ rules, runtime flow, and reasons behind the main decisions.
 
 All third-party source required by the project is vendored under `external/`.
 
+The supported development platforms are macOS and Windows, where development and
+graphical testing take place. Linux is used solely for CI quality checks and is not a
+supported local development workflow.
+
 ## macOS: configure, build, and test
 
 The shared macOS preset uses the build tools supplied with Xcode.

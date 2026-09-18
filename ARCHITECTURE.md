@@ -1,8 +1,7 @@
 # Simple Platformer Architecture
 
 This document explains the architecture that exists in the repository now: its main
-boundaries, data model, runtime flow, and the reasons behind them. It is a reference,
-not an implementation schedule.
+boundaries, data model, runtime flow, and the reasons behind them.
 
 If this is your first time in the project, follow [START_HERE.md](START_HERE.md) before
 reading this document from top to bottom.
@@ -16,16 +15,16 @@ from graphics so the major paths can be tested without opening a window.
 The current example includes:
 
 - responsive platformer movement with variable-height jumping, coyote time, and jump
-  buffering;
-- arbitrary-sized AABB bodies colliding with a solid tile grid;
-- scrolling maps and a dead-zone camera;
-- actors assembled by composition;
-- player and NPC control through the same `InputIntentions`;
-- enum-and-switch NPC state machines, sensing, and target memory;
-- flying and platformer pathfinding;
-- 360-degree projectiles and a timed bite attack;
-- health, death, respawning, pickups, inventory, and three connected levels;
-- sprite animation, an ImGui HUD, and an optional debug overlay.
+  buffering
+- arbitrary-sized AABB bodies colliding with a solid tile grid
+- scrolling maps and a dead-zone camera
+- actors assembled by composition
+- player and NPC control through the same `InputIntentions`
+- enum-and-switch NPC state machines, sensing, and target memory
+- flying and platformer pathfinding
+- 360-degree projectiles and a timed bite attack
+- health, death, respawning, pickups, inventory, and three connected levels
+- sprite animation, an ImGui HUD, and an optional debug overlay
 
 The project deliberately does not try to provide slopes, one-way or moving platforms,
 dynamic rigid-body physics, actor pushing, multiplayer, scripting, save games, an
@@ -799,11 +798,10 @@ Tests that need an actor usually define a small local factory containing only th
 relevant to that subject. This duplication is intentional: each test remains readable
 without discovering a large shared fixture full of unrelated defaults.
 
-CI builds and tests on macOS with Apple Clang and on Windows through the same generated
-Visual Studio solution used by students. A Linux quality job checks formatting,
-clang-tidy, and public-header self-containment. OpenGL and ImGui integration remain a
-manual run because automated graphics-context tests would add more infrastructure than
-teaching value here.
+CI builds and tests on macOS with Apple Clang and on Windows through the generated
+Visual Studio solution described in [README.md](README.md). A Linux quality job checks
+formatting, clang-tidy, and public-header self-containment. OpenGL and ImGui integration
+remain a manual run; automated graphics-context tests are avoided.
 
 ## Future work
 
@@ -812,13 +810,34 @@ repository.
 
 ### Further data-driven content
 
+This design is not implemented in the current engine.
+
 Level geometry and placement are loaded from validated JSON. Item definitions,
 animation clips, and actor composition still live in C++. They can move to separate
 validated data files later, but should keep stable symbolic names, preserve the current
 runtime structures, and avoid turning level files into arbitrary component or behaviour
 scripts.
 
+### Level authoring tools
+
+This design is not implemented in the current engine.
+
+Editing JSON remains useful because the stored level data is visible and reviewable,
+but counting columns in a wide tile map makes object placement cumbersome.
+
+The first step should be a read-only level visualizer. It can load the existing JSON
+through the normal parser and display row and column rulers together with symbols for
+the player, actors, pickups, exits, and patrol points. It should report the same
+validation errors as the game and must not introduce another level format.
+
+A later visual editor can let a user paint tiles and place objects, then write the same
+validated JSON consumed by the example game. Loading, composition, and simulation
+should continue to depend on `ExampleLevelData`, not on the editor, so handwritten and
+tool-generated levels remain equivalent.
+
 ### Optional movement abilities
+
+This design is not implemented in the current engine.
 
 `PlatformerMovement` should remain the readable baseline shared by ordinary ground
 actors. Features such as double jump, dash, wall slide, and wall jump can be added as
@@ -968,6 +987,8 @@ inheritance hierarchy, or generic plugin system merely to anticipate possible fe
 
 ### NPC tactics
 
+This design is not implemented in the current engine.
+
 NPC composition should continue to describe what an actor *can do*: platformer or
 flying movement, sensing, biting, and shooting. `NpcState` describes what it is doing
 right now, such as patrolling, chasing, or attacking. A future tactic can separately
@@ -1060,6 +1081,8 @@ callbacks, and a general behaviour-tree framework are not needed for these tacti
 
 ### Movement-specific navigation anchors
 
+This design is not implemented in the current engine.
+
 Ground navigation naturally uses actor feet, while a flying actor is easier to reason
 about from its centre. The current API keeps feet-based destinations for both so the
 navigation data model stays uniform. A future revision can introduce an explicitly
@@ -1067,6 +1090,8 @@ named navigation anchor, use feet for platformer actors and centres for flying a
 and rename patrol point fields so they are neutral about the chosen anchor.
 
 ### Mixed-size animation frames
+
+This design is not implemented in the current engine.
 
 `SpriteRegion` already supports arbitrary source rectangles, but animation playback
 currently changes only the region while `Sprite::size` and its anchor remain fixed.
@@ -1076,9 +1101,3 @@ A future `AnimationFrame` could contain a source region, display size, and pivot
 offset. That would support mixed-size pixel-for-pixel artwork while keeping feet or
 another visual anchor stable. Collision bodies must remain independent from animation
 frame dimensions.
-
-### Teaching packages
-
-The completed reference can later be divided into staged student exercises with focused
-starter code, diagrams, and checkpoints. Those teaching packages should link back to
-this current-design reference rather than turning it into a chronological build diary.

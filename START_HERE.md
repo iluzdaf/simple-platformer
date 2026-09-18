@@ -8,6 +8,27 @@ Build and run the project using the instructions in [README.md](README.md) befor
 starting the tour. Keep a matching test file open beside each implementation file;
 the tests often provide the smallest examples of how a subject is meant to be used.
 
+There are two routes through this document:
+
+- If you are new to the engine, follow the
+  [recommended reading route](#recommended-reading-route) first.
+- If you are starting a project requirement, use the
+  [platformer gameplay](#platformer-gameplay-requirements) or
+  [enemy behaviour](#enemy-behaviour-requirements) starting points.
+
+## Everyday development loop
+
+Keep each change small enough to verify directly:
+
+1. Change the subject that owns the rule.
+2. Build using the platform instructions in [README.md](README.md).
+3. Run its focused test while working, then run the complete test suite.
+4. Launch the example game when the change affects interaction or presentation.
+
+The focused tests provide fast feedback about one rule. The complete suite checks its
+interaction with the rest of the engine, while running the game covers presentation
+and graphics behaviour that automated tests deliberately leave out.
+
 ## The big picture
 
 The outer flow is:

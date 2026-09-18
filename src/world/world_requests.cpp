@@ -39,10 +39,21 @@ namespace simple_platformer
         projectileRemovals.push_back(index);
     }
 
+    void WorldRequests::spawnProjectileBurst(ProjectileBurst burst)
+    {
+        projectileBurstSpawns.push_back(burst);
+    }
+
+    void WorldRequests::removeProjectileBurst(std::size_t index)
+    {
+        projectileBurstRemovals.push_back(index);
+    }
+
     bool WorldRequests::empty() const
     {
         return damageRequests.empty() && removalRequests.empty() && projectileSpawns.empty() &&
-               projectileRemovals.empty() && pickupCollections.empty() && itemUses.empty();
+               projectileRemovals.empty() && projectileBurstSpawns.empty() &&
+               projectileBurstRemovals.empty() && pickupCollections.empty() && itemUses.empty();
     }
 
     void WorldRequests::collectPickup(std::size_t index)
@@ -100,8 +111,27 @@ namespace simple_platformer
             world.addProjectile(projectile);
         }
 
+        std::sort(requests.projectileBurstRemovals.begin(), requests.projectileBurstRemovals.end());
+        requests.projectileBurstRemovals.erase(
+            std::unique(
+                requests.projectileBurstRemovals.begin(), requests.projectileBurstRemovals.end()),
+            requests.projectileBurstRemovals.end());
+        for (auto removal = requests.projectileBurstRemovals.rbegin();
+             removal != requests.projectileBurstRemovals.rend();
+             ++removal)
+        {
+            world.removeProjectileBurst(*removal);
+        }
+
+        for (const ProjectileBurst& burst : requests.projectileBurstSpawns)
+        {
+            world.addProjectileBurst(burst);
+        }
+
         requests.removalRequests.clear();
         requests.projectileSpawns.clear();
         requests.projectileRemovals.clear();
+        requests.projectileBurstSpawns.clear();
+        requests.projectileBurstRemovals.clear();
     }
 }

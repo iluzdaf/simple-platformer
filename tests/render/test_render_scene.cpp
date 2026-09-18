@@ -175,3 +175,29 @@ TEST_CASE("Projectile sprites are centred and rotated in their direction", "[ren
         scene.sprites.front().rotationRadians,
         Catch::Matchers::WithinAbs(-std::acos(-1.0F) * 0.5F, 0.0001F));
 }
+
+TEST_CASE("Projectile bursts expand and fade around their world position", "[render][scene]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "...."});
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, {64.0F, 32.0F}};
+    simple_platformer::ProjectileBurst burst;
+    burst.center = {20.0F, 10.0F};
+    burst.direction = {0.0F, -1.0F};
+    burst.sprite = {3, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {6.0F, 4.0F}};
+    burst.remainingLifetime = 0.05F;
+    simple_platformer::World world;
+    world.addProjectileBurst(burst);
+
+    const simple_platformer::RenderScene scene =
+        simple_platformer::buildRenderScene(map, 0, camera, world);
+
+    REQUIRE(scene.sprites.size() == 1);
+    REQUIRE_THAT(scene.sprites.front().position.x, Catch::Matchers::WithinAbs(15.5F, 0.0001F));
+    REQUIRE_THAT(scene.sprites.front().position.y, Catch::Matchers::WithinAbs(7.0F, 0.0001F));
+    REQUIRE_THAT(scene.sprites.front().size.x, Catch::Matchers::WithinAbs(9.0F, 0.0001F));
+    REQUIRE_THAT(scene.sprites.front().size.y, Catch::Matchers::WithinAbs(6.0F, 0.0001F));
+    REQUIRE_THAT(scene.sprites.front().opacity, Catch::Matchers::WithinAbs(0.5F, 0.0001F));
+    REQUIRE_THAT(
+        scene.sprites.front().rotationRadians,
+        Catch::Matchers::WithinAbs(-std::acos(-1.0F) * 0.5F, 0.0001F));
+}

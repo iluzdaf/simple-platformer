@@ -17,6 +17,8 @@ namespace simple_platformer
         void remove(ActorId target);
         void spawnProjectile(Projectile projectile);
         void removeProjectile(std::size_t index);
+        void spawnProjectileBurst(ProjectileBurst burst);
+        void removeProjectileBurst(std::size_t index);
         void collectPickup(std::size_t index);
         void useItem(ActorId actor, std::size_t slot);
         bool empty() const;
@@ -41,6 +43,8 @@ namespace simple_platformer
         std::vector<ActorId> removalRequests;
         std::vector<Projectile> projectileSpawns;
         std::vector<std::size_t> projectileRemovals;
+        std::vector<ProjectileBurst> projectileBurstSpawns;
+        std::vector<std::size_t> projectileBurstRemovals;
         std::vector<std::size_t> pickupCollections;
         std::vector<UseItemRequest> itemUses;
     };

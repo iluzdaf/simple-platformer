@@ -27,6 +27,7 @@ namespace simple_platformer
         updateActorMovement(map, world, deltaTime);
         updateAttacks(world, requests, deltaTime);
         updateProjectiles(map, world, requests, deltaTime);
+        updateProjectileBursts(world, requests, deltaTime);
         updateLifeState(world, requests, deltaTime);
         updatePickups(world, requests);
         applyWorldRequests(world, requests);

@@ -66,11 +66,17 @@ TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[c
 
     REQUIRE(healthOf(world, near) == 3);
     REQUIRE(world.projectiles().size() == 1);
+    REQUIRE(world.projectileBursts().empty());
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(healthOf(world, near) == 2);
     REQUIRE(healthOf(world, far) == 3);
     REQUIRE(world.projectiles().empty());
+    REQUIRE(world.projectileBursts().size() == 1);
+    REQUIRE(
+        world.projectileBursts().front().cause == simple_platformer::ProjectileBurstCause::Impact);
+    REQUIRE(world.projectileBursts().front().center == glm::vec2{29.0F, 5.0F});
+    REQUIRE(world.projectileBursts().front().direction == glm::vec2{100.0F, 0.0F});
 }
 
 TEST_CASE("A solid tile stops a projectile before an actor", "[combat][projectile]")
@@ -89,6 +95,10 @@ TEST_CASE("A solid tile stops a projectile before an actor", "[combat][projectil
 
     REQUIRE(healthOf(world, target) == 3);
     REQUIRE(world.projectiles().empty());
+    REQUIRE(world.projectileBursts().size() == 1);
+    REQUIRE(
+        world.projectileBursts().front().cause == simple_platformer::ProjectileBurstCause::Impact);
+    REQUIRE(world.projectileBursts().front().center == glm::vec2{47.0F, 5.0F});
 }
 
 TEST_CASE("Projectiles ignore their owner and actors on the same team", "[combat][projectile]")
@@ -126,6 +136,31 @@ TEST_CASE("A projectile is removed when its lifetime expires", "[combat][project
     REQUIRE(world.projectiles().size() == 1);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().empty());
+    REQUIRE(world.projectileBursts().size() == 1);
+    REQUIRE(
+        world.projectileBursts().front().cause ==
+        simple_platformer::ProjectileBurstCause::LifetimeExpired);
+    REQUIRE(world.projectileBursts().front().center == glm::vec2{11.0F, 5.0F});
+}
+
+TEST_CASE("A projectile burst expires after its short feedback lifetime", "[combat][projectile]")
+{
+    simple_platformer::World world;
+    world.addActor(makeActor({30.0F, 0.0F}, simple_platformer::Team::Enemy));
+    world.addProjectile(makeProjectile());
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateProjectiles(EmptyMap, world, requests, 0.5F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(world.projectileBursts().size() == 1);
+
+    simple_platformer::updateProjectileBursts(world, requests, 0.05F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(world.projectileBursts().size() == 1);
+
+    simple_platformer::updateProjectileBursts(world, requests, 0.05F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(world.projectileBursts().empty());
 }
 
 TEST_CASE("Separate projectile hits have no shared invulnerability", "[combat][projectile]")
@@ -143,6 +178,7 @@ TEST_CASE("Separate projectile hits have no shared invulnerability", "[combat][p
 
     REQUIRE(healthOf(world, target) == 1);
     REQUIRE(world.projectiles().empty());
+    REQUIRE(world.projectileBursts().size() == 2);
 }
 
 TEST_CASE("Projectile updates reject invalid timing", "[combat][projectile]")
@@ -152,4 +188,6 @@ TEST_CASE("Projectile updates reject invalid timing", "[combat][projectile]")
     REQUIRE_THROWS_AS(
         simple_platformer::updateProjectiles(EmptyMap, world, requests, -0.1F),
         std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::updateProjectileBursts(world, requests, -0.1F), std::invalid_argument);
 }

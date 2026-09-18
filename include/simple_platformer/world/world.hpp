@@ -59,6 +59,11 @@ namespace simple_platformer
         std::vector<Projectile>& projectiles();
         const std::vector<Projectile>& projectiles() const;
 
+        void addProjectileBurst(ProjectileBurst burst);
+        bool removeProjectileBurst(std::size_t index);
+        std::vector<ProjectileBurst>& projectileBursts();
+        const std::vector<ProjectileBurst>& projectileBursts() const;
+
         void setPlayer(ActorId id, glm::vec2 spawnFeet);
         ActorId playerId() const;
         glm::vec2 playerSpawnFeet() const;
@@ -72,6 +77,7 @@ namespace simple_platformer
         float elapsedSimulationTimeSeconds = 0.0F;
         std::vector<Actor> actorStorage;
         std::vector<Projectile> projectileStorage;
+        std::vector<ProjectileBurst> projectileBurstStorage;
         std::uint32_t nextActorId = 1;
         ActorId controlledPlayer;
         glm::vec2 controlledPlayerSpawnFeet = {0.0F, 0.0F};

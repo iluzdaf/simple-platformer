@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -277,10 +278,33 @@ namespace simple_platformer
         GridPosition start,
         GridPosition goal,
         glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement)
+        const PlatformerMovementConfig& movement,
+        const PlatformerNavigationConfig& navigation)
     {
-        const GridNeighborFunction neighbors = [&map, bodySize, &movement](GridPosition position)
-        { return platformerNeighbors(map, position, bodySize, movement); };
+        if (navigation.jumpStartPenaltyTicks < 0)
+        {
+            throw std::invalid_argument("A jump start penalty cannot be negative");
+        }
+        const GridNeighborFunction neighbors =
+            [&map, bodySize, &movement, &navigation](GridPosition position)
+        {
+            std::vector<NavigationNeighbor> result =
+                platformerNeighbors(map, position, bodySize, movement);
+            for (NavigationNeighbor& neighbor : result)
+            {
+                if (neighbor.traversal != Traversal::Jump)
+                {
+                    continue;
+                }
+                if (neighbor.cost >
+                    std::numeric_limits<int>::max() - navigation.jumpStartPenaltyTicks)
+                {
+                    throw std::overflow_error("A navigation connection cost is too large");
+                }
+                neighbor.cost += navigation.jumpStartPenaltyTicks;
+            }
+            return result;
+        };
         const GridHeuristicFunction heuristic =
             [&movement](GridPosition position, GridPosition goal)
         { return platformerTickHeuristic(position, goal, movement); };

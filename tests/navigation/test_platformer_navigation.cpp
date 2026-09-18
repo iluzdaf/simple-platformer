@@ -411,3 +411,85 @@ TEST_CASE(
         REQUIRE(routeWithoutHeuristic.steps[index].traversal == route.steps[index].traversal);
     }
 }
+
+TEST_CASE(
+    "A jump start penalty prevents an unnecessary same-platform hop",
+    "[navigation][platformer][regression]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....###.....", ".............", ".............", "#############"});
+    simple_platformer::PlatformerMovementConfig movement;
+    movement.maximumSpeed = 60.0F;
+
+    const auto preferredPath =
+        simple_platformer::findPlatformerPath(map, {12, 2}, {4, 2}, {12.0F, 20.0F}, movement);
+
+    REQUIRE(preferredPath.has_value());
+    const simple_platformer::NavigationPath preferredRoute =
+        preferredPath.value_or(simple_platformer::NavigationPath{});
+    REQUIRE(std::all_of(
+        preferredRoute.steps.begin(),
+        preferredRoute.steps.end(),
+        [](const simple_platformer::NavigationStep& step)
+        { return step.traversal == simple_platformer::Traversal::Walk; }));
+
+    simple_platformer::PlatformerNavigationConfig noPenalty;
+    noPenalty.jumpStartPenaltyTicks = 0;
+    const auto fastestPath = simple_platformer::findPlatformerPath(
+        map, {12, 2}, {4, 2}, {12.0F, 20.0F}, movement, noPenalty);
+
+    REQUIRE(fastestPath.has_value());
+    const simple_platformer::NavigationPath fastestRoute =
+        fastestPath.value_or(simple_platformer::NavigationPath{});
+    REQUIRE(std::any_of(
+        fastestRoute.steps.begin(),
+        fastestRoute.steps.end(),
+        [](const simple_platformer::NavigationStep& step)
+        { return step.traversal == simple_platformer::Traversal::Jump; }));
+}
+
+TEST_CASE("A jump start penalty preserves required jumps", "[navigation][platformer]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"..........", "....##....", "..........", "##########"});
+    const simple_platformer::PlatformerMovementConfig movement;
+    const auto neighbors =
+        simple_platformer::platformerNeighbors(map, {2, 2}, {12.0F, 12.0F}, movement);
+    const auto upwardJump = std::find_if(
+        neighbors.begin(),
+        neighbors.end(),
+        [](const simple_platformer::NavigationNeighbor& neighbor) {
+            return neighbor.traversal == simple_platformer::Traversal::Jump &&
+                   neighbor.destination.y < 2;
+        });
+    REQUIRE(upwardJump != neighbors.end());
+
+    const auto path = simple_platformer::findPlatformerPath(
+        map, {2, 2}, upwardJump->destination, {12.0F, 12.0F}, movement);
+
+    REQUIRE(path.has_value());
+    const simple_platformer::NavigationPath route =
+        path.value_or(simple_platformer::NavigationPath{});
+    REQUIRE(std::any_of(
+        route.steps.begin(),
+        route.steps.end(),
+        [](const simple_platformer::NavigationStep& step)
+        { return step.traversal == simple_platformer::Traversal::Jump; }));
+}
+
+TEST_CASE("Platformer paths reject a negative jump start penalty", "[navigation][platformer]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"...", "###"});
+    simple_platformer::PlatformerNavigationConfig navigation;
+    navigation.jumpStartPenaltyTicks = -1;
+
+    REQUIRE_THROWS_AS(
+        simple_platformer::findPlatformerPath(
+            map,
+            {0, 0},
+            {1, 0},
+            {12.0F, 12.0F},
+            simple_platformer::PlatformerMovementConfig{},
+            navigation),
+        std::invalid_argument);
+}

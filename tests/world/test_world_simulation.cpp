@@ -194,6 +194,51 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
 }
 
 TEST_CASE(
+    "A slow ground NPC stays grounded on a long lower-platform patrol",
+    "[world][simulation][platformer][regression]")
+{
+    // The raised platform provides an unnecessary jump route above the continuous floor.
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....###.....", ".............", ".............", "#############"});
+    simple_platformer::World world;
+    constexpr simple_platformer::GridPosition FirstEndpoint{4, 2};
+    constexpr simple_platformer::GridPosition SpawnCell{12, 2};
+    constexpr simple_platformer::GridPosition SecondEndpoint{12, 2};
+    const glm::vec2 firstFeet = simple_platformer::navigationFeet(FirstEndpoint);
+    const glm::vec2 secondFeet = simple_platformer::navigationFeet(SecondEndpoint);
+
+    simple_platformer::Actor npc;
+    npc.body.bounds.size = {12.0F, 20.0F};
+    simple_platformer::placeFeetAt(npc.body.bounds, simple_platformer::navigationFeet(SpawnCell));
+    npc.platformerMovement = simple_platformer::PlatformerMovement{};
+    npc.platformerMovement->config.maximumSpeed = 60.0F;
+    npc.platformerMovement->grounded = true;
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.senses = simple_platformer::NpcSenses{};
+    npc.patrol = simple_platformer::Patrol{firstFeet, secondFeet, false};
+    npc.pathFollower = simple_platformer::PathFollower{};
+    const simple_platformer::ActorId npcId = world.addActor(npc);
+
+    bool becameAirborne = false;
+    bool completedPatrolLeg = false;
+    for (int tick = 0; tick < 900 && !completedPatrolLeg; ++tick)
+    {
+        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+        const simple_platformer::Actor* storedNpc = world.findActor(npcId);
+        REQUIRE(storedNpc != nullptr);
+        if (!storedNpc->platformerMovement.has_value() || !storedNpc->patrol.has_value())
+        {
+            throw std::logic_error("The test NPC is missing its patrol components");
+        }
+        becameAirborne = becameAirborne || !storedNpc->platformerMovement.value().grounded;
+        completedPatrolLeg = storedNpc->patrol.value().headingToSecond;
+    }
+
+    REQUIRE(completedPatrolLeg);
+    REQUIRE_FALSE(becameAirborne);
+}
+
+TEST_CASE(
     "A ground NPC resumes patrol after forgetting its target at a platform edge",
     "[world][simulation][platformer][regression]")
 {

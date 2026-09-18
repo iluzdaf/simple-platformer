@@ -307,6 +307,15 @@ tile segment cast finds clear line of sight. It stores the player's ID and last 
 feet. When sight is lost, a configurable timer lets it continue toward the remembered
 position before forgetting the target.
 
+Ground NPCs chase a standable destination using their own collider size. If the
+last-seen feet cell is not standable (for example, during a jump or just past a
+platform edge), `findPlatformerChaseCell` selects the nearest standable feet position.
+Equal-distance candidates use row, then column order. Pathfinding still determines
+whether that destination is reachable; there is no fallback to a different destination
+if it is disconnected. This selection never reads the hidden player's current position
+or moves either actor directly. Patrol endpoints remain exact, and flyers continue
+to use the last-seen feet cell.
+
 Sensing only records observations. It does not decide whether to patrol, chase, bite,
 or shoot. This keeps perception and decisions separately testable.
 

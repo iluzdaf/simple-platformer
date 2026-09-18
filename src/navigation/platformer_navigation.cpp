@@ -342,6 +342,55 @@ namespace simple_platformer
         return closest;
     }
 
+    std::optional<GridPosition> findPlatformerChaseCell(
+        const TileMap& map,
+        glm::vec2 lastSeenFeet,
+        glm::vec2 bodySize)
+    {
+        if (!isFinite(lastSeenFeet) || !isFinite(bodySize) || bodySize.x <= 0.0F ||
+            bodySize.y <= 0.0F)
+        {
+            throw std::invalid_argument(
+                "A chase destination requires finite feet and a finite, positive body size");
+        }
+
+        // Avoid converting an out-of-map world position to an integer grid cell.
+        if (lastSeenFeet.x >= 0.0F && lastSeenFeet.x < map.pixelWidth() && lastSeenFeet.y >= 0.0F &&
+            lastSeenFeet.y <= map.pixelHeight())
+        {
+            const GridPosition targetCell = navigationCell(lastSeenFeet);
+            if (canStandAt(map, targetCell, bodySize))
+            {
+                return targetCell;
+            }
+        }
+
+        std::optional<GridPosition> closest;
+        double closestDistanceSquared = 0.0;
+        for (int row = 0; row < map.height(); ++row)
+        {
+            for (int column = 0; column < map.width(); ++column)
+            {
+                const GridPosition candidate{column, row};
+                if (!canStandAt(map, candidate, bodySize))
+                {
+                    continue;
+                }
+
+                const glm::vec2 candidateFeet = navigationFeet(candidate);
+                const double dx = static_cast<double>(candidateFeet.x) - lastSeenFeet.x;
+                const double dy = static_cast<double>(candidateFeet.y) - lastSeenFeet.y;
+                const double distanceSquared = dx * dx + dy * dy;
+                if (!closest.has_value() || distanceSquared < closestDistanceSquared)
+                {
+                    closest = candidate;
+                    closestDistanceSquared = distanceSquared;
+                }
+            }
+        }
+        return closest;
+    }
+
     std::vector<NavigationNeighbor> platformerNeighbors(
         const TileMap& map,
         GridPosition position,

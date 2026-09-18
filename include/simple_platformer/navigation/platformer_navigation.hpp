@@ -34,6 +34,14 @@ namespace simple_platformer
     // extend beyond a ledge while part of its collider is still supported.
     std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds);
 
+    // Keeps a standable target cell; otherwise chooses the closest standable feet
+    // position for this NPC's body size. Ties use row, then column order.
+    // This selects a chase destination, not a guaranteed path to it.
+    std::optional<GridPosition> findPlatformerChaseCell(
+        const TileMap& map,
+        glm::vec2 lastSeenFeet,
+        glm::vec2 bodySize);
+
     // Lower-level policy used by the generic path search.
     std::vector<NavigationNeighbor> platformerNeighbors(
         const TileMap& map,

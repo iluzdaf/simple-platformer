@@ -201,6 +201,34 @@ TEST_CASE("A chasing NPC follows the last seen target feet", "[npc][fsm]")
     REQUIRE_FALSE(actor(world, npcId).intentions.primaryAttackPressed);
 }
 
+TEST_CASE(
+    "Ground pursuit resolves remembered feet without tracking the hidden player",
+    "[npc][fsm]")
+{
+    const auto map = simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    simple_platformer::World world;
+    // The player is now to the right, but the last sighting was to the left.
+    const auto playerId = world.addActor(makePlayer({64.0F, 20.0F}));
+    simple_platformer::Actor npc;
+    npc.body.bounds = {{50.0F, 12.0F}, {12.0F, 20.0F}};
+    npc.platformerMovement = simple_platformer::PlatformerMovement{};
+    npc.platformerMovement->grounded = true;
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.senses = simple_platformer::NpcSenses{};
+    npc.pathFollower = simple_platformer::PathFollower{};
+    const auto npcId = world.addActor(npc);
+    const glm::vec2 lastSeenFeet{8.0F, 20.0F};
+    brain(world, npcId).target = playerId;
+    brain(world, npcId).lastSeenTargetFeet = lastSeenFeet;
+    brain(world, npcId).targetVisible = false;
+
+    simple_platformer::updateNpcBehaviour(map, world, 1.0F / 60.0F);
+
+    REQUIRE(actor(world, npcId).intentions.direction.x < 0.0F);
+    REQUIRE(pathFollower(world, npcId).destination == simple_platformer::GridPosition{0, 1});
+    REQUIRE(brain(world, npcId).lastSeenTargetFeet == lastSeenFeet);
+}
+
 TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =

@@ -393,8 +393,10 @@ Damage is queued rather than applied while attacks and projectiles are being tra
 `updateLifeState` consumes the requests, changes an actor from Alive to Dying when
 health reaches zero, and advances its short death timer. Dying actors cannot decide,
 accept gameplay input, attack, or take another hit, but gravity and collision continue.
-At the end of the timer an NPC is removed; the player is respawned at its stored feet
-position with restored health and movement runtime state.
+Their sprites fade during the final part of this explicit lifecycle duration. At the end
+of the timer an NPC is removed; the player is respawned at its stored feet position with
+restored health and movement runtime state. Lifecycle timing does not depend on the
+length of an animation clip.
 
 ## Inventory, pickups, and levels
 

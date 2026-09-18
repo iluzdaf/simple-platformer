@@ -21,10 +21,20 @@ namespace simple_platformer
 {
     namespace
     {
+        constexpr float DeathFadeDurationSeconds = 0.2F;
         constexpr float PickupBobHeight = 2.0F;
         constexpr float PickupBobPeriodSeconds = 1.0F;
         constexpr int PickupBobPhaseCount = 4;
         constexpr float RadiansPerCycle = 6.28318530717958647692F;
+
+        float actorOpacity(const Actor& actor)
+        {
+            if (actor.life == LifeState::Alive)
+            {
+                return 1.0F;
+            }
+            return std::clamp(actor.deathTimeRemaining / DeathFadeDurationSeconds, 0.0F, 1.0F);
+        }
 
         float pickupVerticalOffset(float animationTime)
         {
@@ -145,7 +155,9 @@ namespace simple_platformer
                      worldToScreen(camera, bounds.position),
                      bounds.size,
                      actor.sprite->region,
-                     actor.facing == Facing::Left});
+                     actor.facing == Facing::Left,
+                     0.0F,
+                     actorOpacity(actor)});
             }
         }
 

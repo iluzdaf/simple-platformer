@@ -21,6 +21,8 @@ namespace simple_platformer
         bool flipHorizontal = false;
         // Clockwise rotation around the sprite centre.
         float rotationRadians = 0.0F;
+        // Multiplies the texture alpha: 1 is opaque and 0 is invisible.
+        float opacity = 1.0F;
     };
 
     struct RenderScene

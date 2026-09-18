@@ -42,6 +42,7 @@ namespace simple_platformer
         unsigned int framebuffer = 0;
         unsigned int framebufferTexture = 0;
         int viewportLocation = -1;
+        int opacityLocation = -1;
         std::vector<Texture> textures;
     };
 }

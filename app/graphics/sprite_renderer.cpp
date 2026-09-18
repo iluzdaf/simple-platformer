@@ -92,11 +92,13 @@ namespace
             #version 330 core
             in vec2 textureUv;
             uniform sampler2D spriteTexture;
+            uniform float spriteOpacity;
             out vec4 colour;
 
             void main()
             {
                 colour = texture(spriteTexture, textureUv);
+                colour.a *= spriteOpacity;
             }
         )";
 
@@ -152,6 +154,7 @@ namespace simple_platformer
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
 
         viewportLocation = glGetUniformLocation(shader, "viewportSize");
+        opacityLocation = glGetUniformLocation(shader, "spriteOpacity");
         glUseProgram(shader);
         glUniform1i(glGetUniformLocation(shader, "spriteTexture"), 0);
 
@@ -288,6 +291,7 @@ namespace simple_platformer
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture.handle);
+            glUniform1f(opacityLocation, command.opacity);
             glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
             glBufferSubData(
                 GL_ARRAY_BUFFER,

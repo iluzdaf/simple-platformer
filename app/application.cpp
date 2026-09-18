@@ -107,6 +107,7 @@ namespace
             return simple_platformer::InputButton::Right;
         case GLFW_KEY_W:
         case GLFW_KEY_UP:
+        case GLFW_KEY_SPACE:
             return simple_platformer::InputButton::Jump;
         case GLFW_KEY_DOWN:
             return simple_platformer::InputButton::Down;

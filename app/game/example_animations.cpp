@@ -8,6 +8,8 @@
 namespace
 {
     constexpr glm::vec2 FrameSize = {32.0F, 24.0F};
+    constexpr float FastWalkFrameDuration = 0.16F;
+    constexpr float ZombieWalkFrameDuration = 0.20F;
 
     simple_platformer::SpriteRegion frame(float left, float top)
     {
@@ -25,7 +27,7 @@ namespace simple_platformer
             AnimationClip{
                 AnimationName::Move,
                 {frame(64.0F, 0.0F), frame(128.0F, 0.0F), frame(96.0F, 0.0F), frame(128.0F, 0.0F)},
-                0.12F,
+                FastWalkFrameDuration,
                 true},
             AnimationClip{AnimationName::Jump, {frame(0.0F, 24.0F)}, 0.15F, true},
             AnimationClip{AnimationName::Fall, {frame(32.0F, 24.0F)}, 0.15F, true},
@@ -45,7 +47,7 @@ namespace simple_platformer
                  frame(128.0F, 48.0F),
                  frame(96.0F, 48.0F),
                  frame(128.0F, 48.0F)},
-                0.12F,
+                ZombieWalkFrameDuration,
                 true},
             AnimationClip{AnimationName::Jump, {frame(0.0F, 72.0F)}, 0.15F, true},
             AnimationClip{AnimationName::Fall, {frame(32.0F, 72.0F)}, 0.15F, true},
@@ -86,7 +88,7 @@ namespace simple_platformer
                  frame(128.0F, 144.0F),
                  frame(96.0F, 144.0F),
                  frame(128.0F, 144.0F)},
-                0.12F,
+                FastWalkFrameDuration,
                 true},
             AnimationClip{AnimationName::Jump, {frame(0.0F, 168.0F)}, 0.15F, true},
             AnimationClip{AnimationName::Fall, {frame(32.0F, 168.0F)}, 0.15F, true},

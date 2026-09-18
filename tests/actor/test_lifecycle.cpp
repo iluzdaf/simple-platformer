@@ -1,5 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-
 #include <stdexcept>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -61,6 +60,21 @@ TEST_CASE("Damage is deferred until lifecycle requests are applied", "[actor][li
     REQUIRE(requests.empty());
 }
 
+TEST_CASE("Applied damage records the current simulation time", "[actor][lifecycle]")
+{
+    simple_platformer::World world;
+    world.advanceSimulationTime(2.0F);
+    const simple_platformer::ActorId id = world.addActor(makeActor());
+    simple_platformer::WorldRequests requests;
+    requests.damage(id, 1);
+
+    simple_platformer::updateLifeState(world, requests, 0.02F);
+
+    const simple_platformer::Actor* damaged = world.findActor(id);
+    REQUIRE(damaged != nullptr);
+    REQUIRE(damaged->lastDamageTimeSeconds == 2.0F);
+}
+
 TEST_CASE("Fatal damage begins a timed death", "[actor][lifecycle]")
 {
     simple_platformer::World world;
@@ -77,6 +91,7 @@ TEST_CASE("Fatal damage begins a timed death", "[actor][lifecycle]")
     REQUIRE(healthOf(*dying).current == 0);
     REQUIRE(dying->life == simple_platformer::LifeState::Dying);
     REQUIRE(dying->deathTimeRemaining == 0.4F);
+    REQUIRE(dying->lastDamageTimeSeconds == 0.0F);
     REQUIRE(dying->intentions.direction.x == 0.0F);
 }
 
@@ -134,6 +149,7 @@ TEST_CASE("The player respawns with restored runtime state", "[actor][lifecycle]
     const simple_platformer::Actor* respawned = world.findActor(player);
     REQUIRE(respawned != nullptr);
     REQUIRE(respawned->life == simple_platformer::LifeState::Alive);
+    REQUIRE_FALSE(respawned->lastDamageTimeSeconds.has_value());
     REQUIRE(healthOf(*respawned).current == 3);
     REQUIRE(simple_platformer::feetOf(respawned->body.bounds).x == 40.0F);
     REQUIRE(simple_platformer::feetOf(respawned->body.bounds).y == 48.0F);

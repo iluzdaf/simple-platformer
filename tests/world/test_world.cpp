@@ -132,6 +132,10 @@ TEST_CASE("World rejects invalid actor composition", "[world][actor]")
     invalidBitingNpc.senses = simple_platformer::NpcSenses{};
     invalidBitingNpc.pathFollower = simple_platformer::PathFollower{};
     REQUIRE_THROWS_AS(world.addActor(invalidBitingNpc), std::invalid_argument);
+
+    simple_platformer::Actor futureDamage = makeActor();
+    futureDamage.lastDamageTimeSeconds = 1.0F;
+    REQUIRE_THROWS_AS(world.addActor(futureDamage), std::invalid_argument);
 }
 
 TEST_CASE("NPC composition does not require a bite attack", "[world][actor]")

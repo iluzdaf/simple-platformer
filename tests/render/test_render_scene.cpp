@@ -131,6 +131,27 @@ TEST_CASE("Dying actors fade during the final part of their death", "[render][sc
     REQUIRE_THAT(lateDeathScene.sprites.back().opacity, Catch::Matchers::WithinAbs(0.5F, 0.0001F));
 }
 
+TEST_CASE("Actors with active hit feedback produce a white flash", "[render][scene]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({".."});
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 16.0F}};
+    simple_platformer::Actor actor;
+    actor.body.bounds = {{4.0F, 4.0F}, {8.0F, 8.0F}};
+    actor.platformerMovement = simple_platformer::PlatformerMovement{};
+    actor.sprite = simple_platformer::Sprite{1, {{0.0F, 0.0F}, {8.0F, 8.0F}}, {8.0F, 8.0F}};
+    actor.lastDamageTimeSeconds = 0.0F;
+    simple_platformer::World world;
+    world.addActor(actor);
+    world.advanceSimulationTime(0.05F);
+
+    const auto scene = simple_platformer::buildRenderScene(map, 1, camera, world);
+    REQUIRE(scene.sprites.back().whiteFlashAmount == 1.0F);
+
+    world.advanceSimulationTime(0.05F);
+    const auto laterScene = simple_platformer::buildRenderScene(map, 1, camera, world);
+    REQUIRE(laterScene.sprites.back().whiteFlashAmount == 0.0F);
+}
+
 TEST_CASE("Projectile sprites are centred and rotated in their direction", "[render][scene]")
 {
     const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "...."});

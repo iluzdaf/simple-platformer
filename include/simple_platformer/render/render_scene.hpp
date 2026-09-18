@@ -23,6 +23,8 @@ namespace simple_platformer
         float rotationRadians = 0.0F;
         // Multiplies the texture alpha: 1 is opaque and 0 is invisible.
         float opacity = 1.0F;
+        // Mixes the sprite colour towards white: 0 is unchanged and 1 is fully white.
+        float whiteFlashAmount = 0.0F;
     };
 
     struct RenderScene

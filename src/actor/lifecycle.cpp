@@ -42,6 +42,7 @@ namespace simple_platformer
             }
 
             actor->health->current = std::max(0, actor->health->current - request.amount);
+            actor->lastDamageTimeSeconds = world.simulationTimeSeconds();
             if (actor->health->current == 0)
             {
                 actor->life = LifeState::Dying;

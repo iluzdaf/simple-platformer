@@ -1,11 +1,189 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <filesystem>
 #include <stdexcept>
+#include <nlohmann/json.hpp>
 
 #include "game/example_items.hpp"
 #include "game/example_level_data.hpp"
 #include "simple_platformer/npc/npc.hpp"
+
+TEST_CASE("Level diagnostics identify authored fields and map cells", "[app][content][json]")
+{
+    auto level = nlohmann::json::parse(R"({
+        "objectLegend":{"P":{"type":"player"},"E":{"type":"exit"}},
+        "map":["PE"]
+    })");
+    SECTION("Unknown map symbol includes row column and symbol")
+    {
+        level["map"] = {"P?E"};
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
+            "level.json: map[0][1]: unknown symbol '?'; define it in tileLegend or objectLegend");
+    }
+    SECTION("Repeated marker identifies both placements")
+    {
+        level["map"] = {"PPE"};
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
+            "level.json: map[0][1]: second player marker 'P'; player already placed at map[0][0]");
+    }
+    SECTION("Exit conflict identifies explicit placement")
+    {
+        level["exit"] = {{"spawnCell", {1, 0}}};
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
+            "level.json: map[0][1]: second exit marker 'E'; exit already placed at exit");
+    }
+    SECTION("Legend errors do not report generated array indices")
+    {
+        level["objectLegend"]["K"] = {{"type", "pickup"}, {"item", "key"}, {"quantity", 0}};
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
+            "level.json: objectLegend.K.quantity: expected a positive integer, got 0");
+    }
+    SECTION("Exit settings identify the legend field")
+    {
+        level["objectLegend"]["E"]["consumeItem"] = 1;
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
+            "level.json: objectLegend.E.consumeItem: expected true or false");
+    }
+    SECTION("Row width includes expected and actual widths")
+    {
+        level["map"] = {"PE", "."};
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
+            "level.json: map[1]: expected 2 columns, got 1");
+    }
+    SECTION("Explicit entries retain their array paths")
+    {
+        level["actors"] = nlohmann::json::array({{{"type", "ghost"}, {"spawnCell", {0, 0}}}});
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
+            "level.json: actors[0].type: unknown actor type 'ghost'");
+    }
+}
+
+TEST_CASE("JSON syntax diagnostics include one-based line and byte column", "[app][content][json]")
+{
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseExampleLevelData("{\n  ?\n}", "broken.json"),
+        Catch::Matchers::ContainsSubstring("broken.json: line 2, column 3: invalid JSON:"));
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseExampleLevelData("{\n", "unfinished.json"),
+        Catch::Matchers::ContainsSubstring("unfinished.json: line 2, column 1: invalid JSON:"));
+}
+
+TEST_CASE(
+    "Object markers expand into ordinary placements over empty terrain",
+    "[app][content][json]")
+{
+    const auto data = simple_platformer::parseExampleLevelData(
+        R"({
+        "tileLegend":{".":"empty", "#":"stone", "G":"grass"},
+        "objectLegend":{
+            "P":{"type":"player"},
+            "Z":{"type":"zombie", "patrol":{"firstCell":[1,0],"secondCell":[2,0]}},
+            "B":{"type":"bat"}, "S":{"type":"zombie_soldier"},
+            "K":{"type":"pickup","item":"key","quantity":2},
+            "E":{"type":"exit","requirement":{"item":"key","quantity":1},
+                 "consumeItem":true,"nextLevel":2}
+        },
+        "map":["PZZBSKKEG", "#########"],
+        "actors":[{"type":"zombie","spawnCell":[8,0]}],
+        "pickups":[{"item":"coin","quantity":3,"spawnFeet":[136,8]}]
+    })",
+        "markers");
+    REQUIRE(data.playerSpawnFeet.x == 8);
+    REQUIRE(data.playerSpawnFeet.y == 16);
+    REQUIRE(data.actors.size() == 5);
+    REQUIRE(data.actors[0].spawnFeet.x == 136);
+    REQUIRE(data.actors[1].spawnFeet.x == 24);
+    REQUIRE(data.actors[2].spawnFeet.x == 40);
+    REQUIRE(data.actors[1].patrol.has_value());
+    REQUIRE(data.actors[3].type == simple_platformer::ExampleActorType::Bat);
+    REQUIRE(data.actors[4].type == simple_platformer::ExampleActorType::ZombieSoldier);
+    REQUIRE(data.pickups.size() == 3);
+    REQUIRE(data.pickups[1].stack.item == simple_platformer::Key);
+    REQUIRE(data.pickups[1].stack.quantity == 2);
+    REQUIRE(data.pickups[2].spawnFeet.x == 104);
+    REQUIRE(data.exit.spawnFeet.x == 120);
+    REQUIRE(data.exit.requirement.has_value());
+    REQUIRE(data.exit.consumeItem);
+    REQUIRE(data.exit.nextLevel == 2);
+    REQUIRE(data.tileLegend.at('Z') == "empty");
+    REQUIRE(data.tileLegend.at('G') == "grass");
+}
+
+TEST_CASE("Object legends reject ambiguous or invalid placements", "[app][content][json]")
+{
+    auto level = nlohmann::json::parse(R"({
+        "objectLegend":{"P":{"type":"player"},"E":{"type":"exit"}},
+        "map":["PE"]
+    })");
+    SECTION("Repeated player")
+    {
+        level["map"] = {"PPE"};
+    }
+    SECTION("Repeated exit")
+    {
+        level["map"] = {"PEE"};
+    }
+    SECTION("Explicit player and marker")
+    {
+        level["playerSpawnCell"] = {0, 0};
+    }
+    SECTION("Explicit exit and marker")
+    {
+        level["exit"] = {{"spawnCell", {1, 0}}};
+    }
+    SECTION("Missing player")
+    {
+        level["map"] = {".E"};
+    }
+    SECTION("Missing exit")
+    {
+        level["map"] = {"P."};
+    }
+    SECTION("Shared symbol")
+    {
+        level["objectLegend"]["#"] = {{"type", "zombie"}};
+    }
+    SECTION("Long symbol")
+    {
+        level["objectLegend"]["ZZ"] = {{"type", "zombie"}};
+    }
+    SECTION("Unknown type even when unused")
+    {
+        level["objectLegend"]["Z"] = {{"type", "ghost"}};
+    }
+    SECTION("Position in template")
+    {
+        level["objectLegend"]["P"]["spawnFeet"] = {1, 2};
+    }
+    SECTION("Invalid pickup quantity")
+    {
+        level["objectLegend"]["K"] = {{"type", "pickup"}, {"item", "key"}, {"quantity", 0}};
+    }
+    REQUIRE_THROWS_AS(
+        simple_platformer::parseExampleLevelData(level.dump(), "bad markers"),
+        std::invalid_argument);
+}
+
+TEST_CASE("Object-only levels may omit explicit placement arrays", "[app][content][json]")
+{
+    const auto data = simple_platformer::parseExampleLevelData(
+        R"({
+        "objectLegend":{"P":{"type":"player"},"E":{"type":"exit"}},
+        "map":["PE"]
+    })",
+        "markers");
+    REQUIRE(data.actors.empty());
+    REQUIRE(data.pickups.empty());
+    REQUIRE(data.exit.spawnFeet.x == 24);
+}
 
 TEST_CASE("Level JSON accepts a custom tile legend", "[app][content][json]")
 {

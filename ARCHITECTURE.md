@@ -296,8 +296,8 @@ solid by default. The example loads shared definitions from `tiles.json` beside
 `levels.json`. An optional `tileLegend` in each level maps one-character symbols to
 catalogue names; without it, `.` means `empty` and `#` means `stone`.
 The loader resolves names to runtime IDs, reserving zero for `empty`.
-Actors, pickups, spawns, and
-exits are separate level data, not special tile IDs.
+Actors, pickups, spawns, and exits are separate level data, not special tile IDs.
+Object legend markers expand into these placements during loading; their terrain is empty.
 
 Collision moves an arbitrary-sized AABB along X, resolves it against nearby full-tile
 AABBs, then repeats along Y. The result reports left, right, ground, and ceiling
@@ -532,6 +532,43 @@ and `#` for stone. To use more tile types, supply a level legend:
 ```json
 "tileLegend": { ".": "empty", "#": "stone", "G": "grass", "X": "glass" }
 ```
+
+An optional `objectLegend` places objects directly in the same map rows:
+
+```json
+"objectLegend": {
+  "P": { "type": "player" },
+  "Z": { "type": "zombie" },
+  "B": { "type": "bat" },
+  "S": { "type": "zombie_soldier" },
+  "K": { "type": "pickup", "item": "key", "quantity": 1 },
+  "E": { "type": "exit", "requirement": { "item": "key", "quantity": 1 } }
+}
+```
+
+Each occurrence creates a placement using the cell's bottom-centre feet anchor, just
+like `spawnCell`, with empty terrain underneath. Symbols must be one character and
+cannot appear in both legends. There must be exactly one player and one exit placement,
+whether supplied by a marker or explicitly. Repeated NPC and pickup markers create
+separate objects. Pickup quantities are required and positive.
+
+Object entries use the same settings as explicit placements: NPCs can specify a
+`patrol`, and exits can specify `requirement`, `consumeItem`, and `nextLevel`.
+Patrol endpoints remain absolute positions, not offsets from the marker.
+Do not put `spawnCell` or `spawnFeet` in a legend entry: the marker supplies its position.
+Unknown types and invalid definitions are rejected even when their symbols are unused.
+
+Explicit actors and pickups are kept first, followed by markers in row order, left to
+right. They are added, not merged or deduplicated. Use explicit placements for overlaps
+(such as a zombie inside grass), fractional positions, or individually configured objects.
+When using `objectLegend`, empty `actors` and `pickups` arrays may be omitted.
+The loader expands markers into ordinary placements and resolves their terrain to empty;
+the simulation does not interpret object symbols.
+
+Level parsing errors include the source filename and the field or map cell to inspect.
+Map paths use zero-based `map[row][column]` indices; JSON syntax errors report one-based
+file lines and byte columns. Duplicate player or exit markers report both placements,
+and legend settings are reported by their authored paths, such as `objectLegend.K.quantity`.
 
 Shared definitions live in `assets/levels/tiles.json`. Each definition requires
 boolean `blocksMovement` and `blocksSight` fields. Nonempty tiles also require

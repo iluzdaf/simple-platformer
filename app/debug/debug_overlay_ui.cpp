@@ -12,6 +12,7 @@
 
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 
@@ -25,14 +26,19 @@ namespace
     constexpr ImU32 JumpingPathColour = IM_COL32(224, 80, 255, 255);
     constexpr ImU32 UnknownPathColour = IM_COL32(255, 255, 255, 255);
     constexpr ImU32 PathLabelShadowColour = IM_COL32(0, 0, 0, 220);
+    constexpr ImU32 PathDestinationColour = IM_COL32(255, 255, 255, 230);
     constexpr ImU32 NextPathGuideColour = IM_COL32(255, 255, 255, 220);
     constexpr ImU32 SensorRangeColour = IM_COL32(160, 96, 255, 110);
     constexpr ImU32 VisibleTargetColour = IM_COL32(80, 255, 96, 230);
     constexpr ImU32 RememberedTargetColour = IM_COL32(255, 224, 64, 240);
+    constexpr ImU32 PatrolRouteColour = IM_COL32(255, 192, 64, 190);
+    constexpr ImU32 PatrolPointColour = IM_COL32(255, 224, 128, 255);
+    constexpr ImU32 ActivePatrolPointColour = IM_COL32(255, 255, 255, 255);
     constexpr ImU32 WorldLabelColour = IM_COL32(255, 255, 255, 255);
     constexpr ImU32 ProjectileColour = IM_COL32(255, 160, 64, 255);
     constexpr ImU32 TextHeadingColour = IM_COL32(255, 255, 255, 255);
     constexpr ImU32 TextDetailColour = IM_COL32(224, 224, 224, 255);
+    constexpr float ActorTextGap = 4.0F;
     constexpr ImU32 CameraBoundsColour = IM_COL32(64, 224, 255, 255);
     constexpr ImU32 CameraDeadZoneColour = IM_COL32(255, 224, 64, 255);
     constexpr ImU32 BiteHitboxColour = IM_COL32(255, 64, 224, 255);
@@ -177,19 +183,22 @@ namespace
         }
 
         const simple_platformer::PathFollowerDebugInfo& follower = actor.pathFollower.value();
-        for (const simple_platformer::PathConnectionDebugInfo& connection : follower.connections)
+        for (std::size_t index = 0; index < follower.connections.size(); ++index)
         {
+            const simple_platformer::PathConnectionDebugInfo& connection =
+                follower.connections[index];
             const ImVec2 from = screenPosition(connection.fromFeet, scene, viewport);
             const ImVec2 to = screenPosition(connection.toFeet, scene, viewport);
             const ImU32 colour = pathColour(connection);
             const float thickness = connection.next ? 3.0F : 2.0F;
             if (connection.sampledFeet.size() >= 2)
             {
-                for (std::size_t index = 1; index < connection.sampledFeet.size(); ++index)
+                for (std::size_t sampleIndex = 1; sampleIndex < connection.sampledFeet.size();
+                     ++sampleIndex)
                 {
                     drawList.AddLine(
-                        screenPosition(connection.sampledFeet[index - 1], scene, viewport),
-                        screenPosition(connection.sampledFeet[index], scene, viewport),
+                        screenPosition(connection.sampledFeet[sampleIndex - 1], scene, viewport),
+                        screenPosition(connection.sampledFeet[sampleIndex], scene, viewport),
                         colour,
                         thickness);
                 }
@@ -199,6 +208,14 @@ namespace
                 drawList.AddLine(from, to, colour, thickness);
             }
             drawList.AddCircleFilled(to, connection.next ? 4.0F : 3.0F, colour);
+            char pointLabel[16]{};
+            std::snprintf(pointLabel, sizeof(pointLabel), "%zu", index + 1);
+            const ImVec2 pointLabelSize = ImGui::CalcTextSize(pointLabel);
+            drawList.AddText(
+                {to.x - pointLabelSize.x * 0.5F,
+                 to.y - pointLabelSize.y - (connection.next ? 6.0F : 5.0F)},
+                colour,
+                pointLabel);
 
             if (connection.next)
             {
@@ -218,6 +235,19 @@ namespace
                     to,
                     NextPathGuideColour);
             }
+        }
+
+        if (follower.destination.has_value())
+        {
+            constexpr float DestinationRadius = 6.0F;
+            const ImVec2 destination = screenPosition(
+                simple_platformer::navigationFeet(follower.destination.value()), scene, viewport);
+            drawList.AddCircle(destination, DestinationRadius, PathDestinationColour, 16, 2.0F);
+            drawList.AddText(
+                {destination.x + DestinationRadius + 2.0F,
+                 destination.y - ImGui::GetTextLineHeight() * 0.5F},
+                PathDestinationColour,
+                "Dest");
         }
     }
 
@@ -269,6 +299,51 @@ namespace
                 RememberedTargetColour,
                 memoryLabel);
         }
+    }
+
+    void drawActorPatrol(
+        ImDrawList& drawList,
+        const simple_platformer::ActorDebugInfo& actor,
+        const simple_platformer::DebugOverlay& scene,
+        const simple_platformer::WindowViewport& viewport)
+    {
+        if (!actor.patrol.has_value())
+        {
+            return;
+        }
+
+        constexpr float PointRadius = 4.0F;
+        constexpr float ActivePointRadius = 7.0F;
+        const simple_platformer::PatrolDebugInfo& patrol = actor.patrol.value();
+        const ImVec2 first = screenPosition(patrol.firstFeet, scene, viewport);
+        const ImVec2 second = screenPosition(patrol.secondFeet, scene, viewport);
+        drawList.AddLine(first, second, PatrolRouteColour, 2.0F);
+        drawList.AddCircleFilled(first, PointRadius, PatrolPointColour);
+        drawList.AddCircleFilled(second, PointRadius, PatrolPointColour);
+        drawList.AddCircle(
+            patrol.headingToSecond ? second : first,
+            ActivePointRadius,
+            ActivePatrolPointColour,
+            16,
+            2.0F);
+
+        const auto drawPatrolLabel = [&drawList, &actor](ImVec2 point, const char* pointName)
+        {
+            char actorLabel[32]{};
+            std::snprintf(actorLabel, sizeof(actorLabel), "NPC %u", actor.id.value);
+            const float lineHeight = ImGui::GetTextLineHeight();
+            const float top = point.y - ActivePointRadius - 2.0F - lineHeight * 2.0F;
+            const ImVec2 actorLabelSize = ImGui::CalcTextSize(actorLabel);
+            const ImVec2 pointLabelSize = ImGui::CalcTextSize(pointName);
+            drawList.AddText(
+                {point.x - actorLabelSize.x * 0.5F, top}, PatrolPointColour, actorLabel);
+            drawList.AddText(
+                {point.x - pointLabelSize.x * 0.5F, top + lineHeight},
+                PatrolPointColour,
+                pointName);
+        };
+        drawPatrolLabel(first, "P1");
+        drawPatrolLabel(second, "P2");
     }
 
     void drawActorWorldLabel(
@@ -340,7 +415,6 @@ namespace
         ImVec2& position)
     {
         constexpr float Indentation = 12.0F;
-        constexpr float ActorGap = 4.0F;
 
         const std::string label = labelFor(actor);
         drawTextLine(drawList, position, label.c_str(), TextHeadingColour);
@@ -354,39 +428,6 @@ namespace
             actor.collider.position.y);
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
 
-        if (actor.pathFollower.has_value())
-        {
-            const simple_platformer::PathFollowerDebugInfo& follower = actor.pathFollower.value();
-            if (follower.hasPath)
-            {
-                std::snprintf(
-                    text, sizeof(text), "path:   %zu / %zu", follower.nextStep, follower.stepCount);
-            }
-            else
-            {
-                std::snprintf(text, sizeof(text), "path:   %d / %d", 0, 0);
-            }
-            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-
-            if (follower.destination.has_value())
-            {
-                std::snprintf(
-                    text,
-                    sizeof(text),
-                    "dest:   %d, %d",
-                    follower.destination->x,
-                    follower.destination->y);
-            }
-            else
-            {
-                std::snprintf(text, sizeof(text), "dest:   none");
-            }
-            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-
-            std::snprintf(text, sizeof(text), "repath: %.2f", follower.repathRemaining);
-            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        }
-
         if (actor.sprite.has_value())
         {
             std::snprintf(
@@ -398,7 +439,22 @@ namespace
                 actor.sprite->atlasPosition.y);
             drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         }
-        position.y += ActorGap;
+
+        if (actor.pathFollower.has_value())
+        {
+            const simple_platformer::PathFollowerDebugInfo& follower = actor.pathFollower.value();
+            std::snprintf(text, sizeof(text), "repath: %.2f", follower.repathRemaining);
+            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+        }
+        position.y += ActorTextGap;
+    }
+
+    float actorTextHeight(const simple_platformer::ActorDebugInfo& actor)
+    {
+        int lineCount = 2;
+        lineCount += actor.sprite.has_value() ? 1 : 0;
+        lineCount += actor.pathFollower.has_value() ? 1 : 0;
+        return static_cast<float>(lineCount) * ImGui::GetTextLineHeight() + ActorTextGap;
     }
 }
 
@@ -425,14 +481,26 @@ namespace simple_platformer
         ImVec2 actorTextPosition = {
             mainViewport->WorkPos.x + mainViewport->WorkSize.x - ActorTextWidth - ActorTextMargin,
             mainViewport->WorkPos.y + ActorTextMargin};
+        const float actorTextBottom =
+            mainViewport->WorkPos.y + mainViewport->WorkSize.y - ActorTextMargin;
+        bool actorTextHasSpace = true;
         for (const ActorDebugInfo& actor : scene.actors)
         {
-            drawActorText(*drawList, actor, actorTextPosition);
+            if (actorTextHasSpace &&
+                actorTextPosition.y + actorTextHeight(actor) <= actorTextBottom)
+            {
+                drawActorText(*drawList, actor, actorTextPosition);
+            }
+            else
+            {
+                actorTextHasSpace = false;
+            }
             if (!viewport.has_value())
             {
                 continue;
             }
 
+            drawActorPatrol(*drawList, actor, scene, *viewport);
             drawActorSensor(*drawList, actor, scene, *viewport);
             drawActorPath(*drawList, actor, scene, *viewport);
 

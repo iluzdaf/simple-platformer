@@ -108,13 +108,20 @@ namespace simple_platformer
 
         void appendExit(RenderScene& scene, const World& world, const Camera& camera)
         {
-            if (!world.exit().has_value() || !world.exit()->sprite.has_value())
+            const auto& exit = world.exit();
+            if (!exit.has_value())
             {
                 return;
             }
 
-            const Sprite& sprite = *world.exit()->sprite;
-            const Aabb bounds = spriteBounds(world.exit()->bounds, sprite);
+            const LevelExit& levelExit = exit.value();
+            if (!levelExit.sprite.has_value())
+            {
+                return;
+            }
+
+            const Sprite& sprite = levelExit.sprite.value();
+            const Aabb bounds = spriteBounds(levelExit.bounds, sprite);
             scene.sprites.push_back(
                 {sprite.textureId,
                  worldToScreen(camera, bounds.position),

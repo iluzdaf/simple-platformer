@@ -65,7 +65,7 @@ namespace simple_platformer
         {
             ProjectileHit earliest;
             const std::optional<float> tileHit =
-                segmentCastSolidTiles(map, start, end, projectile.bounds.size);
+                segmentCastMovementBlockingTiles(map, start, end, projectile.bounds.size);
             if (tileHit.has_value())
             {
                 earliest.segmentTime = *tileHit;

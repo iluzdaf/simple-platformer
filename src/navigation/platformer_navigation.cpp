@@ -24,230 +24,213 @@
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
-namespace
+namespace simple_platformer
 {
-    constexpr float SimulationStep = static_cast<float>(simple_platformer::FixedDeltaSeconds);
-    constexpr int MaximumConnectionSimulationTicks = 120;
-
-    bool sameIntentions(
-        const simple_platformer::InputIntentions& first,
-        const simple_platformer::InputIntentions& second)
+    namespace
     {
-        return first.direction == second.direction && first.aimDirection == second.aimDirection &&
-               first.jumpPressed == second.jumpPressed && first.jumpHeld == second.jumpHeld &&
-               first.primaryAttackPressed == second.primaryAttackPressed;
-    }
+        constexpr float SimulationStep = static_cast<float>(FixedDeltaSeconds);
+        constexpr int MaximumConnectionSimulationTicks = 120;
 
-    void recordSimulationInput(
-        simple_platformer::InputProgram& program,
-        const simple_platformer::InputIntentions& intentions)
-    {
-        if (!program.empty() && sameIntentions(program.back().intentions, intentions))
+        bool sameIntentions(const InputIntentions& first, const InputIntentions& second)
         {
-            program.back().duration += SimulationStep;
-            return;
+            return first.direction == second.direction &&
+                   first.aimDirection == second.aimDirection &&
+                   first.jumpPressed == second.jumpPressed && first.jumpHeld == second.jumpHeld &&
+                   first.primaryAttackPressed == second.primaryAttackPressed;
         }
-        program.push_back({SimulationStep, intentions});
-    }
 
-    simple_platformer::Aabb bodyAt(simple_platformer::GridPosition position, glm::vec2 bodySize)
-    {
-        simple_platformer::Aabb bounds{{0.0F, 0.0F}, bodySize};
-        simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet(position));
-        return bounds;
-    }
-
-    bool bodyFits(const simple_platformer::TileMap& map, const simple_platformer::Aabb& bounds)
-    {
-        constexpr float Inside = 0.001F;
-        const float tileSize = static_cast<float>(simple_platformer::TileSize);
-        const int firstColumn =
-            static_cast<int>(std::floor((bounds.position.x + Inside) / tileSize));
-        const int lastColumn =
-            static_cast<int>(std::floor((bounds.position.x + bounds.size.x - Inside) / tileSize));
-        const int firstRow = static_cast<int>(std::floor((bounds.position.y + Inside) / tileSize));
-        const int lastRow =
-            static_cast<int>(std::floor((bounds.position.y + bounds.size.y - Inside) / tileSize));
-
-        for (int row = firstRow; row <= lastRow; ++row)
+        void recordSimulationInput(InputProgram& program, const InputIntentions& intentions)
         {
-            for (int column = firstColumn; column <= lastColumn; ++column)
+            if (!program.empty() && sameIntentions(program.back().intentions, intentions))
             {
-                if (map.blocksMovement({column, row}))
+                program.back().duration += SimulationStep;
+                return;
+            }
+            program.push_back({SimulationStep, intentions});
+        }
+
+        Aabb bodyAt(GridPosition position, glm::vec2 bodySize)
+        {
+            Aabb bounds{{0.0F, 0.0F}, bodySize};
+            placeFeetAt(bounds, navigationFeet(position));
+            return bounds;
+        }
+
+        bool bodyFits(const TileMap& map, const Aabb& bounds)
+        {
+            constexpr float Inside = 0.001F;
+            const float tileSize = static_cast<float>(TileSize);
+            const int firstColumn =
+                static_cast<int>(std::floor((bounds.position.x + Inside) / tileSize));
+            const int lastColumn = static_cast<int>(
+                std::floor((bounds.position.x + bounds.size.x - Inside) / tileSize));
+            const int firstRow =
+                static_cast<int>(std::floor((bounds.position.y + Inside) / tileSize));
+            const int lastRow = static_cast<int>(
+                std::floor((bounds.position.y + bounds.size.y - Inside) / tileSize));
+
+            for (int row = firstRow; row <= lastRow; ++row)
+            {
+                for (int column = firstColumn; column <= lastColumn; ++column)
                 {
-                    return false;
+                    if (map.blocksMovement({column, row}))
+                    {
+                        return false;
+                    }
                 }
             }
+            return true;
         }
-        return true;
-    }
 
-    // Simulates a complete start-to-stop walk using the real path follower, movement,
-    // and collision code. Returns its fixed-update cost, or nullopt when the actor
-    // cannot reach and stop at the destination within the connection simulation limit.
-    std::optional<int> trySimulateWalkCost(
-        const simple_platformer::TileMap& map,
-        simple_platformer::GridPosition start,
-        simple_platformer::GridPosition destination,
-        glm::vec2 bodySize,
-        const simple_platformer::PlatformerMovementConfig& config)
-    {
-        simple_platformer::Body body{bodyAt(start, bodySize), {0.0F, 0.0F}};
-        simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
-        simple_platformer::Facing facing = destination.x < start.x
-                                               ? simple_platformer::Facing::Left
-                                               : simple_platformer::Facing::Right;
-        simple_platformer::PathFollower follower;
-        simple_platformer::setPath(
-            follower,
-            {start, {{destination, simple_platformer::Traversal::Walk, {}}}},
-            destination);
-
-        for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
+        // Simulates a complete start-to-stop walk using the real path follower, movement,
+        // and collision code. Returns its fixed-update cost, or nullopt when the actor
+        // cannot reach and stop at the destination within the connection simulation limit.
+        std::optional<int> trySimulateWalkCost(
+            const TileMap& map,
+            GridPosition start,
+            GridPosition destination,
+            glm::vec2 bodySize,
+            const PlatformerMovementConfig& config)
         {
-            const simple_platformer::InputIntentions intentions =
-                simple_platformer::followPlatformerPath(body, movement, follower, SimulationStep);
-            if (simple_platformer::pathComplete(follower))
+            Body body{bodyAt(start, bodySize), {0.0F, 0.0F}};
+            PlatformerMovement movement{config, true, 0.0F, 0.0F};
+            Facing facing = destination.x < start.x ? Facing::Left : Facing::Right;
+            PathFollower follower;
+            setPath(follower, {start, {{destination, Traversal::Walk, {}}}}, destination);
+
+            for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
             {
-                return tick;
+                const InputIntentions intentions =
+                    followPlatformerPath(body, movement, follower, SimulationStep);
+                if (pathComplete(follower))
+                {
+                    return tick;
+                }
+                updatePlatformerMovement(map, body, movement, intentions, facing, SimulationStep);
             }
-            simple_platformer::updatePlatformerMovement(
-                map, body, movement, intentions, facing, SimulationStep);
-        }
-        return std::nullopt;
-    }
-
-    bool touchesHorizontalMapEdge(
-        const simple_platformer::TileMap& map,
-        const simple_platformer::Aabb& bounds,
-        float direction)
-    {
-        constexpr float WallTolerance = 0.001F;
-        return (direction < 0.0F && bounds.position.x <= WallTolerance) ||
-               (direction > 0.0F &&
-                bounds.position.x + bounds.size.x >= map.pixelWidth() - WallTolerance);
-    }
-
-    simple_platformer::InputIntentions makeTraversalIntentions(
-        simple_platformer::Traversal traversal,
-        float direction,
-        int tick,
-        int jumpHoldTicks,
-        bool hasLanded)
-    {
-        simple_platformer::InputIntentions intentions;
-        intentions.direction.x = hasLanded ? 0.0F : direction;
-        if (traversal == simple_platformer::Traversal::Jump && !hasLanded)
-        {
-            intentions.jumpPressed = tick == 0;
-            intentions.jumpHeld = tick < jumpHoldTicks;
-        }
-        return intentions;
-    }
-
-    std::optional<simple_platformer::GridPosition> tryFindLandingCell(
-        const simple_platformer::TileMap& map,
-        simple_platformer::GridPosition start,
-        const simple_platformer::Aabb& bounds,
-        glm::vec2 bodySize)
-    {
-        const simple_platformer::GridPosition destination =
-            simple_platformer::navigationCell(simple_platformer::feetOf(bounds));
-        if (destination == start || !simple_platformer::canStandAt(map, destination, bodySize))
-        {
             return std::nullopt;
         }
-        return destination;
-    }
 
-    // Simulates leaving the ground, landing on another standable cell, and braking
-    // to a stop. Returns the connection and its recorded inputs, or nullopt when the
-    // traversal cannot complete within the connection simulation limit.
-    std::optional<simple_platformer::NavigationNeighbor> trySimulateAirborneConnection(
-        const simple_platformer::TileMap& map,
-        simple_platformer::GridPosition start,
-        glm::vec2 bodySize,
-        const simple_platformer::PlatformerMovementConfig& config,
-        simple_platformer::Traversal traversal,
-        float direction,
-        int jumpHoldTicks)
-    {
-        simple_platformer::Body body{bodyAt(start, bodySize), {0.0F, 0.0F}};
-        simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
-        simple_platformer::Facing facing =
-            direction < 0.0F ? simple_platformer::Facing::Left : simple_platformer::Facing::Right;
-        simple_platformer::InputProgram program;
-        bool leftGround = false;
-        std::optional<simple_platformer::GridPosition> landing;
-
-        for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
+        bool touchesHorizontalMapEdge(const TileMap& map, const Aabb& bounds, float direction)
         {
-            if (touchesHorizontalMapEdge(map, body.bounds, direction))
+            constexpr float WallTolerance = 0.001F;
+            return (direction < 0.0F && bounds.position.x <= WallTolerance) ||
+                   (direction > 0.0F &&
+                    bounds.position.x + bounds.size.x >= map.pixelWidth() - WallTolerance);
+        }
+
+        InputIntentions makeTraversalIntentions(
+            Traversal traversal,
+            float direction,
+            int tick,
+            int jumpHoldTicks,
+            bool hasLanded)
+        {
+            InputIntentions intentions;
+            intentions.direction.x = hasLanded ? 0.0F : direction;
+            if (traversal == Traversal::Jump && !hasLanded)
+            {
+                intentions.jumpPressed = tick == 0;
+                intentions.jumpHeld = tick < jumpHoldTicks;
+            }
+            return intentions;
+        }
+
+        std::optional<GridPosition> tryFindLandingCell(
+            const TileMap& map,
+            GridPosition start,
+            const Aabb& bounds,
+            glm::vec2 bodySize)
+        {
+            const GridPosition destination = navigationCell(feetOf(bounds));
+            if (destination == start || !canStandAt(map, destination, bodySize))
             {
                 return std::nullopt;
             }
+            return destination;
+        }
 
-            const simple_platformer::InputIntentions intentions = makeTraversalIntentions(
-                traversal, direction, tick, jumpHoldTicks, landing.has_value());
-            recordSimulationInput(program, intentions);
-            simple_platformer::updatePlatformerMovement(
-                map, body, movement, intentions, facing, SimulationStep);
+        // Simulates leaving the ground, landing on another standable cell, and braking
+        // to a stop. Returns the connection and its recorded inputs, or nullopt when the
+        // traversal cannot complete within the connection simulation limit.
+        std::optional<NavigationNeighbor> trySimulateAirborneConnection(
+            const TileMap& map,
+            GridPosition start,
+            glm::vec2 bodySize,
+            const PlatformerMovementConfig& config,
+            Traversal traversal,
+            float direction,
+            int jumpHoldTicks)
+        {
+            Body body{bodyAt(start, bodySize), {0.0F, 0.0F}};
+            PlatformerMovement movement{config, true, 0.0F, 0.0F};
+            Facing facing = direction < 0.0F ? Facing::Left : Facing::Right;
+            InputProgram program;
+            bool leftGround = false;
+            std::optional<GridPosition> landing;
 
-            leftGround = leftGround || !movement.grounded;
-            if (!leftGround || !movement.grounded)
+            for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
             {
-                continue;
-            }
-
-            if (!landing.has_value())
-            {
-                landing = tryFindLandingCell(map, start, body.bounds, bodySize);
-                if (!landing.has_value())
+                if (touchesHorizontalMapEdge(map, body.bounds, direction))
                 {
                     return std::nullopt;
                 }
+
+                const InputIntentions intentions = makeTraversalIntentions(
+                    traversal, direction, tick, jumpHoldTicks, landing.has_value());
+                recordSimulationInput(program, intentions);
+                updatePlatformerMovement(map, body, movement, intentions, facing, SimulationStep);
+
+                leftGround = leftGround || !movement.grounded;
+                if (!leftGround || !movement.grounded)
+                {
+                    continue;
+                }
+
+                if (!landing.has_value())
+                {
+                    landing = tryFindLandingCell(map, start, body.bounds, bodySize);
+                    if (!landing.has_value())
+                    {
+                        return std::nullopt;
+                    }
+                }
+                if (body.velocity.x != 0.0F)
+                {
+                    continue;
+                }
+                const GridPosition stoppedCell = navigationCell(feetOf(body.bounds));
+                if (stoppedCell != landing.value())
+                {
+                    return std::nullopt;
+                }
+                const int ticks = tick + 1;
+                return NavigationNeighbor{stoppedCell, traversal, ticks, program};
             }
-            if (body.velocity.x != 0.0F)
-            {
-                continue;
-            }
-            const simple_platformer::GridPosition stoppedCell =
-                simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds));
-            if (stoppedCell != landing.value())
-            {
-                return std::nullopt;
-            }
-            const int ticks = tick + 1;
-            return simple_platformer::NavigationNeighbor{stoppedCell, traversal, ticks, program};
+            return std::nullopt;
         }
-        return std::nullopt;
+
+        void keepCheapest(std::vector<NavigationNeighbor>& neighbors, NavigationNeighbor candidate)
+        {
+            const auto existing = std::find_if(
+                neighbors.begin(),
+                neighbors.end(),
+                [&candidate](const NavigationNeighbor& neighbor)
+                {
+                    return neighbor.destination == candidate.destination &&
+                           neighbor.traversal == candidate.traversal;
+                });
+            if (existing == neighbors.end())
+            {
+                neighbors.push_back(std::move(candidate));
+            }
+            else if (candidate.cost < existing->cost)
+            {
+                *existing = std::move(candidate);
+            }
+        }
     }
 
-    void keepCheapest(
-        std::vector<simple_platformer::NavigationNeighbor>& neighbors,
-        simple_platformer::NavigationNeighbor candidate)
-    {
-        const auto existing = std::find_if(
-            neighbors.begin(),
-            neighbors.end(),
-            [&candidate](const simple_platformer::NavigationNeighbor& neighbor)
-            {
-                return neighbor.destination == candidate.destination &&
-                       neighbor.traversal == candidate.traversal;
-            });
-        if (existing == neighbors.end())
-        {
-            neighbors.push_back(std::move(candidate));
-        }
-        else if (candidate.cost < existing->cost)
-        {
-            *existing = std::move(candidate);
-        }
-    }
-}
-
-namespace simple_platformer
-{
     int platformerTickHeuristic(
         GridPosition position,
         GridPosition goal,
@@ -319,7 +302,7 @@ namespace simple_platformer
         {
             throw std::invalid_argument("Navigation body size must be finite and positive");
         }
-        return map.contains(position) && !map.isSolid(position) &&
+        return map.contains(position) && !map.blocksMovement(position) &&
                map.blocksMovement({position.x, position.y + 1}) &&
                bodyFits(map, bodyAt(position, bodySize));
     }

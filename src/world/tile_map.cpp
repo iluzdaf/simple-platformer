@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <initializer_list>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -32,7 +33,8 @@ namespace simple_platformer
             throw std::invalid_argument("Tile count does not match the map dimensions");
         }
 
-        if (tileDefinitions.empty() || tileDefinitions.front().solid)
+        if (tileDefinitions.empty() || tileDefinitions.front().blocksMovement ||
+            tileDefinitions.front().blocksSight)
         {
             throw std::invalid_argument("Tile ID zero must be defined as empty");
         }
@@ -54,12 +56,14 @@ namespace simple_platformer
         {
             ownedRows.emplace_back(row);
         }
-        return fromAscii(ownedRows, {{false}, {true, {{0.0F, 0.0F}, {1.0F, 1.0F}}}});
+        return fromAscii(
+            ownedRows, {{false, false, {}}, {true, true, {{0.0F, 0.0F}, {1.0F, 1.0F}}}});
     }
 
     TileMap TileMap::fromAscii(
         const std::vector<std::string>& rows,
-        std::vector<TileDefinition> definitions)
+        std::vector<TileDefinition> definitions,
+        const std::map<char, int>& legend)
     {
         if (rows.empty())
         {
@@ -84,18 +88,12 @@ namespace simple_platformer
 
             for (const char symbol : row)
             {
-                if (symbol == '.')
-                {
-                    tiles.push_back(0);
-                }
-                else if (symbol == '#')
-                {
-                    tiles.push_back(1);
-                }
-                else
+                const auto entry = legend.find(symbol);
+                if (entry == legend.end())
                 {
                     throw std::invalid_argument("An ASCII tile map contains an unknown symbol");
                 }
+                tiles.push_back(entry->second);
             }
         }
 
@@ -148,9 +146,9 @@ namespace simple_platformer
         return tileDefinitions[static_cast<std::size_t>(tileId)];
     }
 
-    bool TileMap::isSolid(GridPosition position) const
+    bool TileMap::blocksSight(GridPosition position) const
     {
-        return definitionAt(position).solid;
+        return contains(position) ? definitionAt(position).blocksSight : blocksMovement(position);
     }
 
     bool TileMap::blocksMovement(GridPosition position) const
@@ -170,6 +168,6 @@ namespace simple_platformer
             return true;
         }
 
-        return isSolid(position);
+        return definitionAt(position).blocksMovement;
     }
 }

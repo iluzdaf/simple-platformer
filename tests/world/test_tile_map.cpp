@@ -20,12 +20,13 @@ TEST_CASE("An ASCII tile map is rectangular and row-major", "[world][tile-map]")
     REQUIRE(map.definitionAt({1, 0}).sprite.size.x == 1.0F);
 }
 
-TEST_CASE("Tile solidity comes from its definition", "[world][tile-map]")
+TEST_CASE("Tile movement blocking comes from its definition", "[world][tile-map]")
 {
-    const simple_platformer::TileMap map(2, 1, {1, 2}, {{false}, {true}, {false}});
+    const simple_platformer::TileMap map(
+        2, 1, {1, 2}, {{false, false, {}}, {true, true, {}}, {false, false, {}}});
 
-    REQUIRE(map.isSolid({0, 0}));
-    REQUIRE_FALSE(map.isSolid({1, 0}));
+    REQUIRE(map.blocksMovement({0, 0}));
+    REQUIRE_FALSE(map.blocksMovement({1, 0}));
 }
 
 TEST_CASE("Map sides and bottom block movement while the top stays open", "[world][tile-map]")
@@ -63,9 +64,10 @@ TEST_CASE("Tile maps reject invalid definitions and tile IDs", "[world][tile-map
     using simple_platformer::TileDefinition;
     using simple_platformer::TileMap;
 
-    REQUIRE_THROWS_AS(TileMap(0, 1, {}, {{false}}), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap(2, 1, {0}, {{false}}), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap(1, 1, {0}, {{true}}), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap(0, 1, {}, {{false, false, {}}}), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap(2, 1, {0}, {{false, false, {}}}), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap(1, 1, {0}, {{true, true, {}}}), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        TileMap(1, 1, {2}, std::vector<TileDefinition>{{false}, {true}}), std::invalid_argument);
+        TileMap(1, 1, {2}, std::vector<TileDefinition>{{false, false, {}}, {true, true, {}}}),
+        std::invalid_argument);
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -43,6 +44,7 @@ namespace simple_platformer
 
     struct ExampleLevelData
     {
+        std::map<char, std::string> tileLegend = {{'.', "empty"}, {'#', "stone"}};
         std::vector<std::string> mapRows;
         glm::vec2 playerSpawnFeet = {0.0F, 0.0F};
         std::vector<ExampleActorPlacement> actors;

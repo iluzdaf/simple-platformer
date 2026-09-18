@@ -32,7 +32,7 @@ namespace simple_platformer
         for (const GridPosition direction : Directions)
         {
             const GridPosition candidate{position.x + direction.x, position.y + direction.y};
-            if (map.contains(candidate) && !map.isSolid(candidate))
+            if (map.contains(candidate) && !map.blocksMovement(candidate))
             {
                 neighbors.push_back({candidate, Traversal::Fly, 1, {}});
             }

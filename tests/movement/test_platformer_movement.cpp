@@ -37,7 +37,7 @@ namespace
             tiles[floorStart + static_cast<std::size_t>(column)] = 1;
         }
 
-        return {MapWidth, MapHeight, std::move(tiles), {{false}, {true}}};
+        return {MapWidth, MapHeight, std::move(tiles), {{false, false, {}}, {true, true, {}}}};
     }
 
     PlatformerMovement makeMovement()

@@ -26,7 +26,7 @@ namespace
             width,
             height,
             std::vector<int>(static_cast<std::size_t>(width) * static_cast<std::size_t>(height), 0),
-            {{false}}};
+            {{false, false, {}}}};
     }
 
     void requireVector(glm::vec2 actual, glm::vec2 expected)

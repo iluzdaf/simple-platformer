@@ -30,6 +30,20 @@
 namespace
 {
     constexpr float ExamplePickupSideLength = 16.0F;
+    constexpr float ZombieMaximumSpeed = 60.0F;
+    constexpr float ZombieNoticeDistance = 80.0F;
+    constexpr float ZombieBiteWindupDuration = 0.30F;
+    constexpr float ZombieBiteActiveDuration = 0.10F;
+    constexpr float ZombieBiteRecoveryDuration = 0.60F;
+    constexpr int BatHealth = 1;
+    constexpr float BatNoticeDistance = 56.0F;
+    constexpr float BatForgetAfter = 0.50F;
+    constexpr float PlayerProjectileLifetime = 0.90F;
+    constexpr int ZombieSoldierHealth = 2;
+    constexpr float ZombieSoldierProjectileSpeed = 140.0F;
+    constexpr float ZombieSoldierProjectileLifetime = 0.75F;
+    constexpr float ZombieSoldierShootDuration = 0.30F;
+    constexpr float ZombieSoldierRecoveryDuration = 0.80F;
 
     simple_platformer::Animator makeAnimator(simple_platformer::AnimationSet animations)
     {
@@ -55,6 +69,25 @@ namespace
                 ? simple_platformer::SpriteRegion{{32.0F, 192.0F}, {8.0F, 4.0F}}
                 : simple_platformer::SpriteRegion{{64.0F, 192.0F}, {8.0F, 4.0F}};
         weapon.projectileSprite = {textureId, region, region.size};
+        return weapon;
+    }
+
+    simple_platformer::RangedWeapon makePlayerRangedWeapon(int textureId)
+    {
+        simple_platformer::RangedWeapon weapon =
+            makeRangedWeapon(textureId, simple_platformer::Team::Player);
+        weapon.projectileLifetime = PlayerProjectileLifetime;
+        return weapon;
+    }
+
+    simple_platformer::RangedWeapon makeZombieSoldierRangedWeapon(int textureId)
+    {
+        simple_platformer::RangedWeapon weapon =
+            makeRangedWeapon(textureId, simple_platformer::Team::Enemy);
+        weapon.projectileSpeed = ZombieSoldierProjectileSpeed;
+        weapon.projectileLifetime = ZombieSoldierProjectileLifetime;
+        weapon.shootDuration = ZombieSoldierShootDuration;
+        weapon.recoveryDuration = ZombieSoldierRecoveryDuration;
         return weapon;
     }
 
@@ -96,7 +129,14 @@ namespace
             simple_platformer::makeZombieAnimations());
         npc.platformerMovement = simple_platformer::PlatformerMovement{};
         npc.platformerMovement->grounded = true;
+        npc.platformerMovement->config.maximumSpeed = ZombieMaximumSpeed;
+        simple_platformer::NpcSenses zombieSenses;
+        zombieSenses.noticeDistance = ZombieNoticeDistance;
+        npc.senses = zombieSenses;
         npc.bite = simple_platformer::BiteAttack{};
+        npc.bite->windupDuration = ZombieBiteWindupDuration;
+        npc.bite->activeDuration = ZombieBiteActiveDuration;
+        npc.bite->recoveryDuration = ZombieBiteRecoveryDuration;
         return npc;
     }
 
@@ -114,6 +154,8 @@ namespace
             simple_platformer::makeBatAnimations());
         npc.flyingMovement = simple_platformer::FlyingMovement{};
         npc.bite = simple_platformer::BiteAttack{};
+        npc.health = simple_platformer::Health{BatHealth, BatHealth};
+        npc.senses = simple_platformer::NpcSenses{BatNoticeDistance, BatForgetAfter};
         return npc;
     }
 
@@ -131,7 +173,8 @@ namespace
             simple_platformer::makeZombieSoldierAnimations());
         npc.platformerMovement = simple_platformer::PlatformerMovement{};
         npc.platformerMovement->grounded = true;
-        npc.rangedWeapon = makeRangedWeapon(textureId, npc.team);
+        npc.health = simple_platformer::Health{ZombieSoldierHealth, ZombieSoldierHealth};
+        npc.rangedWeapon = makeZombieSoldierRangedWeapon(textureId);
         return npc;
     }
 
@@ -222,7 +265,7 @@ namespace simple_platformer
         player.health = Health{3, 3};
         player.inventory = Inventory{6};
         player.team = Team::Player;
-        player.rangedWeapon = makeRangedWeapon(textureId, player.team);
+        player.rangedWeapon = makePlayerRangedWeapon(textureId);
         return player;
     }
 

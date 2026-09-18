@@ -24,7 +24,7 @@ The current example includes:
 - enum-and-switch NPC state machines, sensing, and target memory;
 - flying and platformer pathfinding;
 - 360-degree projectiles and a timed bite attack;
-- health, death, respawning, pickups, inventory, and two connected levels;
+- health, death, respawning, pickups, inventory, and three connected levels;
 - sprite animation, an ImGui HUD, and an optional debug overlay.
 
 The project deliberately does not try to provide slopes, one-way or moving platforms,
@@ -424,6 +424,21 @@ Velocities, projectiles, NPC state, and old actor IDs do not cross the level bou
 The final exit shows completion text and R creates a fresh copy of the catalog's start
 level.
 
+### Example campaign
+
+The three levels in `assets/levels` use the same movement and combat systems with
+different layouts. Each exit requires and consumes one key. Coins and health potions
+are optional rewards, not exit requirements.
+
+1. **Introduction:** low obstacles lead past one patrolling zombie to a raised key.
+   A health potion sits before the climb, and the exit is beyond it to the right.
+2. **Route choice:** the upper route crosses platform gaps guarded by bats. The lower
+   route passes a zombie soldier, with solid cover breaking its line of sight. Both
+   routes meet at the key platform before the exit.
+3. **Key hunt and return:** the exit is near the starting point. A stepped climb past
+   a zombie, soldier, and bat reaches the key high on the right. Dropping off the right
+   side leads to a lower return route with cover, a zombie, and a health potion.
+
 ### Data-driven level boundary
 
 The example game loads its levels from `assets/levels`. The files select and place known
@@ -441,7 +456,8 @@ IDs to files:
   "startLevel": 1,
   "levels": [
     {"number": 1, "file": "level_1.json"},
-    {"number": 2, "file": "level_2.json"}
+    {"number": 2, "file": "level_2.json"},
+    {"number": 3, "file": "level_3.json"}
   ]
 }
 ```
@@ -693,6 +709,246 @@ animation clips, and actor composition still live in C++. They can move to separ
 validated data files later, but should keep stable symbolic names, preserve the current
 runtime structures, and avoid turning level files into arbitrary component or behaviour
 scripts.
+
+### Optional movement abilities
+
+`PlatformerMovement` should remain the readable baseline shared by ordinary ground
+actors. Features such as double jump, dash, wall slide, and wall jump can be added as
+optional actor components rather than accumulating feature flags inside the baseline
+movement component. An actor gains an ability only when its composition includes the
+corresponding component, such as `AirJump`, `Dash`, or `WallMovement`.
+
+For example, a double-jump component can contain only its configuration and runtime
+state:
+
+```cpp
+struct AirJump
+{
+    int maximumJumps = 1;
+    int jumpsRemaining = 1;
+};
+```
+
+The actor composition makes the feature optional:
+
+```cpp
+struct Actor
+{
+    Body body;
+    std::optional<PlatformerMovement> platformerMovement;
+
+    std::optional<AirJump> airJump;
+    std::optional<Dash> dash;
+    std::optional<WallMovement> wallMovement;
+};
+```
+
+If several abilities are added, movement can use an explicit ability phase:
+
+```text
+InputIntentions
+      -> choose or start abilities
+      -> produce per-update movement modifiers
+      -> apply normal platformer movement and collision
+      -> update ability state from collision contacts
+```
+
+Abilities should describe changes to the current movement update instead of moving the
+body or resolving collision themselves. A small result value can carry intentions and
+modifiers such as a velocity override, gravity scale, or whether ordinary horizontal
+control and jumping are enabled. For example, an air jump supplies upward velocity, a
+dash supplies horizontal velocity and temporarily disables ordinary control, and a wall
+slide reduces gravity.
+
+One possible result type is:
+
+```cpp
+struct MovementModifiers
+{
+    bool horizontalControlEnabled = true;
+    bool normalJumpEnabled = true;
+    float gravityScale = 1.0F;
+    std::optional<float> horizontalVelocity;
+    std::optional<float> verticalVelocity;
+};
+
+struct MovementAbilityResult
+{
+    InputIntentions intentions;
+    MovementModifiers modifiers;
+};
+```
+
+The actor movement system can then show the complete order directly:
+
+```cpp
+MovementAbilityResult abilityResult =
+    updateMovementAbilities(actor, intentions, previousContacts, deltaTime);
+
+CollisionContacts contacts = updatePlatformerMovement(
+    map,
+    actor.body,
+    *actor.platformerMovement,
+    abilityResult.intentions,
+    abilityResult.modifiers,
+    actor.facing,
+    deltaTime);
+
+finishMovementAbilities(actor, contacts);
+```
+
+`PlatformerMovement` would apply the supplied modifiers at named points while retaining
+ownership of ordinary acceleration, jumping, gravity, movement, and collision:
+
+```cpp
+applyAbilityVelocity(body, modifiers);
+
+if (modifiers.horizontalControlEnabled)
+{
+    updateHorizontalVelocity(body, movement, intentions, deltaTime);
+}
+if (modifiers.normalJumpEnabled)
+{
+    updateJump(body, movement, intentions);
+}
+
+updateGravity(body, movement, modifiers.gravityScale, deltaTime);
+return moveAndCollide(map, body, deltaTime);
+```
+
+Conflicting abilities should be resolved in visible game-policy code with an explicit
+priority order; for example, wall jump before air jump when both respond to the jump
+button. The post-collision phase can reset air jumps on landing, stop a dash at a wall,
+or remember which wall is being touched. Individual abilities should have focused tests,
+with a smaller set of integration tests for combinations such as wall slide into wall
+jump or an airborne dash into a wall.
+
+The priority should remain ordinary, readable game-policy code:
+
+```cpp
+if (canWallJump(actor, previousContacts, intentions))
+{
+    beginWallJump(actor, result.modifiers);
+}
+else if (canAirJump(actor, intentions))
+{
+    beginAirJump(actor, result.modifiers);
+}
+
+if (actor.dash.has_value())
+{
+    updateDash(*actor.dash, actor.facing, intentions, result.modifiers, deltaTime);
+}
+```
+
+Collision-dependent state is handled afterward:
+
+```cpp
+if (contacts.ground && actor.airJump.has_value())
+{
+    resetAirJumps(*actor.airJump);
+}
+if ((contacts.left || contacts.right) && actor.dash.has_value())
+{
+    stopDash(*actor.dash);
+}
+```
+
+This phase should be introduced alongside the first real optional ability, once its
+required data and interactions are concrete. It should not become a callback registry,
+inheritance hierarchy, or generic plugin system merely to anticipate possible features.
+
+### NPC tactics
+
+NPC composition should continue to describe what an actor *can do*: platformer or
+flying movement, sensing, biting, and shooting. `NpcState` describes what it is doing
+right now, such as patrolling, chasing, or attacking. A future tactic can separately
+describe how the NPC chooses between those states.
+
+This keeps species, capabilities, and decision-making independent. A zombie and a
+soldier can use different artwork and attacks while sharing a guard tactic; a ranged
+weapon is a capability rather than a `Shooter` brain. Useful tactics could include:
+
+- `Pursuer`: move as close to the remembered target as the map permits;
+- `Guard`: pursue only inside a home region, then return;
+- `KeepDistance`: approach or retreat to maintain a useful attack range;
+- `Flee`: move away from the target;
+- `Patroller`: follow patrol points without pursuing the player.
+
+The first implementation should stay explicit. An enum in `NpcBrain` and a switch in
+the NPC system make the available policies and their dispatch visible to students:
+
+```cpp
+enum class NpcTactic
+{
+    Pursuer,
+    Guard,
+    KeepDistance,
+    Flee,
+    Patroller
+};
+
+struct NpcBrain
+{
+    NpcTactic tactic = NpcTactic::Pursuer;
+    NpcState state = NpcState::Idle;
+    // Perception memory and tactic-specific state.
+};
+```
+
+```cpp
+switch (brain.tactic)
+{
+case NpcTactic::Pursuer:
+    updatePursuer(map, world, actor, deltaTime);
+    break;
+case NpcTactic::Guard:
+    updateGuard(map, world, actor, deltaTime);
+    break;
+case NpcTactic::KeepDistance:
+    updateKeepDistance(map, world, actor, deltaTime);
+    break;
+case NpcTactic::Flee:
+    updateFlee(map, world, actor, deltaTime);
+    break;
+case NpcTactic::Patroller:
+    updatePatroller(map, world, actor, deltaTime);
+    break;
+}
+```
+
+The `Pursuer` tactic should eventually improve how it handles an unreachable target.
+Instead of selecting only the geometrically nearest standable cell, it can examine
+standable candidates near the last-seen position and return the nearest one for which
+pathfinding succeeds. Returning the path and chosen destination together avoids doing
+the same search twice:
+
+```cpp
+struct ChasePath
+{
+    NavigationPath path;
+    GridPosition destination;
+};
+
+std::optional<ChasePath> findClosestReachablePlatformerPath(
+    const TileMap& map,
+    GridPosition start,
+    glm::vec2 targetFeet,
+    glm::vec2 bodySize,
+    const PlatformerMovementConfig& movement);
+```
+
+Candidates should be tried in a deterministic nearest-first order, with path cost used
+as a tie-breaker. The existing repath delay can limit the extra searches. The NPC then
+follows the returned path and waits at its closest reachable endpoint while remaining
+in the chase state: the state expresses its intention to pursue, not a guarantee that
+it can reach the target. As with current target memory, this search must use only the
+last position the NPC perceived and must not reveal the player's hidden position.
+
+`NpcTactic` should be introduced only when the game adds a genuinely different second
+policy, such as `Guard`. Until then, a single clearly named pursuit implementation is
+simpler than an abstraction created for hypothetical behaviours. Virtual brain classes,
+callbacks, and a general behaviour-tree framework are not needed for these tactics.
 
 ### Movement-specific navigation anchors
 

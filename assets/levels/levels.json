@@ -8,6 +8,10 @@
     {
       "number": 2,
       "file": "level_2.json"
+    },
+    {
+      "number": 3,
+      "file": "level_3.json"
     }
   ]
 }

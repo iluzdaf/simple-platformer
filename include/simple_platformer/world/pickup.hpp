@@ -9,8 +9,6 @@ namespace simple_platformer
     {
         Aabb bounds;
         ItemStack stack;
-        // Presentation age; pickups do not expire when this increases.
-        float ageSeconds = 0.0F;
     };
 
     class World;

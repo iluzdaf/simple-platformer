@@ -1,6 +1,5 @@
 #include "simple_platformer/world/pickup.hpp"
 
-#include <cmath>
 #include <cstddef>
 #include <stdexcept>
 #include <vector>
@@ -29,10 +28,6 @@ namespace
         if (pickup.stack.quantity <= 0)
         {
             throw std::invalid_argument("Pickups require a positive quantity");
-        }
-        if (!std::isfinite(pickup.ageSeconds) || pickup.ageSeconds < 0.0F)
-        {
-            throw std::invalid_argument("Pickup age must be finite and non-negative");
         }
     }
 }

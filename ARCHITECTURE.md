@@ -97,15 +97,16 @@ breakpoint or stall does not cause an excessive catch-up.
 
 `updateWorldSimulation` is the authoritative gameplay order:
 
-1. Update NPC sensing and target memory.
-2. Update NPC decisions, destinations, paths, and intentions.
-3. Move every actor and resolve tile collision.
-4. Advance attacks and evaluate active bite hitboxes.
-5. Move projectiles and find their earliest collision.
-6. Apply damage and advance actor life cycles.
-7. Detect automatic pickups.
-8. Apply queued world requests.
-9. Check the level exit.
+1. Advance the World's shared simulation clock.
+2. Update NPC sensing and target memory.
+3. Update NPC decisions, destinations, paths, and intentions.
+4. Move every actor and resolve tile collision.
+5. Advance attacks and evaluate active bite hitboxes.
+6. Move projectiles and find their earliest collision.
+7. Apply damage and advance actor life cycles.
+8. Detect automatic pickups.
+9. Apply queued world requests.
+10. Check the level exit.
 
 The player intentions are written before this sequence. Camera and actor animation are
 updated afterward because they present the resulting gameplay state and do not affect
@@ -127,6 +128,8 @@ iterators and pointers during a system update.
 - The internal resolution is 320 by 180 pixels.
 - Tiles are 16 by 16 world pixels.
 - Window output is an integer-scaled internal image with letterboxing when required.
+- `World` owns elapsed simulation time. It advances once per fixed simulation update and
+  provides a shared clock for effects that do not need their own resettable timer.
 
 The two actor-position conventions are deliberately named:
 
@@ -415,8 +418,9 @@ system.
 
 The living player automatically collects pickups on strict body overlap. NPCs do not.
 A pickup that cannot fit completely remains with its uncollected quantity. The example
-contains coins, health potions, and a key. Pickup sprites bob without moving their
-collection bounds. Inventory persists through player death.
+contains coins, health potions, and a key. Pickup sprites use the shared World clock and
+a position-based phase offset to bob without moving their collection bounds. Inventory
+persists through player death.
 
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. The simulation reports completion;

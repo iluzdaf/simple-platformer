@@ -23,6 +23,22 @@
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
 
+TEST_CASE("World simulation advances its shared clock once per update", "[world][simulation][time]")
+{
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"."});
+    simple_platformer::World world;
+
+    simple_platformer::updateWorldSimulation(map, world, 0.25F);
+    simple_platformer::updateWorldSimulation(map, world, 0.25F);
+
+    REQUIRE(world.simulationTimeSeconds() == 0.5F);
+
+    world.completeLevel();
+    simple_platformer::updateWorldSimulation(map, world, 0.25F);
+
+    REQUIRE(world.simulationTimeSeconds() == 0.5F);
+}
+
 TEST_CASE("World simulation spawns a projectile after projectile movement", "[world][simulation]")
 {
     const simple_platformer::TileMap map =

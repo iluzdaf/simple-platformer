@@ -291,7 +291,8 @@ TEST_CASE("Pickups and exits produce camera-relative sprite commands", "[render]
     auto definitions = items();
     definitions[0].icon = {7, {{4.0F, 8.0F}, {6.0F, 10.0F}}, {6.0F, 10.0F}};
     simple_platformer::World world(definitions);
-    world.addPickup({{{20.0F, 20.0F}, {12.0F, 16.0F}}, {1, 1}, 0.5F});
+    world.addPickup({{{20.0F, 20.0F}, {12.0F, 16.0F}}, {1, 1}});
+    world.advanceSimulationTime(0.5F);
     simple_platformer::LevelExit exit;
     exit.bounds = {{50.0F, 20.0F}, {16.0F, 32.0F}};
     exit.sprite = simple_platformer::Sprite{8, {{8.0F, 8.0F}, {16.0F, 32.0F}}, {16.0F, 32.0F}};
@@ -321,7 +322,7 @@ TEST_CASE(
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {320.0F, 180.0F}};
 
     const auto initialScene = simple_platformer::buildRenderScene(map, 0, camera, world);
-    simple_platformer::updateWorldAnimations(world, 0.5F);
+    world.advanceSimulationTime(0.5F);
     const auto advancedScene = simple_platformer::buildRenderScene(map, 0, camera, world);
 
     REQUIRE_THAT(initialScene.sprites[0].position.y, Catch::Matchers::WithinAbs(6.0F, 0.0001F));

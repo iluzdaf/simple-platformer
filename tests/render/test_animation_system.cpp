@@ -142,15 +142,10 @@ TEST_CASE("Death animation has priority over a shot", "[render][animation][syste
     REQUIRE(animator(world, id).current == simple_platformer::AnimationName::Death);
 }
 
-TEST_CASE("Pickup animation advances each pickup age", "[render][animation][system]")
+TEST_CASE("World animation rejects a negative delta time", "[render][animation][system]")
 {
-    simple_platformer::World world({{1, "Coin", {}, 5}});
-    world.addPickup({{{8.0F, 8.0F}, {16.0F, 16.0F}}, {1, 1}});
+    simple_platformer::World world;
 
-    simple_platformer::updateWorldAnimations(world, 0.25F);
-    simple_platformer::updateWorldAnimations(world, 0.25F);
-
-    REQUIRE(world.pickups().front().ageSeconds == 0.5F);
     REQUIRE_THROWS_AS(
         simple_platformer::updateWorldAnimations(world, -0.1F), std::invalid_argument);
 }

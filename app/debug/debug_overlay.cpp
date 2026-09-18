@@ -220,6 +220,12 @@ namespace simple_platformer
                 info.sensor =
                     sensorDebugInfo(actor, actor.brain.value(), actor.senses.value(), player);
             }
+            if (actor.patrol.has_value())
+            {
+                const Patrol& patrol = actor.patrol.value();
+                info.patrol =
+                    PatrolDebugInfo{patrol.firstFeet, patrol.secondFeet, patrol.headingToSecond};
+            }
             if (actor.bite.has_value() && actor.bite->phase == BitePhase::Active)
             {
                 info.biteHitbox = biteHitbox(actor.body.bounds, actor.bite.value(), actor.facing);

@@ -63,6 +63,13 @@ namespace simple_platformer
         float memoryRemaining = 0.0F;
     };
 
+    struct PatrolDebugInfo
+    {
+        glm::vec2 firstFeet = {0.0F, 0.0F};
+        glm::vec2 secondFeet = {0.0F, 0.0F};
+        bool headingToSecond = true;
+    };
+
     struct ActorDebugInfo
     {
         ActorId id;
@@ -73,6 +80,7 @@ namespace simple_platformer
         std::optional<NpcState> npcState;
         std::optional<PathFollowerDebugInfo> pathFollower;
         std::optional<SensorDebugInfo> sensor;
+        std::optional<PatrolDebugInfo> patrol;
         std::optional<Aabb> biteHitbox;
     };
 

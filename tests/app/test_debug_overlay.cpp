@@ -54,7 +54,36 @@ TEST_CASE("Debug overlay data supports actors without presentation components", 
     REQUIRE_FALSE(debug.actors.front().npcState.has_value());
     REQUIRE_FALSE(debug.actors.front().pathFollower.has_value());
     REQUIRE_FALSE(debug.actors.front().sensor.has_value());
+    REQUIRE_FALSE(debug.actors.front().patrol.has_value());
     REQUIRE_FALSE(debug.actors.front().biteHitbox.has_value());
+}
+
+TEST_CASE("Debug overlay data describes NPC patrol points", "[app][debug]")
+{
+    simple_platformer::Actor npc;
+    npc.body.bounds = {{16.0F, 20.0F}, {12.0F, 12.0F}};
+    npc.platformerMovement = simple_platformer::PlatformerMovement{};
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.senses = simple_platformer::NpcSenses{};
+    npc.pathFollower = simple_platformer::PathFollower{};
+    npc.patrol = simple_platformer::Patrol{{24.0F, 32.0F}, {72.0F, 32.0F}, false};
+
+    simple_platformer::World world;
+    world.addActor(npc);
+    const simple_platformer::TileMap map =
+        simple_platformer::TileMap::fromAscii({".....", "#####"});
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+
+    const simple_platformer::DebugOverlay debug =
+        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+
+    REQUIRE(debug.actors.front().patrol.has_value());
+    const simple_platformer::PatrolDebugInfo patrol =
+        debug.actors.front().patrol.value_or(simple_platformer::PatrolDebugInfo{});
+    REQUIRE(patrol.firstFeet == glm::vec2{24.0F, 32.0F});
+    REQUIRE(patrol.secondFeet == glm::vec2{72.0F, 32.0F});
+    REQUIRE_FALSE(patrol.headingToSecond);
 }
 
 TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app][debug]")

@@ -16,7 +16,7 @@ The current example includes:
 
 - responsive platformer movement with variable-height jumping, coyote time, and jump
   buffering
-- arbitrary-sized AABB bodies colliding with a solid tile grid
+- arbitrary-sized AABB bodies colliding with movement-blocking tiles
 - scrolling maps and a dead-zone camera
 - actors assembled by composition
 - player and NPC control through the same `InputIntentions`
@@ -285,11 +285,18 @@ jumping, or acceleration state.
 ## Tile map, collision, and validation
 
 `TileMap` stores a rectangular row-major vector of integer tile IDs. Tile zero is
-empty. Each nonzero tile definition supplies a sprite region and whether the tile is
-solid. The same map layer supports rendering and collision.
+empty. Each nonzero tile definition supplies a sprite region, `blocksMovement`, and
+`blocksSight`. The same map layer supports rendering, collision, and sensing.
+Glass blocks movement and projectiles but allows sight. Grass allows movement and
+projectiles but blocks sight rays. These are static tiles: glass does not yet break,
+and grass does not hide actors, pickups, or exits from the player's screen.
 
 Examples and tests construct maps from ASCII strings using `.` for empty and `#` for
-solid. The example reads those rows from its level JSON. Actors, pickups, spawns, and
+solid by default. The example loads shared definitions from `tiles.json` beside
+`levels.json`. An optional `tileLegend` in each level maps one-character symbols to
+catalogue names; without it, `.` means `empty` and `#` means `stone`.
+The loader resolves names to runtime IDs, reserving zero for `empty`.
+Actors, pickups, spawns, and
 exits are separate level data, not special tile IDs.
 
 Collision moves an arbitrary-sized AABB along X, resolves it against nearby full-tile
@@ -297,10 +304,11 @@ AABBs, then repeats along Y. The result reports left, right, ground, and ceiling
 contacts. Actors do not physically collide with or push one another. The left, right,
 and bottom map boundaries block movement; the top remains open.
 
-`segmentCast` finds the first point where a line enters one AABB.
-`segmentCastSolidTiles` applies that operation to the relevant part of a tile map and
-can account for a moving box size. Projectile collision and NPC sight share this tile
-cast while keeping their own gameplay rules.
+`segmentCast` returns the fraction along a line where it first touches or enters an AABB.
+`segmentCastMovementBlockingTiles` applies that operation to the relevant part of a tile map and
+can account for a moving box size. Projectiles use movement-blocking tiles;
+NPCs use `segmentCastSightBlockingTiles`. Both casts share the geometric calculation
+and use the tile property appropriate to their purpose.
 
 After level data is loaded and composed into runtime objects, `validateLevelActors`
 checks it against the map.
@@ -354,7 +362,7 @@ tick estimate as its heuristic.
 
 ### Flying paths
 
-Flying navigation treats non-solid grid cells as nodes connected in four directions.
+Flying navigation treats cells that allow movement as nodes connected in four directions.
 The path follower steers toward successive cell destinations while collision keeps the
 body outside platforms. Arrival uses body-aware tolerances so a smaller bat does not
 remain stuck against a platform corner.
@@ -399,7 +407,7 @@ The aim vector supports the full 360-degree range.
 
 A projectile contains bounds, velocity, damage, remaining lifetime, owner, team, and
 sprite data. Each tick it performs a swept segment cast from its previous to proposed
-position, chooses the earliest solid-tile or eligible-actor hit, queues damage, and is
+position, chooses the earliest movement-blocking tile or eligible-actor hit, queues damage, and is
 removed. Owner and team prevent hitting the shooter or allies. When a projectile ends,
 it queues a separate `ProjectileBurst` at its final position. The burst records whether
 the cause was an impact or an expired lifetime. Both causes currently reuse the projectile
@@ -518,8 +526,21 @@ and pickup arrays may be empty. An exit without `nextLevel` completes the game.
 
 #### Maps and positions
 
-Map rows have the same non-zero length. A `.` is an empty tile and a `#` is a solid
-tile. World coordinates begin at the top-left: positive X points right and positive Y
+Map rows have the same non-zero length. The default symbols are `.` for empty
+and `#` for stone. To use more tile types, supply a level legend:
+
+```json
+"tileLegend": { ".": "empty", "#": "stone", "G": "grass", "X": "glass" }
+```
+
+Shared definitions live in `assets/levels/tiles.json`. Each definition requires
+boolean `blocksMovement` and `blocksSight` fields. Nonempty tiles also require
+a `sprite` rectangle with `x`, `y`, `width`, and `height` in atlas pixels.
+Tile artwork is drawn into one 16-by-16 world cell. The `empty` definition must
+allow movement and sight and is not rendered. Unknown names and map symbols
+are rejected during loading. Fixture catalogues supply their own `tiles.json`.
+
+World coordinates begin at the top-left: positive X points right and positive Y
 points down. A cell position is `[column, row]`, also counted from the top-left.
 
 Actors, pickups, exits, and patrol endpoints support two placement forms:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <initializer_list>
+#include <map>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -12,12 +13,8 @@ namespace simple_platformer
 {
     struct TileDefinition
     {
-        TileDefinition(bool blocks = false, SpriteRegion spriteRegion = {})
-            : solid(blocks), sprite(spriteRegion)
-        {
-        }
-
-        bool solid = false;
+        bool blocksMovement = false;
+        bool blocksSight = false;
         SpriteRegion sprite;
     };
 
@@ -33,7 +30,8 @@ namespace simple_platformer
         static TileMap fromAscii(std::initializer_list<std::string_view> rows);
         static TileMap fromAscii(
             const std::vector<std::string>& rows,
-            std::vector<TileDefinition> definitions);
+            std::vector<TileDefinition> definitions,
+            const std::map<char, int>& legend = {{'.', 0}, {'#', 1}});
 
         int width() const;
         int height() const;
@@ -43,10 +41,11 @@ namespace simple_platformer
         bool contains(GridPosition position) const;
         int tileAt(GridPosition position) const;
         const TileDefinition& definitionAt(GridPosition position) const;
-        bool isSolid(GridPosition position) const;
 
-        // The map is open above, but its left, right, and bottom edges are walls.
+        // Outside the map, both queries block at the left, right, and bottom.
+        // Above the map is open.
         bool blocksMovement(GridPosition position) const;
+        bool blocksSight(GridPosition position) const;
 
     private:
         int mapWidth = 0;

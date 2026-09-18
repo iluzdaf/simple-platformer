@@ -7,6 +7,33 @@
 #include "game/example_level_data.hpp"
 #include "simple_platformer/npc/npc.hpp"
 
+TEST_CASE("Level JSON accepts a custom tile legend", "[app][content][json]")
+{
+    const auto data = simple_platformer::parseExampleLevelData(
+        R"({
+        "tileLegend": {".":"empty", "G":"grass", "X":"glass"},
+        "map":[".GX"], "playerSpawnCell":[0,0], "actors":[], "pickups":[],
+        "exit":{"spawnCell":[2,0]}
+    })",
+        "custom level");
+    REQUIRE(data.tileLegend.at('G') == "grass");
+    REQUIRE(data.mapRows.front() == ".GX");
+    REQUIRE_THROWS_AS(
+        simple_platformer::parseExampleLevelData(
+            R"({
+        "tileLegend":{"long":"grass"}, "map":["."]
+    })",
+            "bad legend"),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::parseExampleLevelData(
+            R"({
+        "tileLegend":{".":"empty"}, "map":["X"]
+    })",
+            "bad symbol"),
+        std::invalid_argument);
+}
+
 TEST_CASE(
     "Level JSON describes placements without defining actor behaviour",
     "[app][content][json]")

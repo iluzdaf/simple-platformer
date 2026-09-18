@@ -19,7 +19,7 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
 {
     const simple_platformer::SpriteRegion tileRegion{{5.0F, 6.0F}, {1.0F, 1.0F}};
     const simple_platformer::TileMap map(
-        4, 2, {0, 1, 1, 1, 0, 0, 0, 0}, {{false}, {true, tileRegion}});
+        4, 2, {0, 1, 1, 1, 0, 0, 0, 0}, {{false, false, {}}, {true, true, tileRegion}});
     const simple_platformer::Camera camera{{16.0F, 0.0F}, {32.0F, 16.0F}};
     const simple_platformer::Sprite player{9, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {10.0F, 14.0F}};
     const simple_platformer::Aabb playerBounds{{20.0F, 2.0F}, {8.0F, 12.0F}};
@@ -48,6 +48,24 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
     REQUIRE(scene.sprites[2].position.y == 0.0F);
     REQUIRE(scene.sprites[2].size.x == 10.0F);
     REQUIRE(scene.sprites[2].flipHorizontal);
+}
+
+TEST_CASE("Tile rendering includes non-solid tiles and preserves each region", "[render][scene]")
+{
+    const simple_platformer::TileMap map(
+        3,
+        1,
+        {0, 1, 2},
+        {{false, false, {}},
+         {false, false, {{16, 0}, {16, 16}}},
+         {true, true, {{32, 0}, {16, 16}}}});
+    const auto scene =
+        simple_platformer::buildRenderScene(map, 7, {{0, 0}, {48, 16}}, simple_platformer::World{});
+    REQUIRE(scene.sprites.size() == 2);
+    REQUIRE(scene.sprites[0].source.position.x == 16);
+    REQUIRE(scene.sprites[1].source.position.x == 32);
+    REQUIRE(scene.sprites[0].size == glm::vec2{16, 16});
+    REQUIRE(scene.sprites[1].size == glm::vec2{16, 16});
 }
 
 TEST_CASE("Facing right does not flip the player sprite", "[render][scene]")

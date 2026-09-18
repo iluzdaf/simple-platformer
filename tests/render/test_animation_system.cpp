@@ -5,7 +5,6 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
-#include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/animation_system.hpp"

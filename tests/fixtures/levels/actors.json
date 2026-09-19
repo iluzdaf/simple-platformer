@@ -1,0 +1,12 @@
+{
+  "player": "test_player",
+  "actors": {
+    "test_player": {
+      "bodySize": [12, 20], "team": "player", "health": 3,
+      "inventorySlots": 6, "platformer": {}
+    },
+    "test_guard": {
+      "bodySize": [8, 12], "platformer": {"maximumSpeed": 23}, "senses": {}
+    }
+  }
+}

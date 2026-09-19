@@ -12,28 +12,124 @@
 #include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
-namespace
+namespace simple_platformer
 {
-    float moveTowards(float current, float target, float maximumChange)
+    namespace
     {
-        if (current < target)
+        float moveTowards(float current, float target, float maximumChange)
         {
-            return std::min(current + maximumChange, target);
+            if (current < target)
+            {
+                return std::min(current + maximumChange, target);
+            }
+
+            return std::max(current - maximumChange, target);
         }
 
-        return std::max(current - maximumChange, target);
+        void validate(
+            const PlatformerMovementConfig& config,
+            const InputIntentions& intentions,
+            float deltaTime)
+        {
+            if (!std::isfinite(deltaTime) || deltaTime <= 0.0F)
+            {
+                throw std::invalid_argument(
+                    "Platformer movement requires a positive finite time step");
+            }
+
+            validatePlatformerMovementConfig(config);
+
+            if (!isFinite(intentions.direction))
+            {
+                throw std::invalid_argument("Input intentions must be finite");
+            }
+        }
+
+        void updateTimers(
+            PlatformerMovement& movement,
+            const InputIntentions& intentions,
+            float deltaTime)
+        {
+            if (intentions.jumpPressed)
+            {
+                movement.jumpBufferRemaining = movement.config.jumpBufferTime;
+            }
+            else
+            {
+                movement.jumpBufferRemaining =
+                    std::max(0.0F, movement.jumpBufferRemaining - deltaTime);
+            }
+
+            if (movement.grounded)
+            {
+                movement.coyoteRemaining = movement.config.coyoteTime;
+            }
+            else
+            {
+                movement.coyoteRemaining = std::max(0.0F, movement.coyoteRemaining - deltaTime);
+            }
+        }
+
+        void updateHorizontalVelocity(
+            Body& body,
+            const PlatformerMovement& movement,
+            const InputIntentions& intentions,
+            Facing& facing,
+            float deltaTime)
+        {
+            const float direction = std::clamp(intentions.direction.x, -1.0F, 1.0F);
+            if (direction < 0.0F)
+            {
+                facing = Facing::Left;
+            }
+            else if (direction > 0.0F)
+            {
+                facing = Facing::Right;
+            }
+
+            if (direction == 0.0F && !movement.grounded)
+            {
+                return;
+            }
+
+            const float target = direction * movement.config.maximumSpeed;
+            const float acceleration = direction == 0.0F   ? movement.config.groundDeceleration
+                                       : movement.grounded ? movement.config.groundAcceleration
+                                                           : movement.config.airAcceleration;
+            body.velocity.x = moveTowards(body.velocity.x, target, acceleration * deltaTime);
+        }
+
+        void startBufferedJump(Body& body, PlatformerMovement& movement, bool jumpPressed)
+        {
+            const bool wantsToJump = jumpPressed || movement.jumpBufferRemaining > 0.0F;
+            const bool canJump = movement.grounded || movement.coyoteRemaining > 0.0F;
+            if (!wantsToJump || !canJump)
+            {
+                return;
+            }
+
+            body.velocity.y = -movement.config.jumpSpeed;
+            movement.grounded = false;
+            movement.coyoteRemaining = 0.0F;
+            movement.jumpBufferRemaining = 0.0F;
+        }
+
+        void applyGravity(
+            Body& body,
+            const PlatformerMovement& movement,
+            const InputIntentions& intentions,
+            float deltaTime)
+        {
+            const bool cuttingJump = body.velocity.y < 0.0F && !intentions.jumpHeld;
+            const float gravity =
+                cuttingJump ? movement.config.jumpReleaseGravity : movement.config.gravity;
+            body.velocity.y =
+                std::min(body.velocity.y + gravity * deltaTime, movement.config.maximumFallSpeed);
+        }
     }
 
-    void validate(
-        const simple_platformer::PlatformerMovementConfig& config,
-        const simple_platformer::InputIntentions& intentions,
-        float deltaTime)
+    void validatePlatformerMovementConfig(const PlatformerMovementConfig& config)
     {
-        if (!std::isfinite(deltaTime) || deltaTime <= 0.0F)
-        {
-            throw std::invalid_argument("Platformer movement requires a positive finite time step");
-        }
-
         const bool invalidConfig =
             !std::isfinite(config.maximumSpeed) || config.maximumSpeed < 0.0F ||
             !std::isfinite(config.groundAcceleration) || config.groundAcceleration < 0.0F ||
@@ -49,100 +145,8 @@ namespace
         {
             throw std::invalid_argument("Platformer movement configuration cannot be negative");
         }
-
-        if (!simple_platformer::isFinite(intentions.direction))
-        {
-            throw std::invalid_argument("Input intentions must be finite");
-        }
     }
 
-    void updateTimers(
-        simple_platformer::PlatformerMovement& movement,
-        const simple_platformer::InputIntentions& intentions,
-        float deltaTime)
-    {
-        if (intentions.jumpPressed)
-        {
-            movement.jumpBufferRemaining = movement.config.jumpBufferTime;
-        }
-        else
-        {
-            movement.jumpBufferRemaining = std::max(0.0F, movement.jumpBufferRemaining - deltaTime);
-        }
-
-        if (movement.grounded)
-        {
-            movement.coyoteRemaining = movement.config.coyoteTime;
-        }
-        else
-        {
-            movement.coyoteRemaining = std::max(0.0F, movement.coyoteRemaining - deltaTime);
-        }
-    }
-
-    void updateHorizontalVelocity(
-        simple_platformer::Body& body,
-        const simple_platformer::PlatformerMovement& movement,
-        const simple_platformer::InputIntentions& intentions,
-        simple_platformer::Facing& facing,
-        float deltaTime)
-    {
-        const float direction = std::clamp(intentions.direction.x, -1.0F, 1.0F);
-        if (direction < 0.0F)
-        {
-            facing = simple_platformer::Facing::Left;
-        }
-        else if (direction > 0.0F)
-        {
-            facing = simple_platformer::Facing::Right;
-        }
-
-        if (direction == 0.0F && !movement.grounded)
-        {
-            return;
-        }
-
-        const float target = direction * movement.config.maximumSpeed;
-        const float acceleration = direction == 0.0F   ? movement.config.groundDeceleration
-                                   : movement.grounded ? movement.config.groundAcceleration
-                                                       : movement.config.airAcceleration;
-        body.velocity.x = moveTowards(body.velocity.x, target, acceleration * deltaTime);
-    }
-
-    void startBufferedJump(
-        simple_platformer::Body& body,
-        simple_platformer::PlatformerMovement& movement,
-        bool jumpPressed)
-    {
-        const bool wantsToJump = jumpPressed || movement.jumpBufferRemaining > 0.0F;
-        const bool canJump = movement.grounded || movement.coyoteRemaining > 0.0F;
-        if (!wantsToJump || !canJump)
-        {
-            return;
-        }
-
-        body.velocity.y = -movement.config.jumpSpeed;
-        movement.grounded = false;
-        movement.coyoteRemaining = 0.0F;
-        movement.jumpBufferRemaining = 0.0F;
-    }
-
-    void applyGravity(
-        simple_platformer::Body& body,
-        const simple_platformer::PlatformerMovement& movement,
-        const simple_platformer::InputIntentions& intentions,
-        float deltaTime)
-    {
-        const bool cuttingJump = body.velocity.y < 0.0F && !intentions.jumpHeld;
-        const float gravity =
-            cuttingJump ? movement.config.jumpReleaseGravity : movement.config.gravity;
-        body.velocity.y =
-            std::min(body.velocity.y + gravity * deltaTime, movement.config.maximumFallSpeed);
-    }
-}
-
-namespace simple_platformer
-{
     CollisionContacts updatePlatformerMovement(
         const TileMap& map,
         Body& body,

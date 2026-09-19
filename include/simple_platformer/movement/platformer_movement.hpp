@@ -28,6 +28,8 @@ namespace simple_platformer
         float jumpBufferTime = 0.1F;
     };
 
+    void validatePlatformerMovementConfig(const PlatformerMovementConfig& config);
+
     struct PlatformerMovement
     {
         PlatformerMovementConfig config;

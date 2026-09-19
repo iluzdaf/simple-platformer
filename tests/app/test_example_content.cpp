@@ -38,7 +38,7 @@ TEST_CASE("Every catalog level has valid actor placement", "[app][content]")
     for (const simple_platformer::LevelCatalogEntry& entry : catalog.levels)
     {
         auto content = simple_platformer::makeGameLevel(catalog, entry.number, 0);
-        simple_platformer::Actor player = simple_platformer::makeExamplePlayer(0);
+        simple_platformer::Actor player = simple_platformer::makePlayer(catalog, 0);
         simple_platformer::placeFeetAt(player.body.bounds, content.playerSpawnFeet);
         const auto playerId = content.world.addActor(player);
         content.world.setPlayer(playerId, content.playerSpawnFeet);

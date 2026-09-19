@@ -1,0 +1,5 @@
+{
+  "objectLegend": {"P": {"type": "player"}, "Z": {"type": "missing"}},
+  "map": [".......", "P......", "#######"],
+  "exit": {"spawnCell": [6, 1]}
+}

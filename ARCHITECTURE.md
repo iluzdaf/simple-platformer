@@ -219,7 +219,7 @@ capabilities:
 | Zombie soldier | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon` | `Sprite`, `Animator` |
 
 The recipe is additive. For example, making a second zombie does not require another
-type: call the same factory with different spawn and patrol data. A bat can use a
+type: reference the same definition with different spawn and patrol data. A bat can use a
 smaller body while keeping a larger sprite because physical and visual sizes are
 independent.
 
@@ -473,8 +473,8 @@ are optional rewards, not exit requirements.
 
 The example game loads its levels from `assets/levels`. The files select and place known
 game concepts rather than defining new engine behaviour. For example,
-`"type": "zombie"` selects the zombie factory in `example_content.cpp`; the JSON does
-not list arbitrary `Actor` components.
+`"type": "zombie"` selects a named definition in `actors.json`. Definitions select
+and configure supported components; behaviour implementations remain C++.
 
 #### Level catalog
 
@@ -555,6 +555,8 @@ separate objects. Pickup quantities are required and positive.
 Object entries use the same settings as explicit placements: NPCs can specify a
 `patrol`, and exits can specify `requirement`, `consumeItem`, and `nextLevel`.
 Patrol endpoints remain absolute positions, not offsets from the marker.
+The marker types `player`, `pickup`, and `exit` are reserved; other marker types name
+actor definitions in the shared catalogue.
 Do not put `spawnCell` or `spawnFeet` in a legend entry: the marker supplies its position.
 Unknown types and invalid definitions are rejected even when their symbols are unused.
 
@@ -603,8 +605,9 @@ and do not imply that an object must stand on the ground.
 
 #### Actors
 
-An actor requires `type` and one spawn placement. The supported example types are
-`zombie`, `bat`, and `zombie_soldier`. A patrol is optional:
+An actor requires `type` (a name in `actors.json`) and one spawn placement. The supplied
+catalogue includes `zombie`, `bat`, and `zombie_soldier`; new definition names do not
+require a parser branch. A patrol is optional:
 
 ```json
 {
@@ -617,8 +620,45 @@ An actor requires `type` and one spawn placement. The supported example types ar
 }
 ```
 
-The C++ factories in `app/game/example_content.cpp` decide each actor's body size,
-movement, combat behaviour, sprite, and animation set.
+Shared definitions live in `actors.json` beside the level catalogue:
+
+```json
+{
+  "player": "hero",
+  "actors": {
+    "hero": {
+      "bodySize": [12, 20], "team": "player", "health": 3,
+      "inventorySlots": 6, "animations": "player", "platformer": {}
+    },
+    "scout": {
+      "bodySize": [12, 8], "team": "enemy", "health": 1,
+      "animations": "bat", "spriteAnchor": "center",
+      "flying": { "speed": 40 }, "senses": { "noticeDistance": 60 }, "bite": {}
+    }
+  }
+}
+```
+
+`actor_definition.hpp` is the C++ configuration boundary; `composeActor` creates fresh
+runtime components and calls the engine's `validateActor`. `actor_catalog.cpp` reads
+JSON, validates every definition (including unused ones), and resolves names. The
+top-level `player` chooses the player definition, which must have health and inventory
+for the game's HUD, and must not enable NPC sensing. Level patrols remain per-instance.
+
+Exactly one of `platformer` or `flying` is required. Empty component objects use C++
+defaults; omitted optional components are absent. `senses` adds the existing NPC brain,
+sensing and path follower together. `health` and `inventorySlots` are positive integers.
+Attacks use either `bite` or `ranged`, and require a non-neutral team. Unknown fields
+are rejected. There is no inheritance or arbitrary per-placement override mechanism.
+
+Platformer fields match `PlatformerMovementConfig`; flying exposes `speed`. Sensing
+exposes `noticeDistance` and `forgetAfter`. Bite exposes `damage`, `hitboxSize`, `reach`,
+`windupDuration`, `activeDuration`, and `recoveryDuration`. Ranged exposes `damage`,
+`projectileSize`, `projectileSpeed`, `projectileLifetime`, `shootDuration`,
+`recoveryDuration`, `spritePosition`, and `spriteSize`. Sprite coordinates use atlas pixels.
+Animation names select the C++ sets `player`, `zombie`, `bat`, or `zombie_soldier`;
+animation frames are not loaded here. `facing` is `left` or `right`, and `spriteAnchor`
+is `feet` or `center`. Texture IDs are supplied at runtime.
 
 #### Pickups
 
@@ -657,15 +697,15 @@ An exit requires one spawn placement. It may also contain:
 
 #### Loading and composition
 
-Level data does not specify actor, pickup, or exit bounds. The C++ example-content
-factories own those collision sizes and create each runtime AABB around its loaded feet
+Level placements do not specify actor, pickup, or exit bounds. Actor definitions own
+actor sizes; C++ factories own pickup and exit sizes. Composition creates each AABB around its loaded feet
 position. All example pickups use the same 16-by-16 collision bounds. Their item sprites
 remain independent, just like actor sprites and bodies.
 
 The JSON dependency stays at the application content boundary.
 `level_catalog.cpp` validates the catalog, and `example_level_data.cpp` parses a
 level into plain `ExampleLevelData`, reports invalid fields with their content path, and
-maps stable names such as `zombie_soldier` and `health_potion` to C++ values. The
+retains actor definition references and maps item names such as `health_potion` to C++ values. The
 composition step then creates the existing `TileMap`, `World`, actors, pickups, and
 exit. Existing construction and level validation remain authoritative.
 
@@ -675,7 +715,8 @@ it does not assume particular filenames, a fixed level count, or specific NPCs.
 
 Runtime-only state is never loaded: actor IDs, velocities, current paths, attack timers,
 and NPC decisions are created fresh whenever a level starts. Texture IDs and atlas
-regions also remain C++ application resources rather than values in the level files.
+regions for actor animations remain C++ application resources. Projectile sprite regions
+are configured in the actor catalogue, not in level placements.
 
 ## Presentation
 
@@ -798,11 +839,11 @@ and state ownership harder to follow without solving a current requirement.
 ### Creating a new enemy
 
 First decide whether the enemy is only a differently configured existing role. If it
-uses the same capabilities, reuse the existing factory with different level data. A
+uses the same capabilities, add a named definition in `actors.json`. A
 genuinely new example enemy normally involves:
 
-1. a symbolic actor type in the level-data parser;
-2. a factory branch in `app/game/example_content.cpp`;
+1. a symbolic actor definition in `actors.json`;
+2. a matching `type` in explicit level placements or an object legend;
 3. an actor composed from only the movement, sensing, path-following, health, attack,
    and presentation components it needs;
 4. an animation set and atlas regions in the example application;
@@ -881,8 +922,8 @@ repository.
 
 This design is not implemented in the current engine.
 
-Level geometry and placement are loaded from validated JSON. Item definitions,
-animation clips, and actor composition still live in C++. They can move to separate
+Level geometry, placement, and actor definitions are loaded from validated JSON.
+Item definitions, pickup composition and animation clips still live in C++. They can move to separate
 validated data files later, but should keep stable symbolic names, preserve the current
 runtime structures, and avoid turning level files into arbitrary component or behaviour
 scripts.

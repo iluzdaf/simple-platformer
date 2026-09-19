@@ -34,12 +34,12 @@ namespace simple_platformer
           level(makeGameLevel(levelCatalog, levelCatalog.startLevel, textureId)),
           atlasTextureId(textureId)
     {
-        startLevel(makeExamplePlayer(atlasTextureId));
+        startLevel(makePlayer(levelCatalog, atlasTextureId));
     }
 
     void ExampleGame::loadLevel(int levelNumber)
     {
-        Actor nextPlayer = makeExamplePlayer(atlasTextureId);
+        Actor nextPlayer = makePlayer(levelCatalog, atlasTextureId);
         if (const Actor* previousPlayer = level.world.findActor(level.world.playerId()))
         {
             nextPlayer.health = previousPlayer->health;
@@ -184,7 +184,7 @@ namespace simple_platformer
     {
         gameComplete = false;
         level = makeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId);
-        startLevel(makeExamplePlayer(atlasTextureId));
+        startLevel(makePlayer(levelCatalog, atlasTextureId));
     }
 
     int ExampleGame::levelNumber() const

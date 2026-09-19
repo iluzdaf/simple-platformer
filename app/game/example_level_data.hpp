@@ -14,16 +14,9 @@
 
 namespace simple_platformer
 {
-    enum class ExampleActorType
-    {
-        Zombie,
-        Bat,
-        ZombieSoldier
-    };
-
     struct ExampleActorPlacement
     {
-        ExampleActorType type = ExampleActorType::Zombie;
+        std::string definitionName;
         glm::vec2 spawnFeet = {0.0F, 0.0F};
         std::optional<Patrol> patrol;
     };
@@ -48,6 +41,8 @@ namespace simple_platformer
         std::vector<std::string> mapRows;
         glm::vec2 playerSpawnFeet = {0.0F, 0.0F};
         std::vector<ExampleActorPlacement> actors;
+        // Includes unused legend templates so catalogue references can all be checked.
+        std::map<std::string, std::string> actorReferences;
         std::vector<ExamplePickupPlacement> pickups;
         ExampleExitPlacement exit;
     };

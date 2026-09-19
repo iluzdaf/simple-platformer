@@ -76,11 +76,11 @@ The project has three main CMake targets:
   no dependency on GLFW, OpenGL, ImGui, or JSON parsing.
 - `simple_platformer` contains the executable, window, input adapter, OpenGL renderer,
   and ImGui presentation.
-- `simple_platformer_tests` contains Catch2 tests, primarily against the core.
+- `simple_platformer_tests` contains Catch2 tests for the core and for the application
+  code that can be tested without a window.
 
-This boundary is important for teaching and testing. A test can construct a `World`,
-run movement or a complete simulation tick, and inspect the result without needing a
-window or graphics context.
+The boundary matters for tests: one can construct a `World`, run movement or a complete
+simulation tick, and inspect the result without needing a window or graphics context.
 
 All third-party source is vendored under `external/` so the project builds offline and
 everyone works from the same releases. The current dependencies include GLFW, glad, GLM, ImGui,

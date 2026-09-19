@@ -31,6 +31,7 @@ namespace simple_platformer
             throw std::invalid_argument("Level IDs must be non-negative");
         }
     }
+
     void World::setExit(LevelExit exit)
     {
         validateLevelExit(exit);

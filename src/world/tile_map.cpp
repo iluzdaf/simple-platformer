@@ -18,7 +18,9 @@ namespace simple_platformer
         int height,
         std::vector<int> tiles,
         std::vector<TileDefinition> definitions)
-        : mapWidth(width), mapHeight(height), tileIds(std::move(tiles)),
+        : mapWidth(width),
+          mapHeight(height),
+          tileIds(std::move(tiles)),
           tileDefinitions(std::move(definitions))
     {
         if (mapWidth <= 0 || mapHeight <= 0)

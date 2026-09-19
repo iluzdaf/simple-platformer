@@ -37,7 +37,6 @@ Use this as a reference when working on a particular feature:
 - [Extension recipes](#extension-recipes-for-project-work): where to make a gameplay change.
 - [Error handling and validation](#error-handling-and-validation): which layer rejects what.
 - [Testing and quality checks](#testing-and-quality-checks): how to verify it.
-- [Future work](#future-work): pointers to designs the repository does not implement.
 
 ## Purpose and scope
 
@@ -63,7 +62,9 @@ The project deliberately does not try to provide slopes, one-way or moving platf
 dynamic rigid-body physics, actor pushing, multiplayer, scripting, save games, an
 editor, an animation graph, a general ECS, or advanced projectile modifiers such as
 homing and piercing. OpenGL submission is checked manually rather than with automated
-graphics integration tests.
+graphics integration tests. Sketches for a few of these, including an editor and
+composable movement abilities, are kept in [FUTURE_WORK.md](FUTURE_WORK.md); none of
+them are implemented.
 
 ## Project shape
 
@@ -778,16 +779,3 @@ Visual Studio solution described in [README.md](../README.md). A Linux quality j
 formatting, clang-tidy, and public-header self-containment. OpenGL and ImGui integration
 remain a manual run; automated graphics-context tests are avoided.
 
-## Future work
-
-Larger designs that the repository deliberately does not implement are recorded in
-[docs/FUTURE_WORK.md](FUTURE_WORK.md):
-
-- **Level authoring tools** — an in-repository level editor and a read-only visualiser.
-- **Optional movement abilities** — a modifier pipeline so abilities such as a double
-  jump, dash, or wall slide compose without editing the movement function each time.
-- **NPC tactics** — richer brain behaviour built from the existing explicit state
-  machine rather than a behaviour-tree framework.
-
-The sections above describe the current engine. Known limitations of the current design
-are recorded with the subjects they constrain.

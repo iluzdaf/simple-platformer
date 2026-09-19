@@ -10,11 +10,12 @@ Use this as a reference when working on a particular feature:
 
 - [Project shape](#project-shape) and [runtime flow](#runtime-flow): ownership and update order.
 - [Actor composition](#actor-composition): how capabilities fit together.
-- [Data-driven level boundary](#data-driven-level-boundary): files, placement, and validation.
+- [Data-driven level boundary](#data-driven-level-boundary): why content lives in JSON.
+  [CONTENT.md](CONTENT.md) is the file-by-file authoring reference.
 - [Presentation](#presentation): animation, rendering, camera, and UI.
 - [Extension recipes](#extension-recipes-for-project-work): where to make a gameplay change.
 - [Testing and quality checks](#testing-and-quality-checks): how to verify it.
-- [Future work](#future-work): proposals, not implemented features.
+- [Future work](#future-work): pointers to designs the repository does not implement.
 
 ## Purpose and scope
 
@@ -59,28 +60,29 @@ run movement or a complete simulation tick, and inspect the result without needi
 window or graphics context.
 
 All third-party source is vendored under `external/` so the project builds offline and
-students use the same releases. The current dependencies include GLFW, GLM, ImGui,
+students use the same releases. The current dependencies include GLFW, glad, GLM, ImGui,
 Catch2, stb image loading, and nlohmann/json.
 
 ### Application folders
 
 The application code is grouped by responsibility:
 
-- `app/game` contains the example game's orchestration, content loaders and validators,
-  composition functions, and animation sets;
+- `app/game` coordinates the game session and composes playable levels;
+- `app/content` contains content definitions, JSON loaders, catalogues, and validators;
 - `app/ui` contains player-facing HUD, inventory, and completion UI;
 - `app/debug` builds and presents optional debugging information;
 - `app/graphics` contains display-viewport conversion and OpenGL sprite submission.
 
 `application.cpp` owns the outer loop: window events, input collection, fixed updates,
-UI, and rendering. `ExampleGame` owns the current `GameLevel` and camera controller.
+UI, and rendering. `Game` owns the current `GameLevel` and camera controller.
 `GameLevel` keeps the level ID, `TileMap`, `World`, and player spawn together.
-`ExampleGame` translates application input into game input, invokes the engine, builds
+`Game` translates application input into game input, invokes the engine, builds
 the render scene, and replaces the level during a transition.
 
 Example-specific content is kept out of general engine systems. Level geometry and
-placements, actors, items, pickup definitions, and exit definitions live in `assets/levels`; the loaders,
-composition functions, and animation catalogue loading live under `app/game`.
+placements, actors, animations, items, pickup definitions, and exit definitions live in
+`assets`. Their loaders and validators live in `app/content`; `app/game/level_composition.cpp`
+combines the loaded definitions and placements into a playable level.
 
 ### Data, behaviour, and resources
 
@@ -99,8 +101,9 @@ ownership boundary, not merely to group functions with a familiar subject name.
 
 ## Runtime flow
 
-The application gathers input and gives the player's intentions to `ExampleGame`.
-Simulation advances at a fixed 60 Hz (`1.0F / 60.0F`); rendering runs at the available
+The application gathers input and gives the player's intentions to `Game`.
+Simulation advances at a fixed 60 Hz (`FixedDeltaSeconds`, a `double` equal to
+`1.0 / 60.0`); rendering runs at the available
 frame rate. Frame time is clamped before it enters the fixed-step accumulator so a
 breakpoint or stall does not cause an excessive catch-up.
 
@@ -398,6 +401,12 @@ and the ordinary actor movement system performs the motion. End-to-end tests rep
 generated input programs through the real simulation so navigation cannot quietly
 drift away from runtime movement.
 
+One limitation is deliberate. Ground navigation naturally uses actor feet, while a flying
+actor is easier to reason about from its centre. The current API keeps feet-based
+destinations for both so the navigation data model stays uniform, at the cost of a slightly
+awkward fit for flying actors. An explicitly named navigation anchor is
+[future work](FUTURE_WORK.md).
+
 ## Combat, projectiles, and life cycle
 
 ### Primary attacks
@@ -461,7 +470,7 @@ persists through player death.
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. The simulation reports completion;
 `GameLevel` keeps a level ID, map, populated world, and player spawn together so
-callers cannot accidentally combine data from different levels. `ExampleGame` replaces
+callers cannot accidentally combine data from different levels. `Game` replaces
 that value at a transition, carries over the player's current health and inventory,
 and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
@@ -470,7 +479,7 @@ level.
 
 ### Example campaign
 
-The three levels in `assets/levels` use the same movement and combat systems with
+The three levels in `assets` use the same movement and combat systems with
 different layouts. Each exit requires and consumes one key. Coins and health potions
 are optional rewards, not exit requirements.
 
@@ -485,357 +494,16 @@ are optional rewards, not exit requirements.
 
 ### Data-driven level boundary
 
-The example game loads its levels from `assets/levels`. The files select and place known
-game concepts rather than defining new engine behaviour. For example,
-`"definition": "zombie"` in an actor placement selects a named definition in `actors.json`. Definitions select
-and configure supported components; behaviour implementations remain C++.
-
-#### Level catalog
-
-The [content-file guide](#content-files-at-a-glance) below lists the shared definitions
-used alongside this catalogue.
-
-`assets/levels/levels.json` selects the starting level and assigns stable numeric level
-IDs to files:
-
-```json
-{
-  "startLevel": 1,
-  "levels": [
-    {"number": 1, "file": "level_1.json"},
-    {"number": 2, "file": "level_2.json"},
-    {"number": 3, "file": "level_3.json"}
-  ]
-}
-```
-
-- `number` is a positive, unique level ID.
-- `file` is a path relative to the catalog's directory.
-- `startLevel` names one of the catalog entries.
-- An exit's `nextLevel` refers to a level ID in the catalog.
-
-Each catalog entry assigns a level ID to a level file. The referenced file contains that
-level's map and object placements. Students can rename, add, or remove level files by
-updating the catalog without changing C++.
-
-#### Content files at a glance
-
-Shared catalogues sit beside `levels.json` in `assets/levels`:
-
-| File | What to change here | Loader or composition code |
-| --- | --- | --- |
-| [`levels.json`](assets/levels/levels.json) | Starting level and level ID-to-file mapping | [`level_catalog.cpp`](app/game/level_catalog.cpp) |
-| A level file, such as [`level_1.json`](assets/levels/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings | [`example_level_data.cpp`](app/game/example_level_data.cpp) |
-| [`tiles.json`](assets/levels/tiles.json) | Tile artwork and movement/sight properties | [`tile_catalog.cpp`](app/game/tile_catalog.cpp) |
-| [`actors.json`](assets/levels/actors.json) | Player definition, actor capabilities, and tuning | [`actor_catalog.cpp`](app/game/actor_catalog.cpp), [`actor_definition.cpp`](app/game/actor_definition.cpp) |
-| [`animations.json`](assets/levels/animations.json) | Named animation sets, frame rectangles, timing, and looping | [`animation_catalog.cpp`](app/game/animation_catalog.cpp) |
-| [`items.json`](assets/levels/items.json) | Inventory names, icons, stacking, and effect settings | [`item_catalog.cpp`](app/game/item_catalog.cpp) |
-| [`pickups.json`](assets/levels/pickups.json) | World pickup quantities, bounds, and optional sprites | [`pickup_catalog.cpp`](app/game/pickup_catalog.cpp) |
-| [`exits.json`](assets/levels/exits.json) | Exit bounds and sprites | [`exit_catalog.cpp`](app/game/exit_catalog.cpp) |
-
-[`example_content.cpp`](app/game/example_content.cpp) combines definitions and placements
-into runtime objects. Catalogues and JSON conventions belong to the application;
-the core receives C++ values and does not read these files. Shared files are required
-even when a particular level uses no pickups or NPCs; item and pickup catalogues can
-contain empty definitions objects.
-
-`ExampleGame` owns a `GameCatalogs` value loaded once by
-[`loadGameCatalogs`](app/game/game_catalogs.cpp). Tile, animation, actor, item, pickup, and exit
-definitions are reused across transitions and restarts. Each level file is loaded
-when entering that level; the game does not construct every world at startup.
-Restart the game application to reload shared definitions after editing their files.
-
-Actor animation clips are configured in `animations.json`.
-See [Actors](#actors), [Exits](#exits), and [Animation](#animation) for those boundaries.
-
-#### Level files
-
-A minimal level looks like this:
-
-```json
-{
-  "map": [
-    "........",
-    "........",
-    "########"
-  ],
-  "playerSpawnCell": [1, 1],
-  "actors": [],
-  "pickups": [],
-  "exit": {
-    "definition": "bunker_door",
-    "spawnCell": [6, 1]
-  }
-}
-```
-
-Every level requires `map`, one player spawn, `actors`, `pickups`, and `exit`. The actor
-and pickup arrays may be empty. An exit without `nextLevel` completes the game.
-
-#### Maps and positions
-
-Map rows have the same non-zero length. The default symbols are `.` for empty
-and `#` for stone. To use more tile types, supply a level legend:
-
-```json
-"tileLegend": { ".": "empty", "#": "stone", "G": "grass", "X": "glass" }
-```
-
-An optional `objectLegend` places objects directly in the same map rows:
-
-```json
-"objectLegend": {
-  "P": { "type": "player" },
-  "Z": { "type": "actor", "definition": "zombie" },
-  "B": { "type": "actor", "definition": "bat" },
-  "S": { "type": "actor", "definition": "zombie_soldier" },
-  "K": { "type": "pickup", "definition": "key" },
-  "E": { "type": "exit", "definition": "bunker_door", "requirement": { "item": "key", "quantity": 1 } }
-}
-```
-
-Each occurrence creates a placement using the cell's bottom-centre feet anchor, just
-like `spawnCell`, with empty terrain underneath. Symbols must be one character and
-cannot appear in both legends. There must be exactly one player and one exit placement,
-whether supplied by a marker or explicitly. Repeated NPC and pickup markers create
-separate objects. Named pickups obtain their positive quantity from `pickups.json`;
-inline item stacks supply it in the placement or legend entry.
-
-Object entries use the same settings as explicit placements: NPCs can specify a
-`patrol`, and exits can specify `requirement`, `consumeItem`, and `nextLevel`.
-Patrol endpoints remain absolute positions, not offsets from the marker.
-`type` selects the object category: `player`, `actor`, `pickup`, or `exit`.
-For actors, exits, and named pickups, `definition` selects an entry in the corresponding
-catalogue. A tile legend needs only the definition name because its category is
-already established by `tileLegend`.
-Do not put `spawnCell` or `spawnFeet` in a legend entry: the marker supplies its position.
-Unknown types and invalid definitions are rejected even when their symbols are unused.
-
-Explicit actors and pickups are kept first, followed by markers in row order, left to
-right. They are added, not merged or deduplicated. Use explicit placements for overlaps
-(such as a zombie inside grass), fractional positions, or individually configured objects.
-When using `objectLegend`, empty `actors` and `pickups` arrays may be omitted.
-The loader expands markers into ordinary placements and resolves their terrain to empty;
-the simulation does not interpret object symbols.
-
-Level parsing errors include the source filename and the field or map cell to inspect.
-Map paths use zero-based `map[row][column]` indices; JSON syntax errors report one-based
-file lines and byte columns. Duplicate player or exit markers report both placements,
-and legend settings are reported by their authored paths, such as `objectLegend.K.definition`.
-
-#### Tile definitions
-
-Shared definitions live in `assets/levels/tiles.json`. Each definition requires
-boolean `blocksMovement` and `blocksSight` fields. Nonempty tiles also require
-a `sprite` rectangle with `x`, `y`, `width`, and `height` in atlas pixels.
-Tile artwork is drawn into one 16-by-16 world cell. The `empty` definition must
-allow movement and sight and is not rendered. Unknown names and map symbols
-are rejected during loading. Fixture catalogues supply their own `tiles.json`.
-
-#### Placement coordinates
-
-World coordinates begin at the top-left: positive X points right and positive Y
-points down. A cell position is `[column, row]`, also counted from the top-left.
-
-Actors, pickups, exits, and patrol endpoints support two placement forms:
-
-- `spawnCell` places the object's feet at the bottom-centre of a tile cell.
-- `spawnFeet` supplies that bottom-centre position directly in world pixels.
-
-The player spawn uses the corresponding names `playerSpawnCell` and `playerSpawnFeet`.
-Each placement uses exactly one form. Patrol endpoints use `firstCell` or `firstFeet`,
-and `secondCell` or `secondFeet`. Feet provide a stable bottom-centre reference point
-and do not imply that an object must stand on the ground.
-
-#### Actors
-
-An actor requires `definition` (a name in `actors.json`) and one spawn placement. The supplied
-catalogue includes `zombie`, `bat`, and `zombie_soldier`; new definition names do not
-require a parser branch. A patrol is optional:
-
-```json
-{
-  "definition": "zombie",
-  "spawnCell": [5, 8],
-  "patrol": {
-    "firstCell": [5, 8],
-    "secondCell": [10, 8]
-  }
-}
-```
-
-Shared definitions live in `actors.json` beside the level catalogue:
-
-```json
-{
-  "player": "hero",
-  "actors": {
-    "hero": {
-      "bodySize": [12, 20], "team": "player", "health": 3,
-      "inventorySlots": 6, "animations": "player", "platformer": {}
-    },
-    "scout": {
-      "bodySize": [12, 8], "team": "enemy", "health": 1,
-      "animations": "bat", "spriteAnchor": "center",
-      "flying": { "speed": 40 }, "senses": { "noticeDistance": 60 }, "bite": {}
-    }
-  }
-}
-```
-
-`actor_definition.hpp` is the C++ configuration boundary; `composeActor` creates fresh
-runtime components and calls the engine's `validateActor`. `actor_catalog.cpp` reads
-JSON, validates every definition (including unused ones), and resolves names. The
-top-level `player` chooses the player definition, which must have health and inventory
-for the game's HUD, and must not enable NPC sensing. Level patrols remain per-instance.
-
-Exactly one of `platformer` or `flying` is required. Empty component objects use C++
-defaults; omitted optional components are absent. `senses` adds the existing NPC brain,
-sensing and path follower together. `health` and `inventorySlots` are positive integers.
-Attacks use either `bite` or `ranged`, and require a non-neutral team. Unknown fields
-are rejected. There is no inheritance or arbitrary per-placement override mechanism.
-
-Platformer fields match `PlatformerMovementConfig`; flying exposes `speed`. Sensing
-exposes `noticeDistance` and `forgetAfter`. Bite exposes `damage`, `hitboxSize`, `reach`,
-`windupDuration`, `activeDuration`, and `recoveryDuration`. Ranged exposes `damage`,
-`projectileSize`, `projectileSpeed`, `projectileLifetime`, `shootDuration`,
-`recoveryDuration`, `spritePosition`, and `spriteSize`. Sprite coordinates use atlas pixels.
-Animation names reference named sets in `animations.json`;
-animation frames are not loaded here. `facing` is `left` or `right`, and `spriteAnchor`
-is `feet` or `center`. Texture IDs are supplied at runtime.
-
-#### Items and pickups
-
-`items.json` defines inventory items by unique symbolic name. Each definition has a
-display `name`, `icon`, and positive `maximumStack`:
-
-```json
-{
-  "items": {
-    "health_potion": {
-      "name": "Health potion",
-      "icon": { "position": [16, 216], "size": [16, 16] },
-      "maximumStack": 5,
-      "effect": "heal",
-      "effectAmount": 2
-    }
-  }
-}
-```
-
-The loader assigns numeric `ItemId` values internally; do not put IDs in JSON.
-`ExampleGame` loads the item catalogue once and reuses it across level transitions and
-restarts, keeping carried inventory consistent. Generated IDs are not persistent asset
-identities: changing the catalogue can change them on the next launch. A future saved-game
-format should store symbolic names and resolve them when loading. The display `name`
-is a UI label and does not need to be unique.
-
-`effect` selects
-the C++ behaviour `none` (default, amount zero) or `heal` (positive amount). JSON
-configures these behaviours; it does not implement them.
-
-`pickups.json` defines world pickups separately from inventory items:
-
-```json
-{
-  "pickups": {
-    "medicine_box": {
-      "item": "health_potion",
-      "quantity": 2,
-      "bodySize": [16, 16]
-    }
-  }
-}
-```
-
-`bodySize` defaults to `[16, 16]`. An optional `sprite` overrides the inventory icon
-in the world. Both `icon` and `sprite` use `position` and `size` for their atlas
-rectangle, optional `displaySize` (defaults to source size), and optional `anchor`
-(`feet` or `center`, default `feet`). The collider remains independent of the sprite.
-Texture IDs are supplied by the application when composing runtime objects.
-
-A level places a named definition using one spawn placement:
-
-```json
-{
-  "definition": "medicine_box",
-  "spawnCell": [4, 8]
-}
-```
-
-An object legend entry can use the same definition:
-`"M": { "type": "pickup", "definition": "medicine_box" }`.
-Inline `item` and `quantity` remain a shorthand for a 16-by-16 pickup using its item
-icon. A placement must not mix that shorthand with `definition`.
-New item and pickup names do not require changes to the level parser.
-
-#### Exits
-
-Shared exit appearance lives in `exits.json`:
-
-```json
-{
-  "exits": {
-    "bunker_door": {
-      "bodySize": [16, 32],
-      "sprite": { "position": [48, 216], "size": [16, 32] }
-    }
-  }
-}
-```
-
-Both `bodySize` and `sprite` are required. The sprite uses the same source rectangle,
-optional display size, and anchor fields as item icons and pickup sprites.
-
-An exit placement requires a `definition` name and one spawn placement. It may also contain:
-
-- `requirement`, with a name from `items.json` and a positive quantity;
-- `consumeItem`, which defaults to `false`;
-- `nextLevel`, which refers to a level ID in `levels.json`.
-
-```json
-{
-  "definition": "bunker_door",
-  "spawnCell": [18, 8],
-  "requirement": {
-    "item": "key",
-    "quantity": 1
-  },
-  "consumeItem": true,
-  "nextLevel": 2
-}
-```
-
-The same settings work in an exit legend entry, with `"type": "exit"` and no spawn
-field. Requirements, consumption, and destinations belong to the placement, not the
-shared definition: two doors can look the same but lead to different levels.
-`composeExit` creates bounds and a sprite; `example_content.cpp` adds the resolved
-item requirement and destination before passing the exit to the World.
-
-#### Loading and composition
-
-Level placements do not specify actor, pickup, or exit bounds. Actor definitions own
-actor sizes; pickup and exit definitions own their respective sizes.
-Composition creates each AABB around its loaded feet position. Their sprites
-remain independent, just like actor sprites and bodies.
-
-The JSON dependency stays at the application content boundary.
-`level_catalog.cpp` validates the catalog, and `example_level_data.cpp` parses a
-level into plain `ExampleLevelData`, reports invalid fields with their content path, and
-retains actor, pickup, exit, and item references. The definition catalogues validate
-definitions independently of placement; composition resolves names to runtime values. The
-composition step then creates the existing `TileMap`, `World`, actors, pickups, and
-exit. Existing construction and level validation remain authoritative.
-
-Parser tests use JSON strings and independent files under `tests/fixtures/levels`.
-Transition tests use that fixture campaign, not the supplied game's layout or item values.
-Generic content checks load every entry in the editable catalog;
-they do not assume particular filenames, a fixed level count, or specific NPCs.
-
-Runtime-only state is never loaded: actor IDs, velocities, current paths, attack timers,
-and NPC decisions are created fresh whenever a level starts. Texture IDs are supplied
-by the application at runtime. Animation frame regions come from `animations.json`. Projectile sprite regions
-are configured in the actor catalogue, not in level placements.
+The example game loads its levels from `assets`. The files select and place known game
+concepts rather than defining new engine behaviour. Definitions select and configure
+supported components; behaviour implementations remain C++.
+
+The boundary keeps JSON out of the core: `app/content` owns the loaders and validators,
+`app/game/level_composition.cpp` combines the results into a playable level, and the core
+receives plain C++ values. Levels, actors, items, pickups, exits, and animation sets can
+therefore change without touching engine code.
+
+[CONTENT.md](CONTENT.md) is the field-by-field authoring reference for those files.
 
 ## Presentation
 
@@ -871,7 +539,7 @@ its smaller collider matches the creature in the middle of its frame.
 
 ### Animation
 
-Shared sets live in `assets/levels/animations.json`. Each set contains `idle`, `move`,
+Shared sets live in `assets/animations.json`. Each set contains `idle`, `move`,
 `jump`, `fall`, `attack`, and `death` clips. For example, the `move` entry inside a set:
 
 ```json
@@ -913,6 +581,13 @@ The supplied atlas is 160 by 248 pixels. The example character clips use fixed 3
 24 source frames and separate animation sets for the player, zombie, bat, and zombie
 soldier. Artwork sources and atlas tooling live outside this student repository; this
 repository contains the finished runtime atlas.
+
+Frames within a set must share one size. `SpriteRegion` supports arbitrary source
+rectangles, but playback changes only the region while `Sprite::size` and its anchor stay
+fixed, so mixed-size frames would stretch. Fixed-size example frames avoid this. A richer
+`AnimationFrame` carrying a display size and pivot is
+[future work](FUTURE_WORK.md); whatever form it takes, collision bodies must remain
+independent of animation frame dimensions.
 
 ### Camera and display viewport
 
@@ -962,7 +637,8 @@ For a focused ability:
 
 A first small feature can extend the existing platformer subject directly. If a game
 adds several optional abilities, use the component-and-modifier direction described
-under [Optional movement abilities](#optional-movement-abilities) instead of filling
+under [Optional movement abilities](FUTURE_WORK.md#optional-movement-abilities)
+instead of filling
 `PlatformerMovement` with unrelated flags.
 
 ### Adding an NPC state
@@ -1002,7 +678,8 @@ genuinely new example enemy normally involves:
 
 Species, capabilities, and decisions are separate concerns. Artwork does not determine
 the brain, and possessing a ranged weapon does not require a `Shooter` subclass. The
-future [NPC tactics](#npc-tactics) section describes how to introduce multiple reusable
+future [NPC tactics](FUTURE_WORK.md#npc-tactics) section describes how to introduce
+multiple reusable
 decision policies once the game contains a real second policy.
 
 ### Choosing the layer
@@ -1014,9 +691,10 @@ decision policies once the game contains a real second policy.
 | NPC perception or decision | `src/npc` |
 | Generic search or movement-specific neighbours | `src/navigation` |
 | Damage, attacks, or projectiles | `src/combat` |
-| Animation definitions | `assets/levels/animations.json` |
-| Animation loading and content composition | `app/game` |
-| Actor, tile, item, pickup, and exit definitions; level geometry and placements | `assets/levels` |
+| Animation definitions | `assets/animations.json` |
+| Content loading and validation | `app/content` |
+| Playable level composition and session flow | `app/game` |
+| Actor, tile, item, pickup, and exit definitions; level geometry and placements | `assets` |
 | HUD or debugging presentation | `app/ui` or `app/debug` |
 
 When a feature crosses layers, keep its rule in the simulation and pass plain state to
@@ -1027,18 +705,24 @@ end-to-end test.
 
 Validation has three boundaries:
 
-1. **JSON shape:** loaders check types and required fields. Actor, item, pickup, and exit
-   catalogues also reject unknown fields to catch misspellings. `content_json` provides
-   helpers for item, pickup, and exit parsing.
+1. **JSON shape:** loaders check types, integer ranges, required fields, and reject unknown
+   fields to catch misspellings. This includes catalogues, level placements, and legend
+   templates. `content_json` provides shared file-reading and shape-checking helpers.
+   `content_diagnostics` builds the field paths and raises the errors, and carries no
+   JSON dependency so the C++ validators can use it too.
+   `readInteger`, `readNumber`, `readBoolean`, `readText`, and `readVector` read
+   required fields. Their `readOptional...` counterparts leave C++ defaults unchanged
+   only when a field is absent; present but invalid values are errors. Both use the
+   same `json...` value checks and accept a source filename and field path.
 2. **Application content:** plain C++ validators check authoring rules.
-   [`content_validation.cpp`](app/game/content_validation.cpp) covers legends, map rows,
+   [`content_validation.cpp`](../app/content/content_validation.cpp) covers legends, map rows,
    placement counts, quantities, and exit settings. Actor, item, pickup, and exit catalogue
    validators check their definitions, including unused entries. Composition resolves
    cross-file names and adds the originating field to reference errors.
 3. **Core invariants:** validators such as
-   [`validateActor`](src/actor/actor_validation.cpp) and
-   [`validatePickup`](src/world/pickup.cpp) check runtime values regardless of how they
-   were created. [`validateLevelActors`](src/world/level_validation.cpp) then checks
+   [`validateActor`](../src/actor/actor_validation.cpp) and
+   [`validatePickup`](../src/world/pickup.cpp) check runtime values regardless of how they
+   were created. [`validateLevelActors`](../src/world/level_validation.cpp) then checks
    actor clearance and support against the actual map.
 
 These are separate responsibilities: reading valid JSON does not establish that an
@@ -1082,8 +766,8 @@ For a new rule, start beside the code you changed:
 
 | Change | Test starting point |
 | --- | --- |
-| Content parsing or definition validation | `tests/app/test_*_catalog.cpp`, `test_example_level_data.cpp`, `test_content_validation.cpp` |
-| Composing catalogue entries into levels | `tests/app/test_example_content.cpp` |
+| Content parsing or definition validation | `tests/app/test_*_catalog.cpp`, `test_level_data.cpp`, `test_content_validation.cpp` |
+| Composing catalogue entries into levels | `tests/app/test_level_composition.cpp` |
 | Carrying player state between levels | `tests/app/test_level_transition.cpp` |
 | Core pickup collection or exit rules | `tests/world/test_level_objects.cpp` |
 | Behaviour involving multiple systems | `tests/world/test_world_simulation.cpp` |
@@ -1094,296 +778,20 @@ enemy count, item values, or inventory capacity. The editable campaign checks sh
 test validity, so students can change content without rewriting unrelated tests.
 
 CI builds and tests on macOS with Apple Clang and on Windows through the generated
-Visual Studio solution described in [README.md](README.md). A Linux quality job checks
+Visual Studio solution described in [README.md](../README.md). A Linux quality job checks
 formatting, clang-tidy, and public-header self-containment. OpenGL and ImGui integration
 remain a manual run; automated graphics-context tests are avoided.
 
 ## Future work
 
-Future ideas are collected here so the sections above continue to describe the current
-repository.
+Larger designs that the repository deliberately does not implement are recorded in
+[docs/FUTURE_WORK.md](FUTURE_WORK.md):
 
-### Level authoring tools
+- **Level authoring tools** — an in-repository level editor and a read-only visualizer.
+- **Optional movement abilities** — a modifier pipeline so abilities such as a double
+  jump, dash, or wall slide compose without editing the movement function each time.
+- **NPC tactics** — richer brain behaviour built from the existing explicit state
+  machine rather than a behaviour-tree framework.
 
-This design is not implemented in the current engine.
-
-Editing JSON remains useful because the stored level data is visible and reviewable,
-but counting columns in a wide tile map makes object placement cumbersome.
-
-The first step should be a read-only level visualizer. It can load the existing JSON
-through the normal parser and display row and column rulers together with symbols for
-the player, actors, pickups, exits, and patrol points. It should report the same
-validation errors as the game and must not introduce another level format.
-
-A later visual editor can let a user paint tiles and place objects, then write the same
-validated JSON consumed by the example game. The loader should still produce
-`ExampleLevelData`, and composition should still create the core's map and world.
-Simulation must not depend on the editor or JSON, so handwritten and tool-generated
-levels remain equivalent.
-
-### Optional movement abilities
-
-This design is not implemented in the current engine.
-
-`PlatformerMovement` should remain the readable baseline shared by ordinary ground
-actors. Features such as double jump, dash, wall slide, and wall jump can be added as
-optional actor components rather than accumulating feature flags inside the baseline
-movement component. An actor gains an ability only when its composition includes the
-corresponding component, such as `AirJump`, `Dash`, or `WallMovement`.
-
-For example, a double-jump component can contain only its configuration and runtime
-state:
-
-```cpp
-struct AirJump
-{
-    int maximumJumps = 1;
-    int jumpsRemaining = 1;
-};
-```
-
-The actor composition makes the feature optional:
-
-```cpp
-struct Actor
-{
-    Body body;
-    std::optional<PlatformerMovement> platformerMovement;
-
-    std::optional<AirJump> airJump;
-    std::optional<Dash> dash;
-    std::optional<WallMovement> wallMovement;
-};
-```
-
-If several abilities are added, movement can use an explicit ability phase:
-
-```text
-InputIntentions
-      -> choose or start abilities
-      -> produce per-update movement modifiers
-      -> apply normal platformer movement and collision
-      -> update ability state from collision contacts
-```
-
-Abilities should describe changes to the current movement update instead of moving the
-body or resolving collision themselves. A small result value can carry intentions and
-modifiers such as a velocity override, gravity scale, or whether ordinary horizontal
-control and jumping are enabled. For example, an air jump supplies upward velocity, a
-dash supplies horizontal velocity and temporarily disables ordinary control, and a wall
-slide reduces gravity.
-
-One possible result type is:
-
-```cpp
-struct MovementModifiers
-{
-    bool horizontalControlEnabled = true;
-    bool normalJumpEnabled = true;
-    float gravityScale = 1.0F;
-    std::optional<float> horizontalVelocity;
-    std::optional<float> verticalVelocity;
-};
-
-struct MovementAbilityResult
-{
-    InputIntentions intentions;
-    MovementModifiers modifiers;
-};
-```
-
-The actor movement system can then show the complete order directly:
-
-```cpp
-MovementAbilityResult abilityResult =
-    updateMovementAbilities(actor, intentions, previousContacts, deltaTime);
-
-CollisionContacts contacts = updatePlatformerMovement(
-    map,
-    actor.body,
-    *actor.platformerMovement,
-    abilityResult.intentions,
-    abilityResult.modifiers,
-    actor.facing,
-    deltaTime);
-
-finishMovementAbilities(actor, contacts);
-```
-
-`PlatformerMovement` would apply the supplied modifiers at named points while retaining
-ownership of ordinary acceleration, jumping, gravity, movement, and collision:
-
-```cpp
-applyAbilityVelocity(body, modifiers);
-
-if (modifiers.horizontalControlEnabled)
-{
-    updateHorizontalVelocity(body, movement, intentions, deltaTime);
-}
-if (modifiers.normalJumpEnabled)
-{
-    updateJump(body, movement, intentions);
-}
-
-updateGravity(body, movement, modifiers.gravityScale, deltaTime);
-return moveAndCollide(map, body, deltaTime);
-```
-
-Conflicting abilities should be resolved in visible game-policy code with an explicit
-priority order; for example, wall jump before air jump when both respond to the jump
-button. The post-collision phase can reset air jumps on landing, stop a dash at a wall,
-or remember which wall is being touched. Individual abilities should have focused tests,
-with a smaller set of integration tests for combinations such as wall slide into wall
-jump or an airborne dash into a wall.
-
-The priority should remain ordinary, readable game-policy code:
-
-```cpp
-if (canWallJump(actor, previousContacts, intentions))
-{
-    beginWallJump(actor, result.modifiers);
-}
-else if (canAirJump(actor, intentions))
-{
-    beginAirJump(actor, result.modifiers);
-}
-
-if (actor.dash.has_value())
-{
-    updateDash(*actor.dash, actor.facing, intentions, result.modifiers, deltaTime);
-}
-```
-
-Collision-dependent state is handled afterward:
-
-```cpp
-if (contacts.ground && actor.airJump.has_value())
-{
-    resetAirJumps(*actor.airJump);
-}
-if ((contacts.left || contacts.right) && actor.dash.has_value())
-{
-    stopDash(*actor.dash);
-}
-```
-
-This phase should be introduced alongside the first real optional ability, once its
-required data and interactions are concrete. It should not become a callback registry,
-inheritance hierarchy, or generic plugin system merely to anticipate possible features.
-
-### NPC tactics
-
-This design is not implemented in the current engine.
-
-NPC composition should continue to describe what an actor *can do*: platformer or
-flying movement, sensing, biting, and shooting. `NpcState` describes what it is doing
-right now, such as patrolling, chasing, or attacking. A future tactic can separately
-describe how the NPC chooses between those states.
-
-This keeps species, capabilities, and decision-making independent. A zombie and a
-soldier can use different artwork and attacks while sharing a guard tactic; a ranged
-weapon is a capability rather than a `Shooter` brain. Useful tactics could include:
-
-- `Pursuer`: move as close to the remembered target as the map permits;
-- `Guard`: pursue only inside a home region, then return;
-- `KeepDistance`: approach or retreat to maintain a useful attack range;
-- `Flee`: move away from the target;
-- `Patroller`: follow patrol points without pursuing the player.
-
-The first implementation should stay explicit. An enum in `NpcBrain` and a switch in
-the NPC system make the available policies and their dispatch visible to students:
-
-```cpp
-enum class NpcTactic
-{
-    Pursuer,
-    Guard,
-    KeepDistance,
-    Flee,
-    Patroller
-};
-
-struct NpcBrain
-{
-    NpcTactic tactic = NpcTactic::Pursuer;
-    NpcState state = NpcState::Idle;
-    // Perception memory and tactic-specific state.
-};
-```
-
-```cpp
-switch (brain.tactic)
-{
-case NpcTactic::Pursuer:
-    updatePursuer(map, world, actor, deltaTime);
-    break;
-case NpcTactic::Guard:
-    updateGuard(map, world, actor, deltaTime);
-    break;
-case NpcTactic::KeepDistance:
-    updateKeepDistance(map, world, actor, deltaTime);
-    break;
-case NpcTactic::Flee:
-    updateFlee(map, world, actor, deltaTime);
-    break;
-case NpcTactic::Patroller:
-    updatePatroller(map, world, actor, deltaTime);
-    break;
-}
-```
-
-The `Pursuer` tactic should eventually improve how it handles an unreachable target.
-Instead of selecting only the geometrically nearest standable cell, it can examine
-standable candidates near the last-seen position and return the nearest one for which
-pathfinding succeeds. Returning the path and chosen destination together avoids doing
-the same search twice:
-
-```cpp
-struct ChasePath
-{
-    NavigationPath path;
-    GridPosition destination;
-};
-
-std::optional<ChasePath> findClosestReachablePlatformerPath(
-    const TileMap& map,
-    GridPosition start,
-    glm::vec2 targetFeet,
-    glm::vec2 bodySize,
-    const PlatformerMovementConfig& movement);
-```
-
-Candidates should be tried in a deterministic nearest-first order, with path cost used
-as a tie-breaker. The existing repath delay can limit the extra searches. The NPC then
-follows the returned path and waits at its closest reachable endpoint while remaining
-in the chase state: the state expresses its intention to pursue, not a guarantee that
-it can reach the target. As with current target memory, this search must use only the
-last position the NPC perceived and must not reveal the player's hidden position.
-
-`NpcTactic` should be introduced only when the game adds a genuinely different second
-policy, such as `Guard`. Until then, a single clearly named pursuit implementation is
-simpler than an abstraction created for hypothetical behaviours. Virtual brain classes,
-callbacks, and a general behaviour-tree framework are not needed for these tactics.
-
-### Movement-specific navigation anchors
-
-This design is not implemented in the current engine.
-
-Ground navigation naturally uses actor feet, while a flying actor is easier to reason
-about from its centre. The current API keeps feet-based destinations for both so the
-navigation data model stays uniform. A future revision can introduce an explicitly
-named navigation anchor, use feet for platformer actors and centres for flying actors,
-and rename patrol point fields so they are neutral about the chosen anchor.
-
-### Mixed-size animation frames
-
-This design is not implemented in the current engine.
-
-`SpriteRegion` already supports arbitrary source rectangles, but animation playback
-currently changes only the region while `Sprite::size` and its anchor remain fixed.
-Fixed-size example frames avoid visible stretching.
-
-A future `AnimationFrame` could contain a source region, display size, and pivot or
-offset. That would support mixed-size pixel-for-pixel artwork while keeping feet or
-another visual anchor stable. Collision bodies must remain independent from animation
-frame dimensions.
+The sections above describe the current engine. Known limitations of the current design
+are recorded with the subjects they constrain.

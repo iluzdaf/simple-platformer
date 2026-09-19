@@ -6,11 +6,12 @@ scrolling, composed actors, NPC finite state machines, flying and platformer pat
 360-degree projectiles, animation, inventory, automatic pickups, a three-level game loop,
 and ImGui debugging tools.
 
-New to the project? Start with [START_HERE.md](START_HERE.md). It gives a recommended
+New to the project? Start with [START_HERE.md](docs/START_HERE.md). It gives a recommended
 route through the code and points out which details can wait until later.
 
-After that, read [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed design, ownership
-rules, runtime flow, and reasons behind the main decisions.
+After that, read [ARCHITECTURE.md](docs/ARCHITECTURE.md) for the detailed design, ownership
+rules, runtime flow, and reasons behind the main decisions. [CONTENT.md](docs/CONTENT.md) is the
+authoring reference for the JSON level and definition files under `assets`.
 
 ## Requirements
 
@@ -109,10 +110,10 @@ again to resume. Find each level's key and reach its bunker door to unlock the e
 Each door consumes one key; the third exit completes the supplied campaign. Press R
 at the completion message to restart from the configured starting level.
 
-To change the game, use the [development loop](START_HERE.md#everyday-development-loop)
-and [project starting points](START_HERE.md#starting-project-work). For level layouts
+To change the game, use the [development loop](docs/START_HERE.md#everyday-development-loop)
+and [project starting points](docs/START_HERE.md#starting-project-work). For level layouts
 and shared definitions, see the
-[content-file guide](ARCHITECTURE.md#content-files-at-a-glance).
+[content-file guide](docs/CONTENT.md#content-files-at-a-glance).
 
 ## Continuous integration
 
@@ -191,17 +192,17 @@ cmake --build --preset mac-debug --target header_self_containment
 ## Repository layout
 
 ```text
-app/        application shell, example game, graphics, UI, and debug tools
-assets/     runtime sprite atlas, content catalogues, and editable level JSON
-include/    public core headers
-src/        core implementations
-tests/      Catch2 tests for core systems and testable application code
-external/   fixed third-party source releases
-.github/    continuous-integration workflow
+app/           application shell, graphics, UI, and debug tools
+  game/        game flow, level transitions, and level composition
+  content/     JSON loaders, catalogues, and content validators
+assets/        runtime sprite atlas, content catalogues, and editable level JSON
+include/       public core headers
+src/           core implementations
+tests/         Catch2 tests for core systems and testable application code
+docs/          reading route, architecture, content format, and future work
+external/      fixed third-party source releases
+.github/       continuous-integration workflow
 ```
-
-The recommended code-reading route is in `START_HERE.md`; detailed design decisions are
-in `ARCHITECTURE.md`.
 
 ## License
 

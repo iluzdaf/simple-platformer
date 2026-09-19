@@ -2,7 +2,7 @@
   "objectLegend": {
     "P": { "type": "player" },
     "K": { "type": "pickup", "definition": "missing" },
-    "E": { "type": "exit" }
+    "E": { "type": "exit", "definition": "test_door" }
   },
   "map": [".....", "P...E", "#####"]
 }

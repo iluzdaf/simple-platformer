@@ -9,7 +9,7 @@ namespace simple_platformer
 {
     struct Actor;
     struct LevelCatalog;
-    struct ItemCatalog;
+    struct GameCatalogs;
 
     struct GameLevel
     {
@@ -19,13 +19,13 @@ namespace simple_platformer
         glm::vec2 playerSpawnFeet = {0.0F, 0.0F};
     };
 
-    // Standalone level construction loads its own item catalogue.
+    // Standalone level construction loads its own shared catalogues.
     GameLevel makeGameLevel(const LevelCatalog& catalog, int levelNumber, int textureId);
-    // Reuse a session's item identities when carrying inventory between levels.
+    // Reuse the session's definitions; only the requested level file is read here.
     GameLevel makeGameLevel(
         const LevelCatalog& catalog,
         int levelNumber,
         int textureId,
-        const ItemCatalog& items);
-    Actor makePlayer(const LevelCatalog& catalog, int textureId);
+        const GameCatalogs& catalogs);
+    Actor makePlayer(const GameCatalogs& catalogs, int textureId);
 }

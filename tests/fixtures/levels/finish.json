@@ -8,7 +8,7 @@
   "playerSpawnCell": [1, 2],
   "actors": [],
   "pickups": [],
-  "exit": {
+  "exit": {"definition": "test_door",
     "spawnCell": [5, 2]
   }
 }

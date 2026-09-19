@@ -4,6 +4,7 @@
 #include <limits>
 #include <stdexcept>
 #include "game/item_catalog.hpp"
+#include "game/game_catalogs.hpp"
 #include "game/pickup_catalog.hpp"
 #include "game/example_content.hpp"
 #include "game/level_catalog.hpp"
@@ -146,9 +147,11 @@ TEST_CASE("Level composition reuses the supplied session item catalogue", "[app]
         "medicine":{"name":"Medicine","icon":{"position":[16,0],"size":[8,8]},"maximumStack":3}
     }})",
         "session items");
+    auto catalogs = simple_platformer::loadGameCatalogs(levels.levelDirectory);
+    catalogs.items = items;
     const auto keyId = simple_platformer::itemDefinition(items, "key").id;
-    const auto first = simple_platformer::makeGameLevel(levels, 10, 0, items);
-    const auto second = simple_platformer::makeGameLevel(levels, 25, 0, items);
+    const auto first = simple_platformer::makeGameLevel(levels, 10, 0, catalogs);
+    const auto second = simple_platformer::makeGameLevel(levels, 25, 0, catalogs);
     REQUIRE(first.world.pickups().front().stack.item == keyId);
     REQUIRE(first.world.itemDefinition(keyId).name == "Session key");
     REQUIRE(second.world.itemDefinition(keyId).name == "Session key");

@@ -31,6 +31,7 @@ namespace simple_platformer
 
     struct ExampleExitPlacement
     {
+        std::string definitionName;
         glm::vec2 spawnFeet = {0.0F, 0.0F};
         std::optional<NamedItemStack> requirement;
         bool consumeItem = false;
@@ -46,6 +47,7 @@ namespace simple_platformer
         // Includes unused legend templates so catalogue references can all be checked.
         std::map<std::string, std::string> actorReferences;
         std::map<std::string, std::string> pickupReferences;
+        std::map<std::string, std::string> exitReferences;
         std::map<std::string, std::string> itemReferences;
         std::vector<ExamplePickupPlacement> pickups;
         ExampleExitPlacement exit;

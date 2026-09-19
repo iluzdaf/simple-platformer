@@ -252,6 +252,8 @@ namespace simple_platformer
             const std::string& path = "exit")
         {
             ExampleExitPlacement result;
+            result.definitionName = text(
+                member(value, "definition", sourceName, path), sourceName, path + ".definition");
             result.spawnFeet = feetPosition(value, "spawnCell", "spawnFeet", sourceName, path);
 
             if (const auto found = value.find("requirement"); found != value.end())
@@ -542,6 +544,12 @@ namespace simple_platformer
                                 origin + ".item", value.at("item").get<std::string>());
                         }
                     }
+                    if (type == "exit")
+                    {
+                        result.exitReferences.emplace(
+                            origin + ".definition",
+                            entry.value().at("definition").get<std::string>());
+                    }
                     if (type == "exit" && entry.value().contains("requirement"))
                     {
                         result.itemReferences.emplace(
@@ -589,6 +597,7 @@ namespace simple_platformer
             }
 
             result.exit = levelExit(member(root, "exit", sourceName, "root"), sourceName);
+            result.exitReferences.emplace("exit.definition", result.exit.definitionName);
             if (result.exit.requirement)
             {
                 result.itemReferences.emplace(

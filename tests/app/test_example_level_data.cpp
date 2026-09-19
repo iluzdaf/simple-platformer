@@ -11,7 +11,7 @@
 TEST_CASE("Level diagnostics identify authored fields and map cells", "[app][content][json]")
 {
     auto level = nlohmann::json::parse(R"({
-        "objectLegend":{"P":{"type":"player"},"E":{"type":"exit"}},
+        "objectLegend":{"P":{"type":"player"},"E":{"type": "exit", "definition": "test_door"}},
         "map":["PE"]
     })");
     SECTION("Unknown map symbol includes row column and symbol")
@@ -30,7 +30,7 @@ TEST_CASE("Level diagnostics identify authored fields and map cells", "[app][con
     }
     SECTION("Exit conflict identifies explicit placement")
     {
-        level["exit"] = {{"spawnCell", {1, 0}}};
+        level["exit"] = {{"definition", "test_door"}, {"spawnCell", {1, 0}}};
         REQUIRE_THROWS_WITH(
             simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
             "level.json: map[0][1]: second exit marker 'E'; exit already placed at exit");
@@ -48,6 +48,20 @@ TEST_CASE("Level diagnostics identify authored fields and map cells", "[app][con
         REQUIRE_THROWS_WITH(
             simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
             "level.json: objectLegend.E.consumeItem: expected true or false");
+    }
+    SECTION("Missing exit definition identifies the legend entry")
+    {
+        level["objectLegend"]["E"].erase("definition");
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
+            "level.json: objectLegend.E: missing 'definition'");
+    }
+    SECTION("Empty exit definition identifies its field")
+    {
+        level["objectLegend"]["E"]["definition"] = "";
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
+            "level.json: objectLegend.E.definition: exit definition name cannot be empty");
     }
     SECTION("Row width includes expected and actual widths")
     {
@@ -87,7 +101,7 @@ TEST_CASE(
             "Z":{"type":"actor", "definition":"zombie", "patrol":{"firstCell":[1,0],"secondCell":[2,0]}},
             "B":{"type":"actor", "definition":"bat"}, "S":{"type":"actor", "definition":"zombie_soldier"},
             "K":{"type":"pickup","item":"key","quantity":2},
-            "E":{"type":"exit","requirement":{"item":"key","quantity":1},
+            "E":{"type": "exit", "definition": "test_door","requirement":{"item":"key","quantity":1},
                  "consumeItem":true,"nextLevel":2}
         },
         "map":["PZZBSKKEG", "#########"],
@@ -119,7 +133,7 @@ TEST_CASE(
 TEST_CASE("Object legends reject ambiguous or invalid placements", "[app][content][json]")
 {
     auto level = nlohmann::json::parse(R"({
-        "objectLegend":{"P":{"type":"player"},"E":{"type":"exit"}},
+        "objectLegend":{"P":{"type":"player"},"E":{"type": "exit", "definition": "test_door"}},
         "map":["PE"]
     })");
     SECTION("Repeated player")
@@ -136,7 +150,7 @@ TEST_CASE("Object legends reject ambiguous or invalid placements", "[app][conten
     }
     SECTION("Explicit exit and marker")
     {
-        level["exit"] = {{"spawnCell", {1, 0}}};
+        level["exit"] = {{"definition", "test_door"}, {"spawnCell", {1, 0}}};
     }
     SECTION("Missing player")
     {
@@ -183,7 +197,7 @@ TEST_CASE("Object-only levels may omit explicit placement arrays", "[app][conten
 {
     const auto data = simple_platformer::parseExampleLevelData(
         R"({
-        "objectLegend":{"P":{"type":"player"},"E":{"type":"exit"}},
+        "objectLegend":{"P":{"type":"player"},"E":{"type": "exit", "definition": "test_door"}},
         "map":["PE"]
     })",
         "markers");
@@ -198,7 +212,7 @@ TEST_CASE("Level JSON accepts a custom tile legend", "[app][content][json]")
         R"({
         "tileLegend": {".":"empty", "G":"grass", "X":"glass"},
         "map":[".GX"], "playerSpawnCell":[0,0], "actors":[], "pickups":[],
-        "exit":{"spawnCell":[2,0]}
+        "exit": {"definition": "test_door","spawnCell":[2,0]}
     })",
         "custom level");
     REQUIRE(data.tileLegend.at('G') == "grass");
@@ -250,7 +264,7 @@ TEST_CASE(
                 "quantity": 1,
                 "spawnCell": [1, 0]
             }],
-            "exit": {
+            "exit": {"definition": "test_door",
                 "spawnCell": [2, 0],
                 "requirement": {"item": "key", "quantity": 1}
             }
@@ -289,7 +303,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
                 "playerSpawnFeet": [8, 8],
                 "actors": [],
                 "pickups": [],
-                "exit": {"spawnFeet": [8, 16]}
+                "exit": {"definition": "test_door","spawnFeet": [8, 16]}
             })",
             "ragged level"),
         std::invalid_argument);
@@ -301,7 +315,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
                 "playerSpawnFeet": [8, 8],
                 "actors": [{"definition": "", "spawnFeet": [8, 8]}],
                 "pickups": [],
-                "exit": {"spawnFeet": [8, 16]}
+                "exit": {"definition": "test_door","spawnFeet": [8, 16]}
             })",
             "empty actor name level"),
         std::invalid_argument);
@@ -317,7 +331,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
                     "spawnFeet": [24, 16]
                 }],
                 "pickups": [],
-                "exit": {"spawnFeet": [8, 16]}
+                "exit": {"definition": "test_door","spawnFeet": [8, 16]}
             })",
             "ambiguous placement"),
         std::invalid_argument);
@@ -328,7 +342,7 @@ TEST_CASE("Pickup placements choose a definition or an inline stack", "[app][con
     auto root = nlohmann::json::parse(R"({
         "map":["....","####"],"playerSpawnCell":[0,0],"actors":[],
         "pickups":[{"definition":"treasure","spawnCell":[1,0]}],
-        "exit":{"spawnCell":[3,0]}
+        "exit": {"definition": "test_door","spawnCell":[3,0]}
     })");
     const auto parsed = simple_platformer::parseExampleLevelData(root.dump(), "placement.json");
     REQUIRE(parsed.pickups.front().definitionName == "treasure");

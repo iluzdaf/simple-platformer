@@ -1,5 +1,5 @@
 {
   "objectLegend": {"P": {"type": "player"}, "Z": {"type": "actor", "definition": "test_guard"}},
   "map": [".......", "P..Z...", "#######"],
-  "exit": {"spawnCell": [6, 1]}
+  "exit": {"definition": "test_door","spawnCell": [6, 1]}
 }

@@ -9,11 +9,9 @@
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/world/world.hpp"
 
-namespace
+namespace simple_platformer
 {
-    void validateLevelExit(
-        const simple_platformer::World& world,
-        const simple_platformer::LevelExit& exit)
+    void validateLevelExit(const LevelExit& exit)
     {
         if (!simple_platformer::isFinite(exit.bounds.position) ||
             !simple_platformer::isFinite(exit.bounds.size) || exit.bounds.size.x <= 0.0F ||
@@ -23,7 +21,6 @@ namespace
         }
         if (exit.requirement.has_value())
         {
-            world.itemDefinition(exit.requirement->item);
             if (exit.requirement->quantity <= 0)
             {
                 throw std::invalid_argument("Exit requirements must be positive");
@@ -34,13 +31,13 @@ namespace
             throw std::invalid_argument("Level IDs must be non-negative");
         }
     }
-}
-
-namespace simple_platformer
-{
     void World::setExit(LevelExit exit)
     {
-        validateLevelExit(*this, exit);
+        validateLevelExit(exit);
+        if (exit.requirement)
+        {
+            itemDefinition(exit.requirement->item);
+        }
         levelExit = exit;
         completed = false;
     }

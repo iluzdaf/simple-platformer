@@ -1,7 +1,7 @@
 {
   "objectLegend": {
     "P": { "type": "player" },
-    "E": { "type": "exit", "requirement": { "item": "missing", "quantity": 1 } }
+    "E": { "type": "exit", "definition": "test_door", "requirement": { "item": "missing", "quantity": 1 } }
   },
   "map": [".....", "P...E", "#####"]
 }

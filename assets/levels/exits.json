@@ -1,0 +1,8 @@
+{
+  "exits": {
+    "bunker_door": {
+      "bodySize": [16, 32],
+      "sprite": { "position": [48, 216], "size": [16, 32] }
+    }
+  }
+}

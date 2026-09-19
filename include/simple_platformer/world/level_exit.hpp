@@ -21,6 +21,9 @@ namespace simple_platformer
     class World;
     struct Actor;
 
+    // Checks runtime values; World additionally checks the required item exists.
+    void validateLevelExit(const LevelExit& exit);
+
     bool exitUnlocked(const LevelExit& exit, const Actor& actor);
     void updateLevelExit(World& world);
 }

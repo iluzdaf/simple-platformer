@@ -28,7 +28,7 @@ namespace simple_platformer
     void validatePickupSettings(
         const ExamplePickupPlacement& placement,
         const std::string& path = "pickup");
-    // Checks positive requirement quantity and next-level number when supplied.
+    // Checks a nonempty definition name, positive requirement quantity and next-level number.
     // Does not check spatial placement or whether the item or target level exists.
     void validateExitSettings(
         const ExampleExitPlacement& placement,

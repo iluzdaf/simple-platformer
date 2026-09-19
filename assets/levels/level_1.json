@@ -13,6 +13,7 @@
     "K": { "type": "pickup", "definition": "key" },
     "E": {
       "type": "exit",
+      "definition": "bunker_door",
       "requirement": {
         "item": "key",
         "quantity": 1

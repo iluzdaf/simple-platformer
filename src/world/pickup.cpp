@@ -27,6 +27,7 @@ namespace simple_platformer
             throw std::invalid_argument("Pickups require a positive quantity");
         }
     }
+
     void World::addPickup(Pickup pickup)
     {
         validatePickup(pickup);

@@ -2,11 +2,11 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
-#include "game/actor_catalog.hpp"
-#include "game/animation_catalog.hpp"
-#include "game/actor_definition.hpp"
-#include "game/example_content.hpp"
-#include "game/level_catalog.hpp"
+#include "content/actor_catalog.hpp"
+#include "content/animation_catalog.hpp"
+#include "content/actor_definition.hpp"
+#include "game/level_composition.hpp"
+#include "content/level_catalog.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
@@ -20,7 +20,7 @@ TEST_CASE("Actor catalogue references compose through level loading", "[app][act
         R"({"startLevel":1,"levels":[{"number":1,"file":"actor_placement.json"}]})",
         "fixture",
         "tests/fixtures/levels");
-    const auto level = simple_platformer::makeGameLevel(levels, 1, 0);
+    const auto level = simple_platformer::composeGameLevel(levels, 1, 0);
     REQUIRE(level.world.actors().size() == 1);
     const auto& actor = level.world.actors().front();
     if (!actor.platformerMovement)
@@ -34,7 +34,7 @@ TEST_CASE("Actor catalogue references compose through level loading", "[app][act
         "fixture",
         "tests/fixtures/levels");
     REQUIRE_THROWS_WITH(
-        simple_platformer::makeGameLevel(invalid, 1, 0),
+        simple_platformer::composeGameLevel(invalid, 1, 0),
         Catch::Matchers::ContainsSubstring(
             "objectLegend.Z.definition: unknown actor definition 'missing'"));
 }
@@ -46,7 +46,7 @@ TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[
       "player":"hero", "actors":{"hero":{"health":4,"inventorySlots":2,
       "platformer":{}, "team":"player", "ranged":{"damage":2,"projectileSize":[3,2],
       "projectileSpeed":120,"projectileLifetime":0.6,"shootDuration":0.2,"recoveryDuration":0.8,
-      "spritePosition":[4,8],"spriteSize":[8,4]}}}})",
+      "sprite": {"position": [4,8], "size": [8,4]}}}}})",
         "weapons",
         {});
     auto definition = simple_platformer::actorDefinition(catalog, "hero");

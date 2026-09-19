@@ -3,7 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <limits>
 #include <stdexcept>
-#include "game/item_catalog.hpp"
+#include "content/item_catalog.hpp"
 #include "simple_platformer/inventory/item.hpp"
 
 namespace
@@ -20,7 +20,7 @@ namespace
 TEST_CASE("Item JSON resolves custom names to stable runtime IDs", "[app][items][json]")
 {
     const auto catalog = simple_platformer::parseItemCatalog(itemData().dump(), "items.json");
-    const auto stack = simple_platformer::resolveItemStack(catalog, {"herb", 2});
+    const auto stack = simple_platformer::composeItemStack(catalog, {"herb", 2});
     REQUIRE(stack.item > 0);
     REQUIRE(stack.item == simple_platformer::itemDefinition(catalog, "herb").id);
     REQUIRE(stack.quantity == 2);
@@ -33,9 +33,9 @@ TEST_CASE("Item JSON resolves custom names to stable runtime IDs", "[app][items]
     REQUIRE(items[0].icon.textureId == 6);
     REQUIRE(items[0].icon.size == glm::vec2{8, 12});
     REQUIRE_THROWS_AS(
-        simple_platformer::resolveItemStack(catalog, {"missing", 1}), std::invalid_argument);
+        simple_platformer::composeItemStack(catalog, {"missing", 1}), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::resolveItemStack(catalog, {"herb", 0}), std::invalid_argument);
+        simple_platformer::composeItemStack(catalog, {"herb", 0}), std::invalid_argument);
 }
 
 TEST_CASE("Item JSON rejects malformed and invalid definitions", "[app][items][json]")

@@ -6,11 +6,16 @@ scrolling, composed actors, NPC finite state machines, flying and platformer pat
 360-degree projectiles, animation, inventory, automatic pickups, a three-level game loop,
 and ImGui debugging tools.
 
-New to the project? Start with [START_HERE.md](START_HERE.md). It gives a recommended
-route through the code and points out which details can wait until later.
+## Documentation
 
-After that, read [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed design, ownership
-rules, runtime flow, and reasons behind the main decisions.
+| Document | What it covers |
+| --- | --- |
+| [START_HERE.md](docs/START_HERE.md) | A recommended route through the code, and which details can wait until later. |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design, ownership rules, runtime flow, and the reasons behind the main decisions. |
+| [CONTENT.md](docs/CONTENT.md) | The authoring reference for the JSON level and definition files under `assets`. |
+| [FUTURE_WORK.md](docs/FUTURE_WORK.md) | Designs the repository deliberately does not implement. |
+
+New to the project? Start with START_HERE.md.
 
 ## Requirements
 
@@ -36,7 +41,7 @@ cmake --build --preset mac-debug
 ctest --preset mac-debug
 ```
 
-Run the example application:
+Run the example game:
 
 ```sh
 cd build/mac-debug
@@ -64,14 +69,6 @@ The solution is generated from `CMakeLists.txt` and `CMakePresets.json`. It belo
 the ignored `build/` directory and should not be committed. Run `setup-windows.bat`
 again after changing the CMake configuration.
 
-Anyone comfortable with the terminal can perform the same steps with:
-
-```powershell
-cmake --preset windows-vs
-cmake --build --preset windows-debug
-ctest --preset windows-debug
-```
-
 The Windows executable is:
 
 ```text
@@ -95,7 +92,7 @@ ctest --preset mac-debug -R "Pickup" --output-on-failure
 On Windows, use the `windows-debug` test preset. Use your personal preset name if
 configured. Omit `-R "Pickup"` to run the complete suite.
 
-## Playing the supplied game
+## Playing the example game
 
 These controls apply on both platforms. Use A and D or the left and right arrow keys
 to move, W, Up, or Space to jump, the mouse to aim, the left mouse button to fire, and
@@ -106,30 +103,27 @@ the player's current and maximum health.
 Walk over items to collect them. Click the bag at the bottom-left or press Q to pause
 and open the inventory, then click a health potion to drink it. Click the bag or press Q
 again to resume. Find each level's key and reach its bunker door to unlock the exit.
-Each door consumes one key; the third exit completes the supplied campaign. Press R
+Each door consumes one key; the third exit completes the example campaign. Press R
 at the completion message to restart from the configured starting level.
-
-To change the game, use the [development loop](START_HERE.md#everyday-development-loop)
-and [project starting points](START_HERE.md#starting-project-work). For level layouts
-and shared definitions, see the
-[content-file guide](ARCHITECTURE.md#content-files-at-a-glance).
 
 ## Continuous integration
 
-GitHub Actions configures, builds, and runs all tests on both macOS with Apple Clang
-and Windows with Visual Studio 2022. The workflow runs for pushes to `main` and for
-pull requests. The Windows job generates the same solution as `setup-windows.bat`,
-builds the actual `.sln` with MSBuild, and builds its generated `run_tests` project. CI
-does not launch the graphical game.
+GitHub Actions runs three jobs. The names below are the ones shown on a pull request.
+
+| Job | Runner | What it does | Runs on |
+| --- | --- | --- | --- |
+| macOS / Apple Clang | `macos-latest` | Configures, builds, and runs the whole test suite. | pushes to `main` and pull requests |
+| Windows / Visual Studio 2022 | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds the `.sln` with MSBuild, then builds its `run_tests` project. | pushes to `main` and pull requests |
+| Formatting and static analysis | `ubuntu-24.04` | Checks formatting, runs clang-tidy, and verifies that every public header compiles on its own. | pull requests only |
+
+The quality job is skipped on pushes because branch protection already ran it on the
+pull request. Its checks add no tools to the macOS or Visual Studio build, and Linux is
+not a supported platform for local work. No job launches the graphical game.
 
 The macOS and Windows jobs use a pinned `sccache` release backed by GitHub Actions'
 cache service. Only compiler outputs are cached; generated build directories are not.
-On Windows, CI still builds the generated Visual Studio solution and only replaces
-`cl.exe` with a cache wrapper for that build. This does not affect local student builds.
-
-A separate Linux quality job runs on pull requests. It checks source formatting, runs clang-tidy, and verifies
-that every public header can compile on its own. These checks do not add any tools to
-the normal macOS or Visual Studio build.
+On Windows, only `cl.exe` is replaced with a cache wrapper; the solution itself is still
+built as generated. None of this affects local builds.
 
 ## Formatting
 
@@ -191,17 +185,17 @@ cmake --build --preset mac-debug --target header_self_containment
 ## Repository layout
 
 ```text
-app/        application shell, example game, graphics, UI, and debug tools
-assets/     runtime sprite atlas, content catalogues, and editable level JSON
-include/    public core headers
-src/        core implementations
-tests/      Catch2 tests for core systems and testable application code
-external/   fixed third-party source releases
-.github/    continuous-integration workflow
+app/           application shell, graphics, UI, and debug tools
+  game/        game flow, level transitions, and level composition
+  content/     JSON loaders, catalogues, and content validators
+assets/        runtime sprite atlas, content catalogues, and editable level JSON
+include/       public core headers
+src/           core implementations
+tests/         Catch2 tests for core systems and testable application code
+docs/          reading route, architecture, content format, and future work
+external/      fixed third-party source releases
+.github/       continuous-integration workflow
 ```
-
-The recommended code-reading route is in `START_HERE.md`; detailed design decisions are
-in `ARCHITECTURE.md`.
 
 ## License
 

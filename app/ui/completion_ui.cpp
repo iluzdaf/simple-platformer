@@ -5,7 +5,7 @@
 #include <glm/vec2.hpp>
 #include <imgui.h>
 
-#include "game/example_game.hpp"
+#include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 
 namespace
@@ -20,7 +20,7 @@ namespace
 
 namespace simple_platformer
 {
-    void drawLevelCompletion(const ExampleGame& game, const WindowViewport& viewport)
+    void drawLevelCompletion(const Game& game, const WindowViewport& viewport)
     {
         if (!game.complete())
         {

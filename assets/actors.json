@@ -1,0 +1,27 @@
+{
+  "player": "player",
+  "actors": {
+    "player": {
+      "bodySize": [12, 20], "team": "player", "animations": "player",
+      "health": 3, "inventorySlots": 6, "platformer": {},
+      "ranged": {"projectileLifetime": 0.9, "sprite": {"position": [32, 192], "size": [8, 4]}}
+    },
+    "zombie": {
+      "bodySize": [12, 20], "team": "enemy", "facing": "left", "animations": "zombie",
+      "health": 3, "platformer": {"maximumSpeed": 60},
+      "senses": {"noticeDistance": 80},
+      "bite": {"windupDuration": 0.3, "activeDuration": 0.1, "recoveryDuration": 0.6}
+    },
+    "bat": {
+      "bodySize": [12, 8], "team": "enemy", "facing": "left", "animations": "bat",
+      "spriteAnchor": "center", "health": 1, "flying": {},
+      "senses": {"noticeDistance": 56, "forgetAfter": 0.5}, "bite": {}
+    },
+    "zombie_soldier": {
+      "bodySize": [12, 20], "team": "enemy", "facing": "left", "animations": "zombie_soldier",
+      "health": 2, "platformer": {}, "senses": {},
+      "ranged": {"projectileSpeed": 140, "projectileLifetime": 0.75,
+        "shootDuration": 0.3, "recoveryDuration": 0.8, "sprite": {"position": [64, 192], "size": [8, 4]}}
+    }
+  }
+}

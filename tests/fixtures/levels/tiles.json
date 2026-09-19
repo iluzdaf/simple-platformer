@@ -2,7 +2,7 @@
   "tiles": {
     "empty": { "blocksMovement": false, "blocksSight": false },
     "stone": {
-      "sprite": { "x": 0, "y": 0, "width": 16, "height": 16 },
+      "sprite": { "position": [0, 0], "size": [16, 16] },
       "blocksMovement": true, "blocksSight": true
     }
   }

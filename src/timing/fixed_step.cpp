@@ -9,7 +9,8 @@
 namespace simple_platformer
 {
     FixedStep::FixedStep(double stepSeconds, double maximumFrameSeconds)
-        : step(stepSeconds), maximumFrame(maximumFrameSeconds)
+        : step(stepSeconds),
+          maximumFrame(maximumFrameSeconds)
     {
         if (!std::isfinite(step) || step <= 0.0)
             throw std::invalid_argument("Fixed step must be finite and above zero");

@@ -11,7 +11,8 @@
 
 namespace simple_platformer
 {
-    Inventory::Inventory(std::size_t slotCount) : slotStorage(slotCount)
+    Inventory::Inventory(std::size_t slotCount)
+        : slotStorage(slotCount)
     {
     }
 

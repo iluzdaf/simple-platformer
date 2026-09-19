@@ -135,20 +135,21 @@ add_executable(
     app/application.cpp
     app/debug/debug_overlay.cpp
     app/debug/debug_overlay_ui.cpp
-    app/game/animation_catalog.cpp
-    app/game/example_content.cpp
-    app/game/example_game.cpp
-    app/game/content_json.cpp
-    app/game/item_catalog.cpp
-    app/game/pickup_catalog.cpp
-    app/game/exit_catalog.cpp
-    app/game/game_catalogs.cpp
-    app/game/example_level_data.cpp
-    app/game/level_catalog.cpp
-    app/game/tile_catalog.cpp
-    app/game/content_validation.cpp
-    app/game/actor_definition.cpp
-    app/game/actor_catalog.cpp
+    app/content/actor_catalog.cpp
+    app/content/actor_definition.cpp
+    app/content/animation_catalog.cpp
+    app/content/content_diagnostics.cpp
+    app/content/content_json.cpp
+    app/content/content_validation.cpp
+    app/content/exit_catalog.cpp
+    app/content/game_catalogs.cpp
+    app/content/item_catalog.cpp
+    app/content/level_catalog.cpp
+    app/content/level_data.cpp
+    app/content/pickup_catalog.cpp
+    app/content/tile_catalog.cpp
+    app/game/game.cpp
+    app/game/level_composition.cpp
     app/graphics/display_viewport.cpp
     app/graphics/sprite_renderer.cpp
     app/main.cpp
@@ -294,30 +295,32 @@ if(BUILD_TESTING)
     add_executable(
         simple_platformer_tests
         app/debug/debug_overlay.cpp
-        app/game/animation_catalog.cpp
-        app/game/example_content.cpp
-        app/game/example_game.cpp
-        app/game/content_json.cpp
-        app/game/item_catalog.cpp
-        app/game/pickup_catalog.cpp
-        app/game/exit_catalog.cpp
-        app/game/game_catalogs.cpp
-        app/game/example_level_data.cpp
-        app/game/level_catalog.cpp
-        app/game/tile_catalog.cpp
-        app/game/content_validation.cpp
-        app/game/actor_definition.cpp
-        app/game/actor_catalog.cpp
+        app/content/actor_catalog.cpp
+        app/content/actor_definition.cpp
+        app/content/animation_catalog.cpp
+        app/content/content_diagnostics.cpp
+        app/content/content_json.cpp
+        app/content/content_validation.cpp
+        app/content/exit_catalog.cpp
+        app/content/game_catalogs.cpp
+        app/content/item_catalog.cpp
+        app/content/level_catalog.cpp
+        app/content/level_data.cpp
+        app/content/pickup_catalog.cpp
+        app/content/tile_catalog.cpp
+        app/game/game.cpp
+        app/game/level_composition.cpp
         app/graphics/display_viewport.cpp
         app/ui/inventory_layout.cpp
         tests/app/test_debug_overlay.cpp
         tests/app/test_display_viewport.cpp
-        tests/app/test_example_content.cpp
+        tests/app/test_level_composition.cpp
         tests/app/test_inventory_layout.cpp
-        tests/app/test_example_level_data.cpp
+        tests/app/test_level_data.cpp
         tests/app/test_level_catalog.cpp
         tests/app/test_tile_catalog.cpp
         tests/app/test_content_validation.cpp
+        tests/app/test_content_json.cpp
         tests/app/test_actor_catalog.cpp
         tests/app/test_animation_catalog.cpp
         tests/app/test_item_catalog.cpp

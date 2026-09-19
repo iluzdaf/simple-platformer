@@ -13,5 +13,9 @@ NamespaceIndentation: All
 FixNamespaceComments: false
 PointerAlignment: Left
 DerivePointerAlignment: false
+SeparateDefinitionBlocks: Always
+PackConstructorInitializers: Never
+KeepEmptyLinesAtTheStartOfBlocks: false
+InsertNewlineAtEOF: true
 BraceWrapping:
   BeforeLambdaBody: true

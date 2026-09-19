@@ -82,7 +82,8 @@ namespace
 namespace simple_platformer
 {
     CameraController::CameraController(Camera initialCamera, glm::vec2 initialDeadZoneSize)
-        : camera(initialCamera), deadZoneSize(initialDeadZoneSize)
+        : camera(initialCamera),
+          deadZoneSize(initialDeadZoneSize)
     {
         validateCamera(camera);
         validateDeadZone(deadZoneSize, camera.viewportSize);

@@ -2,8 +2,34 @@
 
 #include <filesystem>
 #include <stdexcept>
+#include <nlohmann/json.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include "content/level_catalog.hpp"
 
-#include "game/level_catalog.hpp"
+TEST_CASE("Level catalog numbers reject narrowing and fields reject typos", "[app][content][json]")
+{
+    auto root =
+        nlohmann::json::parse(R"({"startLevel":1,"levels":[{"number":1,"file":"one.json"}]})");
+    SECTION("Above int range")
+    {
+        root["startLevel"] = 4294967297LL;
+    }
+    SECTION("Below int range")
+    {
+        root["levels"][0]["number"] = -4294967295LL;
+    }
+    SECTION("Root typo")
+    {
+        root["startLevell"] = 1;
+    }
+    SECTION("Entry typo")
+    {
+        root["levels"][0]["fille"] = "two.json";
+    }
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseLevelCatalog(root.dump(), "levels.json"),
+        Catch::Matchers::ContainsSubstring("levels.json:"));
+}
 
 TEST_CASE("A level catalog maps stable IDs to arbitrary file names", "[app][content][json]")
 {

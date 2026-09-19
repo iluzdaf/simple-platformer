@@ -5,13 +5,13 @@
 #include <optional>
 #include <stdexcept>
 
-#include "game/content_validation.hpp"
-#include "game/tile_catalog.hpp"
-#include "game/example_level_data.hpp"
+#include "content/content_validation.hpp"
+#include "content/tile_catalog.hpp"
+#include "content/level_data.hpp"
 
 TEST_CASE("Pickup and exit settings are validated without JSON", "[app][content][validation]")
 {
-    simple_platformer::ExamplePickupPlacement pickup;
+    simple_platformer::PickupPlacement pickup;
     REQUIRE_NOTHROW(simple_platformer::validatePickupSettings(pickup));
     pickup.stack.quantity = 0;
     REQUIRE_THROWS_WITH(
@@ -20,7 +20,7 @@ TEST_CASE("Pickup and exit settings are validated without JSON", "[app][content]
     pickup.stack.quantity = -2;
     REQUIRE_THROWS_AS(simple_platformer::validatePickupSettings(pickup), std::invalid_argument);
 
-    simple_platformer::ExampleExitPlacement exit;
+    simple_platformer::ExitPlacement exit;
     exit.definitionName = "test_door";
     REQUIRE_NOTHROW(simple_platformer::validateExitSettings(exit));
     exit.requirement = simple_platformer::NamedItemStack{"key", 1};

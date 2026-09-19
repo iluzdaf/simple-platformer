@@ -3,11 +3,11 @@
 #include <nlohmann/json.hpp>
 #include <limits>
 #include <stdexcept>
-#include "game/exit_catalog.hpp"
-#include "game/example_content.hpp"
-#include "game/level_catalog.hpp"
-#include "game/content_validation.hpp"
-#include "game/example_level_data.hpp"
+#include "content/exit_catalog.hpp"
+#include "game/level_composition.hpp"
+#include "content/level_catalog.hpp"
+#include "content/content_validation.hpp"
+#include "content/level_data.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/render/sprite.hpp"
 
@@ -80,7 +80,7 @@ TEST_CASE(
     }
     REQUIRE_THROWS_WITH(
         simple_platformer::parseExitCatalog(root.dump(), "exits.json"),
-        Catch::Matchers::ContainsSubstring("exits.json: exits.gate:"));
+        Catch::Matchers::ContainsSubstring("exits.json: exits.gate"));
 }
 
 TEST_CASE("Exit definitions and placement names validate without JSON", "[app][exits][validation]")
@@ -88,21 +88,22 @@ TEST_CASE("Exit definitions and placement names validate without JSON", "[app][e
     auto catalog = simple_platformer::parseExitCatalog(exitData().dump(), "fixture");
     catalog.at("gate").bodySize.x = std::numeric_limits<float>::infinity();
     REQUIRE_THROWS_AS(simple_platformer::validateExitCatalog(catalog), std::invalid_argument);
-    simple_platformer::ExampleExitPlacement placement;
+    simple_platformer::ExitPlacement placement;
     REQUIRE_THROWS_WITH(
         simple_platformer::validateExitSettings(placement),
         "exit.definition: exit definition name cannot be empty");
     REQUIRE_THROWS_AS(
         simple_platformer::loadExitCatalog("tests/fixtures/levels/missing-exits.json"),
         std::invalid_argument);
-    REQUIRE_THROWS_AS(
-        simple_platformer::parseExitCatalog("not JSON", "broken"), std::invalid_argument);
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseExitCatalog("{\n  \"exits\": {\n", "broken"),
+        Catch::Matchers::ContainsSubstring("broken: line 3, column 1: invalid JSON"));
 }
 
 TEST_CASE("Level exit placement combines a definition with completion settings", "[app][exits]")
 {
     const auto catalog = simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json");
-    const auto level = simple_platformer::makeGameLevel(catalog, 10, 7);
+    const auto level = simple_platformer::composeGameLevel(catalog, 10, 7);
     const auto& exit = level.world.exit();
     if (!exit || !exit->sprite)
     {
@@ -121,7 +122,7 @@ TEST_CASE("Unknown unused exit definitions retain the legend path", "[app][exits
         "fixture",
         "tests/fixtures/levels");
     REQUIRE_THROWS_WITH(
-        simple_platformer::makeGameLevel(catalog, 1, 0),
+        simple_platformer::composeGameLevel(catalog, 1, 0),
         Catch::Matchers::ContainsSubstring(
             "unknown_exit.json: objectLegend.E.definition: unknown exit definition 'missing'"));
 }

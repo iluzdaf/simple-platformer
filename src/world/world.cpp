@@ -65,7 +65,8 @@ namespace simple_platformer
 
     }
 
-    World::World(std::vector<ItemDefinition> items) : itemDefinitions(std::move(items))
+    World::World(std::vector<ItemDefinition> items)
+        : itemDefinitions(std::move(items))
     {
         for (std::size_t index = 0; index < itemDefinitions.size(); ++index)
         {

@@ -132,7 +132,8 @@ namespace simple_platformer
         }
     }
 
-    SpriteRenderer::SpriteRenderer() : shader(createShaderProgram())
+    SpriteRenderer::SpriteRenderer()
+        : shader(createShaderProgram())
     {
         glGenVertexArrays(1, &vertexArray);
         glBindVertexArray(vertexArray);

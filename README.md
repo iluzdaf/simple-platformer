@@ -43,18 +43,6 @@ cd build/mac-debug
 ./simple_platformer
 ```
 
-Use A and D or the left and right arrow keys to move, W, Up, or Space to jump, the
-mouse to aim, the left mouse button to fire, and Escape to close the window. Press F1
-to show or hide the debug overlay text and the in-game sprite, collider, pickup, camera,
-dead-zone, and NPC path overlays. The hearts at the top-left of the game viewport show
-the player's current and maximum health.
-
-Walk over items to collect them. Click the bag at the bottom-left or press Q to pause
-and open the inventory, then click a health potion to drink it. Click the bag or press Q
-again to resume. Find each level's key and reach its bunker door to unlock the exit.
-Each door consumes one key; the third exit completes the game. Press R at the completion
-message to restart from the catalog's configured starting level.
-
 ## Windows: create and use the Visual Studio solution
 
 Install Visual Studio 2022 with **Desktop development with C++** and **C++ CMake
@@ -94,6 +82,38 @@ build\windows-vs\Debug\simple_platformer.exe
 `CMakeUserPresets.json` is ignored and is available for personal configuration that
 should not be shared.
 
+## Running focused tests
+
+Build before running CTest so the test executable includes your changes. On macOS,
+list test names or run only tests whose names contain `Pickup` with:
+
+```sh
+ctest --preset mac-debug -N
+ctest --preset mac-debug -R "Pickup" --output-on-failure
+```
+
+On Windows, use the `windows-debug` test preset. Use your personal preset name if
+configured. Omit `-R "Pickup"` to run the complete suite.
+
+## Playing the supplied game
+
+These controls apply on both platforms. Use A and D or the left and right arrow keys
+to move, W, Up, or Space to jump, the mouse to aim, the left mouse button to fire, and
+Escape to close the window. Press F1 to toggle the debug overlay, including colliders,
+NPC sensing, patrol points, and navigation paths. The hearts at the top-left show
+the player's current and maximum health.
+
+Walk over items to collect them. Click the bag at the bottom-left or press Q to pause
+and open the inventory, then click a health potion to drink it. Click the bag or press Q
+again to resume. Find each level's key and reach its bunker door to unlock the exit.
+Each door consumes one key; the third exit completes the supplied campaign. Press R
+at the completion message to restart from the configured starting level.
+
+To change the game, use the [development loop](START_HERE.md#everyday-development-loop)
+and [project starting points](START_HERE.md#starting-project-work). For level layouts
+and shared definitions, see the
+[content-file guide](ARCHITECTURE.md#content-files-at-a-glance).
+
 ## Continuous integration
 
 GitHub Actions configures, builds, and runs all tests on both macOS with Apple Clang
@@ -107,7 +127,7 @@ cache service. Only compiler outputs are cached; generated build directories are
 On Windows, CI still builds the generated Visual Studio solution and only replaces
 `cl.exe` with a cache wrapper for that build. This does not affect local student builds.
 
-A separate Linux quality job checks source formatting, runs clang-tidy, and verifies
+A separate Linux quality job runs on pull requests. It checks source formatting, runs clang-tidy, and verifies
 that every public header can compile on its own. These checks do not add any tools to
 the normal macOS or Visual Studio build.
 
@@ -135,8 +155,10 @@ To check formatting without changing files, use:
 cmake --build --preset mac-debug --target format-check
 ```
 
-These command-line targets require `clang-format` on `PATH` and deliberately exclude
-`external/`.
+These command-line targets use the `CLANG_FORMAT_EXECUTABLE` found during CMake
+configuration (or set explicitly) and deliberately exclude `external/`. CI uses
+clang-format 18. Editor formatting uses the editor's selected tool, which may be a
+different version even when a CMake preset selects LLVM 18.
 
 ## Static analysis
 
@@ -152,6 +174,13 @@ builds. Developers with clang-tidy installed can run it with:
 cmake --build --preset mac-debug --target tidy
 ```
 
+For matching local quality tools, set `CLANG_FORMAT_EXECUTABLE` and
+`CLANG_TIDY_EXECUTABLE` to LLVM 18 executables in a personal `CMakeUserPresets.json`
+preset, then configure and build using that preset. These variables select quality
+tools, not the C++ compiler. A personal preset such as `mac-debug-llvm18` is not part
+of the shared checkout. Compiler and SDK differences can still produce different
+diagnostics from CI.
+
 The `header_self_containment` target verifies that public headers include everything
 they need themselves:
 
@@ -163,7 +192,7 @@ cmake --build --preset mac-debug --target header_self_containment
 
 ```text
 app/        application shell, example game, graphics, UI, and debug tools
-assets/     runtime sprite atlas, level/tile/actor catalogues, and editable level JSON
+assets/     runtime sprite atlas, level/tile/actor/item/pickup catalogues, and editable level JSON
 include/    public core headers
 src/        core implementations
 tests/      Catch2 tests for core systems and testable application code

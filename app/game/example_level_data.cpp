@@ -1,8 +1,6 @@
 #include "example_level_data.hpp"
 #include "content_validation.hpp"
 
-#include "example_items.hpp"
-
 #include <cmath>
 #include <cstddef>
 #include <filesystem>
@@ -18,7 +16,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "simple_platformer/inventory/item.hpp"
+#include "game/item_catalog.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
@@ -158,22 +156,14 @@ namespace simple_platformer
             return vector2(*feet, sourceName, std::string(path) + "." + std::string(feetKey));
         }
 
-        ItemId itemId(const Json& value, std::string_view sourceName, std::string_view path)
+        std::string itemName(const Json& value, std::string_view sourceName, std::string_view path)
         {
             const std::string name = text(value, sourceName, path);
-            if (name == "coin")
+            if (name.empty())
             {
-                return Coin;
+                fail(sourceName, path, "item name cannot be empty");
             }
-            if (name == "health_potion")
-            {
-                return HealthPotion;
-            }
-            if (name == "key")
-            {
-                return Key;
-            }
-            fail(sourceName, path, "unknown item '" + name + "'");
+            return name;
         }
 
         std::string actorType(const Json& value, std::string_view sourceName, std::string_view path)
@@ -216,11 +206,31 @@ namespace simple_platformer
             std::string_view sourceName,
             const std::string& path)
         {
+            if (value.contains("definition"))
+            {
+                if (value.contains("item") || value.contains("quantity"))
+                {
+                    fail(
+                        sourceName,
+                        path,
+                        "use either a pickup definition or an inline item and quantity");
+                }
+                ExamplePickupPlacement result;
+                result.spawnFeet = feetPosition(value, "spawnCell", "spawnFeet", sourceName, path);
+                result.definitionName =
+                    text(value.at("definition"), sourceName, path + ".definition");
+                if (result.definitionName.empty())
+                {
+                    fail(
+                        sourceName, path + ".definition", "pickup definition name cannot be empty");
+                }
+                return result;
+            }
             const int quantity = integer(
                 member(value, "quantity", sourceName, path), sourceName, path + ".quantity");
             const ExamplePickupPlacement result{
                 feetPosition(value, "spawnCell", "spawnFeet", sourceName, path),
-                {itemId(member(value, "item", sourceName, path), sourceName, path + ".item"),
+                {itemName(member(value, "item", sourceName, path), sourceName, path + ".item"),
                  quantity}};
             try
             {
@@ -248,8 +258,8 @@ namespace simple_platformer
                     member(requirement, "quantity", sourceName, path + ".requirement"),
                     sourceName,
                     path + ".requirement.quantity");
-                result.requirement = ItemStack{
-                    itemId(
+                result.requirement = NamedItemStack{
+                    itemName(
                         member(requirement, "item", sourceName, path + ".requirement"),
                         sourceName,
                         path + ".requirement.item"),
@@ -506,6 +516,27 @@ namespace simple_platformer
                 for (const auto& entry : root.at("objectLegend").items())
                 {
                     const auto type = entry.value().at("type").get<std::string>();
+                    const auto origin = "objectLegend." + entry.key();
+                    if (type == "pickup")
+                    {
+                        const auto& value = entry.value();
+                        if (value.contains("definition"))
+                        {
+                            result.pickupReferences.emplace(
+                                origin + ".definition", value.at("definition").get<std::string>());
+                        }
+                        else
+                        {
+                            result.itemReferences.emplace(
+                                origin + ".item", value.at("item").get<std::string>());
+                        }
+                    }
+                    if (type == "exit" && entry.value().contains("requirement"))
+                    {
+                        result.itemReferences.emplace(
+                            origin + ".requirement.item",
+                            entry.value().at("requirement").at("item").get<std::string>());
+                    }
                     if (type != "player" && type != "pickup" && type != "exit")
                     {
                         result.actorReferences.emplace(
@@ -532,9 +563,25 @@ namespace simple_platformer
             {
                 result.pickups.push_back(
                     pickup(pickups[index], sourceName, "pickups[" + std::to_string(index) + "]"));
+                const auto& placement = result.pickups.back();
+                const auto origin = "pickups[" + std::to_string(index) + "]";
+                if (placement.definitionName.empty())
+                {
+                    result.itemReferences.emplace(origin + ".item", placement.stack.item);
+                }
+                else
+                {
+                    result.pickupReferences.emplace(
+                        origin + ".definition", placement.definitionName);
+                }
             }
 
             result.exit = levelExit(member(root, "exit", sourceName, "root"), sourceName);
+            if (result.exit.requirement)
+            {
+                result.itemReferences.emplace(
+                    "exit.requirement.item", result.exit.requirement->item);
+            }
             return result;
         }
     }

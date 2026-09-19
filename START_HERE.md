@@ -22,7 +22,8 @@ Keep each change small enough to verify directly:
 
 1. Change the subject that owns the rule.
 2. Build using the platform instructions in [README.md](README.md).
-3. Run its focused test while working, then run the complete test suite.
+3. Run its focused test while working, then run the complete test suite. See
+   [Running focused tests](README.md#running-focused-tests) for commands.
 4. Launch the example game when the change affects interaction or presentation.
 
 The focused tests provide fast feedback about one rule. The complete suite checks its
@@ -77,7 +78,8 @@ A practical route through the implementation is:
    [`input_state.cpp`](src/input/input_state.cpp),
    [`platformer_movement.cpp`](src/movement/platformer_movement.cpp), and
    [`collision.cpp`](src/physics/collision.cpp).
-2. Tune speed, acceleration, braking, gravity, and jump configuration, then observe
+2. Tune speed, acceleration, braking, gravity, and jump configuration in
+   [`actors.json`](assets/levels/actors.json), then observe
    how those values change the feel of the example game.
 3. Read the tests for the existing variable-height jump, coyote-time, and jump-buffer
    rules before changing them.
@@ -109,7 +111,8 @@ A practical route through the implementation is:
 
 1. Trace the explicit `NpcState` enum and state branches in
    [`npc_system.cpp`](src/npc/npc_system.cpp).
-2. Change sensing distance and memory duration, using the debug overlay to observe
+2. Change `noticeDistance` and `forgetAfter` in an actor definition's `senses` settings
+   in [`actors.json`](assets/levels/actors.json), using the debug overlay to observe
    visible targets, remembered positions, patrol points, destinations, and paths.
 3. Add one state such as Search, Guard, Retreat, or Recover and test its transitions
    separately from movement.
@@ -152,8 +155,14 @@ placements for that level. Follow that data into
 [`example_level_data.cpp`](app/game/example_level_data.cpp), which validates the JSON,
 and then [`actor_catalog.cpp`](app/game/actor_catalog.cpp) and
 [`actor_definition.cpp`](app/game/actor_definition.cpp), which load named actor settings
-from `actors.json` and compose C++ actors. These are game-content concerns, not general
-engine behaviour. The
+from `actors.json` and compose C++ actors.
+[`example_content.cpp`](app/game/example_content.cpp) brings the catalogues and
+placements together into a `GameLevel`. This is also where the exit's size and sprite
+are configured; its position and completion settings come from level JSON.
+[`item_catalog.cpp`](app/game/item_catalog.cpp) and
+[`pickup_catalog.cpp`](app/game/pickup_catalog.cpp) load inventory items and world
+pickup definitions from `items.json` and `pickups.json`.
+These are game-content concerns, not general engine behaviour. The
 [`Data-driven level boundary`](ARCHITECTURE.md#data-driven-level-boundary) section is
 the complete reference when you are ready to edit or add levels.
 
@@ -199,7 +208,8 @@ Read these after the movement loop:
 2. [`camera.cpp`](src/render/camera.cpp) follows the player and converts world space to
    screen space;
 3. [`animation_system.cpp`](src/render/animation_system.cpp) selects and advances
-   actor animation clips;
+   actor animation clips through `updateWorldAnimations`; pickup bobbing and timed
+   feedback are calculated from world state in `render_scene.cpp`;
 4. [`sprite_renderer.cpp`](app/graphics/sprite_renderer.cpp) submits the finished draw
    commands to OpenGL.
 

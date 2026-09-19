@@ -84,23 +84,19 @@
   ],
   "pickups": [
     {
-      "item": "coin",
-      "quantity": 3,
+      "definition": "coin_pile",
       "spawnCell": [19, 14]
     },
     {
-      "item": "coin",
-      "quantity": 3,
+      "definition": "coin_pile",
       "spawnCell": [37, 14]
     },
     {
-      "item": "health_potion",
-      "quantity": 1,
+      "definition": "health_potion",
       "spawnCell": [30, 20]
     },
     {
-      "item": "key",
-      "quantity": 1,
+      "definition": "key",
       "spawnCell": [57, 16]
     }
   ],

@@ -9,7 +9,7 @@
 
 #include <glm/vec2.hpp>
 
-#include "simple_platformer/inventory/item.hpp"
+#include "item_catalog.hpp"
 #include "simple_platformer/npc/npc.hpp"
 
 namespace simple_platformer
@@ -24,13 +24,15 @@ namespace simple_platformer
     struct ExamplePickupPlacement
     {
         glm::vec2 spawnFeet = {0.0F, 0.0F};
-        ItemStack stack;
+        NamedItemStack stack;
+        // Empty selects an inline item stack with the default pickup appearance.
+        std::string definitionName = {};
     };
 
     struct ExampleExitPlacement
     {
         glm::vec2 spawnFeet = {0.0F, 0.0F};
-        std::optional<ItemStack> requirement;
+        std::optional<NamedItemStack> requirement;
         bool consumeItem = false;
         std::optional<int> nextLevel;
     };
@@ -43,6 +45,8 @@ namespace simple_platformer
         std::vector<ExampleActorPlacement> actors;
         // Includes unused legend templates so catalogue references can all be checked.
         std::map<std::string, std::string> actorReferences;
+        std::map<std::string, std::string> pickupReferences;
+        std::map<std::string, std::string> itemReferences;
         std::vector<ExamplePickupPlacement> pickups;
         ExampleExitPlacement exit;
     };

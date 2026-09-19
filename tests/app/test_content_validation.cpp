@@ -8,7 +8,6 @@
 #include "game/content_validation.hpp"
 #include "game/tile_catalog.hpp"
 #include "game/example_level_data.hpp"
-#include "simple_platformer/inventory/item.hpp"
 
 TEST_CASE("Pickup and exit settings are validated without JSON", "[app][content][validation]")
 {
@@ -23,7 +22,7 @@ TEST_CASE("Pickup and exit settings are validated without JSON", "[app][content]
 
     simple_platformer::ExampleExitPlacement exit;
     REQUIRE_NOTHROW(simple_platformer::validateExitSettings(exit));
-    exit.requirement = simple_platformer::ItemStack{1, 1};
+    exit.requirement = simple_platformer::NamedItemStack{"key", 1};
     exit.nextLevel = 2;
     REQUIRE_NOTHROW(simple_platformer::validateExitSettings(exit));
     exit.requirement->quantity = 0;

@@ -1,0 +1,9 @@
+{
+  "objectLegend": {
+    "P": { "type": "player" },
+    "K": { "type": "pickup", "definition": "door_key" },
+    "E": { "type": "exit", "requirement": { "item": "key", "quantity": 1 } }
+  },
+  "map": [".....", "P.K.E", "#####"],
+  "pickups": [{ "definition": "medicine_box", "spawnCell": [1, 1] }]
+}

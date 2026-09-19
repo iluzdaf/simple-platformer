@@ -1,0 +1,21 @@
+{
+  "items": {
+    "coin": {
+      "name": "Coin",
+      "icon": { "position": [0, 216], "size": [16, 16] },
+      "maximumStack": 99
+    },
+    "health_potion": {
+      "name": "Health potion",
+      "icon": { "position": [16, 216], "size": [16, 16] },
+      "maximumStack": 5,
+      "effect": "heal",
+      "effectAmount": 2
+    },
+    "key": {
+      "name": "Key",
+      "icon": { "position": [32, 216], "size": [16, 16] },
+      "maximumStack": 1
+    }
+  }
+}

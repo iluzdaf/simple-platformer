@@ -1,0 +1,16 @@
+{
+  "items": {
+    "key": {
+      "name": "Fixture key",
+      "icon": { "position": [0, 0], "size": [8, 8] },
+      "maximumStack": 2
+    },
+    "medicine": {
+      "name": "Fixture medicine",
+      "icon": { "position": [8, 0], "size": [8, 8] },
+      "maximumStack": 3,
+      "effect": "heal",
+      "effectAmount": 1
+    }
+  }
+}

@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 
-#include "game/example_items.hpp"
 #include "game/example_level_data.hpp"
 #include "simple_platformer/npc/npc.hpp"
 
@@ -106,7 +105,7 @@ TEST_CASE(
     REQUIRE(data.actors[3].definitionName == "bat");
     REQUIRE(data.actors[4].definitionName == "zombie_soldier");
     REQUIRE(data.pickups.size() == 3);
-    REQUIRE(data.pickups[1].stack.item == simple_platformer::Key);
+    REQUIRE(data.pickups[1].stack.item == "key");
     REQUIRE(data.pickups[1].stack.quantity == 2);
     REQUIRE(data.pickups[2].spawnFeet.x == 104);
     REQUIRE(data.exit.spawnFeet.x == 120);
@@ -262,7 +261,7 @@ TEST_CASE(
     REQUIRE(data.actors[1].definitionName == "bat");
     REQUIRE(data.actors[1].spawnFeet.x == 17.0F);
     REQUIRE(data.pickups.size() == 1);
-    REQUIRE(data.pickups.front().stack.item == simple_platformer::Key);
+    REQUIRE(data.pickups.front().stack.item == "key");
     REQUIRE(data.pickups.front().spawnFeet.x == 24.0F);
     REQUIRE(data.exit.spawnFeet.x == 40.0F);
     REQUIRE(data.exit.requirement.has_value());
@@ -313,6 +312,33 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
                 "exit": {"spawnFeet": [8, 16]}
             })",
             "ambiguous placement"),
+        std::invalid_argument);
+}
+
+TEST_CASE("Pickup placements choose a definition or an inline stack", "[app][content][json]")
+{
+    auto root = nlohmann::json::parse(R"({
+        "map":["....","####"],"playerSpawnCell":[0,0],"actors":[],
+        "pickups":[{"definition":"treasure","spawnCell":[1,0]}],
+        "exit":{"spawnCell":[3,0]}
+    })");
+    const auto parsed = simple_platformer::parseExampleLevelData(root.dump(), "placement.json");
+    REQUIRE(parsed.pickups.front().definitionName == "treasure");
+    REQUIRE(parsed.pickupReferences.at("pickups[0].definition") == "treasure");
+    SECTION("Mixed definition and item")
+    {
+        root["pickups"][0]["item"] = "key";
+    }
+    SECTION("Mixed definition and quantity")
+    {
+        root["pickups"][0]["quantity"] = 2;
+    }
+    SECTION("Empty definition")
+    {
+        root["pickups"][0]["definition"] = "";
+    }
+    REQUIRE_THROWS_AS(
+        simple_platformer::parseExampleLevelData(root.dump(), "placement.json"),
         std::invalid_argument);
 }
 

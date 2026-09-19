@@ -115,7 +115,8 @@ namespace simple_platformer
         {
             for (const Pickup& pickup : world.pickups())
             {
-                const Sprite& sprite = world.itemDefinition(pickup.stack.item).icon;
+                const Sprite& sprite =
+                    pickup.sprite ? *pickup.sprite : world.itemDefinition(pickup.stack.item).icon;
                 Aabb bounds = spriteBounds(pickup.bounds, sprite);
                 bounds.position.y += pickupVerticalOffset(
                     world.simulationTimeSeconds() + pickupPhaseOffset(pickup.bounds));

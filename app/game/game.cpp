@@ -1,9 +1,9 @@
-#include "example_game.hpp"
+#include "game.hpp"
 
 #include "debug/debug_overlay.hpp"
-#include "example_content.hpp"
-#include "level_catalog.hpp"
-#include "game_catalogs.hpp"
+#include "level_composition.hpp"
+#include "content/level_catalog.hpp"
+#include "content/game_catalogs.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -26,32 +26,34 @@
 
 namespace simple_platformer
 {
-    ExampleGame::ExampleGame(int textureId) : ExampleGame(textureId, loadLevelCatalog())
+    Game::Game(int textureId)
+        : Game(textureId, loadLevelCatalog())
     {
     }
 
-    ExampleGame::ExampleGame(int textureId, LevelCatalog catalog)
-        : levelCatalog(std::move(catalog)), catalogs(loadGameCatalogs(levelCatalog.levelDirectory)),
-          level(makeGameLevel(levelCatalog, levelCatalog.startLevel, textureId, catalogs)),
+    Game::Game(int textureId, LevelCatalog catalog)
+        : levelCatalog(std::move(catalog)),
+          catalogs(loadGameCatalogs(levelCatalog.levelDirectory)),
+          level(composeGameLevel(levelCatalog, levelCatalog.startLevel, textureId, catalogs)),
           atlasTextureId(textureId)
     {
-        startLevel(makePlayer(catalogs, atlasTextureId));
+        startLevel(composePlayer(catalogs, atlasTextureId));
     }
 
-    void ExampleGame::loadLevel(int levelNumber)
+    void Game::loadLevel(int levelNumber)
     {
-        Actor nextPlayer = makePlayer(catalogs, atlasTextureId);
+        Actor nextPlayer = composePlayer(catalogs, atlasTextureId);
         if (const Actor* previousPlayer = level.world.findActor(level.world.playerId()))
         {
             nextPlayer.health = previousPlayer->health;
             nextPlayer.inventory = previousPlayer->inventory;
         }
         // No pointers, projectiles, requests or NPC state survive replacement of the world.
-        level = makeGameLevel(levelCatalog, levelNumber, atlasTextureId, catalogs);
+        level = composeGameLevel(levelCatalog, levelNumber, atlasTextureId, catalogs);
         startLevel(std::move(nextPlayer));
     }
 
-    void ExampleGame::startLevel(Actor player)
+    void Game::startLevel(Actor player)
     {
         placeFeetAt(player.body.bounds, level.playerSpawnFeet);
         const ActorId playerId = level.world.addActor(std::move(player));
@@ -61,13 +63,13 @@ namespace simple_platformer
         const Actor* playerActor = level.world.findActor(playerId);
         if (playerActor == nullptr)
         {
-            throw std::logic_error("The example game could not initialise its camera");
+            throw std::logic_error("The game could not initialise its camera");
         }
         cameraController =
             makeCameraController(level.map, playerActor->body.bounds, {80.0F, 45.0F});
     }
 
-    void ExampleGame::update(const InputIntentions& intentions, float deltaTime)
+    void Game::update(const InputIntentions& intentions, float deltaTime)
     {
         if (gameComplete)
         {
@@ -76,7 +78,7 @@ namespace simple_platformer
         Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr)
         {
-            throw std::logic_error("The example game has no player");
+            throw std::logic_error("The game has no player");
         }
 
         player->intentions = intentions;
@@ -104,72 +106,72 @@ namespace simple_platformer
         player = level.world.findActor(level.world.playerId());
         if (player == nullptr)
         {
-            throw std::logic_error("The example game has no player after lifecycle update");
+            throw std::logic_error("The game has no player after lifecycle update");
         }
         followTarget(cameraControllerValue(), level.map, player->body.bounds);
         updateWorldAnimations(level.world, deltaTime);
     }
 
-    glm::vec2 ExampleGame::playerAimDirection(glm::vec2 screenPosition) const
+    glm::vec2 Game::playerAimDirection(glm::vec2 screenPosition) const
     {
         const Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr)
         {
-            throw std::logic_error("The example game has no player");
+            throw std::logic_error("The game has no player");
         }
 
         return screenToWorld(currentCamera(), screenPosition) - centerOf(player->body.bounds);
     }
 
-    RenderScene ExampleGame::buildScene() const
+    RenderScene Game::buildScene() const
     {
         const Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr || !player->sprite.has_value())
         {
-            throw std::logic_error("The example player is missing its sprite");
+            throw std::logic_error("The player is missing its sprite");
         }
 
         return buildRenderScene(
             level.map, player->sprite.value().textureId, currentCamera(), level.world);
     }
 
-    DebugOverlay ExampleGame::debugOverlay() const
+    DebugOverlay Game::debugOverlay() const
     {
         constexpr float AtlasWidth = 160.0F;
         return makeDebugOverlay(level.world, level.map, cameraControllerValue(), AtlasWidth);
     }
 
-    Health ExampleGame::playerHealth() const
+    Health Game::playerHealth() const
     {
         const Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr || !player->health.has_value())
         {
-            throw std::logic_error("The example player is missing its health");
+            throw std::logic_error("The player is missing its health");
         }
         return *player->health;
     }
 
-    Camera ExampleGame::currentCamera() const
+    Camera Game::currentCamera() const
     {
         return cameraControllerValue().camera;
     }
 
-    const Inventory& ExampleGame::playerInventory() const
+    const Inventory& Game::playerInventory() const
     {
         const Actor* player = level.world.findActor(level.world.playerId());
         if (player == nullptr || !player->inventory.has_value())
         {
-            throw std::logic_error("The example player is missing its inventory");
+            throw std::logic_error("The player is missing its inventory");
         }
         return *player->inventory;
     }
 
-    const ItemDefinition& ExampleGame::itemDefinition(int id) const
+    const ItemDefinition& Game::itemDefinition(int id) const
     {
         return level.world.itemDefinition(id);
     }
 
-    void ExampleGame::useInventoryItem(std::size_t slot)
+    void Game::useInventoryItem(std::size_t slot)
     {
         if (gameComplete)
         {
@@ -181,24 +183,24 @@ namespace simple_platformer
         applyWorldRequests(level.world, requests);
     }
 
-    void ExampleGame::restart()
+    void Game::restart()
     {
         gameComplete = false;
-        level = makeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId, catalogs);
-        startLevel(makePlayer(catalogs, atlasTextureId));
+        level = composeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId, catalogs);
+        startLevel(composePlayer(catalogs, atlasTextureId));
     }
 
-    int ExampleGame::levelNumber() const
+    int Game::levelNumber() const
     {
         return level.number;
     }
 
-    bool ExampleGame::complete() const
+    bool Game::complete() const
     {
         return gameComplete;
     }
 
-    std::optional<glm::vec2> ExampleGame::levelExitScreenPosition() const
+    std::optional<glm::vec2> Game::levelExitScreenPosition() const
     {
         const auto& levelExit = level.world.exit();
         if (!levelExit.has_value())
@@ -210,7 +212,7 @@ namespace simple_platformer
         return worldToScreen(currentCamera(), topCenter);
     }
 
-    bool ExampleGame::exitReady() const
+    bool Game::exitReady() const
     {
         const Actor* player = level.world.findActor(level.world.playerId());
         const auto& levelExit = level.world.exit();
@@ -218,20 +220,20 @@ namespace simple_platformer
                exitUnlocked(levelExit.value(), *player);
     }
 
-    CameraController& ExampleGame::cameraControllerValue()
+    CameraController& Game::cameraControllerValue()
     {
         if (!cameraController.has_value())
         {
-            throw std::logic_error("The example game camera is not initialised");
+            throw std::logic_error("The game camera is not initialised");
         }
         return *cameraController;
     }
 
-    const CameraController& ExampleGame::cameraControllerValue() const
+    const CameraController& Game::cameraControllerValue() const
     {
         if (!cameraController.has_value())
         {
-            throw std::logic_error("The example game camera is not initialised");
+            throw std::logic_error("The game camera is not initialised");
         }
         return *cameraController;
     }

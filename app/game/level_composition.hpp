@@ -11,6 +11,7 @@ namespace simple_platformer
     struct LevelCatalog;
     struct GameCatalogs;
 
+    // Runtime map and world, composed from LevelData and shared definitions.
     struct GameLevel
     {
         int number = 0;
@@ -19,13 +20,14 @@ namespace simple_platformer
         glm::vec2 playerSpawnFeet = {0.0F, 0.0F};
     };
 
+    // Neither overload inserts the player; Game::startLevel places and adds it.
     // Standalone level construction loads its own shared catalogues.
-    GameLevel makeGameLevel(const LevelCatalog& catalog, int levelNumber, int textureId);
+    GameLevel composeGameLevel(const LevelCatalog& catalog, int levelNumber, int textureId);
     // Reuse the session's definitions; only the requested level file is read here.
-    GameLevel makeGameLevel(
+    GameLevel composeGameLevel(
         const LevelCatalog& catalog,
         int levelNumber,
         int textureId,
         const GameCatalogs& catalogs);
-    Actor makePlayer(const GameCatalogs& catalogs, int textureId);
+    Actor composePlayer(const GameCatalogs& catalogs, int textureId);
 }

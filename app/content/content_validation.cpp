@@ -1,4 +1,5 @@
 #include "content_validation.hpp"
+#include "content_diagnostics.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -11,7 +12,7 @@
 
 #include "simple_platformer/render/sprite.hpp"
 #include "tile_catalog.hpp"
-#include "example_level_data.hpp"
+#include "level_data.hpp"
 #include "simple_platformer/math/validation.hpp"
 
 namespace simple_platformer
@@ -27,39 +28,53 @@ namespace simple_platformer
                 "sprite requires finite non-negative atlas position and positive sizes");
         }
     }
-    void validatePickupSettings(const ExamplePickupPlacement& placement, const std::string& path)
+
+    void validatePickupSettings(
+        const PickupPlacement& placement,
+        const std::string& path,
+        std::string_view sourceName)
     {
         if (placement.stack.quantity <= 0)
         {
-            throw std::invalid_argument(
-                path + ".quantity: expected a positive integer, got " +
-                std::to_string(placement.stack.quantity));
+            failJson(
+                sourceName,
+                fieldPath(path, "quantity"),
+                "expected a positive integer, got " + std::to_string(placement.stack.quantity));
         }
     }
 
-    void validateExitSettings(const ExampleExitPlacement& placement, const std::string& path)
+    void validateExitSettings(
+        const ExitPlacement& placement,
+        const std::string& path,
+        std::string_view sourceName)
     {
         if (placement.definitionName.empty())
         {
-            throw std::invalid_argument(path + ".definition: exit definition name cannot be empty");
+            failJson(
+                sourceName, fieldPath(path, "definition"), "exit definition name cannot be empty");
         }
         if (placement.requirement && placement.requirement->quantity <= 0)
         {
-            throw std::invalid_argument(
-                path + ".requirement.quantity: expected a positive integer, got " +
-                std::to_string(placement.requirement->quantity));
+            failJson(
+                sourceName,
+                fieldPath(path, "requirement.quantity"),
+                "expected a positive integer, got " +
+                    std::to_string(placement.requirement->quantity));
         }
         if (placement.nextLevel && *placement.nextLevel <= 0)
         {
-            throw std::invalid_argument(path + ".nextLevel: level number must be positive");
+            failJson(sourceName, fieldPath(path, "nextLevel"), "level number must be positive");
         }
     }
 
-    void validateSinglePlacement(const std::vector<PlacementOrigin>& origins, std::string_view kind)
+    void validateSinglePlacement(
+        const std::vector<PlacementOrigin>& origins,
+        std::string_view kind,
+        std::string_view sourceName)
     {
         if (origins.empty())
         {
-            throw std::invalid_argument(std::string(kind) + ": expected exactly one placement");
+            failJson(sourceName, kind, "expected exactly one placement");
         }
         if (origins.size() > 1)
         {
@@ -67,9 +82,11 @@ namespace simple_platformer
             const std::string description =
                 duplicate.marker ? " marker '" + std::string(1, *duplicate.marker) + "'"
                                  : " placement";
-            throw std::invalid_argument(
-                duplicate.path + ": second " + std::string(kind) + description + "; " +
-                std::string(kind) + " already placed at " + origins.front().path);
+            failJson(
+                sourceName,
+                duplicate.path,
+                "second " + std::string(kind) + description + "; " + std::string(kind) +
+                    " already placed at " + origins.front().path);
         }
     }
 
@@ -132,69 +149,75 @@ namespace simple_platformer
 
     void validateLegendSymbols(
         const std::vector<std::string>& tileSymbols,
-        const std::vector<std::string>& objectSymbols)
+        const std::vector<std::string>& objectSymbols,
+        std::string_view sourceName)
     {
         std::set<std::string> tiles;
         for (const auto& symbol : tileSymbols)
         {
             if (symbol.size() != 1)
             {
-                throw std::invalid_argument("tileLegend: symbols must be one character");
+                failJson(sourceName, "tileLegend", "symbols must be one character");
             }
             if (!tiles.insert(symbol).second)
             {
-                throw std::invalid_argument("tileLegend." + symbol + ": repeated symbol");
+                failJson(sourceName, fieldPath("tileLegend", symbol), "repeated symbol");
             }
         }
         std::set<std::string> objects;
         for (const auto& symbol : objectSymbols)
         {
-            const std::string path = "objectLegend." + symbol + ": ";
+            const std::string path = fieldPath("objectLegend", symbol);
             if (symbol.size() != 1)
             {
-                throw std::invalid_argument(path + "symbols must be one character");
+                failJson(sourceName, path, "symbols must be one character");
             }
             if (tiles.count(symbol) != 0)
             {
-                throw std::invalid_argument(path + "symbol is also defined in tileLegend");
+                failJson(sourceName, path, "symbol is also defined in tileLegend");
             }
             if (!objects.insert(symbol).second)
             {
-                throw std::invalid_argument(path + "repeated symbol");
+                failJson(sourceName, path, "repeated symbol");
             }
         }
     }
 
     void validateMapRows(
         const std::vector<std::string>& rows,
-        const std::map<char, std::string>& legend)
+        const std::map<char, std::string>& legend,
+        std::string_view sourceName)
     {
         if (rows.empty())
         {
-            throw std::invalid_argument("map: expected at least one row");
+            failJson(sourceName, "map", "expected at least one row");
         }
         const std::size_t width = rows.front().size();
         if (width == 0)
         {
-            throw std::invalid_argument("map[0]: row cannot be empty");
+            failJson(sourceName, "map[0]", "row cannot be empty");
         }
         for (std::size_t row = 0; row < rows.size(); ++row)
         {
-            const std::string path = "map[" + std::to_string(row) + "]";
+            const std::string path = indexPath("map", row);
             if (rows[row].size() != width)
             {
-                throw std::invalid_argument(
-                    path + ": expected " + std::to_string(width) + " columns, got " +
-                    std::to_string(rows[row].size()));
+                failJson(
+                    sourceName,
+                    path,
+                    "expected " + std::to_string(width) + " columns, got " +
+                        std::to_string(rows[row].size()));
             }
             for (std::size_t column = 0; column < width; ++column)
             {
                 const char symbol = rows[row][column];
                 if (legend.find(symbol) == legend.end())
                 {
-                    throw std::invalid_argument(
-                        path + "[" + std::to_string(column) + "]: unknown symbol '" +
-                        std::string(1, symbol) + "'; define it in tileLegend or objectLegend");
+                    failJson(
+                        sourceName,
+                        indexPath(path, column),
+                        "unknown symbol '" + std::string(1, symbol) +
+                            "'; define it in tileLegend or objectLegend");
                 }
             }
         }

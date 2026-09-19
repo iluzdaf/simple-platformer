@@ -3,8 +3,8 @@
 
 #include <cstddef>
 
-#include "game/example_game.hpp"
-#include "game/level_catalog.hpp"
+#include "game/game.hpp"
+#include "content/level_catalog.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/inventory/inventory.hpp"
@@ -49,10 +49,10 @@ namespace
 }
 
 TEST_CASE(
-    "The example carries progress across levels and restarts after the final exit",
+    "The game carries progress across levels and restarts after the final exit",
     "[level-transition]")
 {
-    simple_platformer::ExampleGame game(
+    simple_platformer::Game game(
         0, simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json"));
     const auto initialHealth = game.playerHealth();
     const auto initialInventory = game.playerInventory();

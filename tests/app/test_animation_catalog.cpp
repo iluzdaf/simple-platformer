@@ -3,17 +3,17 @@
 #include <nlohmann/json.hpp>
 #include <limits>
 #include <stdexcept>
-#include "game/animation_catalog.hpp"
-#include "game/actor_catalog.hpp"
-#include "game/actor_definition.hpp"
-#include "game/content_json.hpp"
+#include "content/animation_catalog.hpp"
+#include "content/actor_catalog.hpp"
+#include "content/actor_definition.hpp"
+#include "content/content_json.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 
 TEST_CASE("Animation JSON preserves frame order timing and looping", "[app][animations]")
 {
     auto root = nlohmann::json::parse(
-        simple_platformer::readContentFile("tests/fixtures/levels/animations.json"));
+        simple_platformer::loadContentText("tests/fixtures/levels/animations.json"));
     auto& move = root["animations"]["test_actor"]["move"];
     move["frames"].push_back({{"position", {8, 0}}, {"size", {8, 12}}});
     move["frames"].push_back({{"position", {0, 0}}, {"size", {8, 12}}});
@@ -32,7 +32,7 @@ TEST_CASE("Animation JSON preserves frame order timing and looping", "[app][anim
 TEST_CASE("Animation catalogues reject invalid content with source context", "[app][animations]")
 {
     auto root = nlohmann::json::parse(
-        simple_platformer::readContentFile("tests/fixtures/levels/animations.json"));
+        simple_platformer::loadContentText("tests/fixtures/levels/animations.json"));
     auto& set = root["animations"]["test_actor"];
     SECTION("Missing clip")
     {
@@ -114,6 +114,26 @@ TEST_CASE("Animation loading reports missing files and unknown sets", "[app][ani
     REQUIRE_THROWS_WITH(
         simple_platformer::animationSet({}, "missing"),
         Catch::Matchers::ContainsSubstring("unknown animation set 'missing'"));
+}
+
+TEST_CASE("Animation domain diagnostics identify the clip and frame", "[app][animations]")
+{
+    auto root = nlohmann::json::parse(
+        simple_platformer::loadContentText("tests/fixtures/levels/animations.json"));
+    SECTION("Duration")
+    {
+        root["animations"]["test_actor"]["move"]["frameDuration"] = 0;
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseAnimationCatalog(root.dump(), "clips.json"),
+            Catch::Matchers::ContainsSubstring("animations.test_actor: move.frameDuration:"));
+    }
+    SECTION("Rectangle")
+    {
+        root["animations"]["test_actor"]["move"]["frames"][0]["size"] = {0, 12};
+        REQUIRE_THROWS_WITH(
+            simple_platformer::parseAnimationCatalog(root.dump(), "clips.json"),
+            Catch::Matchers::ContainsSubstring("animations.test_actor: move.frames[0]:"));
+    }
 }
 
 TEST_CASE("Actors have independent playback of shared animation definitions", "[app][animations]")

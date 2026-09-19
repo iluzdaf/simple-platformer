@@ -2,7 +2,6 @@
 #include "content_json.hpp"
 #include "content_validation.hpp"
 #include <nlohmann/json.hpp>
-#include <exception>
 #include <filesystem>
 #include <stdexcept>
 #include <string>
@@ -42,44 +41,40 @@ namespace simple_platformer
 
     ExitCatalog parseExitCatalog(std::string_view text, std::string_view sourceName)
     {
+        const auto root = parseContentRoot(text, sourceName);
+        checkJsonFields(root, {"exits"}, sourceName, "root");
+        const auto& definitions = requiredJsonMember(root, "exits", sourceName, "root");
+        checkJsonObject(definitions, sourceName, "exits");
+        ExitCatalog catalog;
+        for (const auto& entry : definitions.items())
+        {
+            const std::string path = "exits." + entry.key();
+            const auto& value = entry.value();
+            checkJsonFields(value, {"bodySize", "sprite"}, sourceName, path);
+            ExitDefinition definition;
+            definition.bodySize = readVector(value, "bodySize", sourceName, path);
+            definition.sprite = jsonSprite(
+                requiredJsonMember(value, "sprite", sourceName, path),
+                sourceName,
+                path + ".sprite");
+            catalog.emplace(entry.key(), definition);
+        }
+        // Validation is shared with C++ built catalogues, so it names the definition but not
+        // the file.
         try
         {
-            const auto root = nlohmann::json::parse(text);
-            checkJsonFields(root, {"exits"});
-            const auto& definitions = root.at("exits");
-            if (!definitions.is_object())
-            {
-                throw std::invalid_argument("exits: expected an object");
-            }
-            ExitCatalog catalog;
-            for (const auto& entry : definitions.items())
-            {
-                try
-                {
-                    const auto& value = entry.value();
-                    checkJsonFields(value, {"bodySize", "sprite"});
-                    ExitDefinition definition;
-                    definition.bodySize = jsonVector(value.at("bodySize"));
-                    definition.sprite = jsonSprite(value.at("sprite"));
-                    catalog.emplace(entry.key(), definition);
-                }
-                catch (const std::exception& error)
-                {
-                    throw std::invalid_argument("exits." + entry.key() + ": " + error.what());
-                }
-            }
             validateExitCatalog(catalog);
-            return catalog;
         }
-        catch (const std::exception& error)
+        catch (const std::invalid_argument& error)
         {
             throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
         }
+        return catalog;
     }
 
     ExitCatalog loadExitCatalog(const std::filesystem::path& path)
     {
-        return parseExitCatalog(readContentFile(path), path.string());
+        return parseExitCatalog(loadContentText(path), path.string());
     }
 
     const ExitDefinition& exitDefinition(const ExitCatalog& catalog, const std::string& name)

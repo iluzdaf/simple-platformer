@@ -24,7 +24,7 @@
 
 namespace
 {
-    simple_platformer::Actor makePlayer(glm::vec2 position)
+    simple_platformer::Actor composePlayer(glm::vec2 position)
     {
         simple_platformer::Actor player;
         player.body.bounds = {position, {12.0F, 12.0F}};
@@ -136,7 +136,7 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
     const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
         {"............", "............", "............", "############"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(composePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({16.0F, 16.0F}));
 
@@ -187,7 +187,7 @@ TEST_CASE("A chasing NPC follows the last seen target feet", "[npc][fsm]")
     const simple_platformer::TileMap map =
         simple_platformer::TileMap::fromAscii({"........", "........", "########"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({64.0F, 16.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(composePlayer({64.0F, 16.0F}));
     world.setPlayer(playerId, {70.0F, 28.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({18.0F, 20.0F}));
     brain(world, npcId).target = playerId;
@@ -208,7 +208,7 @@ TEST_CASE(
     const auto map = simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
     simple_platformer::World world;
     // The player is now to the right, but the last sighting was to the left.
-    const auto playerId = world.addActor(makePlayer({64.0F, 20.0F}));
+    const auto playerId = world.addActor(composePlayer({64.0F, 20.0F}));
     simple_platformer::Actor npc;
     npc.body.bounds = {{50.0F, 12.0F}, {12.0F, 20.0F}};
     npc.platformerMovement = simple_platformer::PlatformerMovement{};
@@ -234,7 +234,7 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
     const simple_platformer::TileMap map =
         simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(composePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeBitingNpc({16.0F, 16.0F}));
     brain(world, npcId).target = playerId;
@@ -263,7 +263,7 @@ TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]"
     const simple_platformer::TileMap map =
         simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(composePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({16.0F, 16.0F}));
     brain(world, npcId).target = playerId;
@@ -282,7 +282,7 @@ TEST_CASE("A ranged NPC stops and requests an attack while its target is visible
     const simple_platformer::TileMap map =
         simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({48.0F, 0.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(composePlayer({48.0F, 0.0F}));
     world.setPlayer(playerId, {54.0F, 12.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeShootingNpc({16.0F, 16.0F}));
     brain(world, npcId).target = playerId;
@@ -303,7 +303,7 @@ TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][f
     const simple_platformer::TileMap map =
         simple_platformer::TileMap::fromAscii({"........", "........", "........", "########"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({96.0F, 32.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(composePlayer({96.0F, 32.0F}));
     world.setPlayer(playerId, {102.0F, 44.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({18.0F, 20.0F}));
     actor(world, npcId).patrol = simple_platformer::Patrol{{24.0F, 32.0F}, {72.0F, 32.0F}, true};
@@ -322,7 +322,7 @@ TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]
     const simple_platformer::TileMap map =
         simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({64.0F, 0.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(composePlayer({64.0F, 0.0F}));
     world.setPlayer(playerId, {70.0F, 12.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({18.0F, 20.0F}));
     actor(world, npcId).patrol = simple_platformer::Patrol{{24.0F, 32.0F}, {56.0F, 32.0F}, false};
@@ -339,7 +339,7 @@ TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
     const simple_platformer::TileMap map =
         simple_platformer::TileMap::fromAscii({"....#....", "....#....", "#########"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({16.0F, 0.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(composePlayer({16.0F, 0.0F}));
     world.setPlayer(playerId, {22.0F, 12.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({18.0F, 20.0F}));
     actor(world, npcId).patrol = simple_platformer::Patrol{{24.0F, 32.0F}, {120.0F, 32.0F}, true};

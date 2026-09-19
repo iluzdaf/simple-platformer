@@ -14,14 +14,14 @@
 
 namespace simple_platformer
 {
-    struct ExampleActorPlacement
+    struct ActorPlacement
     {
         std::string definitionName;
         glm::vec2 spawnFeet = {0.0F, 0.0F};
         std::optional<Patrol> patrol;
     };
 
-    struct ExamplePickupPlacement
+    struct PickupPlacement
     {
         glm::vec2 spawnFeet = {0.0F, 0.0F};
         NamedItemStack stack;
@@ -29,7 +29,7 @@ namespace simple_platformer
         std::string definitionName = {};
     };
 
-    struct ExampleExitPlacement
+    struct ExitPlacement
     {
         std::string definitionName;
         glm::vec2 spawnFeet = {0.0F, 0.0F};
@@ -38,21 +38,23 @@ namespace simple_platformer
         std::optional<int> nextLevel;
     };
 
-    struct ExampleLevelData
+    // Parsed authoring data; level composition turns this into a runtime GameLevel.
+    struct LevelData
     {
         std::map<char, std::string> tileLegend = {{'.', "empty"}, {'#', "stone"}};
         std::vector<std::string> mapRows;
         glm::vec2 playerSpawnFeet = {0.0F, 0.0F};
-        std::vector<ExampleActorPlacement> actors;
+        std::vector<ActorPlacement> actors;
         // Includes unused legend templates so catalogue references can all be checked.
+        // Each key is a diagnostic JSON path; its value is the referenced definition name.
         std::map<std::string, std::string> actorReferences;
         std::map<std::string, std::string> pickupReferences;
         std::map<std::string, std::string> exitReferences;
         std::map<std::string, std::string> itemReferences;
-        std::vector<ExamplePickupPlacement> pickups;
-        ExampleExitPlacement exit;
+        std::vector<PickupPlacement> pickups;
+        ExitPlacement exit;
     };
 
-    ExampleLevelData parseExampleLevelData(std::string_view text, std::string_view sourceName);
-    ExampleLevelData loadExampleLevelData(const std::filesystem::path& path);
+    LevelData parseLevelData(std::string_view text, std::string_view sourceName);
+    LevelData loadLevelData(const std::filesystem::path& path);
 }

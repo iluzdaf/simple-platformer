@@ -14,15 +14,17 @@ namespace simple_platformer
         std::string item;
         int quantity = 1;
     };
+
     struct ItemCatalog
     {
         // IDs are assigned when loading; reuse this catalogue for a game session.
         std::map<std::string, ItemDefinition> definitions;
     };
+
     void validateItemCatalog(const ItemCatalog& catalog);
     ItemCatalog parseItemCatalog(std::string_view text, std::string_view sourceName);
     ItemCatalog loadItemCatalog(const std::filesystem::path& path);
     const ItemDefinition& itemDefinition(const ItemCatalog& catalog, const std::string& name);
-    ItemStack resolveItemStack(const ItemCatalog& catalog, const NamedItemStack& stack);
+    ItemStack composeItemStack(const ItemCatalog& catalog, const NamedItemStack& stack);
     std::vector<ItemDefinition> composeItems(const ItemCatalog& catalog, int textureId);
 }

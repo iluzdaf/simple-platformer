@@ -18,6 +18,7 @@ namespace simple_platformer
         // Absent means use the inventory item's icon in the world too.
         std::optional<Sprite> sprite;
     };
+
     using PickupCatalog = std::map<std::string, PickupDefinition>;
     void validatePickupDefinition(const PickupDefinition& definition, const ItemCatalog& items);
     void validatePickupCatalog(const PickupCatalog& catalog, const ItemCatalog& items);

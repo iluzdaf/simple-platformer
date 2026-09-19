@@ -19,7 +19,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include "debug/debug_overlay_ui.hpp"
-#include "game/example_game.hpp"
+#include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "ui/completion_ui.hpp"
@@ -209,7 +209,7 @@ namespace simple_platformer
         SpriteRenderer renderer;
         const int atlas = renderer.loadTexture("assets/sprites.png");
         const TextureView atlasTexture = renderer.textureView(atlas);
-        ExampleGame game(atlas);
+        Game game(atlas);
         FixedStep fixedStep;
         double previousTime = glfwGetTime();
 

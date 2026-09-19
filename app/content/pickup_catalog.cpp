@@ -2,10 +2,9 @@
 #include "content_json.hpp"
 #include "content_validation.hpp"
 #include <nlohmann/json.hpp>
-#include <exception>
 #include <filesystem>
 #include <stdexcept>
-#include "game/item_catalog.hpp"
+#include "content/item_catalog.hpp"
 #include <string_view>
 #include <string>
 #include "simple_platformer/math/aabb.hpp"
@@ -17,7 +16,7 @@ namespace simple_platformer
     {
         Pickup pickup;
         pickup.bounds.size = definition.bodySize;
-        pickup.stack = resolveItemStack(items, definition.stack);
+        pickup.stack = composeItemStack(items, definition.stack);
         pickup.sprite = definition.sprite;
         validatePickup(pickup);
         if (definition.sprite)
@@ -25,6 +24,7 @@ namespace simple_platformer
             validateContentSprite(*definition.sprite);
         }
     }
+
     void validatePickupCatalog(const PickupCatalog& catalog, const ItemCatalog& items)
     {
         for (const auto& entry : catalog)
@@ -43,57 +43,53 @@ namespace simple_platformer
             }
         }
     }
+
     PickupCatalog parsePickupCatalog(
         std::string_view text,
         std::string_view sourceName,
         const ItemCatalog& items)
     {
+        const auto root = parseContentRoot(text, sourceName);
+        checkJsonFields(root, {"pickups"}, sourceName, "root");
+        const auto& definitions = requiredJsonMember(root, "pickups", sourceName, "root");
+        checkJsonObject(definitions, sourceName, "pickups");
+        PickupCatalog catalog;
+        for (const auto& entry : definitions.items())
+        {
+            const std::string path = "pickups." + entry.key();
+            const auto& value = entry.value();
+            checkJsonFields(value, {"item", "quantity", "bodySize", "sprite"}, sourceName, path);
+            PickupDefinition definition;
+            definition.stack = {
+                readText(value, "item", sourceName, path),
+                readInteger(value, "quantity", sourceName, path)};
+            readOptionalVector(value, "bodySize", definition.bodySize, sourceName, path);
+            if (value.contains("sprite"))
+            {
+                definition.sprite = jsonSprite(
+                    requiredJsonMember(value, "sprite", sourceName, path),
+                    sourceName,
+                    path + ".sprite");
+            }
+            catalog.emplace(entry.key(), definition);
+        }
+        // Validation is shared with C++ built catalogues, so it names the pickup but not the file.
         try
         {
-            const auto root = nlohmann::json::parse(text);
-            checkJsonFields(root, {"pickups"});
-            const auto& definitions = root.at("pickups");
-            if (!definitions.is_object())
-            {
-                throw std::invalid_argument("pickups: expected an object");
-            }
-            PickupCatalog catalog;
-            for (const auto& entry : definitions.items())
-            {
-                try
-                {
-                    const auto& value = entry.value();
-                    checkJsonFields(value, {"item", "quantity", "bodySize", "sprite"});
-                    PickupDefinition definition;
-                    definition.stack = {
-                        value.at("item").get<std::string>(), jsonInteger(value.at("quantity"))};
-                    if (value.contains("bodySize"))
-                    {
-                        definition.bodySize = jsonVector(value.at("bodySize"));
-                    }
-                    if (value.contains("sprite"))
-                    {
-                        definition.sprite = jsonSprite(value.at("sprite"));
-                    }
-                    catalog.emplace(entry.key(), definition);
-                }
-                catch (const std::exception& error)
-                {
-                    throw std::invalid_argument("pickups." + entry.key() + ": " + error.what());
-                }
-            }
             validatePickupCatalog(catalog, items);
-            return catalog;
         }
-        catch (const std::exception& error)
+        catch (const std::invalid_argument& error)
         {
             throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
         }
+        return catalog;
     }
+
     PickupCatalog loadPickupCatalog(const std::filesystem::path& path, const ItemCatalog& items)
     {
-        return parsePickupCatalog(readContentFile(path), path.string(), items);
+        return parsePickupCatalog(loadContentText(path), path.string(), items);
     }
+
     const PickupDefinition& pickupDefinition(const PickupCatalog& catalog, const std::string& name)
     {
         const auto found = catalog.find(name);
@@ -103,6 +99,7 @@ namespace simple_platformer
         }
         return found->second;
     }
+
     Pickup composePickup(
         const PickupDefinition& definition,
         const ItemCatalog& items,
@@ -113,7 +110,7 @@ namespace simple_platformer
         Pickup result;
         result.bounds.size = definition.bodySize;
         placeFeetAt(result.bounds, spawnFeet);
-        result.stack = resolveItemStack(items, definition.stack);
+        result.stack = composeItemStack(items, definition.stack);
         result.sprite = definition.sprite;
         if (result.sprite)
         {

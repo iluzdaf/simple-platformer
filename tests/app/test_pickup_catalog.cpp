@@ -3,11 +3,11 @@
 #include <nlohmann/json.hpp>
 #include <limits>
 #include <stdexcept>
-#include "game/item_catalog.hpp"
-#include "game/game_catalogs.hpp"
-#include "game/pickup_catalog.hpp"
-#include "game/example_content.hpp"
-#include "game/level_catalog.hpp"
+#include "content/item_catalog.hpp"
+#include "content/game_catalogs.hpp"
+#include "content/pickup_catalog.hpp"
+#include "game/level_composition.hpp"
+#include "content/level_catalog.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/render/sprite.hpp"
 
@@ -70,7 +70,7 @@ TEST_CASE("Pickup JSON validates every definition including unused entries", "[a
     }
     REQUIRE_THROWS_WITH(
         simple_platformer::parsePickupCatalog(root.dump(), "pickups.json", items),
-        Catch::Matchers::ContainsSubstring("pickups.json: pickups.unused:"));
+        Catch::Matchers::ContainsSubstring("pickups.json: pickups.unused"));
 }
 
 TEST_CASE("Pickup definitions reject invalid C++ data without JSON", "[app][pickups][validation]")
@@ -93,7 +93,7 @@ TEST_CASE("Named pickups and exit requirements resolve through level composition
         R"({"startLevel":1,"levels":[{"number":1,"file":"pickup_placement.json"}]})",
         "fixture",
         "tests/fixtures/levels");
-    const auto level = simple_platformer::makeGameLevel(catalog, 1, 7);
+    const auto level = simple_platformer::composeGameLevel(catalog, 1, 7);
     const auto items = simple_platformer::loadItemCatalog("tests/fixtures/levels/items.json");
     REQUIRE(level.world.pickups().size() == 2);
     REQUIRE(
@@ -117,10 +117,10 @@ TEST_CASE("Exit item references resolve through the item catalogue", "[app][pick
         "fixture",
         "tests/fixtures/levels");
     REQUIRE_THROWS_WITH(
-        simple_platformer::makeGameLevel(catalog, 1, 0),
+        simple_platformer::composeGameLevel(catalog, 1, 0),
         Catch::Matchers::ContainsSubstring("unknown_item.json:"));
     REQUIRE_THROWS_WITH(
-        simple_platformer::makeGameLevel(catalog, 1, 0),
+        simple_platformer::composeGameLevel(catalog, 1, 0),
         Catch::Matchers::ContainsSubstring("requirement.item: unknown item 'missing'"));
 }
 
@@ -131,7 +131,7 @@ TEST_CASE("Unknown unused pickup legend references identify their source", "[app
         "fixture",
         "tests/fixtures/levels");
     REQUIRE_THROWS_WITH(
-        simple_platformer::makeGameLevel(catalog, 1, 0),
+        simple_platformer::composeGameLevel(catalog, 1, 0),
         Catch::Matchers::ContainsSubstring(
             "unknown_pickup.json: objectLegend.K.definition: unknown pickup definition 'missing'"));
 }
@@ -150,8 +150,8 @@ TEST_CASE("Level composition reuses the supplied session item catalogue", "[app]
     auto catalogs = simple_platformer::loadGameCatalogs(levels.levelDirectory);
     catalogs.items = items;
     const auto keyId = simple_platformer::itemDefinition(items, "key").id;
-    const auto first = simple_platformer::makeGameLevel(levels, 10, 0, catalogs);
-    const auto second = simple_platformer::makeGameLevel(levels, 25, 0, catalogs);
+    const auto first = simple_platformer::composeGameLevel(levels, 10, 0, catalogs);
+    const auto second = simple_platformer::composeGameLevel(levels, 25, 0, catalogs);
     REQUIRE(first.world.pickups().front().stack.item == keyId);
     REQUIRE(first.world.itemDefinition(keyId).name == "Session key");
     REQUIRE(second.world.itemDefinition(keyId).name == "Session key");

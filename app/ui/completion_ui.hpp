@@ -2,8 +2,8 @@
 
 namespace simple_platformer
 {
-    class ExampleGame;
+    class Game;
     struct WindowViewport;
 
-    void drawLevelCompletion(const ExampleGame& game, const WindowViewport& viewport);
+    void drawLevelCompletion(const Game& game, const WindowViewport& viewport);
 }

@@ -1,11 +1,36 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
+#include <nlohmann/json.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "game/tile_catalog.hpp"
+#include "content/tile_catalog.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
+
+TEST_CASE("Tile catalogues reject unknown fields and identify their definitions", "[app][tiles]")
+{
+    auto root = nlohmann::json::parse(R"({"tiles":{
+        "empty":{"blocksMovement":false,"blocksSight":false},
+        "wall":{"blocksMovement":true,"blocksSight":true,"sprite":{"position":[0,0],"size":[16,16]}}
+    }})");
+    SECTION("Definition typo")
+    {
+        root["tiles"]["wall"]["blocksSighht"] = true;
+    }
+    SECTION("Sprite typo")
+    {
+        root["tiles"]["wall"]["sprite"]["width"] = 16;
+    }
+    SECTION("Invalid vector")
+    {
+        root["tiles"]["wall"]["sprite"]["position"] = {0};
+    }
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseTileCatalog(root.dump(), "tiles.json"),
+        Catch::Matchers::ContainsSubstring("tiles.json: tiles.wall"));
+}
 
 TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][tiles]")
 {
@@ -13,15 +38,15 @@ TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][
         R"({"tiles": {
         "empty": {"blocksMovement":false,"blocksSight":false},
         "glass": {"blocksMovement":true,"blocksSight":false,
-                  "sprite":{"x":16,"y":0,"width":16,"height":16}},
+                  "sprite":{"position": [16, 0], "size": [16, 16]}},
         "grass": {"blocksMovement":false,"blocksSight":true,
-                  "sprite":{"x":32,"y":0,"width":16,"height":16}}
+                  "sprite":{"position": [32, 0], "size": [16, 16]}}
     }})",
         "test tiles");
     const auto glass =
-        simple_platformer::makeTileMap({".X."}, {{'.', "empty"}, {'X', "glass"}}, catalog);
+        simple_platformer::composeTileMap({".X."}, {{'.', "empty"}, {'X', "glass"}}, catalog);
     const auto grass =
-        simple_platformer::makeTileMap({".G."}, {{'.', "empty"}, {'G', "grass"}}, catalog);
+        simple_platformer::composeTileMap({".G."}, {{'.', "empty"}, {'G', "grass"}}, catalog);
     REQUIRE(glass.blocksMovement({1, 0}));
     REQUIRE_FALSE(glass.blocksSight({1, 0}));
     REQUIRE_FALSE(grass.blocksMovement({1, 0}));
@@ -37,9 +62,10 @@ TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][
     REQUIRE_FALSE(
         simple_platformer::segmentCastMovementBlockingTiles(grass, {4, 4}, {38, 4}).has_value());
     REQUIRE_THROWS_AS(
-        simple_platformer::makeTileMap({"?"}, {{'.', "empty"}}, catalog), std::invalid_argument);
+        simple_platformer::composeTileMap({"?"}, {{'.', "empty"}}, catalog), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::makeTileMap({"X"}, {{'X', "missing"}}, catalog), std::invalid_argument);
+        simple_platformer::composeTileMap({"X"}, {{'X', "missing"}}, catalog),
+        std::invalid_argument);
 }
 
 TEST_CASE("Tile catalogs reject missing empty tiles and malformed definitions", "[app][tiles]")
@@ -57,7 +83,7 @@ TEST_CASE("Tile catalogs reject missing empty tiles and malformed definitions", 
             R"({"tiles":{
         "empty":{"blocksMovement":false,"blocksSight":false},
         "bad":{"blocksMovement":true,"blocksSight":true,
-               "sprite":{"x":0,"y":0,"width":0,"height":16}}}})",
+               "sprite":{"position": [0, 0], "size": [0, 16]}}}})",
             "test"),
         std::invalid_argument);
     REQUIRE_THROWS_AS(

@@ -6,7 +6,7 @@
 
 #include <imgui.h>
 
-#include "game/example_game.hpp"
+#include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "simple_platformer/inventory/inventory.hpp"
@@ -19,7 +19,7 @@
 namespace simple_platformer
 {
     std::optional<std::size_t> drawInventory(
-        const ExampleGame& game,
+        const Game& game,
         const TextureView& atlas,
         const WindowViewport& viewport)
     {

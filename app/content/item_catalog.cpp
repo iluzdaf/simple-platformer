@@ -1,14 +1,15 @@
 #include "item_catalog.hpp"
+#include "content_diagnostics.hpp"
 #include "content_json.hpp"
 #include "content_validation.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include <cstddef>
 #include <nlohmann/json.hpp>
-#include <exception>
 #include <filesystem>
 #include <set>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -38,66 +39,65 @@ namespace simple_platformer
             }
         }
     }
+
     ItemCatalog parseItemCatalog(std::string_view text, std::string_view sourceName)
     {
+        const auto root = parseContentRoot(text, sourceName);
+        checkJsonFields(root, {"items"}, sourceName, "root");
+        const auto& definitions = requiredJsonMember(root, "items", sourceName, "root");
+        checkJsonObject(definitions, sourceName, "items");
+        ItemCatalog catalog;
+        if (definitions.size() > static_cast<std::size_t>(std::numeric_limits<ItemId>::max()))
+        {
+            failJson(sourceName, "items", "too many item definitions");
+        }
+        for (const auto& entry : definitions.items())
+        {
+            const std::string path = "items." + entry.key();
+            const auto& value = entry.value();
+            checkJsonFields(
+                value,
+                {"name", "icon", "maximumStack", "effect", "effectAmount"},
+                sourceName,
+                path);
+            ItemDefinition item;
+            // JSON objects iterate by name. IDs are internal to this loaded catalogue.
+            item.id = static_cast<ItemId>(catalog.definitions.size() + 1);
+            item.name = readText(value, "name", sourceName, path);
+            item.icon = jsonSprite(
+                requiredJsonMember(value, "icon", sourceName, path), sourceName, path + ".icon");
+            item.maximumStack = readInteger(value, "maximumStack", sourceName, path);
+            std::string effect = "none";
+            readOptionalText(value, "effect", effect, sourceName, path);
+            if (effect == "heal")
+            {
+                item.effect = ItemEffect::Heal;
+            }
+            else if (effect != "none")
+            {
+                failJson(
+                    sourceName,
+                    fieldPath(path, "effect"),
+                    "unknown effect '" + effect + "'; expected heal or none");
+            }
+            readOptionalInteger(value, "effectAmount", item.effectAmount, sourceName, path);
+            catalog.definitions.emplace(entry.key(), item);
+        }
+        // Validation is shared with C++ built catalogues, so it names the item but not the file.
         try
         {
-            const auto root = nlohmann::json::parse(text);
-            checkJsonFields(root, {"items"});
-            const auto& definitions = root.at("items");
-            if (!definitions.is_object())
-            {
-                throw std::invalid_argument("items: expected an object");
-            }
-            ItemCatalog catalog;
-            if (definitions.size() > static_cast<std::size_t>(std::numeric_limits<ItemId>::max()))
-            {
-                throw std::invalid_argument("too many item definitions");
-            }
-            for (const auto& entry : definitions.items())
-            {
-                try
-                {
-                    const auto& value = entry.value();
-                    checkJsonFields(
-                        value, {"name", "icon", "maximumStack", "effect", "effectAmount"});
-                    ItemDefinition item;
-                    // JSON objects iterate by name. IDs are internal to this loaded catalogue.
-                    item.id = static_cast<ItemId>(catalog.definitions.size() + 1);
-                    item.name = value.at("name").get<std::string>();
-                    item.icon = jsonSprite(value.at("icon"));
-                    item.maximumStack = jsonInteger(value.at("maximumStack"));
-                    const auto effect = value.value("effect", std::string("none"));
-                    if (effect == "heal")
-                    {
-                        item.effect = ItemEffect::Heal;
-                    }
-                    else if (effect != "none")
-                    {
-                        throw std::invalid_argument("unknown effect '" + effect + "'");
-                    }
-                    if (value.contains("effectAmount"))
-                    {
-                        item.effectAmount = jsonInteger(value.at("effectAmount"));
-                    }
-                    catalog.definitions.emplace(entry.key(), item);
-                }
-                catch (const std::exception& error)
-                {
-                    throw std::invalid_argument("items." + entry.key() + ": " + error.what());
-                }
-            }
             validateItemCatalog(catalog);
-            return catalog;
         }
-        catch (const std::exception& error)
+        catch (const std::invalid_argument& error)
         {
             throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
         }
+        return catalog;
     }
+
     ItemCatalog loadItemCatalog(const std::filesystem::path& path)
     {
-        return parseItemCatalog(readContentFile(path), path.string());
+        return parseItemCatalog(loadContentText(path), path.string());
     }
 
     const ItemDefinition& itemDefinition(const ItemCatalog& catalog, const std::string& name)
@@ -109,7 +109,8 @@ namespace simple_platformer
         }
         return found->second;
     }
-    ItemStack resolveItemStack(const ItemCatalog& catalog, const NamedItemStack& stack)
+
+    ItemStack composeItemStack(const ItemCatalog& catalog, const NamedItemStack& stack)
     {
         if (stack.quantity <= 0)
         {
@@ -117,6 +118,7 @@ namespace simple_platformer
         }
         return {itemDefinition(catalog, stack.item).id, stack.quantity};
     }
+
     std::vector<ItemDefinition> composeItems(const ItemCatalog& catalog, int textureId)
     {
         validateItemCatalog(catalog);

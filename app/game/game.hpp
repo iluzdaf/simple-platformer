@@ -6,9 +6,9 @@
 #include <glm/vec2.hpp>
 
 #include "debug/debug_overlay.hpp"
-#include "game/example_content.hpp"
-#include "game/level_catalog.hpp"
-#include "game/game_catalogs.hpp"
+#include "game/level_composition.hpp"
+#include "content/level_catalog.hpp"
+#include "content/game_catalogs.hpp"
 #include "simple_platformer/render/camera.hpp"
 
 namespace simple_platformer
@@ -19,11 +19,11 @@ namespace simple_platformer
     class Inventory;
     struct ItemDefinition;
 
-    class ExampleGame
+    class Game
     {
     public:
-        explicit ExampleGame(int textureId);
-        ExampleGame(int textureId, LevelCatalog catalog);
+        explicit Game(int textureId);
+        Game(int textureId, LevelCatalog catalog);
 
         void update(const InputIntentions& intentions, float deltaTime);
         glm::vec2 playerAimDirection(glm::vec2 screenPosition) const;

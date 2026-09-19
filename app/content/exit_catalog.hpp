@@ -14,6 +14,7 @@ namespace simple_platformer
         glm::vec2 bodySize = {16, 32};
         Sprite sprite;
     };
+
     using ExitCatalog = std::map<std::string, ExitDefinition>;
     void validateExitDefinition(const ExitDefinition& definition);
     void validateExitCatalog(const ExitCatalog& catalog);

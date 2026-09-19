@@ -14,6 +14,7 @@ namespace simple_platformer
         GameCatalogs catalogs;
         catalogs.tiles = loadTileCatalog(levelDirectory / "tiles.json");
         catalogs.animations = loadAnimationCatalog(levelDirectory / "animations.json");
+        // Actor definitions reference the animation sets loaded above.
         catalogs.actors = loadActorCatalog(levelDirectory / "actors.json", catalogs.animations);
         catalogs.items = loadItemCatalog(levelDirectory / "items.json");
         // Pickup stacks refer to the item definitions loaded above.

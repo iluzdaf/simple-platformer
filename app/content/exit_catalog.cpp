@@ -1,4 +1,5 @@
 #include "exit_catalog.hpp"
+#include "content_diagnostics.hpp"
 #include "content_json.hpp"
 #include "content_validation.hpp"
 #include <nlohmann/json.hpp>
@@ -48,7 +49,7 @@ namespace simple_platformer
         ExitCatalog catalog;
         for (const auto& entry : definitions.items())
         {
-            const std::string path = "exits." + entry.key();
+            const std::string path = fieldPath("exits", entry.key());
             const auto& value = entry.value();
             checkJsonFields(value, {"bodySize", "sprite"}, sourceName, path);
             ExitDefinition definition;
@@ -56,7 +57,7 @@ namespace simple_platformer
             definition.sprite = jsonSprite(
                 requiredJsonMember(value, "sprite", sourceName, path),
                 sourceName,
-                path + ".sprite");
+                fieldPath(path, "sprite"));
             catalog.emplace(entry.key(), definition);
         }
         // Validation is shared with C++ built catalogues, so it names the definition but not

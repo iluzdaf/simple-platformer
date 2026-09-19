@@ -1,4 +1,5 @@
 #include "pickup_catalog.hpp"
+#include "content_diagnostics.hpp"
 #include "content_json.hpp"
 #include "content_validation.hpp"
 #include <nlohmann/json.hpp>
@@ -56,7 +57,7 @@ namespace simple_platformer
         PickupCatalog catalog;
         for (const auto& entry : definitions.items())
         {
-            const std::string path = "pickups." + entry.key();
+            const std::string path = fieldPath("pickups", entry.key());
             const auto& value = entry.value();
             checkJsonFields(value, {"item", "quantity", "bodySize", "sprite"}, sourceName, path);
             PickupDefinition definition;
@@ -69,7 +70,7 @@ namespace simple_platformer
                 definition.sprite = jsonSprite(
                     requiredJsonMember(value, "sprite", sourceName, path),
                     sourceName,
-                    path + ".sprite");
+                    fieldPath(path, "sprite"));
             }
             catalog.emplace(entry.key(), definition);
         }

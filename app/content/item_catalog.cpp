@@ -53,7 +53,7 @@ namespace simple_platformer
         }
         for (const auto& entry : definitions.items())
         {
-            const std::string path = "items." + entry.key();
+            const std::string path = fieldPath("items", entry.key());
             const auto& value = entry.value();
             checkJsonFields(
                 value,
@@ -65,7 +65,9 @@ namespace simple_platformer
             item.id = static_cast<ItemId>(catalog.definitions.size() + 1);
             item.name = readText(value, "name", sourceName, path);
             item.icon = jsonSprite(
-                requiredJsonMember(value, "icon", sourceName, path), sourceName, path + ".icon");
+                requiredJsonMember(value, "icon", sourceName, path),
+                sourceName,
+                fieldPath(path, "icon"));
             item.maximumStack = readInteger(value, "maximumStack", sourceName, path);
             std::string effect = "none";
             readOptionalText(value, "effect", effect, sourceName, path);

@@ -18,9 +18,10 @@ namespace
 {
     using Json = nlohmann::json;
     using simple_platformer::checkJsonFields;
-    using simple_platformer::jsonInteger;
-
     using simple_platformer::failJson;
+    using simple_platformer::fieldPath;
+    using simple_platformer::indexPath;
+    using simple_platformer::jsonInteger;
     using simple_platformer::jsonText;
     using simple_platformer::requiredJsonMember;
 
@@ -75,15 +76,17 @@ namespace
         for (std::size_t index = 0; index < levels.size(); ++index)
         {
             const Json& value = levels[index];
-            const std::string path = "levels[" + std::to_string(index) + "]";
+            const std::string path = indexPath("levels", index);
             checkJsonFields(value, {"number", "file"}, sourceName, path);
             simple_platformer::LevelCatalogEntry entry;
             entry.number = jsonPositiveInteger(
                 requiredJsonMember(value, "number", sourceName, path),
                 sourceName,
-                path + ".number");
+                fieldPath(path, "number"));
             entry.relativeFile = jsonRelativeFile(
-                requiredJsonMember(value, "file", sourceName, path), sourceName, path + ".file");
+                requiredJsonMember(value, "file", sourceName, path),
+                sourceName,
+                fieldPath(path, "file"));
 
             const auto duplicateNumber = std::find_if(
                 result.levels.begin(),
@@ -92,7 +95,7 @@ namespace
                 { return existing.number == entry.number; });
             if (duplicateNumber != result.levels.end())
             {
-                failJson(sourceName, path + ".number", "level number is already listed");
+                failJson(sourceName, fieldPath(path, "number"), "level number is already listed");
             }
             result.levels.push_back(std::move(entry));
         }

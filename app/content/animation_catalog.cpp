@@ -120,7 +120,7 @@ namespace simple_platformer
         AnimationCatalog catalog;
         for (const auto& entry : definitions.items())
         {
-            const std::string setPath = "animations." + entry.key();
+            const std::string setPath = fieldPath("animations", entry.key());
             checkJsonFields(
                 entry.value(),
                 {"idle", "move", "jump", "fall", "attack", "death"},

@@ -6,3 +6,6 @@
 #
 # Add the full 40-character hash of each formatting-only commit below, with a
 # comment naming it.
+
+# Widen the shared C++ style and reformat
+55f6d0875f464d23449c740e2758d6590232b08b

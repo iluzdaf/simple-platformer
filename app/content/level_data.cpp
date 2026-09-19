@@ -8,7 +8,6 @@
 #include <filesystem>
 #include <map>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -61,10 +60,10 @@ namespace simple_platformer
             }
             if (cell != object.end())
             {
-                return navigationFeet(jsonGridPosition(
-                    *cell, sourceName, std::string(path) + "." + std::string(cellKey)));
+                return navigationFeet(
+                    jsonGridPosition(*cell, sourceName, fieldPath(path, cellKey)));
             }
-            return jsonVector(*feet, sourceName, std::string(path) + "." + std::string(feetKey));
+            return jsonVector(*feet, sourceName, fieldPath(path, feetKey));
         }
 
         Patrol jsonPatrol(const Json& value, std::string_view sourceName, std::string_view path)
@@ -91,7 +90,7 @@ namespace simple_platformer
             const auto found = value.find("patrol");
             if (found != value.end())
             {
-                result.patrol = jsonPatrol(*found, sourceName, path + ".patrol");
+                result.patrol = jsonPatrol(*found, sourceName, fieldPath(path, "patrol"));
             }
             return result;
         }
@@ -125,7 +124,7 @@ namespace simple_platformer
             const int quantity = jsonInteger(
                 requiredJsonMember(value, "quantity", sourceName, path),
                 sourceName,
-                path + ".quantity");
+                fieldPath(path, "quantity"));
             const PickupPlacement result{
                 readFeetPosition(value, "spawnCell", "spawnFeet", sourceName, path),
                 {readName(value, "item", "item name", sourceName, path), quantity}};
@@ -147,35 +146,31 @@ namespace simple_platformer
             result.definitionName = jsonText(
                 requiredJsonMember(value, "definition", sourceName, path),
                 sourceName,
-                path + ".definition");
+                fieldPath(path, "definition"));
             result.spawnFeet = readFeetPosition(value, "spawnCell", "spawnFeet", sourceName, path);
 
             if (const auto found = value.find("requirement"); found != value.end())
             {
                 const Json& requirement = *found;
-                checkJsonFields(
-                    requirement, {"item", "quantity"}, sourceName, path + ".requirement");
+                const std::string requirementPath = fieldPath(path, "requirement");
+                checkJsonFields(requirement, {"item", "quantity"}, sourceName, requirementPath);
                 const int quantity = jsonInteger(
-                    requiredJsonMember(requirement, "quantity", sourceName, path + ".requirement"),
+                    requiredJsonMember(requirement, "quantity", sourceName, requirementPath),
                     sourceName,
-                    path + ".requirement.quantity");
+                    fieldPath(requirementPath, "quantity"));
                 result.requirement = NamedItemStack{
-                    readName(
-                        requirement,
-                        "item",
-                        "item name",
-                        sourceName,
-                        fieldPath(path, "requirement")),
+                    readName(requirement, "item", "item name", sourceName, requirementPath),
                     quantity};
             }
 
             if (const auto found = value.find("consumeItem"); found != value.end())
             {
-                result.consumeItem = jsonBoolean(*found, sourceName, path + ".consumeItem");
+                result.consumeItem =
+                    jsonBoolean(*found, sourceName, fieldPath(path, "consumeItem"));
             }
             if (const auto found = value.find("nextLevel"); found != value.end())
             {
-                const int nextLevel = jsonInteger(*found, sourceName, path + ".nextLevel");
+                const int nextLevel = jsonInteger(*found, sourceName, fieldPath(path, "nextLevel"));
                 result.nextLevel = nextLevel;
             }
             validateExitSettings(result, path, sourceName);
@@ -196,7 +191,7 @@ namespace simple_platformer
             rows.reserve(value.size());
             for (std::size_t rowIndex = 0; rowIndex < value.size(); ++rowIndex)
             {
-                const std::string path = "map[" + std::to_string(rowIndex) + "]";
+                const std::string path = indexPath("map", rowIndex);
                 rows.push_back(jsonText(value[rowIndex], sourceName, path));
             }
             validateMapRows(rows, legend, sourceName);
@@ -251,7 +246,7 @@ namespace simple_platformer
         {
             for (const auto& entry : legend.items())
             {
-                const std::string path = "objectLegend." + entry.key();
+                const std::string path = fieldPath("objectLegend", entry.key());
                 const Json& object = entry.value();
                 const std::string type = jsonText(
                     requiredJsonMember(object, "type", sourceName, path),
@@ -338,13 +333,15 @@ namespace simple_platformer
                 const std::string cells = jsonText(rows[row], sourceName, indexPath("map", row));
                 for (std::size_t column = 0; column < cells.size(); ++column)
                 {
-                    const auto found = legend.find(std::string(1, cells[column]));
+                    const std::string symbol(1, cells[column]);
+                    const auto found = legend.find(symbol);
                     if (found == legend.end())
                     {
                         continue;
                     }
                     Json placement = *found;
-                    const std::string type = readText(placement, "type");
+                    const std::string type =
+                        readText(placement, "type", sourceName, fieldPath("objectLegend", symbol));
                     placement.erase("type");
                     const Json spawnCell = {column, row};
                     placement["spawnCell"] = spawnCell;
@@ -463,11 +460,10 @@ namespace simple_platformer
             result.itemReferences = references.items;
             for (std::size_t index = 0; index < actors.size(); ++index)
             {
-                result.actors.push_back(jsonActorPlacement(
-                    actors[index], sourceName, "actors[" + std::to_string(index) + "]"));
+                const std::string origin = indexPath("actors", index);
+                result.actors.push_back(jsonActorPlacement(actors[index], sourceName, origin));
                 result.actorReferences.emplace(
-                    "actors[" + std::to_string(index) + "].definition",
-                    result.actors.back().definitionName);
+                    fieldPath(origin, "definition"), result.actors.back().definitionName);
             }
 
             const Json& pickups = requiredJsonMember(root, "pickups", sourceName, "root");
@@ -478,18 +474,17 @@ namespace simple_platformer
             result.pickups.reserve(pickups.size());
             for (std::size_t index = 0; index < pickups.size(); ++index)
             {
-                result.pickups.push_back(jsonPickupPlacement(
-                    pickups[index], sourceName, "pickups[" + std::to_string(index) + "]"));
+                const std::string origin = indexPath("pickups", index);
+                result.pickups.push_back(jsonPickupPlacement(pickups[index], sourceName, origin));
                 const auto& placement = result.pickups.back();
-                const auto origin = "pickups[" + std::to_string(index) + "]";
                 if (placement.definitionName.empty())
                 {
-                    result.itemReferences.emplace(origin + ".item", placement.stack.item);
+                    result.itemReferences.emplace(fieldPath(origin, "item"), placement.stack.item);
                 }
                 else
                 {
                     result.pickupReferences.emplace(
-                        origin + ".definition", placement.definitionName);
+                        fieldPath(origin, "definition"), placement.definitionName);
                 }
             }
 
@@ -517,8 +512,7 @@ namespace simple_platformer
         // Raw member access during expansion can still raise a nlohmann error of its own.
         catch (const Json::exception& exception)
         {
-            throw std::invalid_argument(
-                std::string(sourceName) + ": invalid JSON: " + exception.what());
+            failJson(sourceName, {}, std::string("invalid JSON: ") + exception.what());
         }
     }
 

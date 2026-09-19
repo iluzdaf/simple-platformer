@@ -29,7 +29,7 @@ namespace simple_platformer
         TileCatalog result;
         const auto add = [&result, sourceName](const std::string& name, const nlohmann::json& value)
         {
-            const std::string path = "tiles." + name;
+            const std::string path = fieldPath("tiles", name);
             checkJsonFields(
                 value,
                 name == "empty"
@@ -44,7 +44,7 @@ namespace simple_platformer
             if (name != "empty")
             {
                 const auto& sprite = requiredJsonMember(value, "sprite", sourceName, path);
-                const std::string spritePath = path + ".sprite";
+                const std::string spritePath = fieldPath(path, "sprite");
                 checkJsonFields(sprite, {"position", "size"}, sourceName, spritePath);
                 definition.sprite = jsonSpriteRegion(sprite, sourceName, spritePath);
             }
@@ -66,7 +66,7 @@ namespace simple_platformer
         }
         catch (const std::invalid_argument& error)
         {
-            throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
+            failJson(sourceName, {}, error.what());
         }
         return result;
     }

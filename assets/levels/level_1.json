@@ -3,7 +3,8 @@
   "objectLegend": {
     "P": { "type": "player" },
     "Z": {
-      "type": "zombie",
+      "type": "actor",
+      "definition": "zombie",
       "patrol": {
         "firstCell": [24, 14],
         "secondCell": [28, 14]
@@ -40,7 +41,7 @@
   ],
   "actors": [
     {
-      "type": "zombie",
+      "definition": "zombie",
       "spawnCell": [13, 14],
       "patrol": {
         "firstCell": [10, 14],

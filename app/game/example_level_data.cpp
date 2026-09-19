@@ -166,7 +166,10 @@ namespace simple_platformer
             return name;
         }
 
-        std::string actorType(const Json& value, std::string_view sourceName, std::string_view path)
+        std::string actorDefinitionName(
+            const Json& value,
+            std::string_view sourceName,
+            std::string_view path)
         {
             const std::string name = text(value, sourceName, path);
             if (name.empty())
@@ -190,8 +193,8 @@ namespace simple_platformer
             const std::string& path)
         {
             ExampleActorPlacement result;
-            result.definitionName =
-                actorType(member(value, "type", sourceName, path), sourceName, path + ".type");
+            result.definitionName = actorDefinitionName(
+                member(value, "definition", sourceName, path), sourceName, path + ".definition");
             result.spawnFeet = feetPosition(value, "spawnCell", "spawnFeet", sourceName, path);
             const auto found = value.find("patrol");
             if (found != value.end())
@@ -410,9 +413,17 @@ namespace simple_platformer
                 {
                     levelExit(placement, sourceName, path);
                 }
-                else if (type != "player")
+                else if (type == "actor")
                 {
                     actor(placement, sourceName, path);
+                }
+                else if (type != "player")
+                {
+                    fail(
+                        sourceName,
+                        path + ".type",
+                        "unknown object type '" + type +
+                            "'; expected player, actor, pickup, or exit");
                 }
                 // The marker creates an object, not a terrain tile.
                 root["tileLegend"][entry.key()] = "empty";
@@ -537,10 +548,11 @@ namespace simple_platformer
                             origin + ".requirement.item",
                             entry.value().at("requirement").at("item").get<std::string>());
                     }
-                    if (type != "player" && type != "pickup" && type != "exit")
+                    if (type == "actor")
                     {
                         result.actorReferences.emplace(
-                            "objectLegend." + entry.key() + ".type", type);
+                            "objectLegend." + entry.key() + ".definition",
+                            entry.value().at("definition").get<std::string>());
                     }
                 }
             }
@@ -549,7 +561,7 @@ namespace simple_platformer
                 result.actors.push_back(
                     actor(actors[index], sourceName, "actors[" + std::to_string(index) + "]"));
                 result.actorReferences.emplace(
-                    "actors[" + std::to_string(index) + "].type",
+                    "actors[" + std::to_string(index) + "].definition",
                     result.actors.back().definitionName);
             }
 

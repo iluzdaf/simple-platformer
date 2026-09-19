@@ -58,10 +58,10 @@ TEST_CASE("Level diagnostics identify authored fields and map cells", "[app][con
     }
     SECTION("Explicit entries retain their array paths")
     {
-        level["actors"] = nlohmann::json::array({{{"type", ""}, {"spawnCell", {0, 0}}}});
+        level["actors"] = nlohmann::json::array({{{"definition", ""}, {"spawnCell", {0, 0}}}});
         REQUIRE_THROWS_WITH(
             simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
-            "level.json: actors[0].type: actor definition name cannot be empty");
+            "level.json: actors[0].definition: actor definition name cannot be empty");
     }
 }
 
@@ -84,14 +84,14 @@ TEST_CASE(
         "tileLegend":{".":"empty", "#":"stone", "G":"grass"},
         "objectLegend":{
             "P":{"type":"player"},
-            "Z":{"type":"zombie", "patrol":{"firstCell":[1,0],"secondCell":[2,0]}},
-            "B":{"type":"bat"}, "S":{"type":"zombie_soldier"},
+            "Z":{"type":"actor", "definition":"zombie", "patrol":{"firstCell":[1,0],"secondCell":[2,0]}},
+            "B":{"type":"actor", "definition":"bat"}, "S":{"type":"actor", "definition":"zombie_soldier"},
             "K":{"type":"pickup","item":"key","quantity":2},
             "E":{"type":"exit","requirement":{"item":"key","quantity":1},
                  "consumeItem":true,"nextLevel":2}
         },
         "map":["PZZBSKKEG", "#########"],
-        "actors":[{"type":"zombie","spawnCell":[8,0]}],
+        "actors":[{"definition":"zombie","spawnCell":[8,0]}],
         "pickups":[{"item":"coin","quantity":3,"spawnFeet":[136,8]}]
     })",
         "markers");
@@ -148,15 +148,23 @@ TEST_CASE("Object legends reject ambiguous or invalid placements", "[app][conten
     }
     SECTION("Shared symbol")
     {
-        level["objectLegend"]["#"] = {{"type", "zombie"}};
+        level["objectLegend"]["#"] = {{"type", "actor"}, {"definition", "zombie"}};
     }
     SECTION("Long symbol")
     {
-        level["objectLegend"]["ZZ"] = {{"type", "zombie"}};
+        level["objectLegend"]["ZZ"] = {{"type", "actor"}, {"definition", "zombie"}};
     }
     SECTION("Empty definition name even when unused")
     {
-        level["objectLegend"]["Z"] = {{"type", ""}};
+        level["objectLegend"]["Z"] = {{"type", "actor"}, {"definition", ""}};
+    }
+    SECTION("Missing actor definition even when unused")
+    {
+        level["objectLegend"]["Z"] = {{"type", "actor"}};
+    }
+    SECTION("Unknown object category even when unused")
+    {
+        level["objectLegend"]["Z"] = {{"type", "zombie"}, {"definition", "zombie"}};
     }
     SECTION("Position in template")
     {
@@ -221,7 +229,7 @@ TEST_CASE(
             "playerSpawnCell": [1, 0],
             "actors": [
                 {
-                    "type": "zombie",
+                    "definition": "zombie",
                     "spawnCell": [2, 0],
                     "patrol": {
                         "firstCell": [2, 0],
@@ -229,7 +237,7 @@ TEST_CASE(
                     }
                 },
                 {
-                    "type": "bat",
+                    "definition": "bat",
                     "spawnFeet": [17, 9],
                     "patrol": {
                         "firstFeet": [17, 9],
@@ -291,7 +299,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
             R"({
                 "map": ["....", "####"],
                 "playerSpawnFeet": [8, 8],
-                "actors": [{"type": "", "spawnFeet": [8, 8]}],
+                "actors": [{"definition": "", "spawnFeet": [8, 8]}],
                 "pickups": [],
                 "exit": {"spawnFeet": [8, 16]}
             })",
@@ -304,7 +312,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
                 "map": ["....", "####"],
                 "playerSpawnCell": [1, 0],
                 "actors": [{
-                    "type": "zombie",
+                    "definition": "zombie",
                     "spawnCell": [1, 0],
                     "spawnFeet": [24, 16]
                 }],

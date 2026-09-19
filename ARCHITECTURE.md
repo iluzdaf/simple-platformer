@@ -487,7 +487,7 @@ are optional rewards, not exit requirements.
 
 The example game loads its levels from `assets/levels`. The files select and place known
 game concepts rather than defining new engine behaviour. For example,
-`"type": "zombie"` selects a named definition in `actors.json`. Definitions select
+`"definition": "zombie"` in an actor placement selects a named definition in `actors.json`. Definitions select
 and configure supported components; behaviour implementations remain C++.
 
 #### Level catalog
@@ -577,9 +577,9 @@ An optional `objectLegend` places objects directly in the same map rows:
 ```json
 "objectLegend": {
   "P": { "type": "player" },
-  "Z": { "type": "zombie" },
-  "B": { "type": "bat" },
-  "S": { "type": "zombie_soldier" },
+  "Z": { "type": "actor", "definition": "zombie" },
+  "B": { "type": "actor", "definition": "bat" },
+  "S": { "type": "actor", "definition": "zombie_soldier" },
   "K": { "type": "pickup", "definition": "key" },
   "E": { "type": "exit", "requirement": { "item": "key", "quantity": 1 } }
 }
@@ -595,8 +595,10 @@ inline item stacks supply it in the placement or legend entry.
 Object entries use the same settings as explicit placements: NPCs can specify a
 `patrol`, and exits can specify `requirement`, `consumeItem`, and `nextLevel`.
 Patrol endpoints remain absolute positions, not offsets from the marker.
-The marker types `player`, `pickup`, and `exit` are reserved; other marker types name
-actor definitions in the shared catalogue.
+`type` selects the object category: `player`, `actor`, `pickup`, or `exit`.
+For actors and named pickups, `definition` selects an entry in the corresponding
+catalogue. A tile legend needs only the definition name because its category is
+already established by `tileLegend`.
 Do not put `spawnCell` or `spawnFeet` in a legend entry: the marker supplies its position.
 Unknown types and invalid definitions are rejected even when their symbols are unused.
 
@@ -638,13 +640,13 @@ and do not imply that an object must stand on the ground.
 
 #### Actors
 
-An actor requires `type` (a name in `actors.json`) and one spawn placement. The supplied
+An actor requires `definition` (a name in `actors.json`) and one spawn placement. The supplied
 catalogue includes `zombie`, `bat`, and `zombie_soldier`; new definition names do not
 require a parser branch. A patrol is optional:
 
 ```json
 {
-  "type": "zombie",
+  "definition": "zombie",
   "spawnCell": [5, 8],
   "patrol": {
     "firstCell": [5, 8],
@@ -937,7 +939,8 @@ uses the same capabilities, add a named definition in `actors.json`. A
 genuinely new example enemy normally involves:
 
 1. a symbolic actor definition in `actors.json`;
-2. a matching `type` in explicit level placements or an object legend;
+2. a matching `definition` in the level's `actors` array or an object legend entry
+   with `"type": "actor"`;
 3. an actor composed from only the movement, sensing, path-following, health, attack,
    and presentation components it needs;
 4. an animation set and atlas regions in the example application;

@@ -1,5 +1,4 @@
 #pragma once
-#include "content_diagnostics.hpp"
 #include <filesystem>
 #include <initializer_list>
 #include <string>
@@ -12,7 +11,7 @@ namespace simple_platformer
 {
     // Shape checks only. Domain rules (positive quantities, known names) stay in validators.
     // Loaders may supply the filename here or add it once at their outer error boundary.
-    // fieldPath, indexPath and failJson come from content_diagnostics.hpp above.
+    // fieldPath, indexPath and failJson live in content_diagnostics.hpp; include it to use them.
     // Every readOptional... leaves the supplied default in place when the key is missing;
     // a key that is present but invalid is an error.
     void checkJsonFields(

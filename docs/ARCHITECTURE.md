@@ -774,8 +774,5 @@ Use small independent data in tests rather than asserting the example campaign's
 enemy count, item values, or inventory capacity. Its own checks should test validity,
 so you can change content without rewriting unrelated tests.
 
-CI builds and tests on macOS with Apple Clang and on Windows through the generated
-Visual Studio solution described in [README.md](../README.md). A Linux quality job checks
-formatting, clang-tidy, and public-header self-containment. OpenGL and ImGui integration
-remain a manual run; automated graphics-context tests are avoided.
-
+OpenGL and ImGui integration remain a manual run; automated graphics-context tests are
+avoided. [README.md](../README.md#continuous-integration) lists what CI checks.

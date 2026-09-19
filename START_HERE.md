@@ -150,8 +150,9 @@ resolves its filenames. Follow its first entry into
 [`assets/levels/level_1.json`](assets/levels/level_1.json), which contains the map and
 placements for that level. Follow that data into
 [`example_level_data.cpp`](app/game/example_level_data.cpp), which validates the JSON,
-and then [`example_content.cpp`](app/game/example_content.cpp), which turns known names
-such as `zombie` into composed C++ actors. These are game-content concerns, not general
+and then [`actor_catalog.cpp`](app/game/actor_catalog.cpp) and
+[`actor_definition.cpp`](app/game/actor_definition.cpp), which load named actor settings
+from `actors.json` and compose C++ actors. These are game-content concerns, not general
 engine behaviour. The
 [`Data-driven level boundary`](ARCHITECTURE.md#data-driven-level-boundary) section is
 the complete reference when you are ready to edit or add levels.

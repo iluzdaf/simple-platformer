@@ -84,6 +84,7 @@ add_library(
     simple_platformer_core
     src/actor/actor_id.cpp
     src/actor/actor_system.cpp
+    src/actor/actor_validation.cpp
     src/actor/lifecycle.cpp
     src/combat/attack_system.cpp
     src/combat/combat.cpp
@@ -142,6 +143,8 @@ add_executable(
     app/game/level_catalog.cpp
     app/game/tile_catalog.cpp
     app/game/content_validation.cpp
+    app/game/actor_definition.cpp
+    app/game/actor_catalog.cpp
     app/graphics/display_viewport.cpp
     app/graphics/sprite_renderer.cpp
     app/main.cpp
@@ -295,6 +298,8 @@ if(BUILD_TESTING)
         app/game/level_catalog.cpp
         app/game/tile_catalog.cpp
         app/game/content_validation.cpp
+        app/game/actor_definition.cpp
+        app/game/actor_catalog.cpp
         app/graphics/display_viewport.cpp
         app/ui/inventory_layout.cpp
         tests/app/test_debug_overlay.cpp
@@ -305,6 +310,7 @@ if(BUILD_TESTING)
         tests/app/test_level_catalog.cpp
         tests/app/test_tile_catalog.cpp
         tests/app/test_content_validation.cpp
+        tests/app/test_actor_catalog.cpp
         tests/app/test_level_transition.cpp
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp

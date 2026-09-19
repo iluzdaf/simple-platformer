@@ -176,25 +176,14 @@ namespace simple_platformer
             fail(sourceName, path, "unknown item '" + name + "'");
         }
 
-        ExampleActorType actorType(
-            const Json& value,
-            std::string_view sourceName,
-            std::string_view path)
+        std::string actorType(const Json& value, std::string_view sourceName, std::string_view path)
         {
             const std::string name = text(value, sourceName, path);
-            if (name == "zombie")
+            if (name.empty())
             {
-                return ExampleActorType::Zombie;
+                fail(sourceName, path, "actor definition name cannot be empty");
             }
-            if (name == "bat")
-            {
-                return ExampleActorType::Bat;
-            }
-            if (name == "zombie_soldier")
-            {
-                return ExampleActorType::ZombieSoldier;
-            }
-            fail(sourceName, path, "unknown actor type '" + name + "'");
+            return name;
         }
 
         Patrol patrol(const Json& value, std::string_view sourceName, std::string_view path)
@@ -211,7 +200,7 @@ namespace simple_platformer
             const std::string& path)
         {
             ExampleActorPlacement result;
-            result.type =
+            result.definitionName =
                 actorType(member(value, "type", sourceName, path), sourceName, path + ".type");
             result.spawnFeet = feetPosition(value, "spawnCell", "spawnFeet", sourceName, path);
             const auto found = value.find("patrol");
@@ -512,10 +501,25 @@ namespace simple_platformer
                 fail(sourceName, "actors", "expected an array");
             }
             result.actors.reserve(actors.size());
+            if (root.contains("objectLegend"))
+            {
+                for (const auto& entry : root.at("objectLegend").items())
+                {
+                    const auto type = entry.value().at("type").get<std::string>();
+                    if (type != "player" && type != "pickup" && type != "exit")
+                    {
+                        result.actorReferences.emplace(
+                            "objectLegend." + entry.key() + ".type", type);
+                    }
+                }
+            }
             for (std::size_t index = 0; index < actors.size(); ++index)
             {
                 result.actors.push_back(
                     actor(actors[index], sourceName, "actors[" + std::to_string(index) + "]"));
+                result.actorReferences.emplace(
+                    "actors[" + std::to_string(index) + "].type",
+                    result.actors.back().definitionName);
             }
 
             const Json& pickups = member(root, "pickups", sourceName, "root");

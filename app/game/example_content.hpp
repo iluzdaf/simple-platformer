@@ -19,5 +19,5 @@ namespace simple_platformer
     };
 
     GameLevel makeGameLevel(const LevelCatalog& catalog, int levelNumber, int textureId);
-    Actor makeExamplePlayer(int textureId);
+    Actor makePlayer(const LevelCatalog& catalog, int textureId);
 }

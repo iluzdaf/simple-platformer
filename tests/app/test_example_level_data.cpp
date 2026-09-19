@@ -59,10 +59,10 @@ TEST_CASE("Level diagnostics identify authored fields and map cells", "[app][con
     }
     SECTION("Explicit entries retain their array paths")
     {
-        level["actors"] = nlohmann::json::array({{{"type", "ghost"}, {"spawnCell", {0, 0}}}});
+        level["actors"] = nlohmann::json::array({{{"type", ""}, {"spawnCell", {0, 0}}}});
         REQUIRE_THROWS_WITH(
             simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
-            "level.json: actors[0].type: unknown actor type 'ghost'");
+            "level.json: actors[0].type: actor definition name cannot be empty");
     }
 }
 
@@ -103,8 +103,8 @@ TEST_CASE(
     REQUIRE(data.actors[1].spawnFeet.x == 24);
     REQUIRE(data.actors[2].spawnFeet.x == 40);
     REQUIRE(data.actors[1].patrol.has_value());
-    REQUIRE(data.actors[3].type == simple_platformer::ExampleActorType::Bat);
-    REQUIRE(data.actors[4].type == simple_platformer::ExampleActorType::ZombieSoldier);
+    REQUIRE(data.actors[3].definitionName == "bat");
+    REQUIRE(data.actors[4].definitionName == "zombie_soldier");
     REQUIRE(data.pickups.size() == 3);
     REQUIRE(data.pickups[1].stack.item == simple_platformer::Key);
     REQUIRE(data.pickups[1].stack.quantity == 2);
@@ -155,9 +155,9 @@ TEST_CASE("Object legends reject ambiguous or invalid placements", "[app][conten
     {
         level["objectLegend"]["ZZ"] = {{"type", "zombie"}};
     }
-    SECTION("Unknown type even when unused")
+    SECTION("Empty definition name even when unused")
     {
-        level["objectLegend"]["Z"] = {{"type", "ghost"}};
+        level["objectLegend"]["Z"] = {{"type", ""}};
     }
     SECTION("Position in template")
     {
@@ -253,13 +253,13 @@ TEST_CASE(
     REQUIRE(data.mapRows.size() == 2);
     REQUIRE(data.playerSpawnFeet.x == 24.0F);
     REQUIRE(data.actors.size() == 2);
-    REQUIRE(data.actors.front().type == simple_platformer::ExampleActorType::Zombie);
+    REQUIRE(data.actors.front().definitionName == "zombie");
     REQUIRE(data.actors.front().spawnFeet.x == 40.0F);
     REQUIRE(data.actors.front().patrol.has_value());
     const simple_platformer::Patrol patrol =
         data.actors.front().patrol.value_or(simple_platformer::Patrol{});
     REQUIRE(patrol.secondFeet.x == 56.0F);
-    REQUIRE(data.actors[1].type == simple_platformer::ExampleActorType::Bat);
+    REQUIRE(data.actors[1].definitionName == "bat");
     REQUIRE(data.actors[1].spawnFeet.x == 17.0F);
     REQUIRE(data.pickups.size() == 1);
     REQUIRE(data.pickups.front().stack.item == simple_platformer::Key);
@@ -292,11 +292,11 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
             R"({
                 "map": ["....", "####"],
                 "playerSpawnFeet": [8, 8],
-                "actors": [{"type": "ghost", "spawnFeet": [8, 8]}],
+                "actors": [{"type": "", "spawnFeet": [8, 8]}],
                 "pickups": [],
                 "exit": {"spawnFeet": [8, 16]}
             })",
-            "unknown actor level"),
+            "empty actor name level"),
         std::invalid_argument);
 
     REQUIRE_THROWS_AS(

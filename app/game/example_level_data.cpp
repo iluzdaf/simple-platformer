@@ -1,4 +1,5 @@
 #include "example_level_data.hpp"
+#include "content_validation.hpp"
 
 #include "example_items.hpp"
 
@@ -8,6 +9,7 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -227,17 +229,19 @@ namespace simple_platformer
         {
             const int quantity = integer(
                 member(value, "quantity", sourceName, path), sourceName, path + ".quantity");
-            if (quantity <= 0)
-            {
-                fail(
-                    sourceName,
-                    path + ".quantity",
-                    "expected a positive integer, got " + std::to_string(quantity));
-            }
-            return {
+            const ExamplePickupPlacement result{
                 feetPosition(value, "spawnCell", "spawnFeet", sourceName, path),
                 {itemId(member(value, "item", sourceName, path), sourceName, path + ".item"),
                  quantity}};
+            try
+            {
+                validatePickupSettings(result, path);
+            }
+            catch (const std::invalid_argument& error)
+            {
+                throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
+            }
+            return result;
         }
 
         ExampleExitPlacement levelExit(
@@ -255,13 +259,6 @@ namespace simple_platformer
                     member(requirement, "quantity", sourceName, path + ".requirement"),
                     sourceName,
                     path + ".requirement.quantity");
-                if (quantity <= 0)
-                {
-                    fail(
-                        sourceName,
-                        path + ".requirement.quantity",
-                        "expected a positive integer, got " + std::to_string(quantity));
-                }
                 result.requirement = ItemStack{
                     itemId(
                         member(requirement, "item", sourceName, path + ".requirement"),
@@ -277,11 +274,15 @@ namespace simple_platformer
             if (const auto found = value.find("nextLevel"); found != value.end())
             {
                 const int nextLevel = integer(*found, sourceName, path + ".nextLevel");
-                if (nextLevel <= 0)
-                {
-                    fail(sourceName, path + ".nextLevel", "level number must be positive");
-                }
                 result.nextLevel = nextLevel;
+            }
+            try
+            {
+                validateExitSettings(result, path);
+            }
+            catch (const std::invalid_argument& error)
+            {
+                throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
             }
             return result;
         }
@@ -298,42 +299,73 @@ namespace simple_platformer
 
             std::vector<std::string> rows;
             rows.reserve(value.size());
-            std::size_t width = 0;
             for (std::size_t rowIndex = 0; rowIndex < value.size(); ++rowIndex)
             {
                 const std::string path = "map[" + std::to_string(rowIndex) + "]";
-                std::string row = text(value[rowIndex], sourceName, path);
-                if (rowIndex == 0)
-                {
-                    width = row.size();
-                    if (width == 0)
-                    {
-                        fail(sourceName, path, "row cannot be empty");
-                    }
-                }
-                else if (row.size() != width)
-                {
-                    fail(
-                        sourceName,
-                        path,
-                        "expected " + std::to_string(width) + " columns, got " +
-                            std::to_string(row.size()));
-                }
-                for (std::size_t column = 0; column < row.size(); ++column)
-                {
-                    const char symbol = row[column];
-                    if (legend.find(symbol) == legend.end())
-                    {
-                        fail(
-                            sourceName,
-                            path + "[" + std::to_string(column) + "]",
-                            "unknown symbol '" + std::string(1, symbol) +
-                                "'; define it in tileLegend or objectLegend");
-                    }
-                }
-                rows.push_back(std::move(row));
+                rows.push_back(text(value[rowIndex], sourceName, path));
+            }
+            try
+            {
+                validateMapRows(rows, legend);
+            }
+            catch (const std::invalid_argument& error)
+            {
+                throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
             }
             return rows;
+        }
+
+        void validateJsonLegendSymbols(
+            const Json& tiles,
+            const Json& objects,
+            std::string_view sourceName)
+        {
+            std::vector<std::string> tileSymbols;
+            std::vector<std::string> objectSymbols;
+            for (const auto& entry : tiles.items())
+            {
+                tileSymbols.push_back(entry.key());
+            }
+            for (const auto& entry : objects.items())
+            {
+                objectSymbols.push_back(entry.key());
+            }
+            try
+            {
+                validateLegendSymbols(tileSymbols, objectSymbols);
+            }
+            catch (const std::invalid_argument& error)
+            {
+                throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
+            }
+        }
+
+        void validatePlacementOrigins(
+            const std::vector<PlacementOrigin>& origins,
+            std::string_view kind,
+            std::string_view sourceName)
+        {
+            try
+            {
+                validateSinglePlacement(origins, kind);
+            }
+            catch (const std::invalid_argument& error)
+            {
+                throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
+            }
+        }
+
+        std::vector<PlacementOrigin> playerOrigins(const Json& root)
+        {
+            std::vector<PlacementOrigin> result;
+            for (const auto* key : {"playerSpawnCell", "playerSpawnFeet"})
+            {
+                if (root.contains(key))
+                {
+                    result.push_back({key, std::nullopt});
+                }
+            }
+            return result;
         }
 
         // Expand the authoring shorthand into the existing placement format, so both
@@ -357,17 +389,10 @@ namespace simple_platformer
             {
                 fail(sourceName, "tileLegend", "expected a nonempty object");
             }
+            validateJsonLegendSymbols(root.at("tileLegend"), legend, sourceName);
             for (const auto& entry : legend.items())
             {
                 const std::string path = "objectLegend." + entry.key();
-                if (entry.key().size() != 1)
-                {
-                    fail(sourceName, path, "symbols must be one character");
-                }
-                if (root.at("tileLegend").contains(entry.key()))
-                {
-                    fail(sourceName, path, "symbol is also defined in tileLegend");
-                }
                 const Json& object = entry.value();
                 const std::string type =
                     text(member(object, "type", sourceName, path), sourceName, path + ".type");
@@ -409,11 +434,12 @@ namespace simple_platformer
             {
                 fail(sourceName, "map", "expected an array");
             }
-            std::string playerLocation =
-                root.contains("playerSpawnCell")
-                    ? "playerSpawnCell"
-                    : (root.contains("playerSpawnFeet") ? "playerSpawnFeet" : "");
-            std::string exitLocation = root.contains("exit") ? "exit" : "";
+            auto players = playerOrigins(root);
+            std::vector<PlacementOrigin> exits;
+            if (root.contains("exit"))
+            {
+                exits.push_back({"exit", std::nullopt});
+            }
             for (std::size_t row = 0; row < rows.size(); ++row)
             {
                 const std::string cells =
@@ -432,29 +458,15 @@ namespace simple_platformer
                         "map[" + std::to_string(row) + "][" + std::to_string(column) + "]";
                     if (type == "player")
                     {
-                        if (root.contains("playerSpawnCell") || root.contains("playerSpawnFeet"))
-                        {
-                            fail(
-                                sourceName,
-                                location,
-                                "second player marker '" + std::string(1, cells[column]) +
-                                    "'; player already placed at " + playerLocation);
-                        }
+                        players.push_back({location, cells[column]});
+                        validatePlacementOrigins(players, "player", sourceName);
                         root["playerSpawnCell"] = placement.at("spawnCell");
-                        playerLocation = location;
                     }
                     else if (type == "exit")
                     {
-                        if (root.contains("exit"))
-                        {
-                            fail(
-                                sourceName,
-                                location,
-                                "second exit marker '" + std::string(1, cells[column]) +
-                                    "'; exit already placed at " + exitLocation);
-                        }
+                        exits.push_back({location, cells[column]});
+                        validatePlacementOrigins(exits, "exit", sourceName);
                         root["exit"] = std::move(placement);
-                        exitLocation = location;
                     }
                     else
                     {
@@ -477,18 +489,20 @@ namespace simple_platformer
                     fail(sourceName, "tileLegend", "expected a nonempty object");
                 }
                 result.tileLegend.clear();
+                validateJsonLegendSymbols(legend, Json::object(), sourceName);
                 for (const auto& entry : legend.items())
                 {
-                    if (entry.key().size() != 1)
-                    {
-                        fail(sourceName, "tileLegend", "symbols must be one character");
-                    }
                     result.tileLegend.emplace(
                         entry.key().front(), text(entry.value(), sourceName, "tileLegend"));
                 }
             }
             result.mapRows =
                 mapRows(member(root, "map", sourceName, "root"), sourceName, result.tileLegend);
+            validatePlacementOrigins(playerOrigins(root), "player", sourceName);
+            const std::vector<PlacementOrigin> exits =
+                root.contains("exit") ? std::vector<PlacementOrigin>{{"exit", std::nullopt}}
+                                      : std::vector<PlacementOrigin>{};
+            validatePlacementOrigins(exits, "exit", sourceName);
             result.playerSpawnFeet =
                 feetPosition(root, "playerSpawnCell", "playerSpawnFeet", sourceName, "root");
 

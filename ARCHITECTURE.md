@@ -565,6 +565,17 @@ When using `objectLegend`, empty `actors` and `pickups` arrays may be omitted.
 The loader expands markers into ordinary placements and resolves their terrain to empty;
 the simulation does not interpret object symbols.
 
+`app/game/content_validation` checks tile catalogues, legend symbols and references,
+and map rows using C++ data without a JSON dependency. The loaders check JSON types
+and required fields, call these validators, and add source filenames to their errors.
+These are application authoring rules; engine world and component validation remains
+responsible for runtime invariants. Direct validator tests use C++ fixtures, while
+parser tests exercise JSON conversion and source-aware diagnostics.
+The same validation module checks positive pickup and exit-requirement quantities,
+positive next-level numbers, and exactly one player and exit placement. Placement origins
+retain field or map-cell locations for duplicate diagnostics. JSON type and required-field
+checks remain in the parser; component and world validators still enforce runtime rules.
+
 Level parsing errors include the source filename and the field or map cell to inspect.
 Map paths use zero-based `map[row][column]` indices; JSON syntax errors report one-based
 file lines and byte columns. Duplicate player or exit markers report both placements,

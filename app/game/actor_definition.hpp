@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include "animation_catalog.hpp"
 #include <glm/vec2.hpp>
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -34,8 +35,11 @@ namespace simple_platformer
 
     Actor composeActor(
         const ActorDefinition& definition,
+        const AnimationCatalog& animations,
         int textureId,
         glm::vec2 spawnFeet = {},
         std::optional<Patrol> patrol = std::nullopt);
-    void validateActorDefinition(const ActorDefinition& definition);
+    void validateActorDefinition(
+        const ActorDefinition& definition,
+        const AnimationCatalog& animations);
 }

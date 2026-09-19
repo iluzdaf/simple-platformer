@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include "actor_catalog.hpp"
+#include "animation_catalog.hpp"
 #include "tile_catalog.hpp"
 #include "item_catalog.hpp"
 #include "pickup_catalog.hpp"
@@ -13,6 +14,7 @@ namespace simple_platformer
     struct GameCatalogs
     {
         TileCatalog tiles;
+        AnimationCatalog animations;
         ActorCatalog actors;
         ItemCatalog items;
         PickupCatalog pickups;

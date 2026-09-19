@@ -1,4 +1,5 @@
 #include "actor_catalog.hpp"
+#include "animation_catalog.hpp"
 #include <algorithm>
 #include "game/actor_definition.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -239,7 +240,10 @@ namespace simple_platformer
         }
     }
 
-    ActorCatalog parseActorCatalog(std::string_view text, std::string_view sourceName)
+    ActorCatalog parseActorCatalog(
+        std::string_view text,
+        std::string_view sourceName,
+        const AnimationCatalog& animations)
     {
         try
         {
@@ -267,7 +271,7 @@ namespace simple_platformer
                     throw std::invalid_argument("actors." + entry.key() + ": " + error.what());
                 }
             }
-            validateActorCatalog(result);
+            validateActorCatalog(result, animations);
             return result;
         }
         catch (const std::exception& error)
@@ -276,7 +280,7 @@ namespace simple_platformer
         }
     }
 
-    void validateActorCatalog(const ActorCatalog& catalog)
+    void validateActorCatalog(const ActorCatalog& catalog, const AnimationCatalog& animations)
     {
         for (const auto& entry : catalog.definitions)
         {
@@ -286,7 +290,7 @@ namespace simple_platformer
             }
             try
             {
-                validateActorDefinition(entry.second);
+                validateActorDefinition(entry.second, animations);
             }
             catch (const std::invalid_argument& error)
             {
@@ -305,7 +309,9 @@ namespace simple_platformer
         }
     }
 
-    ActorCatalog loadActorCatalog(const std::filesystem::path& path)
+    ActorCatalog loadActorCatalog(
+        const std::filesystem::path& path,
+        const AnimationCatalog& animations)
     {
         std::ifstream file(path);
         if (!file)
@@ -314,7 +320,7 @@ namespace simple_platformer
         }
         const std::string text{
             std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-        return parseActorCatalog(text, path.string());
+        return parseActorCatalog(text, path.string(), animations);
     }
 
     const ActorDefinition& actorDefinition(const ActorCatalog& catalog, const std::string& name)

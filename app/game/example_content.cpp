@@ -128,6 +128,7 @@ namespace simple_platformer
             {
                 world.addActor(composeActor(
                     actorDefinition(actors, placement.definitionName),
+                    catalogs.animations,
                     textureId,
                     placement.spawnFeet,
                     placement.patrol));
@@ -153,6 +154,6 @@ namespace simple_platformer
     Actor makePlayer(const GameCatalogs& catalogs, int textureId)
     {
         const auto& actors = catalogs.actors;
-        return composeActor(actorDefinition(actors, actors.player), textureId);
+        return composeActor(actorDefinition(actors, actors.player), catalogs.animations, textureId);
     }
 }

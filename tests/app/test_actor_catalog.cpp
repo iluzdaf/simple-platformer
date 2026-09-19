@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 #include "game/actor_catalog.hpp"
+#include "game/animation_catalog.hpp"
 #include "game/actor_definition.hpp"
 #include "game/example_content.hpp"
 #include "game/level_catalog.hpp"
@@ -46,7 +47,8 @@ TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[
       "platformer":{}, "team":"player", "ranged":{"damage":2,"projectileSize":[3,2],
       "projectileSpeed":120,"projectileLifetime":0.6,"shootDuration":0.2,"recoveryDuration":0.8,
       "spritePosition":[4,8],"spriteSize":[8,4]}}}})",
-        "weapons");
+        "weapons",
+        {});
     auto definition = simple_platformer::actorDefinition(catalog, "hero");
     if (!definition.ranged)
     {
@@ -54,7 +56,7 @@ TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[
     }
     definition.ranged->phase = simple_platformer::RangedPhase::Recovery;
     definition.ranged->firedThisUpdate = true;
-    const auto actor = simple_platformer::composeActor(definition, 9);
+    const auto actor = simple_platformer::composeActor(definition, {}, 9);
     if (!actor.rangedWeapon)
     {
         throw std::logic_error("Weapon was not composed");
@@ -80,8 +82,8 @@ TEST_CASE("Actor composition creates fresh independent runtime state", "[app][ac
     definition.bite.value().phase = simple_platformer::BitePhase::Recovery;
     definition.bite.value().phaseTimeRemaining = 10;
     const auto first = simple_platformer::composeActor(
-        definition, 0, {24, 32}, simple_platformer::Patrol{{8, 32}, {40, 32}, true});
-    auto second = simple_platformer::composeActor(definition, 0, {40, 32});
+        definition, {}, 0, {24, 32}, simple_platformer::Patrol{{8, 32}, {40, 32}, true});
+    auto second = simple_platformer::composeActor(definition, {}, 0, {40, 32});
     if (!first.platformerMovement || !first.bite || !first.health || !first.inventory ||
         !second.health)
     {
@@ -133,22 +135,25 @@ TEST_CASE("Actor definitions reuse engine component validation", "[app][actors]"
         definition.bite = simple_platformer::BiteAttack{};
     }
     REQUIRE_THROWS_AS(
-        simple_platformer::validateActorDefinition(definition), std::invalid_argument);
+        simple_platformer::validateActorDefinition(definition, {}), std::invalid_argument);
 }
 
 TEST_CASE("Actor JSON accepts custom names and configures component choices", "[app][actors][json]")
 {
+    const auto animations =
+        simple_platformer::loadAnimationCatalog("tests/fixtures/levels/animations.json");
     const auto catalog = simple_platformer::parseActorCatalog(
         R"({
         "player":"hero", "actors":{
           "hero":{"platformer":{"jumpSpeed":210},"health":5,"inventorySlots":3},
           "scout":{"flying":{"speed":25},"team":"enemy","senses":{"noticeDistance":40},
-                   "bodySize":[8,6],"animations":"bat","spriteAnchor":"center","bite":{"damage":2}}
+                   "bodySize":[8,6],"animations":"test_actor","spriteAnchor":"center","bite":{"damage":2}}
         }})",
-        "test actors");
+        "test actors",
+        animations);
     REQUIRE(catalog.player == "hero");
-    const auto actor =
-        simple_platformer::composeActor(simple_platformer::actorDefinition(catalog, "scout"), 7);
+    const auto actor = simple_platformer::composeActor(
+        simple_platformer::actorDefinition(catalog, "scout"), animations, 7);
     if (!actor.flyingMovement || !actor.bite || !actor.sprite)
     {
         throw std::logic_error("Composition omitted scout components");
@@ -176,6 +181,10 @@ TEST_CASE(
     {
         root["actors"]["hero"]["animations"] = "missing";
     }
+    SECTION("Unused actor references an unknown animation")
+    {
+        root["actors"]["unused"] = {{"flying", {{"speed", 25}}}, {"animations", "missing"}};
+    }
     SECTION("Fractional health")
     {
         root["actors"]["hero"]["health"] = 1.5;
@@ -197,6 +206,6 @@ TEST_CASE(
         root["actors"]["unused"] = {{"flying", {{"speed", -1}}}};
     }
     REQUIRE_THROWS_WITH(
-        simple_platformer::parseActorCatalog(root.dump(), "actors.json"),
+        simple_platformer::parseActorCatalog(root.dump(), "actors.json", {}),
         Catch::Matchers::ContainsSubstring("actors.json:"));
 }

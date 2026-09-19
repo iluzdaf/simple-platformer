@@ -37,7 +37,7 @@ cmake --build --preset mac-debug
 ctest --preset mac-debug
 ```
 
-Run the example application:
+Run the example game:
 
 ```sh
 cd build/mac-debug
@@ -96,7 +96,7 @@ ctest --preset mac-debug -R "Pickup" --output-on-failure
 On Windows, use the `windows-debug` test preset. Use your personal preset name if
 configured. Omit `-R "Pickup"` to run the complete suite.
 
-## Playing the supplied game
+## Playing the example game
 
 These controls apply on both platforms. Use A and D or the left and right arrow keys
 to move, W, Up, or Space to jump, the mouse to aim, the left mouse button to fire, and
@@ -107,7 +107,7 @@ the player's current and maximum health.
 Walk over items to collect them. Click the bag at the bottom-left or press Q to pause
 and open the inventory, then click a health potion to drink it. Click the bag or press Q
 again to resume. Find each level's key and reach its bunker door to unlock the exit.
-Each door consumes one key; the third exit completes the supplied campaign. Press R
+Each door consumes one key; the third exit completes the example campaign. Press R
 at the completion message to restart from the configured starting level.
 
 To change the game, use the [development loop](docs/START_HERE.md#everyday-development-loop)
@@ -126,7 +126,7 @@ does not launch the graphical game.
 The macOS and Windows jobs use a pinned `sccache` release backed by GitHub Actions'
 cache service. Only compiler outputs are cached; generated build directories are not.
 On Windows, CI still builds the generated Visual Studio solution and only replaces
-`cl.exe` with a cache wrapper for that build. This does not affect local student builds.
+`cl.exe` with a cache wrapper for that build. This does not affect local builds.
 
 A separate Linux quality job runs on pull requests. It checks source formatting, runs clang-tidy, and verifies
 that every public header can compile on its own. These checks do not add any tools to

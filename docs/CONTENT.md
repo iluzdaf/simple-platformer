@@ -1,6 +1,6 @@
 # Content and Level Format
 
-This is the authoring reference for the JSON under `assets`. It covers the level catalog,
+This is the authoring reference for the JSON under `assets`. It covers the level catalogue,
 each shared definition file, the map and placement syntax, and the loader vocabulary in
 `app/content`.
 
@@ -16,7 +16,7 @@ mistake in an entry the level never places is still reported.
 [ARCHITECTURE.md](ARCHITECTURE.md) explains why this boundary exists and what the engine
 does with the loaded data. [README.md](../README.md) covers building and running.
 
-## Level catalog
+## Level catalogue
 
 The [content-file guide](#content-files-at-a-glance) below lists the shared definitions
 used alongside this catalogue.
@@ -36,13 +36,13 @@ IDs to files:
 ```
 
 - `number` is a positive, unique level ID.
-- `file` is a path relative to the catalog's directory.
-- `startLevel` names one of the catalog entries.
-- An exit's `nextLevel` refers to a level ID in the catalog.
+- `file` is a path relative to the catalogue's directory.
+- `startLevel` names one of the catalogue entries.
+- An exit's `nextLevel` refers to a level ID in the catalogue.
 
-Each catalog entry assigns a level ID to a level file. The referenced file contains that
+Each catalogue entry assigns a level ID to a level file. The referenced file contains that
 level's map and object placements. Students can rename, add, or remove level files by
-updating the catalog without changing C++.
+updating the catalogue without changing C++.
 
 ## Content files at a glance
 
@@ -374,7 +374,7 @@ Composition creates each AABB around its loaded feet position. Their sprites
 remain independent, just like actor sprites and bodies.
 
 The JSON dependency stays at the application content boundary.
-`level_catalog.cpp` validates the catalog, and `level_data.cpp` parses a
+`level_catalog.cpp` validates the catalogue, and `level_data.cpp` parses a
 level into plain `LevelData`, reports invalid fields with their content path, and
 retains actor, pickup, exit, and item references. The definition catalogues validate
 definitions independently of placement; composition resolves names to runtime values. The
@@ -382,8 +382,8 @@ composition step then creates the existing `TileMap`, `World`, actors, pickups, 
 exit. Existing construction and level validation remain authoritative.
 
 Parser tests use JSON strings and independent files under `tests/fixtures/levels`.
-Transition tests use that fixture campaign, not the supplied game's layout or item values.
-Generic content checks load every entry in the editable catalog;
+Transition tests use that fixture campaign, not the example game's layout or item values.
+Generic content checks load every entry in the example catalogue;
 they do not assume particular filenames, a fixed level count, or specific NPCs.
 
 Runtime-only state is never loaded: actor IDs, velocities, current paths, attack timers,

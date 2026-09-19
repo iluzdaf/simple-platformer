@@ -12,7 +12,7 @@ a commitment, and none of it is required for ordinary project work.
 Editing JSON remains useful because the stored level data is visible and reviewable,
 but counting columns in a wide tile map makes object placement cumbersome.
 
-The first step should be a read-only level visualizer. It can load the existing JSON
+The first step should be a read-only level visualiser. It can load the existing JSON
 through the normal parser and display row and column rulers together with symbols for
 the player, actors, pickups, exits, and patrol points. It should report the same
 validation errors as the game and must not introduce another level format.
@@ -189,7 +189,7 @@ weapon is a capability rather than a `Shooter` brain. Useful tactics could inclu
 - `Patroller`: follow patrol points without pursuing the player.
 
 The first implementation should stay explicit. An enum in `NpcBrain` and a switch in
-the NPC system make the available policies and their dispatch visible to students:
+the NPC system keep the available policies and their dispatch visible:
 
 ```cpp
 enum class NpcTactic

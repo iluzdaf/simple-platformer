@@ -148,7 +148,7 @@ levels, and builds a scene for rendering. What it and `GameLevel` own is listed 
 
 Then open [`assets/levels.json`](../assets/levels.json). It chooses the
 starting level and maps level IDs to filenames, so level files can be freely renamed.
-[`level_catalog.cpp`](../app/content/level_catalog.cpp) validates that catalog and
+[`level_catalog.cpp`](../app/content/level_catalog.cpp) validates that catalogue and
 resolves its filenames. Follow its first entry into
 [`assets/level_1.json`](../assets/level_1.json), which contains the map and
 placements for that level. Follow that data into

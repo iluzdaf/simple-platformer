@@ -8,12 +8,34 @@ reading this document from top to bottom.
 
 Use this as a reference when working on a particular feature:
 
-- [Project shape](#project-shape) and [runtime flow](#runtime-flow): ownership and update order.
+**Orientation**
+
+- [Purpose and scope](#purpose-and-scope): what the repository is and is not.
+- [Project shape](#project-shape): targets, folders, and the dependency boundary.
+- [Runtime flow](#runtime-flow): the fixed step and the order systems run in.
+- [Coordinates and time](#coordinates-and-time): axes, feet positions, and the shared clock.
+
+**The data model**
+
+- [World ownership and identity](#world-ownership-and-identity): what the world owns.
 - [Actor composition](#actor-composition): how capabilities fit together.
-- [Data-driven level boundary](#data-driven-level-boundary): why content lives in JSON.
-  [CONTENT.md](CONTENT.md) is the file-by-file authoring reference.
+
+**Gameplay systems**
+
+- [Input and movement](#input-and-movement): intentions, platformer and flying movement.
+- [Tile map, collision, and validation](#tile-map-collision-and-validation): terrain and sweeps.
+- [NPC behaviour](#npc-behaviour): sensing, memory, and the explicit state machine.
+- [Navigation](#navigation): path search, following, and simulated jumps.
+- [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle): attacks and death.
+- [Inventory, pickups, and levels](#inventory-pickups-and-levels): the level loop and the
+  [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the
+  file-by-file authoring reference.
+
+**Presentation and practice**
+
 - [Presentation](#presentation): animation, rendering, camera, and UI.
 - [Extension recipes](#extension-recipes-for-project-work): where to make a gameplay change.
+- [Error handling and validation](#error-handling-and-validation): which layer rejects what.
 - [Testing and quality checks](#testing-and-quality-checks): how to verify it.
 - [Future work](#future-work): pointers to designs the repository does not implement.
 
@@ -60,7 +82,7 @@ run movement or a complete simulation tick, and inspect the result without needi
 window or graphics context.
 
 All third-party source is vendored under `external/` so the project builds offline and
-students use the same releases. The current dependencies include GLFW, glad, GLM, ImGui,
+everyone works from the same releases. The current dependencies include GLFW, glad, GLM, ImGui,
 Catch2, stb image loading, and nlohmann/json.
 
 ### Application folders
@@ -293,7 +315,7 @@ from tile collision and avoids a general ability framework.
 
 ### Flying movement
 
-Flying movement normalizes a nonzero two-dimensional intention, multiplies it by the
+Flying movement normalises a nonzero two-dimensional intention, multiplies it by the
 configured speed, and uses the same tile collision function. It has no gravity,
 jumping, or acceleration state.
 
@@ -473,7 +495,7 @@ requirement cannot be consumed twice. The simulation reports completion;
 different levels. `Game` replaces that value at a transition, carries over the player's current health and inventory,
 and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
-The final exit shows completion text and R creates a fresh copy of the catalog's start
+The final exit shows completion text and R creates a fresh copy of the catalogue's start
 level.
 
 ### Example campaign
@@ -553,8 +575,8 @@ all require animation clips.
 
 The supplied atlas is 160 by 248 pixels. The example character clips use fixed 32 by
 24 source frames and separate animation sets for the player, zombie, bat, and zombie
-soldier. Artwork sources and atlas tooling live outside this student repository; this
-repository contains the finished runtime atlas.
+soldier. Artwork sources and atlas tooling live outside this repository; what is here is
+the finished runtime atlas.
 
 Frames within a set must share one size. `SpriteRegion` supports arbitrary source
 rectangles, but playback changes only the region while `Sprite::size` and its anchor stay
@@ -645,7 +667,7 @@ genuinely new example enemy normally involves:
    with `"type": "actor"`;
 3. an actor composed from only the movement, sensing, path-following, health, attack,
    and presentation components it needs;
-4. an animation set and atlas regions in the example application;
+4. an animation set and atlas regions in the example game;
 5. valid spawn and patrol data in a level JSON file;
 6. focused tests for its new decision rule, with broader simulation coverage only for
    interactions between systems.
@@ -747,9 +769,9 @@ For a new rule, start beside the code you changed:
 | Behaviour involving multiple systems | `tests/world/test_world_simulation.cpp` |
 | Visual state converted to draw commands | `tests/render/test_render_scene.cpp` |
 
-Use small independent data in tests rather than asserting the supplied campaign's
-enemy count, item values, or inventory capacity. The editable campaign checks should
-test validity, so students can change content without rewriting unrelated tests.
+Use small independent data in tests rather than asserting the example campaign's
+enemy count, item values, or inventory capacity. Its own checks should test validity,
+so you can change content without rewriting unrelated tests.
 
 CI builds and tests on macOS with Apple Clang and on Windows through the generated
 Visual Studio solution described in [README.md](../README.md). A Linux quality job checks
@@ -761,7 +783,7 @@ remain a manual run; automated graphics-context tests are avoided.
 Larger designs that the repository deliberately does not implement are recorded in
 [docs/FUTURE_WORK.md](FUTURE_WORK.md):
 
-- **Level authoring tools** — an in-repository level editor and a read-only visualizer.
+- **Level authoring tools** — an in-repository level editor and a read-only visualiser.
 - **Optional movement abilities** — a modifier pipeline so abilities such as a double
   jump, dash, or wall slide compose without editing the movement function each time.
 - **NPC tactics** — richer brain behaviour built from the existing explicit state

@@ -69,14 +69,6 @@ The solution is generated from `CMakeLists.txt` and `CMakePresets.json`. It belo
 the ignored `build/` directory and should not be committed. Run `setup-windows.bat`
 again after changing the CMake configuration.
 
-Anyone comfortable with the terminal can perform the same steps with:
-
-```powershell
-cmake --preset windows-vs
-cmake --build --preset windows-debug
-ctest --preset windows-debug
-```
-
 The Windows executable is:
 
 ```text

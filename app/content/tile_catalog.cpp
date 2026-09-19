@@ -66,7 +66,7 @@ namespace simple_platformer
         }
         catch (const std::invalid_argument& error)
         {
-            throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
+            failJson(sourceName, {}, error.what());
         }
         return result;
     }

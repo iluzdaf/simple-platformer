@@ -35,7 +35,7 @@ namespace simple_platformer
             }
             catch (const std::invalid_argument& error)
             {
-                throw std::invalid_argument("exits." + entry.first + ": " + error.what());
+                failJson({}, fieldPath("exits", entry.first), error.what());
             }
         }
     }
@@ -68,7 +68,7 @@ namespace simple_platformer
         }
         catch (const std::invalid_argument& error)
         {
-            throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
+            failJson(sourceName, {}, error.what());
         }
         return catalog;
     }

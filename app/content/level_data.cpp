@@ -513,8 +513,7 @@ namespace simple_platformer
         // Raw member access during expansion can still raise a nlohmann error of its own.
         catch (const Json::exception& exception)
         {
-            throw std::invalid_argument(
-                std::string(sourceName) + ": invalid JSON: " + exception.what());
+            failJson(sourceName, {}, std::string("invalid JSON: ") + exception.what());
         }
     }
 

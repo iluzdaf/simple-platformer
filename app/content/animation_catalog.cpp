@@ -49,16 +49,15 @@ namespace simple_platformer
             }
             if (!names.insert(clip.name).second)
             {
-                throw std::invalid_argument(name + ": duplicate animation clip");
+                failJson({}, name, "duplicate animation clip");
             }
             if (clip.frames.empty())
             {
-                throw std::invalid_argument(name + ".frames: expected at least one frame");
+                failJson({}, fieldPath(name, "frames"), "expected at least one frame");
             }
             if (!std::isfinite(clip.frameDuration) || clip.frameDuration <= 0)
             {
-                throw std::invalid_argument(
-                    name + ".frameDuration: expected a positive finite number");
+                failJson({}, fieldPath(name, "frameDuration"), "expected a positive finite number");
             }
             for (std::size_t index = 0; index < clip.frames.size(); ++index)
             {
@@ -77,8 +76,7 @@ namespace simple_platformer
                 }
                 catch (const std::invalid_argument& error)
                 {
-                    throw std::invalid_argument(
-                        name + ".frames[" + std::to_string(index) + "]: " + error.what());
+                    failJson({}, indexPath(fieldPath(name, "frames"), index), error.what());
                 }
             }
         }
@@ -106,7 +104,7 @@ namespace simple_platformer
             }
             catch (const std::invalid_argument& error)
             {
-                throw std::invalid_argument("animations." + entry.first + ": " + error.what());
+                failJson({}, fieldPath("animations", entry.first), error.what());
             }
         }
     }
@@ -160,7 +158,7 @@ namespace simple_platformer
         }
         catch (const std::invalid_argument& error)
         {
-            throw std::invalid_argument(std::string(sourceName) + ": " + error.what());
+            failJson(sourceName, {}, error.what());
         }
         return catalog;
     }

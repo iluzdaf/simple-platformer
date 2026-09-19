@@ -141,10 +141,10 @@ fixed-step loop, UI, and graphics setup. Do not worry about the OpenGL details y
 ### 2. See what the game coordinates
 
 Read [`app/game/game.hpp`](../app/game/game.hpp) and
-[`app/game/game.cpp`](../app/game/game.cpp). `Game` owns the current
-`GameLevel` and camera controller. `GameLevel` keeps the level ID, map, world, and player
-spawn together. `Game` passes input into the simulation, updates presentation
-state, changes levels, and builds a scene for rendering.
+[`app/game/game.cpp`](../app/game/game.cpp). `Game` is the seam between the application
+and the engine: it passes input into the simulation, updates presentation state, changes
+levels, and builds a scene for rendering. What it and `GameLevel` own is listed under
+[Application folders](ARCHITECTURE.md#application-folders).
 
 Then open [`assets/levels.json`](../assets/levels.json). It chooses the
 starting level and maps level IDs to filenames, so level files can be freely renamed.

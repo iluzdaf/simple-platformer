@@ -9,13 +9,12 @@ For example, `"definition": "zombie"` in an actor placement selects a named defi
 `actors.json`. Definitions select and configure supported components; behaviour
 implementations remain C++.
 
+Two rules hold for every file described here. Unknown fields are rejected, so a
+misspelling is reported rather than ignored. Every definition is checked in full, so a
+mistake in an entry the level never places is still reported.
+
 [ARCHITECTURE.md](ARCHITECTURE.md) explains why this boundary exists and what the engine
 does with the loaded data. [README.md](../README.md) covers building and running.
-
-The example game loads its levels from `assets`. The files select and place known
-game concepts rather than defining new engine behaviour. For example,
-`"definition": "zombie"` in an actor placement selects a named definition in `actors.json`. Definitions select
-and configure supported components; behaviour implementations remain C++.
 
 ## Level catalog
 
@@ -136,7 +135,6 @@ For actors, exits, and named pickups, `definition` selects an entry in the corre
 catalogue. A tile legend needs only the definition name because its category is
 already established by `tileLegend`.
 Do not put `spawnCell` or `spawnFeet` in a legend entry: the marker supplies its position.
-Unknown types and invalid definitions are rejected even when their symbols are unused.
 
 Explicit actors and pickups are kept first, followed by markers in row order, left to
 right. They are added, not merged or deduplicated. Use explicit placements for overlaps
@@ -212,15 +210,15 @@ Shared definitions live in `actors.json` beside the level catalogue:
 
 `actor_definition.hpp` is the C++ configuration boundary; `composeActor` creates fresh
 runtime components and calls the engine's `validateActor`. `actor_catalog.cpp` reads
-JSON, validates every definition (including unused ones), and resolves names. The
+JSON, validates every definition, and resolves names. The
 top-level `player` chooses the player definition, which must have health and inventory
 for the game's HUD, and must not enable NPC sensing. Level patrols remain per-instance.
 
 Exactly one of `platformer` or `flying` is required. Empty component objects use C++
 defaults; omitted optional components are absent. `senses` adds the existing NPC brain,
 sensing and path follower together. `health` and `inventorySlots` are positive integers.
-Attacks use either `bite` or `ranged`, and require a non-neutral team. Unknown fields
-are rejected. There is no inheritance or arbitrary per-placement override mechanism.
+Attacks use either `bite` or `ranged`, and require a non-neutral team. There is no
+inheritance or arbitrary per-placement override mechanism.
 
 Platformer fields match `PlatformerMovementConfig`; flying exposes `speed`. Sensing
 exposes `noticeDistance` and `forgetAfter`. Bite exposes `damage`, `hitboxSize`, `reach`,
@@ -230,7 +228,36 @@ exposes `noticeDistance` and `forgetAfter`. Bite exposes `damage`, `hitboxSize`,
 optional `displaySize`, and optional `anchor`. Sprite coordinates use atlas pixels.
 Animation names reference named sets in `animations.json`;
 animation frames are not loaded here. `facing` is `left` or `right`, and `spriteAnchor`
-is `feet` or `center`. Texture IDs are supplied at runtime.
+is `feet` or `center`.
+
+## Animation sets
+
+Shared sets live in [`animations.json`](../assets/animations.json). Each set contains
+`idle`, `move`, `jump`, `fall`, `attack`, and `death` clips. For example, the `move` entry
+inside a set:
+
+```json
+"move": {
+  "frames": [
+    {"position": [64, 0], "size": [32, 24]},
+    {"position": [128, 0], "size": [32, 24]},
+    {"position": [96, 0], "size": [32, 24]},
+    {"position": [128, 0], "size": [32, 24]}
+  ],
+  "frameDuration": 0.16,
+  "looping": true
+}
+```
+
+Frame rectangles use atlas pixels. Order and repeated frames are preserved.
+`frameDuration` is seconds per frame; a non-looping clip holds its last frame. Each clip
+needs at least one frame and a positive finite duration. All six clips are required
+because actor selection can request any of them. Frames within one set share a size,
+though different sets can use different sizes. A missing set reference is rejected during
+loading.
+
+Actor definitions name a set; they do not carry frames of their own. How the engine picks
+a clip at runtime is in [Animation](ARCHITECTURE.md#animation).
 
 ## Items and pickups
 
@@ -280,7 +307,6 @@ configures these behaviours; it does not implement them.
 in the world. Both `icon` and `sprite` use `position` and `size` for their atlas
 rectangle, optional `displaySize` (defaults to source size), and optional `anchor`
 (`feet` or `center`, default `feet`). The collider remains independent of the sprite.
-Texture IDs are supplied by the application when composing runtime objects.
 
 A level places a named definition using one spawn placement:
 

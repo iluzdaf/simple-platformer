@@ -469,9 +469,8 @@ persists through player death.
 
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. The simulation reports completion;
-`GameLevel` keeps a level ID, map, populated world, and player spawn together so
-callers cannot accidentally combine data from different levels. `Game` replaces
-that value at a transition, carries over the player's current health and inventory,
+`GameLevel` groups a level's data so callers cannot accidentally combine parts of
+different levels. `Game` replaces that value at a transition, carries over the player's current health and inventory,
 and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
 The final exit shows completion text and R creates a fresh copy of the catalog's start
@@ -494,11 +493,8 @@ are optional rewards, not exit requirements.
 
 ### Data-driven level boundary
 
-The example game loads its levels from `assets`. The files select and place known game
-concepts rather than defining new engine behaviour. Definitions select and configure
-supported components; behaviour implementations remain C++.
-
-The boundary keeps JSON out of the core: `app/content` owns the loaders and validators,
+The example game loads its levels from `assets` rather than compiling them in. The
+boundary keeps JSON out of the core: `app/content` owns the loaders and validators,
 `app/game/level_composition.cpp` combines the results into a playable level, and the core
 receives plain C++ values. Levels, actors, items, pickups, exits, and animation sets can
 therefore change without touching engine code.
@@ -539,35 +535,13 @@ its smaller collider matches the creature in the middle of its frame.
 
 ### Animation
 
-Shared sets live in `assets/animations.json`. Each set contains `idle`, `move`,
-`jump`, `fall`, `attack`, and `death` clips. For example, the `move` entry inside a set:
+Clips are authored in `animations.json`; [CONTENT.md](CONTENT.md#animation-sets) covers
+the format. The catalogue loads before actors and stays unchanged for the session, and
+composition creates a fresh animator for each actor. JSON defines clips, not selection
+rules.
 
-```json
-"move": {
-  "frames": [
-    {"position": [64, 0], "size": [32, 24]},
-    {"position": [128, 0], "size": [32, 24]},
-    {"position": [96, 0], "size": [32, 24]},
-    {"position": [128, 0], "size": [32, 24]}
-  ],
-  "frameDuration": 0.16,
-  "looping": true
-}
-```
-
-Frame rectangles use atlas pixels. Order and repeated frames are preserved.
-`frameDuration` is seconds per frame; a non-looping clip holds its last frame.
-Each clip needs at least one frame and a positive finite duration. All six clips
-are required because actor selection can request any of them. Frames in a set have
-the same positive size: playback changes the source region, not the display size.
-Different sets can use different frame sizes. Unknown fields and missing set references
-are rejected during loading, including references from unused actor definitions.
-The catalogue loads before actors and stays unchanged for the session; composition
-creates a fresh animator for each actor. JSON defines clips, not selection rules.
-
-Animations use named clips: Idle, Move, Jump, Fall, Attack, and Death. There is no
-animation state machine. A priority function selects a name from life, attack,
-grounded, and velocity state; death has highest priority, then attack.
+There is no animation state machine. A priority function selects a clip from life,
+attack, grounded, and velocity state; death has highest priority, then attack.
 
 Each animated actor has an `Animator` with its current animation, elapsed time, and an
 `AnimationSet`. Each character therefore owns its clip definitions and can use different

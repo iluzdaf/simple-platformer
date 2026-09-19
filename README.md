@@ -106,11 +106,6 @@ again to resume. Find each level's key and reach its bunker door to unlock the e
 Each door consumes one key; the third exit completes the example campaign. Press R
 at the completion message to restart from the configured starting level.
 
-To change the game, use the [development loop](docs/START_HERE.md#everyday-development-loop)
-and [project starting points](docs/START_HERE.md#starting-project-work). For level layouts
-and shared definitions, see the
-[content-file guide](docs/CONTENT.md#content-files-at-a-glance).
-
 ## Continuous integration
 
 GitHub Actions configures, builds, and runs all tests on both macOS with Apple Clang

@@ -35,7 +35,7 @@ TEST_CASE("Actor catalogue references compose through level loading", "[app][act
     REQUIRE_THROWS_WITH(
         simple_platformer::makeGameLevel(invalid, 1, 0),
         Catch::Matchers::ContainsSubstring(
-            "objectLegend.Z.type: unknown actor definition 'missing'"));
+            "objectLegend.Z.definition: unknown actor definition 'missing'"));
 }
 
 TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[app][actors]")

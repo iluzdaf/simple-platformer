@@ -138,7 +138,9 @@ add_executable(
     app/game/example_animations.cpp
     app/game/example_content.cpp
     app/game/example_game.cpp
-    app/game/example_items.cpp
+    app/game/content_json.cpp
+    app/game/item_catalog.cpp
+    app/game/pickup_catalog.cpp
     app/game/example_level_data.cpp
     app/game/level_catalog.cpp
     app/game/tile_catalog.cpp
@@ -293,7 +295,9 @@ if(BUILD_TESTING)
         app/game/example_animations.cpp
         app/game/example_content.cpp
         app/game/example_game.cpp
-        app/game/example_items.cpp
+        app/game/content_json.cpp
+        app/game/item_catalog.cpp
+        app/game/pickup_catalog.cpp
         app/game/example_level_data.cpp
         app/game/level_catalog.cpp
         app/game/tile_catalog.cpp
@@ -311,6 +315,8 @@ if(BUILD_TESTING)
         tests/app/test_tile_catalog.cpp
         tests/app/test_content_validation.cpp
         tests/app/test_actor_catalog.cpp
+        tests/app/test_item_catalog.cpp
+        tests/app/test_pickup_catalog.cpp
         tests/app/test_level_transition.cpp
         tests/actor/test_actor_system.cpp
         tests/actor/test_lifecycle.cpp

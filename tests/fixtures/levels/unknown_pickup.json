@@ -1,0 +1,8 @@
+{
+  "objectLegend": {
+    "P": { "type": "player" },
+    "K": { "type": "pickup", "definition": "missing" },
+    "E": { "type": "exit" }
+  },
+  "map": [".....", "P...E", "#####"]
+}

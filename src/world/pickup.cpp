@@ -12,11 +12,9 @@
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 
-namespace
+namespace simple_platformer
 {
-    void validatePickup(
-        const simple_platformer::World& world,
-        const simple_platformer::Pickup& pickup)
+    void validatePickup(const Pickup& pickup)
     {
         if (!simple_platformer::isFinite(pickup.bounds.position) ||
             !simple_platformer::isFinite(pickup.bounds.size) || pickup.bounds.size.x <= 0.0F ||
@@ -24,19 +22,15 @@ namespace
         {
             throw std::invalid_argument("Pickups require finite positive-sized bounds");
         }
-        world.itemDefinition(pickup.stack.item);
         if (pickup.stack.quantity <= 0)
         {
             throw std::invalid_argument("Pickups require a positive quantity");
         }
     }
-}
-
-namespace simple_platformer
-{
     void World::addPickup(Pickup pickup)
     {
-        validatePickup(*this, pickup);
+        validatePickup(pickup);
+        itemDefinition(pickup.stack.item);
         pickupStorage.push_back(pickup);
     }
 

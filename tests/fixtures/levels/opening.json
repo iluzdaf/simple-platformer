@@ -9,8 +9,7 @@
   "actors": [],
   "pickups": [
     {
-      "item": "key",
-      "quantity": 1,
+      "definition": "door_key",
       "spawnCell": [2, 2]
     }
   ],

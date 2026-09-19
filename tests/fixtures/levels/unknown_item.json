@@ -1,0 +1,7 @@
+{
+  "objectLegend": {
+    "P": { "type": "player" },
+    "E": { "type": "exit", "requirement": { "item": "missing", "quantity": 1 } }
+  },
+  "map": [".....", "P...E", "#####"]
+}

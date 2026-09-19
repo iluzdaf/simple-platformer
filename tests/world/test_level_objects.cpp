@@ -333,6 +333,23 @@ TEST_CASE(
     REQUIRE(world.pickups()[1].bounds.position == glm::vec2{16.0F, 0.0F});
 }
 
+TEST_CASE("Pickup sprite overrides leave inventory icons unchanged", "[render][pickups]")
+{
+    simple_platformer::World world(items());
+    const simple_platformer::Sprite sprite{
+        7, {{24, 8}, {12, 10}}, {24, 20}, simple_platformer::SpriteAnchor::BodyCenter};
+    world.addPickup({{{20, 20}, {8, 8}}, {1, 1}, sprite});
+    const auto map = simple_platformer::TileMap::fromAscii({"......", "......", "......"});
+    const auto scene = simple_platformer::buildRenderScene(map, 0, {}, world);
+    REQUIRE(scene.sprites.size() == 1);
+    REQUIRE(scene.sprites[0].textureId == 7);
+    REQUIRE(scene.sprites[0].source.position == glm::vec2{24, 8});
+    REQUIRE(scene.sprites[0].size == glm::vec2{24, 20});
+    REQUIRE(scene.sprites[0].position.x == 12);
+    REQUIRE(world.itemDefinition(1).icon.textureId != 7);
+    REQUIRE(world.pickups()[0].bounds.size == glm::vec2{8, 8});
+}
+
 TEST_CASE("World rejects invalid level object data", "[pickups][exit]")
 {
     auto world = makeWorld();

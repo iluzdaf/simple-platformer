@@ -32,7 +32,7 @@
   "playerSpawnCell": [2, 26],
   "actors": [
     {
-      "type": "zombie",
+      "definition": "zombie",
       "spawnCell": [20, 20],
       "patrol": {
         "firstCell": [18, 20],
@@ -40,7 +40,7 @@
       }
     },
     {
-      "type": "zombie_soldier",
+      "definition": "zombie_soldier",
       "spawnCell": [31, 16],
       "patrol": {
         "firstCell": [29, 16],
@@ -48,7 +48,7 @@
       }
     },
     {
-      "type": "bat",
+      "definition": "bat",
       "spawnCell": [26, 14],
       "patrol": {
         "firstCell": [24, 15],
@@ -56,7 +56,7 @@
       }
     },
     {
-      "type": "bat",
+      "definition": "bat",
       "spawnCell": [44, 10],
       "patrol": {
         "firstCell": [40, 10],
@@ -64,7 +64,7 @@
       }
     },
     {
-      "type": "zombie",
+      "definition": "zombie",
       "spawnCell": [14, 26],
       "patrol": {
         "firstCell": [10, 26],
@@ -72,7 +72,7 @@
       }
     },
     {
-      "type": "zombie",
+      "definition": "zombie",
       "spawnCell": [32, 26],
       "patrol": {
         "firstCell": [28, 26],
@@ -80,7 +80,7 @@
       }
     },
     {
-      "type": "zombie_soldier",
+      "definition": "zombie_soldier",
       "spawnCell": [46, 26],
       "patrol": {
         "firstCell": [43, 26],
@@ -90,28 +90,23 @@
   ],
   "pickups": [
     {
-      "item": "coin",
-      "quantity": 4,
+      "definition": "coin_cache",
       "spawnCell": [25, 18]
     },
     {
-      "item": "health_potion",
-      "quantity": 1,
+      "definition": "health_potion",
       "spawnCell": [40, 12]
     },
     {
-      "item": "key",
-      "quantity": 1,
+      "definition": "key",
       "spawnCell": [44, 12]
     },
     {
-      "item": "health_potion",
-      "quantity": 1,
+      "definition": "health_potion",
       "spawnCell": [49, 26]
     },
     {
-      "item": "coin",
-      "quantity": 4,
+      "definition": "coin_cache",
       "spawnCell": [22, 26]
     }
   ],

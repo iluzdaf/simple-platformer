@@ -8,9 +8,11 @@
 
 #include "tile_catalog.hpp"
 #include "example_level_data.hpp"
+#include "simple_platformer/render/sprite.hpp"
 
 namespace simple_platformer
 {
+    void validateContentSprite(const Sprite& sprite);
     // An authoring location for diagnostics, not a position in the game world.
     struct PlacementOrigin
     {

@@ -9,11 +9,24 @@
 #include <string_view>
 #include <vector>
 
+#include "simple_platformer/render/sprite.hpp"
 #include "tile_catalog.hpp"
 #include "example_level_data.hpp"
+#include "simple_platformer/math/validation.hpp"
 
 namespace simple_platformer
 {
+    void validateContentSprite(const Sprite& sprite)
+    {
+        if (!isFinite(sprite.region.position) || sprite.region.position.x < 0 ||
+            sprite.region.position.y < 0 || !isFinite(sprite.region.size) ||
+            sprite.region.size.x <= 0 || sprite.region.size.y <= 0 || !isFinite(sprite.size) ||
+            sprite.size.x <= 0 || sprite.size.y <= 0)
+        {
+            throw std::invalid_argument(
+                "sprite requires finite non-negative atlas position and positive sizes");
+        }
+    }
     void validatePickupSettings(const ExamplePickupPlacement& placement, const std::string& path)
     {
         if (placement.stack.quantity <= 0)

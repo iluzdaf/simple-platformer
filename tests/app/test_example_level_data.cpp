@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 
-#include "game/example_items.hpp"
 #include "game/example_level_data.hpp"
 #include "simple_platformer/npc/npc.hpp"
 
@@ -59,10 +58,10 @@ TEST_CASE("Level diagnostics identify authored fields and map cells", "[app][con
     }
     SECTION("Explicit entries retain their array paths")
     {
-        level["actors"] = nlohmann::json::array({{{"type", ""}, {"spawnCell", {0, 0}}}});
+        level["actors"] = nlohmann::json::array({{{"definition", ""}, {"spawnCell", {0, 0}}}});
         REQUIRE_THROWS_WITH(
             simple_platformer::parseExampleLevelData(level.dump(), "level.json"),
-            "level.json: actors[0].type: actor definition name cannot be empty");
+            "level.json: actors[0].definition: actor definition name cannot be empty");
     }
 }
 
@@ -85,14 +84,14 @@ TEST_CASE(
         "tileLegend":{".":"empty", "#":"stone", "G":"grass"},
         "objectLegend":{
             "P":{"type":"player"},
-            "Z":{"type":"zombie", "patrol":{"firstCell":[1,0],"secondCell":[2,0]}},
-            "B":{"type":"bat"}, "S":{"type":"zombie_soldier"},
+            "Z":{"type":"actor", "definition":"zombie", "patrol":{"firstCell":[1,0],"secondCell":[2,0]}},
+            "B":{"type":"actor", "definition":"bat"}, "S":{"type":"actor", "definition":"zombie_soldier"},
             "K":{"type":"pickup","item":"key","quantity":2},
             "E":{"type":"exit","requirement":{"item":"key","quantity":1},
                  "consumeItem":true,"nextLevel":2}
         },
         "map":["PZZBSKKEG", "#########"],
-        "actors":[{"type":"zombie","spawnCell":[8,0]}],
+        "actors":[{"definition":"zombie","spawnCell":[8,0]}],
         "pickups":[{"item":"coin","quantity":3,"spawnFeet":[136,8]}]
     })",
         "markers");
@@ -106,7 +105,7 @@ TEST_CASE(
     REQUIRE(data.actors[3].definitionName == "bat");
     REQUIRE(data.actors[4].definitionName == "zombie_soldier");
     REQUIRE(data.pickups.size() == 3);
-    REQUIRE(data.pickups[1].stack.item == simple_platformer::Key);
+    REQUIRE(data.pickups[1].stack.item == "key");
     REQUIRE(data.pickups[1].stack.quantity == 2);
     REQUIRE(data.pickups[2].spawnFeet.x == 104);
     REQUIRE(data.exit.spawnFeet.x == 120);
@@ -149,15 +148,23 @@ TEST_CASE("Object legends reject ambiguous or invalid placements", "[app][conten
     }
     SECTION("Shared symbol")
     {
-        level["objectLegend"]["#"] = {{"type", "zombie"}};
+        level["objectLegend"]["#"] = {{"type", "actor"}, {"definition", "zombie"}};
     }
     SECTION("Long symbol")
     {
-        level["objectLegend"]["ZZ"] = {{"type", "zombie"}};
+        level["objectLegend"]["ZZ"] = {{"type", "actor"}, {"definition", "zombie"}};
     }
     SECTION("Empty definition name even when unused")
     {
-        level["objectLegend"]["Z"] = {{"type", ""}};
+        level["objectLegend"]["Z"] = {{"type", "actor"}, {"definition", ""}};
+    }
+    SECTION("Missing actor definition even when unused")
+    {
+        level["objectLegend"]["Z"] = {{"type", "actor"}};
+    }
+    SECTION("Unknown object category even when unused")
+    {
+        level["objectLegend"]["Z"] = {{"type", "zombie"}, {"definition", "zombie"}};
     }
     SECTION("Position in template")
     {
@@ -222,7 +229,7 @@ TEST_CASE(
             "playerSpawnCell": [1, 0],
             "actors": [
                 {
-                    "type": "zombie",
+                    "definition": "zombie",
                     "spawnCell": [2, 0],
                     "patrol": {
                         "firstCell": [2, 0],
@@ -230,7 +237,7 @@ TEST_CASE(
                     }
                 },
                 {
-                    "type": "bat",
+                    "definition": "bat",
                     "spawnFeet": [17, 9],
                     "patrol": {
                         "firstFeet": [17, 9],
@@ -262,7 +269,7 @@ TEST_CASE(
     REQUIRE(data.actors[1].definitionName == "bat");
     REQUIRE(data.actors[1].spawnFeet.x == 17.0F);
     REQUIRE(data.pickups.size() == 1);
-    REQUIRE(data.pickups.front().stack.item == simple_platformer::Key);
+    REQUIRE(data.pickups.front().stack.item == "key");
     REQUIRE(data.pickups.front().spawnFeet.x == 24.0F);
     REQUIRE(data.exit.spawnFeet.x == 40.0F);
     REQUIRE(data.exit.requirement.has_value());
@@ -292,7 +299,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
             R"({
                 "map": ["....", "####"],
                 "playerSpawnFeet": [8, 8],
-                "actors": [{"type": "", "spawnFeet": [8, 8]}],
+                "actors": [{"definition": "", "spawnFeet": [8, 8]}],
                 "pickups": [],
                 "exit": {"spawnFeet": [8, 16]}
             })",
@@ -305,7 +312,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
                 "map": ["....", "####"],
                 "playerSpawnCell": [1, 0],
                 "actors": [{
-                    "type": "zombie",
+                    "definition": "zombie",
                     "spawnCell": [1, 0],
                     "spawnFeet": [24, 16]
                 }],
@@ -313,6 +320,33 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
                 "exit": {"spawnFeet": [8, 16]}
             })",
             "ambiguous placement"),
+        std::invalid_argument);
+}
+
+TEST_CASE("Pickup placements choose a definition or an inline stack", "[app][content][json]")
+{
+    auto root = nlohmann::json::parse(R"({
+        "map":["....","####"],"playerSpawnCell":[0,0],"actors":[],
+        "pickups":[{"definition":"treasure","spawnCell":[1,0]}],
+        "exit":{"spawnCell":[3,0]}
+    })");
+    const auto parsed = simple_platformer::parseExampleLevelData(root.dump(), "placement.json");
+    REQUIRE(parsed.pickups.front().definitionName == "treasure");
+    REQUIRE(parsed.pickupReferences.at("pickups[0].definition") == "treasure");
+    SECTION("Mixed definition and item")
+    {
+        root["pickups"][0]["item"] = "key";
+    }
+    SECTION("Mixed definition and quantity")
+    {
+        root["pickups"][0]["quantity"] = 2;
+    }
+    SECTION("Empty definition")
+    {
+        root["pickups"][0]["definition"] = "";
+    }
+    REQUIRE_THROWS_AS(
+        simple_platformer::parseExampleLevelData(root.dump(), "placement.json"),
         std::invalid_argument);
 }
 

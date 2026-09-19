@@ -4,7 +4,6 @@
 #include <cstddef>
 
 #include "game/example_game.hpp"
-#include "game/example_items.hpp"
 #include "game/level_catalog.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/input/input_state.hpp"
@@ -76,7 +75,6 @@ TEST_CASE(
         }
     }
 
-    INFO("Keys: " << game.playerInventory().count(simple_platformer::Key));
     REQUIRE(changedLevel);
     REQUIRE(game.complete());
     const auto health = game.playerHealth();

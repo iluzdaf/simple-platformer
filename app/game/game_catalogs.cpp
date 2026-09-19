@@ -1,6 +1,7 @@
 #include "game_catalogs.hpp"
 #include <filesystem>
 #include "actor_catalog.hpp"
+#include "animation_catalog.hpp"
 #include "tile_catalog.hpp"
 #include "item_catalog.hpp"
 #include "pickup_catalog.hpp"
@@ -12,7 +13,8 @@ namespace simple_platformer
     {
         GameCatalogs catalogs;
         catalogs.tiles = loadTileCatalog(levelDirectory / "tiles.json");
-        catalogs.actors = loadActorCatalog(levelDirectory / "actors.json");
+        catalogs.animations = loadAnimationCatalog(levelDirectory / "animations.json");
+        catalogs.actors = loadActorCatalog(levelDirectory / "actors.json", catalogs.animations);
         catalogs.items = loadItemCatalog(levelDirectory / "items.json");
         // Pickup stacks refer to the item definitions loaded above.
         catalogs.pickups = loadPickupCatalog(levelDirectory / "pickups.json", catalogs.items);

@@ -135,7 +135,7 @@ add_executable(
     app/application.cpp
     app/debug/debug_overlay.cpp
     app/debug/debug_overlay_ui.cpp
-    app/game/example_animations.cpp
+    app/game/animation_catalog.cpp
     app/game/example_content.cpp
     app/game/example_game.cpp
     app/game/content_json.cpp
@@ -294,7 +294,7 @@ if(BUILD_TESTING)
     add_executable(
         simple_platformer_tests
         app/debug/debug_overlay.cpp
-        app/game/example_animations.cpp
+        app/game/animation_catalog.cpp
         app/game/example_content.cpp
         app/game/example_game.cpp
         app/game/content_json.cpp
@@ -319,6 +319,7 @@ if(BUILD_TESTING)
         tests/app/test_tile_catalog.cpp
         tests/app/test_content_validation.cpp
         tests/app/test_actor_catalog.cpp
+        tests/app/test_animation_catalog.cpp
         tests/app/test_item_catalog.cpp
         tests/app/test_pickup_catalog.cpp
         tests/app/test_exit_catalog.cpp

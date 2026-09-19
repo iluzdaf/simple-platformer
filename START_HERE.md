@@ -266,7 +266,7 @@ It is safe to return later to:
 - OpenGL setup and shader details in `app/graphics`;
 - ImGui layout code in `app/ui` and `app/debug`;
 - simulated platformer navigation;
-- atlas coordinates in `example_animations.cpp`;
+- atlas coordinates and clip timings in `assets/levels/animations.json`;
 - CI, formatting, and static-analysis targets.
 
 Once the route above makes sense, use [ARCHITECTURE.md](ARCHITECTURE.md) as the

@@ -80,7 +80,7 @@ the render scene, and replaces the level during a transition.
 
 Example-specific content is kept out of general engine systems. Level geometry and
 placements, actors, items, pickup definitions, and exit definitions live in `assets/levels`; the loaders,
-composition functions, and animation clips live under `app/game`.
+composition functions, and animation catalogue loading live under `app/game`.
 
 ### Data, behaviour, and resources
 
@@ -528,6 +528,7 @@ Shared catalogues sit beside `levels.json` in `assets/levels`:
 | A level file, such as [`level_1.json`](assets/levels/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings | [`example_level_data.cpp`](app/game/example_level_data.cpp) |
 | [`tiles.json`](assets/levels/tiles.json) | Tile artwork and movement/sight properties | [`tile_catalog.cpp`](app/game/tile_catalog.cpp) |
 | [`actors.json`](assets/levels/actors.json) | Player definition, actor capabilities, and tuning | [`actor_catalog.cpp`](app/game/actor_catalog.cpp), [`actor_definition.cpp`](app/game/actor_definition.cpp) |
+| [`animations.json`](assets/levels/animations.json) | Named animation sets, frame rectangles, timing, and looping | [`animation_catalog.cpp`](app/game/animation_catalog.cpp) |
 | [`items.json`](assets/levels/items.json) | Inventory names, icons, stacking, and effect settings | [`item_catalog.cpp`](app/game/item_catalog.cpp) |
 | [`pickups.json`](assets/levels/pickups.json) | World pickup quantities, bounds, and optional sprites | [`pickup_catalog.cpp`](app/game/pickup_catalog.cpp) |
 | [`exits.json`](assets/levels/exits.json) | Exit bounds and sprites | [`exit_catalog.cpp`](app/game/exit_catalog.cpp) |
@@ -539,12 +540,12 @@ even when a particular level uses no pickups or NPCs; item and pickup catalogues
 contain empty definitions objects.
 
 `ExampleGame` owns a `GameCatalogs` value loaded once by
-[`loadGameCatalogs`](app/game/game_catalogs.cpp). Tile, actor, item, pickup, and exit
+[`loadGameCatalogs`](app/game/game_catalogs.cpp). Tile, animation, actor, item, pickup, and exit
 definitions are reused across transitions and restarts. Each level file is loaded
 when entering that level; the game does not construct every world at startup.
 Restart the game application to reload shared definitions after editing their files.
 
-Actor animation clips are configured in C++.
+Actor animation clips are configured in `animations.json`.
 See [Actors](#actors), [Exits](#exits), and [Animation](#animation) for those boundaries.
 
 #### Level files
@@ -699,7 +700,7 @@ exposes `noticeDistance` and `forgetAfter`. Bite exposes `damage`, `hitboxSize`,
 `windupDuration`, `activeDuration`, and `recoveryDuration`. Ranged exposes `damage`,
 `projectileSize`, `projectileSpeed`, `projectileLifetime`, `shootDuration`,
 `recoveryDuration`, `spritePosition`, and `spriteSize`. Sprite coordinates use atlas pixels.
-Animation names select the C++ sets `player`, `zombie`, `bat`, or `zombie_soldier`;
+Animation names reference named sets in `animations.json`;
 animation frames are not loaded here. `facing` is `left` or `right`, and `spriteAnchor`
 is `feet` or `center`. Texture IDs are supplied at runtime.
 
@@ -832,8 +833,8 @@ Generic content checks load every entry in the editable catalog;
 they do not assume particular filenames, a fixed level count, or specific NPCs.
 
 Runtime-only state is never loaded: actor IDs, velocities, current paths, attack timers,
-and NPC decisions are created fresh whenever a level starts. Texture IDs and atlas
-regions for actor animations remain C++ application resources. Projectile sprite regions
+and NPC decisions are created fresh whenever a level starts. Texture IDs are supplied
+by the application at runtime. Animation frame regions come from `animations.json`. Projectile sprite regions
 are configured in the actor catalogue, not in level placements.
 
 ## Presentation
@@ -869,6 +870,32 @@ tall image use a smaller collider. The bat additionally uses a centred sprite an
 its smaller collider matches the creature in the middle of its frame.
 
 ### Animation
+
+Shared sets live in `assets/levels/animations.json`. Each set contains `idle`, `move`,
+`jump`, `fall`, `attack`, and `death` clips. For example, the `move` entry inside a set:
+
+```json
+"move": {
+  "frames": [
+    {"position": [64, 0], "size": [32, 24]},
+    {"position": [128, 0], "size": [32, 24]},
+    {"position": [96, 0], "size": [32, 24]},
+    {"position": [128, 0], "size": [32, 24]}
+  ],
+  "frameDuration": 0.16,
+  "looping": true
+}
+```
+
+Frame rectangles use atlas pixels. Order and repeated frames are preserved.
+`frameDuration` is seconds per frame; a non-looping clip holds its last frame.
+Each clip needs at least one frame and a positive finite duration. All six clips
+are required because actor selection can request any of them. Frames in a set have
+the same positive size: playback changes the source region, not the display size.
+Different sets can use different frame sizes. Unknown fields and missing set references
+are rejected during loading, including references from unused actor definitions.
+The catalogue loads before actors and stays unchanged for the session; composition
+creates a fresh animator for each actor. JSON defines clips, not selection rules.
 
 Animations use named clips: Idle, Move, Jump, Fall, Attack, and Death. There is no
 animation state machine. A priority function selects a name from life, attack,
@@ -987,7 +1014,8 @@ decision policies once the game contains a real second policy.
 | NPC perception or decision | `src/npc` |
 | Generic search or movement-specific neighbours | `src/navigation` |
 | Damage, attacks, or projectiles | `src/combat` |
-| Animation clips and content composition | `app/game` |
+| Animation definitions | `assets/levels/animations.json` |
+| Animation loading and content composition | `app/game` |
 | Actor, tile, item, pickup, and exit definitions; level geometry and placements | `assets/levels` |
 | HUD or debugging presentation | `app/ui` or `app/debug` |
 
@@ -1074,14 +1102,6 @@ remain a manual run; automated graphics-context tests are avoided.
 
 Future ideas are collected here so the sections above continue to describe the current
 repository.
-
-### Further data-driven content
-
-This design is not implemented in the current engine.
-
-Animation clips remain configured in C++. A future extension could load named animation
-definitions from validated files. Keep stable symbolic names and the current runtime structures;
-do not turn level files into arbitrary component or behaviour scripts.
 
 ### Level authoring tools
 

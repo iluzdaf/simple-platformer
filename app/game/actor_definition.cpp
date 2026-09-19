@@ -1,5 +1,5 @@
 #include "actor_definition.hpp"
-#include "example_animations.hpp"
+#include "animation_catalog.hpp"
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
@@ -16,32 +16,9 @@
 
 namespace simple_platformer
 {
-    namespace
-    {
-        AnimationSet animationsFor(const std::string& name)
-        {
-            if (name == "player")
-            {
-                return makePlayerAnimations();
-            }
-            if (name == "zombie")
-            {
-                return makeZombieAnimations();
-            }
-            if (name == "bat")
-            {
-                return makeBatAnimations();
-            }
-            if (name == "zombie_soldier")
-            {
-                return makeZombieSoldierAnimations();
-            }
-            throw std::invalid_argument("unknown animation set '" + name + "'");
-        }
-    }
-
     Actor composeActor(
         const ActorDefinition& definition,
+        const AnimationCatalog& animations,
         int textureId,
         glm::vec2 spawnFeet,
         std::optional<Patrol> patrol)
@@ -97,7 +74,8 @@ namespace simple_platformer
         if (!definition.animations.empty())
         {
             Animator animator;
-            animator.animationSet = animationsFor(definition.animations);
+            animator.animationSet = animationSet(animations, definition.animations);
+            validateAnimationSet(animator.animationSet);
             const auto& frame = clipFor(animator.animationSet, AnimationName::Idle).frames.front();
             actor.sprite = Sprite{textureId, frame, frame.size};
             actor.sprite->anchor = definition.spriteAnchor;
@@ -107,9 +85,11 @@ namespace simple_platformer
         return actor;
     }
 
-    void validateActorDefinition(const ActorDefinition& definition)
+    void validateActorDefinition(
+        const ActorDefinition& definition,
+        const AnimationCatalog& animations)
     {
         // Use the same composition and engine validation for loaded and C++ definitions.
-        composeActor(definition, 0);
+        composeActor(definition, animations, 0);
     }
 }

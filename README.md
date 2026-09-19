@@ -6,12 +6,16 @@ scrolling, composed actors, NPC finite state machines, flying and platformer pat
 360-degree projectiles, animation, inventory, automatic pickups, a three-level game loop,
 and ImGui debugging tools.
 
-New to the project? Start with [START_HERE.md](docs/START_HERE.md). It gives a recommended
-route through the code and points out which details can wait until later.
+## Documentation
 
-After that, read [ARCHITECTURE.md](docs/ARCHITECTURE.md) for the detailed design, ownership
-rules, runtime flow, and reasons behind the main decisions. [CONTENT.md](docs/CONTENT.md) is the
-authoring reference for the JSON level and definition files under `assets`.
+| Document | What it covers |
+| --- | --- |
+| [START_HERE.md](docs/START_HERE.md) | A recommended route through the code, and which details can wait until later. |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design, ownership rules, runtime flow, and the reasons behind the main decisions. |
+| [CONTENT.md](docs/CONTENT.md) | The authoring reference for the JSON level and definition files under `assets`. |
+| [FUTURE_WORK.md](docs/FUTURE_WORK.md) | Designs the repository deliberately does not implement. |
+
+New to the project? Start with START_HERE.md.
 
 ## Requirements
 

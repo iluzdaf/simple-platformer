@@ -1,6 +1,6 @@
 #include "tile_catalog.hpp"
+#include "content_validation.hpp"
 
-#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -31,29 +31,13 @@ namespace simple_platformer
                 TileDefinition definition;
                 definition.blocksMovement = value.at("blocksMovement").get<bool>();
                 definition.blocksSight = value.at("blocksSight").get<bool>();
-                if (name == "empty")
-                {
-                    if (definition.blocksMovement || definition.blocksSight)
-                    {
-                        throw std::invalid_argument("empty must allow movement and sight");
-                    }
-                }
-                else
+                if (name != "empty")
                 {
                     const auto& sprite = value.at("sprite");
                     definition.sprite.position = {
                         sprite.at("x").get<float>(), sprite.at("y").get<float>()};
                     definition.sprite.size = {
                         sprite.at("width").get<float>(), sprite.at("height").get<float>()};
-                    const auto position = definition.sprite.position;
-                    const auto size = definition.sprite.size;
-                    if (!std::isfinite(position.x) || !std::isfinite(position.y) ||
-                        !std::isfinite(size.x) || !std::isfinite(size.y) || position.x < 0 ||
-                        position.y < 0 || size.x <= 0 || size.y <= 0)
-                    {
-                        throw std::invalid_argument(
-                            "invalid sprite region for tile '" + name + "'");
-                    }
                 }
                 result.ids.emplace(name, static_cast<int>(result.definitions.size()));
                 result.definitions.push_back(definition);
@@ -66,6 +50,7 @@ namespace simple_platformer
                     add(entry.key(), entry.value());
                 }
             }
+            validateTileCatalog(result);
             return result;
         }
         catch (const nlohmann::json::exception& error)
@@ -95,16 +80,13 @@ namespace simple_platformer
         const std::map<char, std::string>& legend,
         const TileCatalog& catalog)
     {
+        // Callers can supply catalogues built directly in C++, without using the JSON loader.
+        validateTileCatalog(catalog);
+        validateTileLegend(legend, catalog);
         std::map<char, int> ids;
         for (const auto& entry : legend)
         {
-            const auto found = catalog.ids.find(entry.second);
-            if (found == catalog.ids.end())
-            {
-                throw std::invalid_argument(
-                    "Unknown tile name '" + entry.second + "' in tileLegend");
-            }
-            ids.emplace(entry.first, found->second);
+            ids.emplace(entry.first, catalog.ids.at(entry.second));
         }
         return TileMap::fromAscii(rows, catalog.definitions, ids);
     }

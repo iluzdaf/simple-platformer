@@ -1,0 +1,8 @@
+{
+  "objectLegend": {
+    "P": { "type": "player" },
+    "E": { "type": "exit", "definition": "missing" }
+  },
+  "map": ["....", "P...", "####"],
+  "exit": { "definition": "test_door", "spawnCell": [3, 1] }
+}

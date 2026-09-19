@@ -157,11 +157,12 @@ and then [`actor_catalog.cpp`](app/game/actor_catalog.cpp) and
 [`actor_definition.cpp`](app/game/actor_definition.cpp), which load named actor settings
 from `actors.json` and compose C++ actors.
 [`example_content.cpp`](app/game/example_content.cpp) brings the catalogues and
-placements together into a `GameLevel`. This is also where the exit's size and sprite
-are configured; its position and completion settings come from level JSON.
+placements together into a `GameLevel`.
 [`item_catalog.cpp`](app/game/item_catalog.cpp) and
 [`pickup_catalog.cpp`](app/game/pickup_catalog.cpp) load inventory items and world
 pickup definitions from `items.json` and `pickups.json`.
+[`exit_catalog.cpp`](app/game/exit_catalog.cpp) loads exit bounds and sprites from
+`exits.json`; positions and completion settings belong to each level.
 These are game-content concerns, not general engine behaviour. The
 [`Data-driven level boundary`](ARCHITECTURE.md#data-driven-level-boundary) section is
 the complete reference when you are ready to edit or add levels.

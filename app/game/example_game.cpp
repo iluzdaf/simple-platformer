@@ -3,7 +3,7 @@
 #include "debug/debug_overlay.hpp"
 #include "example_content.hpp"
 #include "level_catalog.hpp"
-#include "item_catalog.hpp"
+#include "game_catalogs.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -31,24 +31,23 @@ namespace simple_platformer
     }
 
     ExampleGame::ExampleGame(int textureId, LevelCatalog catalog)
-        : levelCatalog(std::move(catalog)),
-          itemCatalog(loadItemCatalog(levelCatalog.levelDirectory / "items.json")),
-          level(makeGameLevel(levelCatalog, levelCatalog.startLevel, textureId, itemCatalog)),
+        : levelCatalog(std::move(catalog)), catalogs(loadGameCatalogs(levelCatalog.levelDirectory)),
+          level(makeGameLevel(levelCatalog, levelCatalog.startLevel, textureId, catalogs)),
           atlasTextureId(textureId)
     {
-        startLevel(makePlayer(levelCatalog, atlasTextureId));
+        startLevel(makePlayer(catalogs, atlasTextureId));
     }
 
     void ExampleGame::loadLevel(int levelNumber)
     {
-        Actor nextPlayer = makePlayer(levelCatalog, atlasTextureId);
+        Actor nextPlayer = makePlayer(catalogs, atlasTextureId);
         if (const Actor* previousPlayer = level.world.findActor(level.world.playerId()))
         {
             nextPlayer.health = previousPlayer->health;
             nextPlayer.inventory = previousPlayer->inventory;
         }
         // No pointers, projectiles, requests or NPC state survive replacement of the world.
-        level = makeGameLevel(levelCatalog, levelNumber, atlasTextureId, itemCatalog);
+        level = makeGameLevel(levelCatalog, levelNumber, atlasTextureId, catalogs);
         startLevel(std::move(nextPlayer));
     }
 
@@ -185,8 +184,8 @@ namespace simple_platformer
     void ExampleGame::restart()
     {
         gameComplete = false;
-        level = makeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId, itemCatalog);
-        startLevel(makePlayer(levelCatalog, atlasTextureId));
+        level = makeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId, catalogs);
+        startLevel(makePlayer(catalogs, atlasTextureId));
     }
 
     int ExampleGame::levelNumber() const

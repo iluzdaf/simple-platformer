@@ -101,6 +101,7 @@
     }
   ],
   "exit": {
+    "definition": "bunker_door",
     "spawnCell": [65, 20],
     "requirement": {
       "item": "key",

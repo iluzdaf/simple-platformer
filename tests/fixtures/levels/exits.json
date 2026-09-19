@@ -1,0 +1,8 @@
+{
+  "exits": {
+    "test_door": {
+      "bodySize": [12, 24],
+      "sprite": { "position": [0, 0], "size": [8, 16], "displaySize": [12, 24] }
+    }
+  }
+}

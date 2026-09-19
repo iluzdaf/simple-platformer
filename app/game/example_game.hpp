@@ -8,7 +8,7 @@
 #include "debug/debug_overlay.hpp"
 #include "game/example_content.hpp"
 #include "game/level_catalog.hpp"
-#include "game/item_catalog.hpp"
+#include "game/game_catalogs.hpp"
 #include "simple_platformer/render/camera.hpp"
 
 namespace simple_platformer
@@ -49,8 +49,8 @@ namespace simple_platformer
         Camera currentCamera() const;
 
         LevelCatalog levelCatalog;
-        // Loaded once: inventory IDs keep their meaning across transitions and restarts.
-        ItemCatalog itemCatalog;
+        // Loaded once: definitions stay consistent across transitions and restarts.
+        GameCatalogs catalogs;
         GameLevel level;
         std::optional<CameraController> cameraController;
         int atlasTextureId = 0;

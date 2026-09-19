@@ -39,6 +39,10 @@ namespace simple_platformer
 
     void validateExitSettings(const ExampleExitPlacement& placement, const std::string& path)
     {
+        if (placement.definitionName.empty())
+        {
+            throw std::invalid_argument(path + ".definition: exit definition name cannot be empty");
+        }
         if (placement.requirement && placement.requirement->quantity <= 0)
         {
             throw std::invalid_argument(

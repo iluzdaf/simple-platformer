@@ -79,7 +79,7 @@ UI, and rendering. `ExampleGame` owns the current `GameLevel` and camera control
 the render scene, and replaces the level during a transition.
 
 Example-specific content is kept out of general engine systems. Level geometry and
-placements, actors, items, and pickup definitions live in `assets/levels`; the loaders,
+placements, actors, items, pickup definitions, and exit definitions live in `assets/levels`; the loaders,
 composition functions, and animation clips live under `app/game`.
 
 ### Data, behaviour, and resources
@@ -530,6 +530,7 @@ Shared catalogues sit beside `levels.json` in `assets/levels`:
 | [`actors.json`](assets/levels/actors.json) | Player definition, actor capabilities, and tuning | [`actor_catalog.cpp`](app/game/actor_catalog.cpp), [`actor_definition.cpp`](app/game/actor_definition.cpp) |
 | [`items.json`](assets/levels/items.json) | Inventory names, icons, stacking, and effect settings | [`item_catalog.cpp`](app/game/item_catalog.cpp) |
 | [`pickups.json`](assets/levels/pickups.json) | World pickup quantities, bounds, and optional sprites | [`pickup_catalog.cpp`](app/game/pickup_catalog.cpp) |
+| [`exits.json`](assets/levels/exits.json) | Exit bounds and sprites | [`exit_catalog.cpp`](app/game/exit_catalog.cpp) |
 
 [`example_content.cpp`](app/game/example_content.cpp) combines definitions and placements
 into runtime objects. Catalogues and JSON conventions belong to the application;
@@ -537,7 +538,13 @@ the core receives C++ values and does not read these files. Shared files are req
 even when a particular level uses no pickups or NPCs; item and pickup catalogues can
 contain empty definitions objects.
 
-Actor animation clips and the exit's bounds and sprite are configured in C++.
+`ExampleGame` owns a `GameCatalogs` value loaded once by
+[`loadGameCatalogs`](app/game/game_catalogs.cpp). Tile, actor, item, pickup, and exit
+definitions are reused across transitions and restarts. Each level file is loaded
+when entering that level; the game does not construct every world at startup.
+Restart the game application to reload shared definitions after editing their files.
+
+Actor animation clips are configured in C++.
 See [Actors](#actors), [Exits](#exits), and [Animation](#animation) for those boundaries.
 
 #### Level files
@@ -555,6 +562,7 @@ A minimal level looks like this:
   "actors": [],
   "pickups": [],
   "exit": {
+    "definition": "bunker_door",
     "spawnCell": [6, 1]
   }
 }
@@ -581,7 +589,7 @@ An optional `objectLegend` places objects directly in the same map rows:
   "B": { "type": "actor", "definition": "bat" },
   "S": { "type": "actor", "definition": "zombie_soldier" },
   "K": { "type": "pickup", "definition": "key" },
-  "E": { "type": "exit", "requirement": { "item": "key", "quantity": 1 } }
+  "E": { "type": "exit", "definition": "bunker_door", "requirement": { "item": "key", "quantity": 1 } }
 }
 ```
 
@@ -596,7 +604,7 @@ Object entries use the same settings as explicit placements: NPCs can specify a
 `patrol`, and exits can specify `requirement`, `consumeItem`, and `nextLevel`.
 Patrol endpoints remain absolute positions, not offsets from the marker.
 `type` selects the object category: `player`, `actor`, `pickup`, or `exit`.
-For actors and named pickups, `definition` selects an entry in the corresponding
+For actors, exits, and named pickups, `definition` selects an entry in the corresponding
 catalogue. A tile legend needs only the definition name because its category is
 already established by `tileLegend`.
 Do not put `spawnCell` or `spawnFeet` in a legend entry: the marker supplies its position.
@@ -762,7 +770,23 @@ New item and pickup names do not require changes to the level parser.
 
 #### Exits
 
-An exit requires one spawn placement. It may also contain:
+Shared exit appearance lives in `exits.json`:
+
+```json
+{
+  "exits": {
+    "bunker_door": {
+      "bodySize": [16, 32],
+      "sprite": { "position": [48, 216], "size": [16, 32] }
+    }
+  }
+}
+```
+
+Both `bodySize` and `sprite` are required. The sprite uses the same source rectangle,
+optional display size, and anchor fields as item icons and pickup sprites.
+
+An exit placement requires a `definition` name and one spawn placement. It may also contain:
 
 - `requirement`, with a name from `items.json` and a positive quantity;
 - `consumeItem`, which defaults to `false`;
@@ -770,6 +794,7 @@ An exit requires one spawn placement. It may also contain:
 
 ```json
 {
+  "definition": "bunker_door",
   "spawnCell": [18, 8],
   "requirement": {
     "item": "key",
@@ -780,23 +805,23 @@ An exit requires one spawn placement. It may also contain:
 }
 ```
 
-Exit appearance is not data-driven: `makeExit` in
-[`example_content.cpp`](app/game/example_content.cpp) assigns its 16-by-32 bounds and
-door sprite. There is no `exits.json`. Change that function to adjust the shared door
-appearance; change the level's `exit` or exit legend entry to adjust its destination
-and completion requirements.
+The same settings work in an exit legend entry, with `"type": "exit"` and no spawn
+field. Requirements, consumption, and destinations belong to the placement, not the
+shared definition: two doors can look the same but lead to different levels.
+`composeExit` creates bounds and a sprite; `example_content.cpp` adds the resolved
+item requirement and destination before passing the exit to the World.
 
 #### Loading and composition
 
 Level placements do not specify actor, pickup, or exit bounds. Actor definitions own
-actor sizes; pickup definitions own pickup sizes, and the C++ exit factory owns exit size.
+actor sizes; pickup and exit definitions own their respective sizes.
 Composition creates each AABB around its loaded feet position. Their sprites
 remain independent, just like actor sprites and bodies.
 
 The JSON dependency stays at the application content boundary.
 `level_catalog.cpp` validates the catalog, and `example_level_data.cpp` parses a
 level into plain `ExampleLevelData`, reports invalid fields with their content path, and
-retains actor, pickup, and item references. The item and pickup catalogues validate
+retains actor, pickup, exit, and item references. The definition catalogues validate
 definitions independently of placement; composition resolves names to runtime values. The
 composition step then creates the existing `TileMap`, `World`, actors, pickups, and
 exit. Existing construction and level validation remain authoritative.
@@ -963,7 +988,7 @@ decision policies once the game contains a real second policy.
 | Generic search or movement-specific neighbours | `src/navigation` |
 | Damage, attacks, or projectiles | `src/combat` |
 | Animation clips and content composition | `app/game` |
-| Actor, tile, item, and pickup definitions; level geometry and placements | `assets/levels` |
+| Actor, tile, item, pickup, and exit definitions; level geometry and placements | `assets/levels` |
 | HUD or debugging presentation | `app/ui` or `app/debug` |
 
 When a feature crosses layers, keep its rule in the simulation and pass plain state to
@@ -974,12 +999,12 @@ end-to-end test.
 
 Validation has three boundaries:
 
-1. **JSON shape:** loaders check types and required fields. Actor, item, and pickup
+1. **JSON shape:** loaders check types and required fields. Actor, item, pickup, and exit
    catalogues also reject unknown fields to catch misspellings. `content_json` provides
-   helpers for item and pickup parsing.
+   helpers for item, pickup, and exit parsing.
 2. **Application content:** plain C++ validators check authoring rules.
    [`content_validation.cpp`](app/game/content_validation.cpp) covers legends, map rows,
-   placement counts, quantities, and exit settings. Actor, item, and pickup catalogue
+   placement counts, quantities, and exit settings. Actor, item, pickup, and exit catalogue
    validators check their definitions, including unused entries. Composition resolves
    cross-file names and adds the originating field to reference errors.
 3. **Core invariants:** validators such as
@@ -1054,10 +1079,8 @@ repository.
 
 This design is not implemented in the current engine.
 
-The remaining C++ content settings include animation clips and the exit's size and
-sprite. A future extension could load named animation or exit definitions from validated
-files. Exit destinations should stay with level placements because they describe where
-a particular door leads. Keep stable symbolic names and the current runtime structures;
+Animation clips remain configured in C++. A future extension could load named animation
+definitions from validated files. Keep stable symbolic names and the current runtime structures;
 do not turn level files into arbitrary component or behaviour scripts.
 
 ### Level authoring tools

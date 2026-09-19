@@ -1,8 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
+#include <filesystem>
 
 #include "game/example_content.hpp"
+#include "game/game_catalogs.hpp"
 #include "game/level_catalog.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/math/aabb.hpp"
@@ -35,10 +37,11 @@ TEST_CASE("Every catalog level can be composed", "[app][content]")
 TEST_CASE("Every catalog level has valid actor placement", "[app][content]")
 {
     const auto catalog = simple_platformer::loadLevelCatalog();
+    const auto catalogs = simple_platformer::loadGameCatalogs(catalog.levelDirectory);
     for (const simple_platformer::LevelCatalogEntry& entry : catalog.levels)
     {
-        auto content = simple_platformer::makeGameLevel(catalog, entry.number, 0);
-        simple_platformer::Actor player = simple_platformer::makePlayer(catalog, 0);
+        auto content = simple_platformer::makeGameLevel(catalog, entry.number, 0, catalogs);
+        simple_platformer::Actor player = simple_platformer::makePlayer(catalogs, 0);
         simple_platformer::placeFeetAt(player.body.bounds, content.playerSpawnFeet);
         const auto playerId = content.world.addActor(player);
         content.world.setPlayer(playerId, content.playerSpawnFeet);
@@ -59,4 +62,21 @@ TEST_CASE("A catalog entry must reference an existing level file", "[app][conten
         "tests/fixtures/levels");
 
     REQUIRE_THROWS_AS(simple_platformer::makeGameLevel(catalog, 1, 0), std::invalid_argument);
+}
+
+TEST_CASE("Session composition does not reload shared catalogue files", "[app][content]")
+{
+    auto levels = simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json");
+    const auto catalogs = simple_platformer::loadGameCatalogs(levels.levelDirectory);
+    // Keep level files reachable, but give shared catalogue reads nowhere to succeed.
+    for (auto& entry : levels.levels)
+    {
+        entry.relativeFile = std::filesystem::absolute(levels.levelDirectory / entry.relativeFile);
+    }
+    levels.levelDirectory = "tests/fixtures/no-shared-catalogues";
+    REQUIRE_NOTHROW(simple_platformer::makePlayer(catalogs, 0));
+    for (const auto& entry : levels.levels)
+    {
+        REQUIRE_NOTHROW(simple_platformer::makeGameLevel(levels, entry.number, 0, catalogs));
+    }
 }

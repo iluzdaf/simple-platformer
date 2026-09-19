@@ -21,6 +21,7 @@ TEST_CASE("Pickup and exit settings are validated without JSON", "[app][content]
     REQUIRE_THROWS_AS(simple_platformer::validatePickupSettings(pickup), std::invalid_argument);
 
     simple_platformer::ExampleExitPlacement exit;
+    exit.definitionName = "test_door";
     REQUIRE_NOTHROW(simple_platformer::validateExitSettings(exit));
     exit.requirement = simple_platformer::NamedItemStack{"key", 1};
     exit.nextLevel = 2;

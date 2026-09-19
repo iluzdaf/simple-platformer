@@ -13,7 +13,7 @@
       "spawnCell": [2, 2]
     }
   ],
-  "exit": {
+  "exit": {"definition": "test_door",
     "spawnCell": [5, 2],
     "requirement": {
       "item": "key",

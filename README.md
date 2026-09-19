@@ -108,20 +108,22 @@ at the completion message to restart from the configured starting level.
 
 ## Continuous integration
 
-GitHub Actions configures, builds, and runs all tests on both macOS with Apple Clang
-and Windows with Visual Studio 2022. The workflow runs for pushes to `main` and for
-pull requests. The Windows job generates the same solution as `setup-windows.bat`,
-builds the actual `.sln` with MSBuild, and builds its generated `run_tests` project. CI
-does not launch the graphical game.
+GitHub Actions runs three jobs. The names below are the ones shown on a pull request.
+
+| Job | Runner | What it does | Runs on |
+| --- | --- | --- | --- |
+| macOS / Apple Clang | `macos-latest` | Configures, builds, and runs the whole test suite. | pushes to `main` and pull requests |
+| Windows / Visual Studio 2022 | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds the `.sln` with MSBuild, then builds its `run_tests` project. | pushes to `main` and pull requests |
+| Formatting and static analysis | `ubuntu-24.04` | Checks formatting, runs clang-tidy, and verifies that every public header compiles on its own. | pull requests only |
+
+The quality job is skipped on pushes because branch protection already ran it on the
+pull request. Its checks add no tools to the macOS or Visual Studio build, and Linux is
+not a supported platform for local work. No job launches the graphical game.
 
 The macOS and Windows jobs use a pinned `sccache` release backed by GitHub Actions'
 cache service. Only compiler outputs are cached; generated build directories are not.
-On Windows, CI still builds the generated Visual Studio solution and only replaces
-`cl.exe` with a cache wrapper for that build. This does not affect local builds.
-
-A separate Linux quality job runs on pull requests. It checks source formatting, runs clang-tidy, and verifies
-that every public header can compile on its own. These checks do not add any tools to
-the normal macOS or Visual Studio build.
+On Windows, only `cl.exe` is replaced with a cache wrapper; the solution itself is still
+built as generated. None of this affects local builds.
 
 ## Formatting
 

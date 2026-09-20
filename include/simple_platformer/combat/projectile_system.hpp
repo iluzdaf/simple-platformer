@@ -6,11 +6,7 @@ namespace simple_platformer
     class World;
     class WorldRequests;
 
-    void updateProjectiles(
-        const TileMap& map,
-        World& world,
-        WorldRequests& requests,
-        float deltaTime);
+    void updateProjectiles(TileMap& map, World& world, WorldRequests& requests, float deltaTime);
 
     void updateProjectileBursts(World& world, WorldRequests& requests, float deltaTime);
 }

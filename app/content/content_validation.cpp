@@ -124,6 +124,15 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("invalid sprite region for tile '" + entry.first + "'");
             }
+            const auto& breaksInto =
+                catalog.definitions[static_cast<std::size_t>(id)].breaksIntoTileId;
+            if (breaksInto.has_value() &&
+                (*breaksInto < 0 ||
+                 static_cast<std::size_t>(*breaksInto) >= catalog.definitions.size() ||
+                 *breaksInto == id))
+            {
+                throw std::invalid_argument("invalid breaksInto tile for '" + entry.first + "'");
+            }
         }
         if (usedIds.size() != catalog.definitions.size())
         {

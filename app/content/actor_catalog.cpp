@@ -202,6 +202,7 @@ namespace simple_platformer
                      "projectileLifetime",
                      "shootDuration",
                      "recoveryDuration",
+                     "breaksTiles",
                      "sprite"},
                     sourceName,
                     rangedPath);
@@ -221,6 +222,8 @@ namespace simple_platformer
                     ranged, "shootDuration", config.shootDuration, sourceName, rangedPath);
                 readOptionalNumber(
                     ranged, "recoveryDuration", config.recoveryDuration, sourceName, rangedPath);
+                readOptionalBoolean(
+                    ranged, "breaksTiles", config.breaksTiles, sourceName, rangedPath);
                 if (ranged.contains("sprite"))
                 {
                     config.projectileSprite = jsonSprite(

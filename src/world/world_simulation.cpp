@@ -14,7 +14,7 @@
 
 namespace simple_platformer
 {
-    void updateWorldSimulation(const TileMap& map, World& world, float deltaTime)
+    void updateWorldSimulation(TileMap& map, World& world, float deltaTime)
     {
         if (world.levelComplete())
         {

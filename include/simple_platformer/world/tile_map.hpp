@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -14,6 +16,8 @@ namespace simple_platformer
         bool blocksMovement = false;
         bool blocksSight = false;
         SpriteRegion sprite;
+        // The tile this one becomes when broken. Unset means nothing breaks it.
+        std::optional<int> breaksIntoTileId = std::nullopt;
     };
 
     class TileMap
@@ -44,7 +48,16 @@ namespace simple_platformer
         bool blocksMovement(GridPosition position) const;
         bool blocksSight(GridPosition position) const;
 
+        // Replaces the cell with whatever its definition breaks into, and reports
+        // whether that happened. A cell outside the map, or one whose definition has no
+        // breaksIntoTileId, is left alone: callers pass in cells that came from a cast,
+        // and map boundaries report as blocking cells that lie outside the map.
+        bool breakTile(GridPosition position);
+
     private:
+        // Row-major offset into tileIds. The position must be inside the map.
+        std::size_t indexOf(GridPosition position) const;
+
         int mapWidth = 0;
         int mapHeight = 0;
         std::vector<int> tileIds;

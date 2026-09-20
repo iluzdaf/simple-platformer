@@ -49,8 +49,34 @@ namespace
         return actor->health->current;
     }
 
-    const simple_platformer::TileMap EmptyMap =
-        tests::asciiMap({"..........", "..........", ".........."});
+    simple_platformer::TileMap emptyMap()
+    {
+        return tests::asciiMap({"..........", "..........", ".........."});
+    }
+
+    // One blocking tile at column 3 of the top row, on the projectile's path.
+    simple_platformer::TileMap mapWithBlockingTile(simple_platformer::TileDefinition tile)
+    {
+        const simple_platformer::TileDefinition empty;
+        return simple_platformer::TileMap::fromAscii(
+            {"...X......", "..........", ".........."}, {empty, tile}, {{'.', 0}, {'X', 1}});
+    }
+
+    simple_platformer::TileDefinition breakableGlass()
+    {
+        simple_platformer::TileDefinition glass;
+        glass.blocksMovement = true;
+        glass.breaksIntoTileId = 0;
+        return glass;
+    }
+
+    simple_platformer::TileDefinition unbreakableStone()
+    {
+        simple_platformer::TileDefinition stone;
+        stone.blocksMovement = true;
+        stone.blocksSight = true;
+        return stone;
+    }
 }
 
 TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[combat][projectile]")
@@ -63,7 +89,8 @@ TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[c
     world.addProjectile(makeProjectile());
     simple_platformer::WorldRequests requests;
 
-    simple_platformer::updateProjectiles(EmptyMap, world, requests, 0.5F);
+    simple_platformer::TileMap map = emptyMap();
+    simple_platformer::updateProjectiles(map, world, requests, 0.5F);
 
     REQUIRE(healthOf(world, near) == 3);
     REQUIRE(world.projectiles().size() == 1);
@@ -82,8 +109,7 @@ TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[c
 
 TEST_CASE("A solid tile stops a projectile before an actor", "[combat][projectile]")
 {
-    const simple_platformer::TileMap map =
-        tests::asciiMap({"...#......", "..........", ".........."});
+    simple_platformer::TileMap map = tests::asciiMap({"...#......", "..........", ".........."});
     simple_platformer::World world;
     const simple_platformer::ActorId target =
         world.addActor(makeActor({70.0F, 0.0F}, simple_platformer::Team::Enemy));
@@ -116,7 +142,8 @@ TEST_CASE("Projectiles ignore their owner and actors on the same team", "[combat
     world.addProjectile(projectile);
     simple_platformer::WorldRequests requests;
 
-    simple_platformer::updateProjectiles(EmptyMap, world, requests, 0.5F);
+    simple_platformer::TileMap map = emptyMap();
+    simple_platformer::updateProjectiles(map, world, requests, 0.5F);
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
@@ -133,7 +160,8 @@ TEST_CASE("A projectile is removed when its lifetime expires", "[combat][project
     world.addProjectile(projectile);
     simple_platformer::WorldRequests requests;
 
-    simple_platformer::updateProjectiles(EmptyMap, world, requests, 0.1F);
+    simple_platformer::TileMap map = emptyMap();
+    simple_platformer::updateProjectiles(map, world, requests, 0.1F);
     REQUIRE(world.projectiles().size() == 1);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().empty());
@@ -151,7 +179,8 @@ TEST_CASE("A projectile burst expires after its short feedback lifetime", "[comb
     world.addProjectile(makeProjectile());
     simple_platformer::WorldRequests requests;
 
-    simple_platformer::updateProjectiles(EmptyMap, world, requests, 0.5F);
+    simple_platformer::TileMap map = emptyMap();
+    simple_platformer::updateProjectiles(map, world, requests, 0.5F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectileBursts().size() == 1);
 
@@ -173,7 +202,8 @@ TEST_CASE("Separate projectile hits have no shared invulnerability", "[combat][p
     world.addProjectile(makeProjectile());
     simple_platformer::WorldRequests requests;
 
-    simple_platformer::updateProjectiles(EmptyMap, world, requests, 0.5F);
+    simple_platformer::TileMap map = emptyMap();
+    simple_platformer::updateProjectiles(map, world, requests, 0.5F);
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
@@ -186,9 +216,86 @@ TEST_CASE("Projectile updates reject invalid timing", "[combat][projectile]")
 {
     simple_platformer::World world;
     simple_platformer::WorldRequests requests;
+    simple_platformer::TileMap map = emptyMap();
     REQUIRE_THROWS_AS(
-        simple_platformer::updateProjectiles(EmptyMap, world, requests, -0.1F),
-        std::invalid_argument);
+        simple_platformer::updateProjectiles(map, world, requests, -0.1F), std::invalid_argument);
     REQUIRE_THROWS_AS(
         simple_platformer::updateProjectileBursts(world, requests, -0.1F), std::invalid_argument);
+}
+
+TEST_CASE("A projectile that breaks tiles clears the glass it stops at", "[combat][projectile]")
+{
+    simple_platformer::TileMap map = mapWithBlockingTile(breakableGlass());
+    simple_platformer::World world;
+    simple_platformer::Projectile projectile = makeProjectile();
+    projectile.breaksTiles = true;
+    world.addProjectile(projectile);
+    simple_platformer::WorldRequests requests;
+
+    REQUIRE(map.blocksMovement({3, 0}));
+    simple_platformer::updateProjectiles(map, world, requests, 1.0F);
+    simple_platformer::applyWorldRequests(world, requests);
+
+    REQUIRE(map.tileAt({3, 0}) == 0);
+    REQUIRE_FALSE(map.blocksMovement({3, 0}));
+    // The shot is still spent on the tile it broke rather than carrying on through.
+    REQUIRE(world.projectiles().empty());
+    REQUIRE(world.projectileBursts().size() == 1);
+}
+
+TEST_CASE("A projectile without the flag stops at glass and leaves it", "[combat][projectile]")
+{
+    simple_platformer::TileMap map = mapWithBlockingTile(breakableGlass());
+    simple_platformer::World world;
+    // makeProjectile leaves breaksTiles false, as an enemy weapon does.
+    world.addProjectile(makeProjectile());
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateProjectiles(map, world, requests, 1.0F);
+    simple_platformer::applyWorldRequests(world, requests);
+
+    REQUIRE(map.tileAt({3, 0}) == 1);
+    REQUIRE(map.blocksMovement({3, 0}));
+    REQUIRE(world.projectiles().empty());
+}
+
+TEST_CASE("Breaking projectiles leave unbreakable tiles standing", "[combat][projectile]")
+{
+    simple_platformer::TileMap map = mapWithBlockingTile(unbreakableStone());
+    simple_platformer::World world;
+    simple_platformer::Projectile projectile = makeProjectile();
+    projectile.breaksTiles = true;
+    world.addProjectile(projectile);
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateProjectiles(map, world, requests, 1.0F);
+    simple_platformer::applyWorldRequests(world, requests);
+
+    REQUIRE(map.tileAt({3, 0}) == 1);
+    REQUIRE(map.blocksMovement({3, 0}));
+}
+
+TEST_CASE("One shot cannot open a hole for another in the same frame", "[combat][projectile]")
+{
+    simple_platformer::TileMap map = mapWithBlockingTile(breakableGlass());
+    simple_platformer::World world;
+    simple_platformer::Projectile shot = makeProjectile();
+    shot.breaksTiles = true;
+    world.addProjectile(shot);
+    world.addProjectile(shot);
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateProjectiles(map, world, requests, 1.0F);
+
+    // Both shots were traced against the glass before any of it broke, so neither
+    // travelled past it. Glass spans x 48 to 64 on the row the shots follow.
+    for (const simple_platformer::Projectile& projectile : world.projectiles())
+    {
+        REQUIRE(projectile.bounds.position.x < 48.0F);
+    }
+    REQUIRE(map.tileAt({3, 0}) == 0);
+
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(world.projectiles().empty());
+    REQUIRE(world.projectileBursts().size() == 2);
 }

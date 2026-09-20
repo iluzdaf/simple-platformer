@@ -8,6 +8,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/ascii_map.hpp"
@@ -41,11 +42,15 @@ TEST_CASE("A solid tile cast reports the earliest tile", "[physics][segment][til
 {
     const simple_platformer::TileMap map = tests::asciiMap({".....", ".#.#.", "....."});
 
-    const std::optional<float> hit =
+    const std::optional<simple_platformer::TileSegmentHit> hit =
         simple_platformer::segmentCastMovementBlockingTiles(map, {0.0F, 24.0F}, {80.0F, 24.0F});
 
-    REQUIRE(hit.has_value());
-    REQUIRE_THAT(hit.value_or(-1.0F), Catch::Matchers::WithinAbs(0.2F, 0.0001F));
+    if (!hit)
+    {
+        throw std::logic_error("Expected the cast to hit a tile");
+    }
+    REQUIRE_THAT(hit->segmentTime, Catch::Matchers::WithinAbs(0.2F, 0.0001F));
+    REQUIRE(hit->cell == simple_platformer::GridPosition{1, 1});
 }
 
 TEST_CASE("A solid tile cast accounts for the moving box size", "[physics][segment][tile]")

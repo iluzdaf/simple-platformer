@@ -52,7 +52,7 @@ Shared catalogues sit beside `levels.json` in `assets`:
 | --- | --- | --- |
 | [`levels.json`](../assets/levels.json) | Starting level and level ID-to-file mapping | [`level_catalog.cpp`](../app/content/level_catalog.cpp) |
 | A level file, such as [`level_1.json`](../assets/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings | [`level_data.cpp`](../app/content/level_data.cpp) |
-| [`tiles.json`](../assets/tiles.json) | Tile artwork and movement/sight properties | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp) |
+| [`tiles.json`](../assets/tiles.json) | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp) |
 | [`actors.json`](../assets/actors.json) | Player definition, actor capabilities, and tuning | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp) |
 | [`animations.json`](../assets/animations.json) | Named animation sets, frame rectangles, timing, and looping | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp) |
 | [`items.json`](../assets/items.json) | Inventory names, icons, stacking, and effect settings | [`item_catalog.cpp`](../app/content/item_catalog.cpp) |
@@ -157,6 +157,22 @@ Tile artwork is drawn into one 16-by-16 world cell. The `empty` definition must
 allow movement and sight and is not rendered. Unknown names and map symbols
 are rejected during loading. Fixture catalogues supply their own `tiles.json`.
 
+A nonempty tile may add `breaksInto` naming the tile it becomes when broken:
+
+```json
+"glass": {
+  "sprite": { "position": [144, 192], "size": [16, 16] },
+  "blocksMovement": true, "blocksSight": false,
+  "breaksInto": "empty"
+}
+```
+
+The name may be any tile in the same file, including one defined further down, and a
+tile cannot break into itself. Omit the field to make a tile unbreakable. Breaking also
+needs a weapon that does it, which is `breaksTiles` on a `ranged` weapon in
+`actors.json`. Chain the field to wear a tile down in stages, such as glass into
+cracked glass into empty.
+
 ## Placement coordinates
 
 World coordinates begin at the top-left: positive X points right and positive Y
@@ -224,7 +240,7 @@ Platformer fields match `PlatformerMovementConfig`; flying exposes `speed`. Sens
 exposes `noticeDistance` and `forgetAfter`. Bite exposes `damage`, `hitboxSize`, `reach`,
 `windupDuration`, `activeDuration`, and `recoveryDuration`. Ranged exposes `damage`,
 `projectileSize`, `projectileSpeed`, `projectileLifetime`, `shootDuration`,
-`recoveryDuration`, and an optional `sprite` object with `position`, `size`,
+`recoveryDuration`, `breaksTiles`, and an optional `sprite` object with `position`, `size`,
 optional `displaySize`, and optional `anchor`. Sprite coordinates use atlas pixels.
 Animation names reference named sets in `animations.json`;
 animation frames are not loaded here. `facing` is `left` or `right`, and `spriteAnchor`

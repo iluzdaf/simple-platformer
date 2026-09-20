@@ -242,7 +242,7 @@ TEST_CASE(
     "[simulation][exit]")
 {
     auto world = makeWorld();
-    const auto map = tests::asciiMap({"......", "......", "######"});
+    auto map = tests::asciiMap({"......", "......", "######"});
     world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {3, 1}});
     world.setExit(
         {{{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2, {}});
@@ -278,7 +278,7 @@ TEST_CASE(
     projectile.bounds = {{20.0F, 20.0F}, {2.0F, 2.0F}};
     projectile.sprite.size = {2.0F, 2.0F};
     world.addProjectile(projectile);
-    const auto map = tests::asciiMap({"......", "......", "######"});
+    auto map = tests::asciiMap({"......", "......", "######"});
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
     REQUIRE(player(world).life == simple_platformer::LifeState::Dying);
     REQUIRE(inventory(world).count(3) == 0);

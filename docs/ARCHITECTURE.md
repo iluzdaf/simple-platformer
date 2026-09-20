@@ -137,7 +137,7 @@ breakpoint or stall does not cause an excessive catch-up.
 3. Update NPC decisions, destinations, paths, and intentions.
 4. Move every actor and resolve tile collision.
 5. Advance attacks and evaluate active bite hitboxes.
-6. Move projectiles and find their earliest collision.
+6. Move projectiles, find their earliest collision, and break the tiles they destroy.
 7. Advance existing projectile bursts and queue expired bursts for removal.
 8. Apply damage and advance actor life cycles.
 9. Detect automatic pickups.
@@ -326,8 +326,15 @@ jumping, or acceleration state.
 empty. Each nonzero tile definition supplies a sprite region, `blocksMovement`, and
 `blocksSight`. The same map layer supports rendering, collision, and sensing.
 Glass blocks movement and projectiles but allows sight. Grass allows movement and
-projectiles but blocks sight rays. These are static tiles: glass does not yet break,
-and grass does not hide actors, pickups, or exits from the player's screen.
+projectiles but blocks sight rays. Grass does not hide actors, pickups, or exits from
+the player's screen.
+
+A tile definition may name the tile it `breaksInto`, so breaking swaps a cell's tile ID
+instead of adding per-cell state, and a tile that names nothing is unbreakable. A
+projectile carries `breaksTiles` from the weapon that fired it and breaks a tile only
+when both agree. Glass breaks into empty, the player's weapon breaks tiles, and enemy
+weapons do not. `updateProjectiles` takes a mutable map; every other system takes
+`const TileMap&`.
 
 Tests construct maps from ASCII strings with a helper in `tests/support` that supplies
 its own definitions and symbols, so the engine carries no fixture of its own. The example

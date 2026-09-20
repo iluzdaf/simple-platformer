@@ -11,7 +11,8 @@
     },
     "glass": {
       "sprite": { "position": [144, 192], "size": [16, 16] },
-      "blocksMovement": true, "blocksSight": false
+      "blocksMovement": true, "blocksSight": false,
+      "breaksInto": "empty"
     }
   }
 }

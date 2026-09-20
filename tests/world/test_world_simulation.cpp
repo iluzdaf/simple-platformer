@@ -22,10 +22,11 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
+#include "support/ascii_map.hpp"
 
 TEST_CASE("World simulation advances its shared clock once per update", "[world][simulation][time]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"."});
+    const simple_platformer::TileMap map = tests::asciiMap({"."});
     simple_platformer::World world;
 
     simple_platformer::updateWorldSimulation(map, world, 0.25F);
@@ -41,8 +42,7 @@ TEST_CASE("World simulation advances its shared clock once per update", "[world]
 
 TEST_CASE("World simulation spawns a projectile after projectile movement", "[world][simulation]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
     simple_platformer::World world;
     simple_platformer::Actor player;
     player.body.bounds = {{16.0F, 16.0F}, {12.0F, 12.0F}};
@@ -69,8 +69,7 @@ TEST_CASE("World simulation spawns a projectile after projectile movement", "[wo
 
 TEST_CASE("World simulation senses decides and moves an NPC in one update", "[world][simulation]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"........", "........", "########"});
+    const simple_platformer::TileMap map = tests::asciiMap({"........", "........", "########"});
     simple_platformer::World world;
 
     simple_platformer::Actor player;
@@ -108,8 +107,7 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
 
 TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][simulation]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
     simple_platformer::World world;
 
     simple_platformer::Actor player;
@@ -143,7 +141,7 @@ TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][
 
 TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulation]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+    const simple_platformer::TileMap map = tests::asciiMap(
         {"..........", "..........", "..........", "....###...", "..........", "##########"});
     simple_platformer::World world;
     constexpr simple_platformer::GridPosition LowerEndpoint{2, 4};
@@ -214,8 +212,8 @@ TEST_CASE(
     "[world][simulation][platformer][regression]")
 {
     // The raised platform provides an unnecessary jump route above the continuous floor.
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {".....###.....", ".............", ".............", "#############"});
+    const simple_platformer::TileMap map =
+        tests::asciiMap({".....###.....", ".............", ".............", "#############"});
     simple_platformer::World world;
     constexpr simple_platformer::GridPosition FirstEndpoint{4, 2};
     constexpr simple_platformer::GridPosition SpawnCell{12, 2};
@@ -258,8 +256,8 @@ TEST_CASE(
     "A ground NPC resumes patrol after forgetting its target at a platform edge",
     "[world][simulation][platformer][regression]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {"........", "........", "..###...", "........", "########"});
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"........", "........", "..###...", "........", "########"});
     simple_platformer::World world;
 
     simple_platformer::Actor player;
@@ -326,8 +324,8 @@ TEST_CASE(
 {
     // The player jumps from the floor beside the raised platform. Its solid
     // edge hides the player before the jump and again after landing.
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {"..........", "..........", "...#######", "..........", "##########"});
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"..........", "..........", "...#######", "..........", "##########"});
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     constexpr int JumpAndLandingTicks = 40;
     constexpr int RememberedChaseTicks = 30;
@@ -419,8 +417,8 @@ TEST_CASE(
     "A ground NPC approaches a visible player supported at a platform edge",
     "[world][simulation][platformer][regression]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {"..........", "..........", "..#######.", "..........", "##########"});
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"..........", "..........", "..#######.", "..........", "##########"});
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     constexpr int MaximumChaseTicks = 180;
     const glm::vec2 upperPlatformFeet = simple_platformer::navigationFeet({2, 1});
@@ -495,7 +493,7 @@ TEST_CASE(
     "A bat continuously patrols around a platform corner",
     "[world][simulation][flying][regression]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+    const simple_platformer::TileMap map = tests::asciiMap(
         {"..........", "..........", "..........", "....###...", "..........", "##########"});
     // The bat must rise beside the platform before turning over its top edge.
     // Both endpoints are reachable with ample clearance for its 12 x 8 body.

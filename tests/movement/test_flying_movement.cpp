@@ -11,11 +11,12 @@
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/ascii_map.hpp"
 
 TEST_CASE("Flying movement normalizes two-dimensional intentions", "[movement][flying]")
 {
     const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", ".....", ".....", ".....", "#####"});
+        tests::asciiMap({".....", ".....", ".....", ".....", "#####"});
     simple_platformer::Body body{{{16.0F, 16.0F}, {8.0F, 8.0F}}, {0.0F, 0.0F}};
     const simple_platformer::FlyingMovement movement{10.0F};
     simple_platformer::InputIntentions intentions;
@@ -32,7 +33,7 @@ TEST_CASE("Flying movement normalizes two-dimensional intentions", "[movement][f
 TEST_CASE("Flying movement uses tile collision", "[movement][flying]")
 {
     const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", "..#..", ".....", ".....", "#####"});
+        tests::asciiMap({".....", "..#..", ".....", ".....", "#####"});
     simple_platformer::Body body{{{16.0F, 16.0F}, {8.0F, 8.0F}}, {0.0F, 0.0F}};
     const simple_platformer::FlyingMovement movement{100.0F};
     simple_platformer::InputIntentions intentions;
@@ -49,8 +50,7 @@ TEST_CASE("Flying movement uses tile collision", "[movement][flying]")
 
 TEST_CASE("Flying movement rejects invalid timing and intentions", "[movement][flying]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"...", "...", "###"});
+    const simple_platformer::TileMap map = tests::asciiMap({"...", "...", "###"});
     simple_platformer::Body body{{{16.0F, 16.0F}, {8.0F, 8.0F}}, {0.0F, 0.0F}};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
 

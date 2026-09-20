@@ -16,6 +16,7 @@
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/ascii_map.hpp"
 
 TEST_CASE("Navigation cells use feet on tile boundaries", "[navigation][path]")
 {
@@ -76,8 +77,8 @@ TEST_CASE(
     "A platformer path follower executes a generated jump through movement and collision",
     "[navigation][path][integration]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {"..........", "....##....", "..........", "##########"});
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
@@ -121,8 +122,8 @@ TEST_CASE(
     "A platformer path follower approaches and brakes without moving the body directly",
     "[navigation][path][integration]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {"..........", "....##....", "..........", "##########"});
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
@@ -175,8 +176,8 @@ TEST_CASE(
     "A platformer path follower brakes between a walk and a generated jump",
     "[navigation][path][integration]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {"..........", "....##....", "..........", "##########"});
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =

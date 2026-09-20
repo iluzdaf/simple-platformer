@@ -1,9 +1,7 @@
 #pragma once
 
-#include <initializer_list>
 #include <map>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
@@ -27,7 +25,6 @@ namespace simple_platformer
             std::vector<int> tiles,
             std::vector<TileDefinition> definitions);
 
-        static TileMap fromAscii(std::initializer_list<std::string_view> rows);
         static TileMap fromAscii(
             const std::vector<std::string>& rows,
             std::vector<TileDefinition> definitions,

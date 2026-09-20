@@ -7,11 +7,11 @@
 #include "simple_platformer/navigation/flying_navigation.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/ascii_map.hpp"
 
 TEST_CASE("Flying neighbors stay inside the map and avoid solid cells", "[navigation][flying]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"...", ".#.", "###"});
+    const simple_platformer::TileMap map = tests::asciiMap({"...", ".#.", "###"});
 
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
         simple_platformer::flyingNeighbors(map, {0, 0});
@@ -33,8 +33,7 @@ TEST_CASE("Flying neighbors stay inside the map and avoid solid cells", "[naviga
 
 TEST_CASE("Flying path search uses the flying navigation policy", "[navigation][flying]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"....", ".##.", "...."});
+    const simple_platformer::TileMap map = tests::asciiMap({"....", ".##.", "...."});
 
     const auto path = simple_platformer::findFlyingPath(map, {0, 1}, {3, 1});
 

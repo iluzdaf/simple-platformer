@@ -9,6 +9,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/ascii_map.hpp"
 
 namespace
 {
@@ -23,8 +24,7 @@ namespace
 
 TEST_CASE("Actor movement consumes its intentions", "[actor][movement]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"..........", "##########"});
+    const simple_platformer::TileMap map = tests::asciiMap({"..........", "##########"});
     simple_platformer::Actor actor = makeActor({16.0F, 4.0F});
     simple_platformer::PlatformerMovement movement;
     movement.grounded = true;
@@ -45,7 +45,7 @@ TEST_CASE("Actor movement consumes its intentions", "[actor][movement]")
 TEST_CASE("Dying actors ignore intentions but continue falling", "[actor][movement][lifecycle]")
 {
     const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"..........", "..........", "##########"});
+        tests::asciiMap({"..........", "..........", "##########"});
     simple_platformer::Actor actor = makeActor({16.0F, 4.0F});
     actor.life = simple_platformer::LifeState::Dying;
     actor.intentions.direction.x = 1.0F;
@@ -66,8 +66,7 @@ TEST_CASE("Dying actors ignore intentions but continue falling", "[actor][moveme
 
 TEST_CASE("Aim direction controls horizontal facing independently of movement", "[actor][movement]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"..........", "##########"});
+    const simple_platformer::TileMap map = tests::asciiMap({"..........", "##########"});
     simple_platformer::Actor actor = makeActor({16.0F, 4.0F});
     simple_platformer::PlatformerMovement movement;
     movement.grounded = true;

@@ -1,11 +1,9 @@
 #include "simple_platformer/world/tile_map.hpp"
 
 #include <cstddef>
-#include <initializer_list>
 #include <map>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -48,18 +46,6 @@ namespace simple_platformer
                 throw std::invalid_argument("A tile map contains an undefined tile ID");
             }
         }
-    }
-
-    TileMap TileMap::fromAscii(std::initializer_list<std::string_view> rows)
-    {
-        std::vector<std::string> ownedRows;
-        ownedRows.reserve(rows.size());
-        for (const std::string_view row : rows)
-        {
-            ownedRows.emplace_back(row);
-        }
-        return fromAscii(
-            ownedRows, {{false, false, {}}, {true, true, {{0.0F, 0.0F}, {1.0F, 1.0F}}}});
     }
 
     TileMap TileMap::fromAscii(

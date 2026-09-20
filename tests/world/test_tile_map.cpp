@@ -4,10 +4,11 @@
 #include <vector>
 
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/ascii_map.hpp"
 
 TEST_CASE("An ASCII tile map is rectangular and row-major", "[world][tile-map]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({".#.", "##."});
+    const simple_platformer::TileMap map = tests::asciiMap({".#.", "##."});
 
     REQUIRE(map.width() == 3);
     REQUIRE(map.height() == 2);
@@ -17,7 +18,6 @@ TEST_CASE("An ASCII tile map is rectangular and row-major", "[world][tile-map]")
     REQUIRE(map.tileAt({1, 0}) == 1);
     REQUIRE(map.tileAt({0, 1}) == 1);
     REQUIRE(map.tileAt({2, 1}) == 0);
-    REQUIRE(map.definitionAt({1, 0}).sprite.size.x == 1.0F);
 }
 
 TEST_CASE("Tile movement blocking comes from its definition", "[world][tile-map]")
@@ -31,7 +31,7 @@ TEST_CASE("Tile movement blocking comes from its definition", "[world][tile-map]
 
 TEST_CASE("Map sides and bottom block movement while the top stays open", "[world][tile-map]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"..", ".."});
+    const simple_platformer::TileMap map = tests::asciiMap({"..", ".."});
 
     REQUIRE(map.blocksMovement({-1, 0}));
     REQUIRE(map.blocksMovement({2, 0}));
@@ -44,7 +44,7 @@ TEST_CASE("Map sides and bottom block movement while the top stays open", "[worl
 
 TEST_CASE("Tile lookup rejects positions outside the map", "[world][tile-map]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"..", ".."});
+    const simple_platformer::TileMap map = tests::asciiMap({"..", ".."});
 
     REQUIRE_THROWS_AS(map.tileAt({-1, 0}), std::out_of_range);
     REQUIRE_THROWS_AS(map.tileAt({2, 0}), std::out_of_range);
@@ -53,10 +53,13 @@ TEST_CASE("Tile lookup rejects positions outside the map", "[world][tile-map]")
 
 TEST_CASE("ASCII tile maps reject malformed input", "[world][tile-map]")
 {
-    REQUIRE_THROWS_AS(simple_platformer::TileMap::fromAscii({}), std::invalid_argument);
-    REQUIRE_THROWS_AS(simple_platformer::TileMap::fromAscii({""}), std::invalid_argument);
-    REQUIRE_THROWS_AS(simple_platformer::TileMap::fromAscii({"..", "."}), std::invalid_argument);
-    REQUIRE_THROWS_AS(simple_platformer::TileMap::fromAscii({".x"}), std::invalid_argument);
+    using simple_platformer::TileMap;
+    const auto definitions = tests::asciiDefinitions();
+
+    REQUIRE_THROWS_AS(TileMap::fromAscii({}, definitions), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap::fromAscii({""}, definitions), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap::fromAscii({"..", "."}, definitions), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap::fromAscii({".x"}, definitions), std::invalid_argument);
 }
 
 TEST_CASE("Tile maps reject invalid definitions and tile IDs", "[world][tile-map]")

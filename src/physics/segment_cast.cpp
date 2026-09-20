@@ -77,7 +77,7 @@ namespace simple_platformer
     {
         using TileBlockingQuery = std::function<bool(GridPosition)>;
 
-        std::optional<float> castTiles(
+        std::optional<TileSegmentHit> castTiles(
             glm::vec2 start,
             glm::vec2 end,
             glm::vec2 movingSize,
@@ -99,7 +99,7 @@ namespace simple_platformer
             const int firstRow = static_cast<int>(std::floor(minimum.y / tileSize));
             const int lastRow = static_cast<int>(std::floor(maximum.y / tileSize));
 
-            std::optional<float> earliest;
+            std::optional<TileSegmentHit> earliest;
             for (int row = firstRow; row <= lastRow; ++row)
             {
                 for (int column = firstColumn; column <= lastColumn; ++column)
@@ -114,9 +114,9 @@ namespace simple_platformer
                         {tileSize, tileSize}};
                     const std::optional<float> hit =
                         segmentCast(expandedForMovingBox(tile, movingSize), start, end);
-                    if (hit.has_value() && (!earliest.has_value() || *hit < *earliest))
+                    if (hit.has_value() && (!earliest.has_value() || *hit < earliest->segmentTime))
                     {
-                        earliest = hit;
+                        earliest = TileSegmentHit{*hit, {column, row}};
                     }
                 }
             }
@@ -124,7 +124,7 @@ namespace simple_platformer
         }
     }
 
-    std::optional<float> segmentCastMovementBlockingTiles(
+    std::optional<TileSegmentHit> segmentCastMovementBlockingTiles(
         const TileMap& map,
         glm::vec2 start,
         glm::vec2 end,
@@ -139,7 +139,12 @@ namespace simple_platformer
         glm::vec2 start,
         glm::vec2 end)
     {
-        return castTiles(
+        const std::optional<TileSegmentHit> hit = castTiles(
             start, end, {0.0F, 0.0F}, [&map](GridPosition cell) { return map.blocksSight(cell); });
+        if (!hit.has_value())
+        {
+            return std::nullopt;
+        }
+        return hit->segmentTime;
     }
 }

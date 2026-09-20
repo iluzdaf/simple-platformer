@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -12,6 +13,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -25,11 +27,11 @@ namespace simple_platformer
         {
             float segmentTime = 1.0F;
             std::optional<ActorId> actor;
-            bool hitTile = false;
+            std::optional<GridPosition> tile;
 
             bool occurred() const
             {
-                return actor.has_value() || hitTile;
+                return actor.has_value() || tile.has_value();
             }
         };
 
@@ -64,12 +66,12 @@ namespace simple_platformer
             glm::vec2 end)
         {
             ProjectileHit earliest;
-            const std::optional<float> tileHit =
+            const std::optional<TileSegmentHit> tileHit =
                 segmentCastMovementBlockingTiles(map, start, end, projectile.bounds.size);
             if (tileHit.has_value())
             {
-                earliest.segmentTime = *tileHit;
-                earliest.hitTile = true;
+                earliest.segmentTime = tileHit->segmentTime;
+                earliest.tile = tileHit->cell;
             }
 
             for (const Actor& actor : world.actors())
@@ -88,7 +90,7 @@ namespace simple_platformer
                 {
                     earliest.segmentTime = *actorHit;
                     earliest.actor = actor.id;
-                    earliest.hitTile = false;
+                    earliest.tile.reset();
                 }
             }
             return earliest;
@@ -106,17 +108,17 @@ namespace simple_platformer
         }
     }
 
-    void updateProjectiles(
-        const TileMap& map,
-        World& world,
-        WorldRequests& requests,
-        float deltaTime)
+    void updateProjectiles(TileMap& map, World& world, WorldRequests& requests, float deltaTime)
     {
         if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
         {
             throw std::invalid_argument("Projectile delta time must be finite and non-negative");
         }
 
+        // The map belongs to GameLevel, not World, so breaks are not WorldRequests. They are
+        // still held back until every shot has been traced, so one shot cannot open a hole
+        // that a later shot in the same frame flies through.
+        std::vector<GridPosition> brokenTiles;
         for (std::size_t index = 0; index < world.projectiles().size(); ++index)
         {
             Projectile& projectile = world.projectiles()[index];
@@ -130,6 +132,10 @@ namespace simple_platformer
             if (hit.actor.has_value())
             {
                 requests.damage(*hit.actor, projectile.damage);
+            }
+            if (hit.tile.has_value() && projectile.breaksTiles)
+            {
+                brokenTiles.push_back(*hit.tile);
             }
             if (hit.occurred())
             {
@@ -149,6 +155,11 @@ namespace simple_platformer
                         ProjectileBurstCause::LifetimeExpired);
                 }
             }
+        }
+
+        for (const GridPosition cell : brokenTiles)
+        {
+            map.breakTile(cell);
         }
     }
 

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -122,10 +123,7 @@ namespace simple_platformer
             throw std::out_of_range("Tile position is outside the map");
         }
 
-        const std::size_t index =
-            static_cast<std::size_t>(position.y) * static_cast<std::size_t>(mapWidth) +
-            static_cast<std::size_t>(position.x);
-        return tileIds[index];
+        return tileIds[indexOf(position)];
     }
 
     const TileDefinition& TileMap::definitionAt(GridPosition position) const
@@ -157,5 +155,28 @@ namespace simple_platformer
         }
 
         return definitionAt(position).blocksMovement;
+    }
+
+    bool TileMap::breakTile(GridPosition position)
+    {
+        if (!contains(position))
+        {
+            return false;
+        }
+
+        const std::optional<int> broken = definitionAt(position).breaksIntoTileId;
+        if (!broken.has_value())
+        {
+            return false;
+        }
+
+        tileIds[indexOf(position)] = *broken;
+        return true;
+    }
+
+    std::size_t TileMap::indexOf(GridPosition position) const
+    {
+        return static_cast<std::size_t>(position.y) * static_cast<std::size_t>(mapWidth) +
+               static_cast<std::size_t>(position.x);
     }
 }

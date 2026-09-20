@@ -63,6 +63,42 @@ TEST_CASE("ASCII tile maps reject malformed input", "[world][tile-map]")
     REQUIRE_THROWS_AS(TileMap::fromAscii({".x"}, definitions, legend), std::invalid_argument);
 }
 
+TEST_CASE("Breaking a tile replaces it with what its definition breaks into", "[world][tile-map]")
+{
+    using simple_platformer::TileDefinition;
+
+    TileDefinition empty;
+    TileDefinition solid;
+    solid.blocksMovement = true;
+    solid.blocksSight = true;
+    TileDefinition glass;
+    glass.blocksMovement = true;
+    glass.breaksIntoTileId = 0;
+
+    simple_platformer::TileMap map(2, 1, {2, 1}, {empty, solid, glass});
+
+    REQUIRE(map.blocksMovement({0, 0}));
+    REQUIRE(map.breakTile({0, 0}));
+    REQUIRE(map.tileAt({0, 0}) == 0);
+    REQUIRE_FALSE(map.blocksMovement({0, 0}));
+
+    // Breaking it again finds an empty tile, which declares nothing to break into.
+    REQUIRE_FALSE(map.breakTile({0, 0}));
+    // The neighbouring solid tile has no breaksIntoTileId at all.
+    REQUIRE_FALSE(map.breakTile({1, 0}));
+    REQUIRE(map.tileAt({1, 0}) == 1);
+}
+
+TEST_CASE("Breaking reports failure outside the map instead of throwing", "[world][tile-map]")
+{
+    // Map boundaries block movement, so a cast can report a cell that is not in the map.
+    simple_platformer::TileMap map = tests::asciiMap({"..", ".."});
+
+    REQUIRE_FALSE(map.breakTile({-1, 0}));
+    REQUIRE_FALSE(map.breakTile({2, 0}));
+    REQUIRE_FALSE(map.breakTile({0, 2}));
+}
+
 TEST_CASE("Tile maps reject invalid definitions and tile IDs", "[world][tile-map]")
 {
     using simple_platformer::TileDefinition;

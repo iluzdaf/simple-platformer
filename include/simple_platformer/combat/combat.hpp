@@ -36,6 +36,8 @@ namespace simple_platformer
         float projectileLifetime = 2.0F;
         float shootDuration = 0.15F;
         float recoveryDuration = 0.20F;
+        // Whether its shots break tiles that declare what they break into.
+        bool breaksTiles = false;
 
         RangedPhase phase = RangedPhase::Ready;
         float phaseTimeRemaining = 0.0F;
@@ -76,6 +78,9 @@ namespace simple_platformer
         std::optional<ActorId> owner;
         Team team = Team::Neutral;
         Sprite sprite;
+        // Copied from the weapon that fired it, since the weapon is gone by the time
+        // the projectile reaches a tile.
+        bool breaksTiles = false;
     };
 
     enum class ProjectileBurstCause

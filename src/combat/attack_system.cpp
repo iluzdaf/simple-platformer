@@ -46,6 +46,7 @@ namespace
         projectile.owner = actor.id;
         projectile.team = actor.team;
         projectile.sprite = weapon.projectileSprite;
+        projectile.breaksTiles = weapon.breaksTiles;
         return projectile;
     }
 

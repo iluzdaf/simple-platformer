@@ -1,9 +1,7 @@
 #pragma once
 
-#include <initializer_list>
 #include <map>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include "simple_platformer/world/tile_map.hpp"
@@ -34,15 +32,8 @@ namespace tests
     }
 
     // Builds a map from rows of '.' and '#'.
-    inline simple_platformer::TileMap asciiMap(std::initializer_list<std::string_view> rows)
+    inline simple_platformer::TileMap asciiMap(const std::vector<std::string>& rows)
     {
-        std::vector<std::string> ownedRows;
-        ownedRows.reserve(rows.size());
-        for (const std::string_view row : rows)
-        {
-            ownedRows.emplace_back(row);
-        }
-        return simple_platformer::TileMap::fromAscii(
-            ownedRows, asciiDefinitions(), asciiLegend());
+        return simple_platformer::TileMap::fromAscii(rows, asciiDefinitions(), asciiLegend());
     }
 }

@@ -14,6 +14,7 @@
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/ascii_map.hpp"
 
 TEST_CASE("A render scene contains visible tiles followed by the player", "[render][scene]")
 {
@@ -70,7 +71,7 @@ TEST_CASE("Tile rendering includes non-solid tiles and preserves each region", "
 
 TEST_CASE("Facing right does not flip the player sprite", "[render][scene]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"..", "##"});
+    const simple_platformer::TileMap map = tests::asciiMap({"..", "##"});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 32.0F}};
     const simple_platformer::Sprite player{1, {{1.0F, 0.0F}, {1.0F, 1.0F}}, {12.0F, 12.0F}};
     simple_platformer::Actor actor;
@@ -88,7 +89,7 @@ TEST_CASE("Facing right does not flip the player sprite", "[render][scene]")
 
 TEST_CASE("A centre-anchored sprite surrounds a smaller flying body", "[render][scene]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"..."});
+    const simple_platformer::TileMap map = tests::asciiMap({"..."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {48.0F, 32.0F}};
     simple_platformer::Actor bat;
     bat.body = {{{10.0F, 10.0F}, {12.0F, 8.0F}}, {0.0F, 0.0F}};
@@ -111,7 +112,7 @@ TEST_CASE("A centre-anchored sprite surrounds a smaller flying body", "[render][
 
 TEST_CASE("Actors without sprites do not produce draw commands", "[render][scene]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({".."});
+    const simple_platformer::TileMap map = tests::asciiMap({".."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 16.0F}};
     simple_platformer::Actor actor;
     actor.body = {{{4.0F, 4.0F}, {8.0F, 8.0F}}, {0.0F, 0.0F}};
@@ -127,7 +128,7 @@ TEST_CASE("Actors without sprites do not produce draw commands", "[render][scene
 
 TEST_CASE("Dying actors fade during the final part of their death", "[render][scene]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({".."});
+    const simple_platformer::TileMap map = tests::asciiMap({".."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 16.0F}};
     simple_platformer::Actor actor;
     actor.body.bounds = {{4.0F, 4.0F}, {8.0F, 8.0F}};
@@ -151,7 +152,7 @@ TEST_CASE("Dying actors fade during the final part of their death", "[render][sc
 
 TEST_CASE("Actors with active hit feedback produce a white flash", "[render][scene]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({".."});
+    const simple_platformer::TileMap map = tests::asciiMap({".."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 16.0F}};
     simple_platformer::Actor actor;
     actor.body.bounds = {{4.0F, 4.0F}, {8.0F, 8.0F}};
@@ -172,7 +173,7 @@ TEST_CASE("Actors with active hit feedback produce a white flash", "[render][sce
 
 TEST_CASE("Projectile sprites are centred and rotated in their direction", "[render][scene]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "...."});
+    const simple_platformer::TileMap map = tests::asciiMap({"....", "...."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {64.0F, 32.0F}};
     simple_platformer::Projectile projectile;
     projectile.bounds = {{20.0F, 10.0F}, {4.0F, 2.0F}};
@@ -196,7 +197,7 @@ TEST_CASE("Projectile sprites are centred and rotated in their direction", "[ren
 
 TEST_CASE("Projectile bursts expand and fade around their world position", "[render][scene]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"....", "...."});
+    const simple_platformer::TileMap map = tests::asciiMap({"....", "...."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {64.0F, 32.0F}};
     simple_platformer::ProjectileBurst burst;
     burst.center = {20.0F, 10.0F};

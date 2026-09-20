@@ -21,6 +21,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
+#include "support/ascii_map.hpp"
 
 namespace
 {
@@ -119,10 +120,9 @@ namespace
 
 TEST_CASE("NPC sight observes distance and solid tiles", "[npc][senses]")
 {
-    const simple_platformer::TileMap clear =
-        simple_platformer::TileMap::fromAscii({".....", ".....", ".....", "#####"});
+    const simple_platformer::TileMap clear = tests::asciiMap({".....", ".....", ".....", "#####"});
     const simple_platformer::TileMap blocked =
-        simple_platformer::TileMap::fromAscii({".....", "..#..", ".....", "#####"});
+        tests::asciiMap({".....", "..#..", ".....", "#####"});
     const simple_platformer::Aabb observer{{8.0F, 16.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb target{{56.0F, 16.0F}, {12.0F, 12.0F}};
 
@@ -133,8 +133,8 @@ TEST_CASE("NPC sight observes distance and solid tiles", "[npc][senses]")
 
 TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {"............", "............", "............", "############"});
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"............", "............", "............", "############"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(composePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
@@ -170,8 +170,7 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
 
 TEST_CASE("NPC systems reject invalid timing and sensing ranges", "[npc][validation]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"...", "...", "###"});
+    const simple_platformer::TileMap map = tests::asciiMap({"...", "...", "###"});
     const simple_platformer::Aabb bounds{{16.0F, 16.0F}, {8.0F, 8.0F}};
     simple_platformer::World world;
 
@@ -184,8 +183,7 @@ TEST_CASE("NPC systems reject invalid timing and sensing ranges", "[npc][validat
 
 TEST_CASE("A chasing NPC follows the last seen target feet", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"........", "........", "########"});
+    const simple_platformer::TileMap map = tests::asciiMap({"........", "........", "########"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(composePlayer({64.0F, 16.0F}));
     world.setPlayer(playerId, {70.0F, 28.0F});
@@ -205,7 +203,7 @@ TEST_CASE(
     "Ground pursuit resolves remembered feet without tracking the hidden player",
     "[npc][fsm]")
 {
-    const auto map = simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    const auto map = tests::asciiMap({".....", ".....", "#####"});
     simple_platformer::World world;
     // The player is now to the right, but the last sighting was to the left.
     const auto playerId = world.addActor(composePlayer({64.0F, 20.0F}));
@@ -231,8 +229,7 @@ TEST_CASE(
 
 TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(composePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
@@ -260,8 +257,7 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
 
 TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(composePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
@@ -279,8 +275,7 @@ TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]"
 
 TEST_CASE("A ranged NPC stops and requests an attack while its target is visible", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(composePlayer({48.0F, 0.0F}));
     world.setPlayer(playerId, {54.0F, 12.0F});
@@ -301,7 +296,7 @@ TEST_CASE("A ranged NPC stops and requests an attack while its target is visible
 TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"........", "........", "........", "########"});
+        tests::asciiMap({"........", "........", "........", "########"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(composePlayer({96.0F, 32.0F}));
     world.setPlayer(playerId, {102.0F, 44.0F});
@@ -319,8 +314,7 @@ TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][f
 
 TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(composePlayer({64.0F, 0.0F}));
     world.setPlayer(playerId, {70.0F, 12.0F});
@@ -336,8 +330,7 @@ TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]
 
 TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"....#....", "....#....", "#########"});
+    const simple_platformer::TileMap map = tests::asciiMap({"....#....", "....#....", "#########"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(composePlayer({16.0F, 0.0F}));
     world.setPlayer(playerId, {22.0F, 12.0F});

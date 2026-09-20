@@ -12,6 +12,7 @@
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/ascii_map.hpp"
 
 namespace
 {
@@ -268,8 +269,8 @@ TEST_CASE("Falling speed is limited by terminal velocity", "[movement][platforme
 
 TEST_CASE("Tile contacts stop velocity and update grounded state", "[movement][platformer]")
 {
-    const TileMap map = TileMap::fromAscii(
-        {"...#....", "...#....", "...#....", "...#....", "...#....", "########"});
+    const TileMap map =
+        tests::asciiMap({"...#....", "...#....", "...#....", "...#....", "...#....", "########"});
     Body body{{{20.0F, 60.0F}, {12.0F, 12.0F}}, {200.0F, 100.0F}};
     PlatformerMovement movement = makeMovement();
     movement.config.airAcceleration = 0.0F;

@@ -19,10 +19,10 @@
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/pickup.hpp"
-#include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
+#include "support/ascii_map.hpp"
 
 namespace
 {
@@ -242,7 +242,7 @@ TEST_CASE(
     "[simulation][exit]")
 {
     auto world = makeWorld();
-    const auto map = simple_platformer::TileMap::fromAscii({"......", "......", "######"});
+    const auto map = tests::asciiMap({"......", "......", "######"});
     world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {3, 1}});
     world.setExit(
         {{{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2, {}});
@@ -278,7 +278,7 @@ TEST_CASE(
     projectile.bounds = {{20.0F, 20.0F}, {2.0F, 2.0F}};
     projectile.sprite.size = {2.0F, 2.0F};
     world.addProjectile(projectile);
-    const auto map = simple_platformer::TileMap::fromAscii({"......", "......", "######"});
+    const auto map = tests::asciiMap({"......", "......", "######"});
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
     REQUIRE(player(world).life == simple_platformer::LifeState::Dying);
     REQUIRE(inventory(world).count(3) == 0);
@@ -297,7 +297,7 @@ TEST_CASE("Pickups and exits produce camera-relative sprite commands", "[render]
     exit.bounds = {{50.0F, 20.0F}, {16.0F, 32.0F}};
     exit.sprite = simple_platformer::Sprite{8, {{8.0F, 8.0F}, {16.0F, 32.0F}}, {16.0F, 32.0F}};
     world.setExit(exit);
-    const auto map = simple_platformer::TileMap::fromAscii({"......", "......", "......"});
+    const auto map = tests::asciiMap({"......", "......", "......"});
     simple_platformer::Camera camera;
     camera.position = {10.0F, 5.0F};
     const auto scene = simple_platformer::buildRenderScene(map, 0, camera, world);
@@ -318,7 +318,7 @@ TEST_CASE(
     simple_platformer::World world(definitions);
     world.addPickup({{{0.0F, 0.0F}, {16.0F, 16.0F}}, {1, 1}});
     world.addPickup({{{16.0F, 0.0F}, {16.0F, 16.0F}}, {1, 1}});
-    const auto map = simple_platformer::TileMap::fromAscii({"......", "......", "......"});
+    const auto map = tests::asciiMap({"......", "......", "......"});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {320.0F, 180.0F}};
 
     const auto initialScene = simple_platformer::buildRenderScene(map, 0, camera, world);
@@ -339,7 +339,7 @@ TEST_CASE("Pickup sprite overrides leave inventory icons unchanged", "[render][p
     const simple_platformer::Sprite sprite{
         7, {{24, 8}, {12, 10}}, {24, 20}, simple_platformer::SpriteAnchor::BodyCenter};
     world.addPickup({{{20, 20}, {8, 8}}, {1, 1}, sprite});
-    const auto map = simple_platformer::TileMap::fromAscii({"......", "......", "......"});
+    const auto map = tests::asciiMap({"......", "......", "......"});
     const auto scene = simple_platformer::buildRenderScene(map, 0, {}, world);
     REQUIRE(scene.sprites.size() == 1);
     REQUIRE(scene.sprites[0].textureId == 7);

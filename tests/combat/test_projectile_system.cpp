@@ -13,6 +13,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
+#include "support/ascii_map.hpp"
 
 namespace
 {
@@ -49,7 +50,7 @@ namespace
     }
 
     const simple_platformer::TileMap EmptyMap =
-        simple_platformer::TileMap::fromAscii({"..........", "..........", ".........."});
+        tests::asciiMap({"..........", "..........", ".........."});
 }
 
 TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[combat][projectile]")
@@ -82,7 +83,7 @@ TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[c
 TEST_CASE("A solid tile stops a projectile before an actor", "[combat][projectile]")
 {
     const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({"...#......", "..........", ".........."});
+        tests::asciiMap({"...#......", "..........", ".........."});
     simple_platformer::World world;
     const simple_platformer::ActorId target =
         world.addActor(makeActor({70.0F, 0.0F}, simple_platformer::Team::Enemy));

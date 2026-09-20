@@ -10,6 +10,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/ascii_map.hpp"
 
 TEST_CASE("A segment cast reports its first entry into an AABB", "[physics][segment]")
 {
@@ -38,8 +39,7 @@ TEST_CASE("Segment casts reject invalid data", "[physics][segment]")
 
 TEST_CASE("A solid tile cast reports the earliest tile", "[physics][segment][tile]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", ".#.#.", "....."});
+    const simple_platformer::TileMap map = tests::asciiMap({".....", ".#.#.", "....."});
 
     const std::optional<float> hit =
         simple_platformer::segmentCastMovementBlockingTiles(map, {0.0F, 24.0F}, {80.0F, 24.0F});
@@ -50,8 +50,7 @@ TEST_CASE("A solid tile cast reports the earliest tile", "[physics][segment][til
 
 TEST_CASE("A solid tile cast accounts for the moving box size", "[physics][segment][tile]")
 {
-    const simple_platformer::TileMap map =
-        simple_platformer::TileMap::fromAscii({".....", "..#..", "....."});
+    const simple_platformer::TileMap map = tests::asciiMap({".....", "..#..", "....."});
     const glm::vec2 start = {0.0F, 8.0F};
     const glm::vec2 end = {64.0F, 8.0F};
 
@@ -62,7 +61,7 @@ TEST_CASE("A solid tile cast accounts for the moving box size", "[physics][segme
 
 TEST_CASE("Solid tile casts reject an invalid moving size", "[physics][segment][tile]")
 {
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii({"..."});
+    const simple_platformer::TileMap map = tests::asciiMap({"..."});
 
     REQUIRE_THROWS_AS(
         simple_platformer::segmentCastMovementBlockingTiles(

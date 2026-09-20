@@ -357,7 +357,11 @@ if(BUILD_TESTING)
         tests/world/test_world_simulation.cpp
     )
     target_compile_features(simple_platformer_tests PRIVATE cxx_std_17)
-    target_include_directories(simple_platformer_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/app)
+    target_include_directories(
+        simple_platformer_tests
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/app
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests)
     target_link_libraries(
         simple_platformer_tests
         PRIVATE

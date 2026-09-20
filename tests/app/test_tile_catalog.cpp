@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstddef>
 #include <stdexcept>
+#include <string>
 #include <nlohmann/json.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
@@ -66,6 +68,52 @@ TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][
     REQUIRE_THROWS_AS(
         simple_platformer::composeTileMap({"X"}, {{'X', "missing"}}, catalog),
         std::invalid_argument);
+}
+
+TEST_CASE("Breakable tiles resolve breaksInto to a catalogue ID", "[app][tiles]")
+{
+    // cracked is declared after glass refers to it, so resolution cannot be a single pass.
+    const auto catalog = simple_platformer::parseTileCatalog(
+        R"({"tiles":{
+        "empty":{"blocksMovement":false,"blocksSight":false},
+        "glass":{"blocksMovement":true,"blocksSight":false,
+                 "sprite":{"position":[0,0],"size":[16,16]},"breaksInto":"cracked"},
+        "cracked":{"blocksMovement":true,"blocksSight":false,
+                   "sprite":{"position":[16,0],"size":[16,16]},"breaksInto":"empty"},
+        "stone":{"blocksMovement":true,"blocksSight":true,
+                 "sprite":{"position":[32,0],"size":[16,16]}}}})",
+        "tiles.json");
+
+    const auto& glass = catalog.definitions[static_cast<std::size_t>(catalog.ids.at("glass"))];
+    const auto& cracked = catalog.definitions[static_cast<std::size_t>(catalog.ids.at("cracked"))];
+    const auto& stone = catalog.definitions[static_cast<std::size_t>(catalog.ids.at("stone"))];
+
+    REQUIRE(glass.breaksIntoTileId == catalog.ids.at("cracked"));
+    REQUIRE(cracked.breaksIntoTileId == catalog.ids.at("empty"));
+    // A tile that says nothing about breaking is unbreakable.
+    REQUIRE_FALSE(stone.breaksIntoTileId.has_value());
+}
+
+TEST_CASE("Tile catalogues reject unusable breaksInto targets", "[app][tiles]")
+{
+    const auto parse = [](const std::string& breaksInto)
+    {
+        return simple_platformer::parseTileCatalog(
+            R"({"tiles":{
+        "empty":{"blocksMovement":false,"blocksSight":false},
+        "glass":{"blocksMovement":true,"blocksSight":false,
+                 "sprite":{"position":[0,0],"size":[16,16]},"breaksInto":")" +
+                breaksInto + R"("}}})",
+            "tiles.json");
+    };
+
+    REQUIRE_NOTHROW(parse("empty"));
+    REQUIRE_THROWS_WITH(
+        parse("missing"),
+        Catch::Matchers::ContainsSubstring(
+            "tiles.json: tiles.glass.breaksInto: unknown tile name 'missing'"));
+    // Breaking into itself would leave the tile in place forever.
+    REQUIRE_THROWS_AS(parse("glass"), std::invalid_argument);
 }
 
 TEST_CASE("Tile catalogs reject missing empty tiles and malformed definitions", "[app][tiles]")

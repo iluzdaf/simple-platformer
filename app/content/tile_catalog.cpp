@@ -3,6 +3,7 @@
 #include "content_json.hpp"
 #include "content_validation.hpp"
 
+#include <cstddef>
 #include <filesystem>
 #include <initializer_list>
 #include <map>
@@ -27,7 +28,10 @@ namespace simple_platformer
             failJson(sourceName, "tiles", "missing 'empty'");
         }
         TileCatalog result;
-        const auto add = [&result, sourceName](const std::string& name, const nlohmann::json& value)
+        // Collected on the way past because a tile may break into one defined further down.
+        std::map<std::string, std::string> breaksIntoNames;
+        const auto add = [&result, &breaksIntoNames, sourceName](
+                             const std::string& name, const nlohmann::json& value)
         {
             const std::string path = fieldPath("tiles", name);
             checkJsonFields(
@@ -35,7 +39,8 @@ namespace simple_platformer
                 name == "empty"
                     ? std::initializer_list<std::string_view>{"blocksMovement", "blocksSight"}
                     : std::initializer_list<
-                          std::string_view>{"blocksMovement", "blocksSight", "sprite"},
+                          std::
+                              string_view>{"blocksMovement", "blocksSight", "sprite", "breaksInto"},
                 sourceName,
                 path);
             TileDefinition definition;
@@ -47,6 +52,12 @@ namespace simple_platformer
                 const std::string spritePath = fieldPath(path, "sprite");
                 checkJsonFields(sprite, {"position", "size"}, sourceName, spritePath);
                 definition.sprite = jsonSpriteRegion(sprite, sourceName, spritePath);
+                std::string breaksInto;
+                readOptionalText(value, "breaksInto", breaksInto, sourceName, path);
+                if (!breaksInto.empty())
+                {
+                    breaksIntoNames.emplace(name, breaksInto);
+                }
             }
             result.ids.emplace(name, static_cast<int>(result.definitions.size()));
             result.definitions.push_back(definition);
@@ -58,6 +69,17 @@ namespace simple_platformer
             {
                 add(entry.key(), entry.value());
             }
+        }
+        for (const auto& entry : breaksIntoNames)
+        {
+            const std::string path = fieldPath(fieldPath("tiles", entry.first), "breaksInto");
+            const auto target = result.ids.find(entry.second);
+            if (target == result.ids.end())
+            {
+                failJson(sourceName, path, "unknown tile name '" + entry.second + "'");
+            }
+            const auto broken = static_cast<std::size_t>(result.ids.at(entry.first));
+            result.definitions[broken].breaksIntoTileId = target->second;
         }
         // Validation is shared with C++ built catalogues, so it names the tile but not the file.
         try

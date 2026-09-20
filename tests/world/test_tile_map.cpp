@@ -55,11 +55,12 @@ TEST_CASE("ASCII tile maps reject malformed input", "[world][tile-map]")
 {
     using simple_platformer::TileMap;
     const auto definitions = tests::asciiDefinitions();
+    const auto legend = tests::asciiLegend();
 
-    REQUIRE_THROWS_AS(TileMap::fromAscii({}, definitions), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap::fromAscii({""}, definitions), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap::fromAscii({"..", "."}, definitions), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap::fromAscii({".x"}, definitions), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap::fromAscii({}, definitions, legend), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap::fromAscii({""}, definitions, legend), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap::fromAscii({"..", "."}, definitions, legend), std::invalid_argument);
+    REQUIRE_THROWS_AS(TileMap::fromAscii({".x"}, definitions, legend), std::invalid_argument);
 }
 
 TEST_CASE("Tile maps reject invalid definitions and tile IDs", "[world][tile-map]")

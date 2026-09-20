@@ -28,7 +28,7 @@ namespace simple_platformer
         static TileMap fromAscii(
             const std::vector<std::string>& rows,
             std::vector<TileDefinition> definitions,
-            const std::map<char, int>& legend = {{'.', 0}, {'#', 1}});
+            const std::map<char, int>& legend);
 
         int width() const;
         int height() const;

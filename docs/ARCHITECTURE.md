@@ -329,8 +329,9 @@ Glass blocks movement and projectiles but allows sight. Grass allows movement an
 projectiles but blocks sight rays. These are static tiles: glass does not yet break,
 and grass does not hide actors, pickups, or exits from the player's screen.
 
-Examples and tests construct maps from ASCII strings using `.` for empty and `#` for
-solid by default. The example loads shared definitions from `tiles.json` beside
+Tests construct maps from ASCII strings with a helper in `tests/support` that supplies
+its own definitions and symbols, so the engine carries no fixture of its own. The example
+loads shared definitions from `tiles.json` beside
 `levels.json`. An optional `tileLegend` in each level maps one-character symbols to
 catalogue names; without it, `.` means `empty` and `#` means `stone`.
 The loader resolves names to runtime IDs, reserving zero for `empty`.

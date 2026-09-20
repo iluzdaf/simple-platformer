@@ -1,6 +1,7 @@
 #pragma once
 
 #include <initializer_list>
+#include <map>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -20,6 +21,12 @@ namespace tests
         return {{false, false, {}}, {true, true, {{0.0F, 0.0F}, {1.0F, 1.0F}}}};
     }
 
+    // The symbols that select those definitions.
+    inline std::map<char, int> asciiLegend()
+    {
+        return {{'.', 0}, {'#', 1}};
+    }
+
     // Builds a map from rows of '.' and '#'.
     inline simple_platformer::TileMap asciiMap(std::initializer_list<std::string_view> rows)
     {
@@ -29,6 +36,7 @@ namespace tests
         {
             ownedRows.emplace_back(row);
         }
-        return simple_platformer::TileMap::fromAscii(ownedRows, asciiDefinitions());
+        return simple_platformer::TileMap::fromAscii(
+            ownedRows, asciiDefinitions(), asciiLegend());
     }
 }

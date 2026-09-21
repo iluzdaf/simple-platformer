@@ -13,7 +13,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 
 namespace
 {
@@ -51,31 +51,13 @@ namespace
 
     simple_platformer::TileMap emptyMap()
     {
-        return tests::asciiMap({"..........", "..........", ".........."});
+        return tests::TileMapBuilder({"..........", "..........", ".........."});
     }
 
-    // One blocking tile at column 3 of the top row, on the projectile's path.
-    simple_platformer::TileMap mapWithBlockingTile(simple_platformer::TileDefinition tile)
+    // One tile at column 3 of the top row, on the projectile's path. It is tile ID 1.
+    simple_platformer::TileMap mapWithTileInPath(tests::Tile tile)
     {
-        const simple_platformer::TileDefinition empty;
-        return simple_platformer::TileMap::fromAscii(
-            {"...X......", "..........", ".........."}, {empty, tile}, {{'.', 0}, {'X', 1}});
-    }
-
-    simple_platformer::TileDefinition breakableGlass()
-    {
-        simple_platformer::TileDefinition glass;
-        glass.blocksMovement = true;
-        glass.breaksIntoTileId = 0;
-        return glass;
-    }
-
-    simple_platformer::TileDefinition unbreakableStone()
-    {
-        simple_platformer::TileDefinition stone;
-        stone.blocksMovement = true;
-        stone.blocksSight = true;
-        return stone;
+        return tests::TileMapBuilder({"...X......", "..........", ".........."}).where('X', tile);
     }
 }
 
@@ -109,7 +91,8 @@ TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[c
 
 TEST_CASE("A solid tile stops a projectile before an actor", "[combat][projectile]")
 {
-    simple_platformer::TileMap map = tests::asciiMap({"...#......", "..........", ".........."});
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"...#......", "..........", ".........."});
     simple_platformer::World world;
     const simple_platformer::ActorId target =
         world.addActor(makeActor({70.0F, 0.0F}, simple_platformer::Team::Enemy));
@@ -225,7 +208,8 @@ TEST_CASE("Projectile updates reject invalid timing", "[combat][projectile]")
 
 TEST_CASE("A projectile that breaks tiles clears the glass it stops at", "[combat][projectile]")
 {
-    simple_platformer::TileMap map = mapWithBlockingTile(breakableGlass());
+    simple_platformer::TileMap map =
+        mapWithTileInPath(tests::Tile().blocksMovement().breaksInto('.'));
     simple_platformer::World world;
     simple_platformer::Projectile projectile = makeProjectile();
     projectile.breaksTiles = true;
@@ -245,7 +229,8 @@ TEST_CASE("A projectile that breaks tiles clears the glass it stops at", "[comba
 
 TEST_CASE("A projectile without the flag stops at glass and leaves it", "[combat][projectile]")
 {
-    simple_platformer::TileMap map = mapWithBlockingTile(breakableGlass());
+    simple_platformer::TileMap map =
+        mapWithTileInPath(tests::Tile().blocksMovement().breaksInto('.'));
     simple_platformer::World world;
     // makeProjectile leaves breaksTiles false, as an enemy weapon does.
     world.addProjectile(makeProjectile());
@@ -261,7 +246,8 @@ TEST_CASE("A projectile without the flag stops at glass and leaves it", "[combat
 
 TEST_CASE("Breaking projectiles leave unbreakable tiles standing", "[combat][projectile]")
 {
-    simple_platformer::TileMap map = mapWithBlockingTile(unbreakableStone());
+    simple_platformer::TileMap map =
+        mapWithTileInPath(tests::Tile().blocksMovement().blocksSight());
     simple_platformer::World world;
     simple_platformer::Projectile projectile = makeProjectile();
     projectile.breaksTiles = true;
@@ -277,7 +263,8 @@ TEST_CASE("Breaking projectiles leave unbreakable tiles standing", "[combat][pro
 
 TEST_CASE("One shot cannot open a hole for another in the same frame", "[combat][projectile]")
 {
-    simple_platformer::TileMap map = mapWithBlockingTile(breakableGlass());
+    simple_platformer::TileMap map =
+        mapWithTileInPath(tests::Tile().blocksMovement().breaksInto('.'));
     simple_platformer::World world;
     simple_platformer::Projectile shot = makeProjectile();
     shot.breaksTiles = true;

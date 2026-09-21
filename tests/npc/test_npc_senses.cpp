@@ -2,7 +2,6 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <map>
 #include <optional>
 #include <stdexcept>
 
@@ -14,11 +13,10 @@
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
-#include "support/ascii_map.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
+#include "support/tile_map_builder.hpp"
 
-using simple_platformer::TileDefinition;
 using tests::actor;
 using tests::brain;
 using tests::rangedWeapon;
@@ -45,9 +43,11 @@ namespace
 
 TEST_CASE("NPC sight observes distance and solid tiles", "[npc][senses]")
 {
-    const simple_platformer::TileMap clear = tests::asciiMap({".....", ".....", ".....", "#####"});
+    const simple_platformer::TileMap clear =
+        tests::TileMapBuilder({".....", ".....", ".....", "#####"});
     const simple_platformer::TileMap blocked =
-        tests::asciiMap({".....", "..#..", ".....", "#####"});
+        tests::TileMapBuilder({".....", "..x..", ".....", "#####"})
+            .where('x', tests::Tile().blocksSight());
     const simple_platformer::Aabb observer{{8.0F, 16.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb target{{56.0F, 16.0F}, {12.0F, 12.0F}};
 
@@ -58,11 +58,8 @@ TEST_CASE("NPC sight observes distance and solid tiles", "[npc][senses]")
 
 TEST_CASE("Sight-blocking cover hides whoever stands in it", "[npc][senses]")
 {
-    TileDefinition empty;
-    TileDefinition cover;
-    cover.blocksSight = true;
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {".....", "c....", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", "c....", "....."}).where('c', tests::Tile().blocksSight());
     const simple_platformer::Aabb inCover{{2.0F, 18.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb inOpen{{50.0F, 18.0F}, {12.0F, 12.0F}};
 
@@ -72,11 +69,8 @@ TEST_CASE("Sight-blocking cover hides whoever stands in it", "[npc][senses]")
 
 TEST_CASE("Actors in one patch of sight-blocking cover see each other", "[npc][senses]")
 {
-    TileDefinition empty;
-    TileDefinition cover;
-    cover.blocksSight = true;
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {".....", "ccc..", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", "ccc..", "....."}).where('c', tests::Tile().blocksSight());
     const simple_platformer::Aabb first{{2.0F, 18.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb second{{34.0F, 18.0F}, {12.0F, 12.0F}};
 
@@ -86,11 +80,8 @@ TEST_CASE("Actors in one patch of sight-blocking cover see each other", "[npc][s
 
 TEST_CASE("Actors at the same position in sight-blocking cover see each other", "[npc][senses]")
 {
-    TileDefinition empty;
-    TileDefinition cover;
-    cover.blocksSight = true;
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {".....", "c....", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", "c....", "....."}).where('c', tests::Tile().blocksSight());
     const simple_platformer::Aabb inCover{{2.0F, 18.0F}, {12.0F, 12.0F}};
 
     REQUIRE(simple_platformer::canSeeTarget(map, inCover, inCover, {64.0F, 1.0F}));
@@ -98,11 +89,8 @@ TEST_CASE("Actors at the same position in sight-blocking cover see each other", 
 
 TEST_CASE("Actors in separate patches of sight-blocking cover are hidden", "[npc][senses]")
 {
-    TileDefinition empty;
-    TileDefinition cover;
-    cover.blocksSight = true;
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {".....", "c.c..", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", "c.c..", "....."}).where('c', tests::Tile().blocksSight());
     const simple_platformer::Aabb first{{2.0F, 18.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb second{{34.0F, 18.0F}, {12.0F, 12.0F}};
 
@@ -112,17 +100,10 @@ TEST_CASE("Actors in separate patches of sight-blocking cover are hidden", "[npc
 
 TEST_CASE("Only sight-blocking tiles block sight between actors in the open", "[npc][senses]")
 {
-    TileDefinition empty;
-    TileDefinition cover;
-    cover.blocksSight = true;
-    TileDefinition window;
-    window.blocksMovement = true;
-    window.sprite = {{0.0F, 0.0F}, {1.0F, 1.0F}};
-    const std::map<char, int> legend{{'.', 0}, {'c', 1}, {'w', 2}};
-    const simple_platformer::TileMap covered = simple_platformer::TileMap::fromAscii(
-        {"...", ".c.", "..."}, {empty, cover, window}, legend);
-    const simple_platformer::TileMap windowed = simple_platformer::TileMap::fromAscii(
-        {"...", ".w.", "..."}, {empty, cover, window}, legend);
+    const simple_platformer::TileMap covered =
+        tests::TileMapBuilder({"...", ".c.", "..."}).where('c', tests::Tile().blocksSight());
+    const simple_platformer::TileMap windowed =
+        tests::TileMapBuilder({"...", ".w.", "..."}).where('w', tests::Tile().blocksMovement());
     const simple_platformer::Aabb left{{2.0F, 18.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb right{{34.0F, 18.0F}, {12.0F, 12.0F}};
 
@@ -135,7 +116,7 @@ TEST_CASE("Only sight-blocking tiles block sight between actors in the open", "[
 TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"............", "............", "............", "############"});
+        tests::TileMapBuilder({"............", "............", "............", "############"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
@@ -166,11 +147,9 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
 
 TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses]")
 {
-    TileDefinition empty;
-    TileDefinition cover;
-    cover.blocksSight = true;
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {"........", "..c.....", "........"}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "..c.....", "........"})
+            .where('c', tests::Tile().blocksSight());
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
         world.addActor(makePlayer({34.0F, 18.0F}).thatShoots());
@@ -201,7 +180,8 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
 
 TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".....", "..#..", "....."});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", "..x..", "....."}).where('x', tests::Tile().blocksSight());
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
         world.addActor(makePlayer({50.0F, 18.0F}).thatShoots());
@@ -220,7 +200,7 @@ TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
 TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][senses]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"..........", "..........", ".........."});
+        tests::TileMapBuilder({"..........", "..........", ".........."});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
         world.addActor(makePlayer({98.0F, 18.0F}).thatShoots());
@@ -234,7 +214,7 @@ TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][sense
 
 TEST_CASE("NPC senses reject invalid timing and sensing ranges", "[npc][validation]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"...", "...", "###"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "...", "###"});
     const simple_platformer::Aabb bounds{{16.0F, 16.0F}, {8.0F, 8.0F}};
     simple_platformer::World world;
 

@@ -16,7 +16,7 @@
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 
 TEST_CASE("Navigation cells use feet on tile boundaries", "[navigation][path]")
 {
@@ -78,7 +78,7 @@ TEST_CASE(
     "[navigation][path][integration]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"..........", "....##....", "..........", "##########"});
+        tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
@@ -123,7 +123,7 @@ TEST_CASE(
     "[navigation][path][integration]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"..........", "....##....", "..........", "##########"});
+        tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
@@ -177,7 +177,7 @@ TEST_CASE(
     "[navigation][path][integration]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"..........", "....##....", "..........", "##########"});
+        tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =

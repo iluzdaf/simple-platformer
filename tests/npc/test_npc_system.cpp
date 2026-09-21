@@ -19,7 +19,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 
@@ -50,7 +50,7 @@ namespace
 
 TEST_CASE("NPC behaviour rejects invalid timing", "[npc][validation]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"...", "...", "###"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "...", "###"});
     simple_platformer::World world;
 
     REQUIRE_THROWS_AS(
@@ -60,7 +60,7 @@ TEST_CASE("NPC behaviour rejects invalid timing", "[npc][validation]")
 TEST_CASE("A chasing NPC patrols again once it has no target", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"............", "............", "............", "############"});
+        tests::TileMapBuilder({"............", "............", "............", "############"});
     simple_platformer::World world;
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({16.0F, 16.0F}).patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
@@ -72,7 +72,8 @@ TEST_CASE("A chasing NPC patrols again once it has no target", "[npc][fsm]")
 
 TEST_CASE("A chasing NPC follows the last seen target feet", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"........", "........", "########"});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "########"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({64.0F, 16.0F}));
     world.setPlayer(playerId, {70.0F, 28.0F});
@@ -92,7 +93,7 @@ TEST_CASE(
     "Ground pursuit resolves remembered feet without tracking the hidden player",
     "[npc][fsm]")
 {
-    const auto map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
     // The player is now to the right, but the last sighting was to the left.
     const auto playerId = world.addActor(makePlayer({64.0F, 20.0F}));
@@ -119,7 +120,7 @@ TEST_CASE(
 
 TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
@@ -148,7 +149,7 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
 
 TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
@@ -166,7 +167,7 @@ TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]"
 
 TEST_CASE("A ranged NPC stops and requests an attack while its target is visible", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({48.0F, 0.0F}));
     world.setPlayer(playerId, {54.0F, 12.0F});
@@ -188,7 +189,7 @@ TEST_CASE("A ranged NPC stops and requests an attack while its target is visible
 TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"........", "........", "........", "########"});
+        tests::TileMapBuilder({"........", "........", "........", "########"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({96.0F, 32.0F}));
     world.setPlayer(playerId, {102.0F, 44.0F});
@@ -206,7 +207,7 @@ TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][f
 
 TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({64.0F, 0.0F}));
     world.setPlayer(playerId, {70.0F, 12.0F});
@@ -223,7 +224,8 @@ TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]
 
 TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"....#....", "....#....", "#########"});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"....#....", "....#....", "#########"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({16.0F, 0.0F}));
     world.setPlayer(playerId, {22.0F, 12.0F});

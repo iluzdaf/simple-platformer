@@ -13,7 +13,7 @@
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/level_validation.hpp"
 #include "simple_platformer/world/world.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 
 namespace
 {
@@ -46,7 +46,7 @@ namespace
 
 TEST_CASE("Level actors require clear spawn positions", "[world][level-validation]")
 {
-    const auto map = tests::asciiMap({"###", "...", "###"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"###", "...", "###"});
     simple_platformer::World world;
     world.addActor(makePlatformer({24.0F, 32.0F}));
 
@@ -55,7 +55,7 @@ TEST_CASE("Level actors require clear spawn positions", "[world][level-validatio
 
 TEST_CASE("Platformer spawns and patrol points require ground support", "[world][level-validation]")
 {
-    const auto map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
 
     SECTION("spawn")
     {
@@ -78,7 +78,7 @@ TEST_CASE("Platformer spawns and patrol points require ground support", "[world]
 
 TEST_CASE("The player respawn requires clearance and ground support", "[world][level-validation]")
 {
-    const auto map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
 
     SECTION("blocked respawn")
     {
@@ -105,7 +105,7 @@ TEST_CASE("The player respawn requires clearance and ground support", "[world][l
 
 TEST_CASE("Flying actors require clearance but not ground support", "[world][level-validation]")
 {
-    const auto map = tests::asciiMap({"...", "...", "###"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "...", "###"});
     simple_platformer::World world;
     auto actor = makeFlyer({24.0F, 16.0F});
     addPatrol(actor, {24.0F, 16.0F}, {32.0F, 24.0F});

@@ -63,8 +63,7 @@ namespace simple_platformer
             return false;
         }
 
-        return !segmentCastSightBlockingTiles(map, centerOf(observer), centerOf(target))
-                    .has_value();
+        return lineOfSight(map, centerOf(observer), centerOf(target));
     }
 
     void updateNpcSenses(const TileMap& map, World& world, float deltaTime)

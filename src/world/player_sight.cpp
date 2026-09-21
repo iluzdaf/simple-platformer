@@ -11,16 +11,22 @@
 
 namespace simple_platformer
 {
+    namespace
+    {
+        bool standsInCover(const TileMap& map, const Aabb& bounds)
+        {
+            return map.blocksSight(worldToGrid(centerOf(bounds)));
+        }
+    }
+
     bool playerCanSee(const TileMap& map, const World& world, const Aabb& bounds)
     {
-        const glm::vec2 center = centerOf(bounds);
-        if (!map.blocksSight(worldToGrid(center)))
+        if (!standsInCover(map, bounds))
         {
             return true;
         }
         const Actor* player = world.findActor(world.playerId());
         return player != nullptr &&
-               !segmentCastSightBlockingTiles(map, centerOf(player->body.bounds), center)
-                    .has_value();
+               lineOfSight(map, centerOf(player->body.bounds), centerOf(bounds));
     }
 }

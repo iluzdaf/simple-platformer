@@ -39,4 +39,7 @@ namespace simple_platformer
         const TileMap& map,
         glm::vec2 start,
         glm::vec2 end);
+
+    // Whether the sight cast from one point reaches the other.
+    bool lineOfSight(const TileMap& map, glm::vec2 from, glm::vec2 to);
 }

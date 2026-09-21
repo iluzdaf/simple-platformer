@@ -33,17 +33,19 @@ namespace
 {
     // An actor the world can treat as the player. Behaviour only reads its body; World
     // requires it to move somehow, so it walks.
-    tests::ActorBuilder makePlayer(glm::vec2 position)
+    tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
-        return tests::ActorBuilder::walking({position, {12.0F, 12.0F}});
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
     }
 
     // The NPC these tests measure their maps against: 12 pixels wide, flying at 20 pixels
     // per second. Behaviour doesn't read teams or senses; World requires an NPC to have
     // senses, and an attacking NPC to have a team, so tests that attack choose one.
-    tests::ActorBuilder makeNpc(glm::vec2 position)
+    tests::ActorBuilder makeNpc(glm::vec2 feet)
     {
-        return tests::ActorBuilder::flying({position, {12.0F, 12.0F}}, 20.0F)
+        return tests::ActorBuilder::sized({12.0F, 12.0F})
+            .atFeet(feet)
+            .flying(20.0F)
             .thinking({64.0F, 1.0F});
     }
 }
@@ -63,7 +65,7 @@ TEST_CASE("A chasing NPC patrols again once it has no target", "[npc][fsm]")
         tests::TileMapBuilder({"............", "............", "............", "############"});
     simple_platformer::World world;
     const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({16.0F, 16.0F}).patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
+        world.addActor(makeNpc({22.0F, 28.0F}).patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
     brain(world, npcId).state = simple_platformer::NpcState::Chase;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
@@ -75,9 +77,9 @@ TEST_CASE("A chasing NPC follows the last seen target feet", "[npc][fsm]")
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "........", "########"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({64.0F, 16.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({70.0F, 28.0F}));
     world.setPlayer(playerId, {70.0F, 28.0F});
-    const simple_platformer::ActorId npcId = world.addActor(makeNpc({18.0F, 20.0F}));
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({24.0F, 32.0F}));
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {72.0F, 32.0F};
     brain(world, npcId).targetVisible = false;
@@ -96,10 +98,13 @@ TEST_CASE(
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
     // The player is now to the right, but the last sighting was to the left.
-    const auto playerId = world.addActor(makePlayer({64.0F, 20.0F}));
-    // A walking NPC as tall as a zombie, since its height decides where it can stand.
-    const auto npcId = world.addActor(
-        tests::ActorBuilder::walking({{50.0F, 12.0F}, {12.0F, 20.0F}}).thinking({64.0F, 1.0F}));
+    const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
+    // A walking NPC as tall as a zombie, standing on the floor at y = 32. Its height decides
+    // where it can stand.
+    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
+                                          .atFeet({56.0F, 32.0F})
+                                          .walking()
+                                          .thinking({64.0F, 1.0F}));
     auto& movement = actor(world, npcId).platformerMovement;
     if (!movement.has_value())
     {
@@ -122,10 +127,10 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({38.0F, 28.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
     const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({16.0F, 16.0F}).onTeam(simple_platformer::Team::Enemy).thatBites());
+        world.addActor(makeNpc({22.0F, 28.0F}).onTeam(simple_platformer::Team::Enemy).thatBites());
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
     brain(world, npcId).targetVisible = true;
@@ -151,9 +156,9 @@ TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]"
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({38.0F, 28.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
-    const simple_platformer::ActorId npcId = world.addActor(makeNpc({16.0F, 16.0F}));
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({22.0F, 28.0F}));
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
     brain(world, npcId).targetVisible = true;
@@ -169,10 +174,10 @@ TEST_CASE("A ranged NPC stops and requests an attack while its target is visible
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({48.0F, 0.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({54.0F, 12.0F}));
     world.setPlayer(playerId, {54.0F, 12.0F});
     const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({16.0F, 16.0F}).onTeam(simple_platformer::Team::Enemy).thatShoots());
+        world.addActor(makeNpc({22.0F, 28.0F}).onTeam(simple_platformer::Team::Enemy).thatShoots());
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {54.0F, 12.0F};
     brain(world, npcId).targetVisible = true;
@@ -191,10 +196,10 @@ TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][f
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "........", "........", "########"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({96.0F, 32.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({102.0F, 44.0F}));
     world.setPlayer(playerId, {102.0F, 44.0F});
     const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({18.0F, 20.0F}).patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
+        world.addActor(makeNpc({24.0F, 32.0F}).patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Patrol);
@@ -209,10 +214,10 @@ TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({64.0F, 0.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({70.0F, 12.0F}));
     world.setPlayer(playerId, {70.0F, 12.0F});
     const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({18.0F, 20.0F}).patrolling({24.0F, 32.0F}, {56.0F, 32.0F}));
+        world.addActor(makeNpc({24.0F, 32.0F}).patrolling({24.0F, 32.0F}, {56.0F, 32.0F}));
     patrol(world, npcId).headingToSecond = false;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
@@ -227,10 +232,10 @@ TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"....#....", "....#....", "#########"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({16.0F, 0.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({22.0F, 12.0F}));
     world.setPlayer(playerId, {22.0F, 12.0F});
     const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({18.0F, 20.0F}).patrolling({24.0F, 32.0F}, {120.0F, 32.0F}));
+        world.addActor(makeNpc({24.0F, 32.0F}).patrolling({24.0F, 32.0F}, {120.0F, 32.0F}));
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());

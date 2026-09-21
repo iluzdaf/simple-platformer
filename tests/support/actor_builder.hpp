@@ -18,30 +18,25 @@ namespace tests
     // Builds an actor that World accepts, from the components and settings a test asks for.
     // The builder knows how components fit together, such as movement being required and
     // an NPC needing a brain, senses, and path follower at once. It holds no gameplay values:
-    // a test supplies every size, speed, and range it depends on, so a passing test says
-    // which ones mattered. A real player or NPC comes from the game's composition recipe.
+    // a test supplies every size, position, speed, and range it depends on, so a passing test
+    // says which ones mattered. A real player or NPC comes from the game's composition recipe.
     //
-    // Start from walking or flying, since World requires exactly one movement component,
-    // then chain what the test needs. The chain works on a fresh builder and converts to an
-    // Actor wherever one is expected, such as World::addActor.
+    // A chain reads what the actor is, where it is, how it moves, then what else it does:
+    //
+    //   ActorBuilder::sized({12.0F, 20.0F}).atFeet({24.0F, 32.0F}).walking().thatBites()
+    //
+    // Placement and movement can't be skipped: sized() offers only at() and atFeet(), and
+    // those offer only walking() and flying(). A forgotten placement would silently put the
+    // actor at the origin, and World requires exactly one movement component. The chain works
+    // on a fresh builder and converts to an Actor wherever one is expected, such as
+    // World::addActor.
     class ActorBuilder
     {
     public:
-        static ActorBuilder walking(const simple_platformer::Aabb& bounds)
-        {
-            simple_platformer::Actor actor;
-            actor.body.bounds = bounds;
-            actor.platformerMovement = simple_platformer::PlatformerMovement{};
-            return ActorBuilder(std::move(actor));
-        }
+        class Sized;
+        class Placed;
 
-        static ActorBuilder flying(const simple_platformer::Aabb& bounds, float speed)
-        {
-            simple_platformer::Actor actor;
-            actor.body.bounds = bounds;
-            actor.flyingMovement = simple_platformer::FlyingMovement{speed};
-            return ActorBuilder(std::move(actor));
-        }
+        static Sized sized(glm::vec2 size);
 
         ActorBuilder onTeam(simple_platformer::Team team) &&
         {
@@ -94,4 +89,65 @@ namespace tests
 
         simple_platformer::Actor built;
     };
+
+    // A placed body, waiting for the movement World requires.
+    class ActorBuilder::Placed
+    {
+    public:
+        ActorBuilder walking() &&
+        {
+            built.platformerMovement = simple_platformer::PlatformerMovement{};
+            return ActorBuilder(std::move(built));
+        }
+
+        ActorBuilder flying(float speed) &&
+        {
+            built.flyingMovement = simple_platformer::FlyingMovement{speed};
+            return ActorBuilder(std::move(built));
+        }
+
+    private:
+        friend class ActorBuilder::Sized;
+
+        explicit Placed(const simple_platformer::Aabb& bounds)
+        {
+            built.body.bounds = bounds;
+        }
+
+        simple_platformer::Actor built;
+    };
+
+    // A body's size, waiting for where it is.
+    class ActorBuilder::Sized
+    {
+    public:
+        // By its top-left corner.
+        Placed at(glm::vec2 topLeft) &&
+        {
+            return Placed({topLeft, size});
+        }
+
+        // By the middle of its bottom edge, where the game places actors.
+        Placed atFeet(glm::vec2 feet) &&
+        {
+            simple_platformer::Aabb bounds{{0.0F, 0.0F}, size};
+            simple_platformer::placeFeetAt(bounds, feet);
+            return Placed(bounds);
+        }
+
+    private:
+        friend class ActorBuilder;
+
+        explicit Sized(glm::vec2 bodySize)
+            : size(bodySize)
+        {
+        }
+
+        glm::vec2 size;
+    };
+
+    inline ActorBuilder::Sized ActorBuilder::sized(glm::vec2 size)
+    {
+        return Sized(size);
+    }
 }

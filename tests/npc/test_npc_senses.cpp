@@ -25,17 +25,21 @@ namespace
 {
     // An actor the world can treat as the player. The senses and behaviour only read its
     // team and body; World requires it to move somehow, so it walks.
-    tests::ActorBuilder makePlayer(glm::vec2 position)
+    tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
-        return tests::ActorBuilder::walking({position, {12.0F, 12.0F}})
+        return tests::ActorBuilder::sized({12.0F, 12.0F})
+            .atFeet(feet)
+            .walking()
             .onTeam(simple_platformer::Team::Player);
     }
 
     // The NPC these tests measure their maps against: 12 pixels wide, flying at 20 pixels
     // per second, noticing within 64 pixels and remembering for one second.
-    tests::ActorBuilder makeNpc(glm::vec2 position)
+    tests::ActorBuilder makeNpc(glm::vec2 feet)
     {
-        return tests::ActorBuilder::flying({position, {12.0F, 12.0F}}, 20.0F)
+        return tests::ActorBuilder::sized({12.0F, 12.0F})
+            .atFeet(feet)
+            .flying(20.0F)
             .onTeam(simple_platformer::Team::Enemy)
             .thinking({64.0F, 1.0F});
     }
@@ -118,15 +122,15 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"............", "............", "............", "############"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({38.0F, 28.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
-    const simple_platformer::ActorId npcId = world.addActor(makeNpc({16.0F, 16.0F}));
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({22.0F, 28.0F}));
 
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE(brain(world, npcId).targetVisible);
 
-    actor(world, playerId).body.bounds.position.x = 160.0F;
+    simple_platformer::placeFeetAt(actor(world, playerId).body.bounds, {166.0F, 28.0F});
     simple_platformer::updateNpcSenses(map, world, 0.4F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE_FALSE(brain(world, npcId).targetVisible);
@@ -136,7 +140,7 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
     simple_platformer::updateNpcSenses(map, world, 0.7F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
 
-    actor(world, playerId).body.bounds.position.x = 32.0F;
+    simple_platformer::placeFeetAt(actor(world, playerId).body.bounds, {38.0F, 28.0F});
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE(brain(world, npcId).targetVisible);
@@ -152,10 +156,10 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
             .where('c', tests::Tile().blocksSight());
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
-        world.addActor(makePlayer({34.0F, 18.0F}).thatShoots());
-    world.setPlayer(playerId, simple_platformer::feetOf(actor(world, playerId).body.bounds));
-    const simple_platformer::ActorId npcId = world.addActor(makeNpc({2.0F, 18.0F}));
-    const glm::vec2 shotFeet = simple_platformer::feetOf(actor(world, playerId).body.bounds);
+        world.addActor(makePlayer({40.0F, 30.0F}).thatShoots());
+    world.setPlayer(playerId, {40.0F, 30.0F});
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
+    const glm::vec2 shotFeet{40.0F, 30.0F};
 
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
@@ -170,7 +174,7 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
 
     // Moving away afterwards doesn't update the remembered spot.
     rangedWeapon(world, playerId).firedThisUpdate = false;
-    actor(world, playerId).body.bounds.position.x = 112.0F;
+    simple_platformer::placeFeetAt(actor(world, playerId).body.bounds, {118.0F, 30.0F});
     simple_platformer::updateNpcSenses(map, world, 0.4F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
@@ -184,17 +188,15 @@ TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
         tests::TileMapBuilder({".....", "..x..", "....."}).where('x', tests::Tile().blocksSight());
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
-        world.addActor(makePlayer({50.0F, 18.0F}).thatShoots());
-    world.setPlayer(playerId, simple_platformer::feetOf(actor(world, playerId).body.bounds));
-    const simple_platformer::ActorId npcId = world.addActor(makeNpc({2.0F, 18.0F}));
+        world.addActor(makePlayer({56.0F, 30.0F}).thatShoots());
+    world.setPlayer(playerId, {56.0F, 30.0F});
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 
     rangedWeapon(world, playerId).firedThisUpdate = true;
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE_FALSE(brain(world, npcId).targetVisible);
-    REQUIRE(
-        brain(world, npcId).lastSeenTargetFeet ==
-        simple_platformer::feetOf(actor(world, playerId).body.bounds));
+    REQUIRE(brain(world, npcId).lastSeenTargetFeet == glm::vec2{56.0F, 30.0F});
 }
 
 TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][senses]")
@@ -203,9 +205,9 @@ TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][sense
         tests::TileMapBuilder({"..........", "..........", ".........."});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
-        world.addActor(makePlayer({98.0F, 18.0F}).thatShoots());
-    world.setPlayer(playerId, simple_platformer::feetOf(actor(world, playerId).body.bounds));
-    const simple_platformer::ActorId npcId = world.addActor(makeNpc({2.0F, 18.0F}));
+        world.addActor(makePlayer({104.0F, 30.0F}).thatShoots());
+    world.setPlayer(playerId, {104.0F, 30.0F});
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 
     rangedWeapon(world, playerId).firedThisUpdate = true;
     simple_platformer::updateNpcSenses(map, world, 0.1F);

@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <map>
 #include <optional>
 #include <stdexcept>
 
@@ -129,6 +130,92 @@ TEST_CASE("NPC sight observes distance and solid tiles", "[npc][senses]")
     REQUIRE(simple_platformer::canSeeTarget(clear, observer, target, {64.0F, 1.0F}));
     REQUIRE_FALSE(simple_platformer::canSeeTarget(blocked, observer, target, {64.0F, 1.0F}));
     REQUIRE_FALSE(simple_platformer::canSeeTarget(clear, observer, target, {32.0F, 1.0F}));
+}
+
+TEST_CASE("Sight-blocking cover hides whoever stands in it", "[npc][senses]")
+{
+    using simple_platformer::TileDefinition;
+
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....", "c....", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::Aabb inCover{{2.0F, 18.0F}, {12.0F, 12.0F}};
+    const simple_platformer::Aabb inOpen{{50.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(map, inOpen, inCover, {64.0F, 1.0F}));
+    REQUIRE(simple_platformer::canSeeTarget(map, inCover, inOpen, {64.0F, 1.0F}));
+}
+
+TEST_CASE("Actors in one patch of sight-blocking cover see each other", "[npc][senses]")
+{
+    using simple_platformer::TileDefinition;
+
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....", "ccc..", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::Aabb first{{2.0F, 18.0F}, {12.0F, 12.0F}};
+    const simple_platformer::Aabb second{{34.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE(simple_platformer::canSeeTarget(map, first, second, {64.0F, 1.0F}));
+    REQUIRE(simple_platformer::canSeeTarget(map, second, first, {64.0F, 1.0F}));
+}
+
+TEST_CASE("Actors at the same position in sight-blocking cover see each other", "[npc][senses]")
+{
+    using simple_platformer::TileDefinition;
+
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....", "c....", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::Aabb inCover{{2.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE(simple_platformer::canSeeTarget(map, inCover, inCover, {64.0F, 1.0F}));
+}
+
+TEST_CASE("Actors in separate patches of sight-blocking cover are hidden", "[npc][senses]")
+{
+    using simple_platformer::TileDefinition;
+
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....", "c.c..", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::Aabb first{{2.0F, 18.0F}, {12.0F, 12.0F}};
+    const simple_platformer::Aabb second{{34.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(map, first, second, {64.0F, 1.0F}));
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(map, second, first, {64.0F, 1.0F}));
+}
+
+TEST_CASE("Only sight-blocking tiles block sight between actors in the open", "[npc][senses]")
+{
+    using simple_platformer::TileDefinition;
+
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    TileDefinition window;
+    window.blocksMovement = true;
+    window.sprite = {{0.0F, 0.0F}, {1.0F, 1.0F}};
+    const std::map<char, int> legend{{'.', 0}, {'c', 1}, {'w', 2}};
+    const simple_platformer::TileMap covered = simple_platformer::TileMap::fromAscii(
+        {"...", ".c.", "..."}, {empty, cover, window}, legend);
+    const simple_platformer::TileMap windowed = simple_platformer::TileMap::fromAscii(
+        {"...", ".w.", "..."}, {empty, cover, window}, legend);
+    const simple_platformer::Aabb left{{2.0F, 18.0F}, {12.0F, 12.0F}};
+    const simple_platformer::Aabb right{{34.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(covered, left, right, {64.0F, 1.0F}));
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(covered, right, left, {64.0F, 1.0F}));
+    REQUIRE(simple_platformer::canSeeTarget(windowed, left, right, {64.0F, 1.0F}));
+    REQUIRE(simple_platformer::canSeeTarget(windowed, right, left, {64.0F, 1.0F}));
 }
 
 TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]")

@@ -5,6 +5,7 @@
 #include <functional>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 #include <glm/common.hpp>
 #include <glm/vec2.hpp>
@@ -49,39 +50,45 @@ namespace simple_platformer
             const glm::vec2 halfSize = movingSize * 0.5F;
             return {target.position - halfSize, target.size + movingSize};
         }
-    }
 
-    std::optional<float> segmentCast(const Aabb& box, glm::vec2 start, glm::vec2 end)
-    {
-        if (!isFinite(box.position) || !isFinite(box.size) || !isFinite(start) || !isFinite(end) ||
-            box.size.x <= 0.0F || box.size.y <= 0.0F)
+        // The part of the segment inside the box, as fractions along it.
+        struct SegmentSpan
         {
-            throw std::invalid_argument("Segment casts require finite, positive-sized data");
+            float enter = 0.0F;
+            float leave = 0.0F;
+        };
+
+        std::optional<SegmentSpan> segmentSpan(const Aabb& box, glm::vec2 start, glm::vec2 end)
+        {
+            const glm::vec2 movement = end - start;
+            float first = 0.0F;
+            float last = 1.0F;
+            if (!castAxis(
+                    start.x,
+                    movement.x,
+                    box.position.x,
+                    box.position.x + box.size.x,
+                    first,
+                    last) ||
+                !castAxis(
+                    start.y, movement.y, box.position.y, box.position.y + box.size.y, first, last))
+            {
+                return std::nullopt;
+            }
+            return SegmentSpan{first, last};
         }
 
-        const glm::vec2 movement = end - start;
-        float first = 0.0F;
-        float last = 1.0F;
-        if (!castAxis(
-                start.x, movement.x, box.position.x, box.position.x + box.size.x, first, last) ||
-            !castAxis(
-                start.y, movement.y, box.position.y, box.position.y + box.size.y, first, last))
-        {
-            return std::nullopt;
-        }
-
-        return first;
-    }
-
-    namespace
-    {
         using TileBlockingQuery = std::function<bool(GridPosition)>;
+        using BlockingTileVisitor = std::function<void(GridPosition, const Aabb&)>;
 
-        std::optional<TileSegmentHit> castTiles(
+        // Visits every blocking tile the segment's bounds overlap, expanded for the moving
+        // box, in no particular order.
+        void forEachBlockingTile(
             glm::vec2 start,
             glm::vec2 end,
             glm::vec2 movingSize,
-            const TileBlockingQuery& blocks)
+            const TileBlockingQuery& blocks,
+            const BlockingTileVisitor& visit)
         {
             if (!isFinite(start) || !isFinite(end) || !isFinite(movingSize) ||
                 movingSize.x < 0.0F || movingSize.y < 0.0F)
@@ -99,7 +106,6 @@ namespace simple_platformer
             const int firstRow = static_cast<int>(std::floor(minimum.y / tileSize));
             const int lastRow = static_cast<int>(std::floor(maximum.y / tileSize));
 
-            std::optional<TileSegmentHit> earliest;
             for (int row = firstRow; row <= lastRow; ++row)
             {
                 for (int column = firstColumn; column <= lastColumn; ++column)
@@ -112,16 +118,26 @@ namespace simple_platformer
                     const Aabb tile{
                         {static_cast<float>(column * TileSize), static_cast<float>(row * TileSize)},
                         {tileSize, tileSize}};
-                    const std::optional<float> hit =
-                        segmentCast(expandedForMovingBox(tile, movingSize), start, end);
-                    if (hit.has_value() && (!earliest.has_value() || *hit < earliest->segmentTime))
-                    {
-                        earliest = TileSegmentHit{*hit, {column, row}};
-                    }
+                    visit({column, row}, expandedForMovingBox(tile, movingSize));
                 }
             }
-            return earliest;
         }
+    }
+
+    std::optional<float> segmentCast(const Aabb& box, glm::vec2 start, glm::vec2 end)
+    {
+        if (!isFinite(box.position) || !isFinite(box.size) || !isFinite(start) || !isFinite(end) ||
+            box.size.x <= 0.0F || box.size.y <= 0.0F)
+        {
+            throw std::invalid_argument("Segment casts require finite, positive-sized data");
+        }
+
+        const std::optional<SegmentSpan> span = segmentSpan(box, start, end);
+        if (!span.has_value())
+        {
+            return std::nullopt;
+        }
+        return span->enter;
     }
 
     std::optional<TileSegmentHit> segmentCastMovementBlockingTiles(
@@ -130,8 +146,21 @@ namespace simple_platformer
         glm::vec2 end,
         glm::vec2 movingSize)
     {
-        return castTiles(
-            start, end, movingSize, [&map](GridPosition cell) { return map.blocksMovement(cell); });
+        std::optional<TileSegmentHit> earliest;
+        forEachBlockingTile(
+            start,
+            end,
+            movingSize,
+            [&map](GridPosition cell) { return map.blocksMovement(cell); },
+            [&](GridPosition cell, const Aabb& tile)
+            {
+                const std::optional<float> hit = segmentCast(tile, start, end);
+                if (hit.has_value() && (!earliest.has_value() || *hit < earliest->segmentTime))
+                {
+                    earliest = TileSegmentHit{*hit, cell};
+                }
+            });
+        return earliest;
     }
 
     std::optional<float> segmentCastSightBlockingTiles(
@@ -139,12 +168,37 @@ namespace simple_platformer
         glm::vec2 start,
         glm::vec2 end)
     {
-        const std::optional<TileSegmentHit> hit = castTiles(
-            start, end, {0.0F, 0.0F}, [&map](GridPosition cell) { return map.blocksSight(cell); });
-        if (!hit.has_value())
+        std::vector<SegmentSpan> spans;
+        forEachBlockingTile(
+            start,
+            end,
+            {0.0F, 0.0F},
+            [&map](GridPosition cell) { return map.blocksSight(cell); },
+            [&](GridPosition /*cell*/, const Aabb& tile)
+            {
+                const std::optional<SegmentSpan> span = segmentSpan(tile, start, end);
+                if (span.has_value())
+                {
+                    spans.push_back(*span);
+                }
+            });
+        std::sort(
+            spans.begin(),
+            spans.end(),
+            [](const SegmentSpan& left, const SegmentSpan& right)
+            { return left.enter < right.enter; });
+
+        // Tiles that chain unbroken from the start are the cover the line begins in, and do
+        // not block. The first tile entered after a gap does.
+        float startingCoverEnd = 0.0F;
+        for (const SegmentSpan& span : spans)
         {
-            return std::nullopt;
+            if (span.enter > startingCoverEnd)
+            {
+                return span.enter;
+            }
+            startingCoverEnd = std::max(startingCoverEnd, span.leave);
         }
-        return hit->segmentTime;
+        return std::nullopt;
     }
 }

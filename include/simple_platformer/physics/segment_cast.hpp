@@ -32,7 +32,9 @@ namespace simple_platformer
         glm::vec2 end,
         glm::vec2 movingSize = {0.0F, 0.0F});
 
-    // Earliest sight-blocking tile along a line.
+    // Earliest sight-blocking tile along a line, ignoring the unbroken run of sight-blocking
+    // tiles the line starts in. Whoever stands in cover can see out of it and across it, but
+    // cover further along the line still blocks.
     std::optional<float> segmentCastSightBlockingTiles(
         const TileMap& map,
         glm::vec2 start,

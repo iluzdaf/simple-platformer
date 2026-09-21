@@ -188,6 +188,7 @@ set_target_properties(
 )
 
 find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
+find_program(PRETTIER_EXECUTABLE NAMES prettier)
 find_program(
     CLANG_TIDY_EXECUTABLE
     NAMES clang-tidy
@@ -215,6 +216,13 @@ file(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
 )
 
+file(
+    GLOB_RECURSE PROJECT_JSON_FILES
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/*.json
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/*.json
+)
+
 if(CLANG_FORMAT_EXECUTABLE)
     add_custom_target(
         format
@@ -233,6 +241,24 @@ if(CLANG_FORMAT_EXECUTABLE)
     )
 else()
     message(STATUS "clang-format not found; format targets are unavailable")
+endif()
+
+if(PRETTIER_EXECUTABLE)
+    add_custom_target(
+        format-json
+        COMMAND ${PRETTIER_EXECUTABLE} --write --log-level warn ${PROJECT_JSON_FILES}
+        COMMENT "Formatting first-party JSON"
+        VERBATIM
+    )
+
+    add_custom_target(
+        format-json-check
+        COMMAND ${PRETTIER_EXECUTABLE} --check --log-level warn ${PROJECT_JSON_FILES}
+        COMMENT "Checking first-party JSON formatting"
+        VERBATIM
+    )
+else()
+    message(STATUS "prettier not found; JSON format targets are unavailable")
 endif()
 
 set(CLANG_TIDY_EXTRA_ARGUMENTS)

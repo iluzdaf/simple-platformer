@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       LLVM: 18
+      PRETTIER: 3.9.8
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -25,6 +26,11 @@ jobs:
           clang-tidy-$LLVM --version
           echo "CLANG_FORMAT=$(command -v clang-format-$LLVM)" >> "$GITHUB_ENV"
           echo "CLANG_TIDY=$(command -v clang-tidy-$LLVM)" >> "$GITHUB_ENV"
+      - name: Install the pinned Prettier
+        run: |
+          npm install --global --no-fund --no-audit prettier@$PRETTIER
+          prettier --version
+          echo "PRETTIER_BIN=$(command -v prettier)" >> "$GITHUB_ENV"
       - name: Configure
         run: >
           cmake -S . -B build/quality
@@ -33,10 +39,13 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-$LLVM
           -DCLANG_FORMAT_EXECUTABLE=$CLANG_FORMAT
           -DCLANG_TIDY_EXECUTABLE=$CLANG_TIDY
+          -DPRETTIER_EXECUTABLE=$PRETTIER_BIN
           -DGLFW_BUILD_X11=OFF
           -DGLFW_BUILD_WAYLAND=OFF
       - name: Check formatting
         run: cmake --build build/quality --target format-check
+      - name: Check JSON formatting
+        run: cmake --build build/quality --target format-json-check
       - name: Check headers stand alone
         run: cmake --build build/quality --target header_self_containment
       - name: Run static analysis

@@ -78,8 +78,9 @@ namespace
 TEST_CASE("A render scene contains visible tiles followed by the player", "[render][scene]")
 {
     const simple_platformer::SpriteRegion tileRegion{{5.0F, 6.0F}, {1.0F, 1.0F}};
-    const simple_platformer::TileMap map(
-        4, 2, {0, 1, 1, 1, 0, 0, 0, 0}, {{false, false, {}}, {true, true, tileRegion}});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".xxx", "...."})
+            .where('x', tests::Tile().blocksMovement().blocksSight().withSprite(tileRegion));
     const simple_platformer::Camera camera{{16.0F, 0.0F}, {32.0F, 16.0F}};
     const simple_platformer::Sprite player{9, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {10.0F, 14.0F}};
     const simple_platformer::Aabb playerBounds{{20.0F, 2.0F}, {8.0F, 12.0F}};
@@ -113,13 +114,11 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
 
 TEST_CASE("Tile rendering includes non-solid tiles and preserves each region", "[render][scene]")
 {
-    const simple_platformer::TileMap map(
-        3,
-        1,
-        {0, 1, 2},
-        {{false, false, {}},
-         {false, false, {{16, 0}, {16, 16}}},
-         {true, true, {{32, 0}, {16, 16}}}});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".ab"})
+            .where('a', tests::Tile().withSprite({{16, 0}, {16, 16}}))
+            .where(
+                'b', tests::Tile().blocksMovement().blocksSight().withSprite({{32, 0}, {16, 16}}));
     const auto scene =
         simple_platformer::buildRenderScene(map, 7, {{0, 0}, {48, 16}}, simple_platformer::World{});
     REQUIRE(scene.sprites.size() == 2);

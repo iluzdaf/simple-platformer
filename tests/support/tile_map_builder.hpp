@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace tests
@@ -26,6 +27,13 @@ namespace tests
         Tile blocksSight() &&
         {
             definition.blocksSight = true;
+            return *this;
+        }
+
+        // The region of the tile texture it is drawn with.
+        Tile withSprite(simple_platformer::SpriteRegion region) &&
+        {
+            definition.sprite = region;
             return *this;
         }
 

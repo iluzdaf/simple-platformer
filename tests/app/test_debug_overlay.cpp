@@ -24,14 +24,14 @@
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/actor_builder.hpp"
+#include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
 
 TEST_CASE("Debug overlay data supports actors without presentation components", "[app][debug]")
 {
-    simple_platformer::Actor actor;
-    actor.body.bounds = {{12.0F, 20.0F}, {8.0F, 10.0F}};
-    actor.platformerMovement = simple_platformer::PlatformerMovement{};
-
+    const simple_platformer::Actor actor =
+        tests::ActorBuilder::sized({8.0F, 10.0F}).at({12.0F, 20.0F}).walking();
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(actor);
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
@@ -61,13 +61,12 @@ TEST_CASE("Debug overlay data supports actors without presentation components", 
 
 TEST_CASE("Debug overlay data describes NPC patrol points", "[app][debug]")
 {
-    simple_platformer::Actor npc;
-    npc.body.bounds = {{16.0F, 20.0F}, {12.0F, 12.0F}};
-    npc.platformerMovement = simple_platformer::PlatformerMovement{};
-    npc.brain = simple_platformer::NpcBrain{};
-    npc.senses = simple_platformer::NpcSenses{};
-    npc.pathFollower = simple_platformer::PathFollower{};
-    npc.patrol = simple_platformer::Patrol{{24.0F, 32.0F}, {72.0F, 32.0F}, false};
+    simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
+                                       .at({16.0F, 20.0F})
+                                       .walking()
+                                       .thinking({})
+                                       .patrolling({24.0F, 32.0F}, {72.0F, 32.0F});
+    tests::patrol(npc).headingToSecond = false;
 
     simple_platformer::World world;
     world.addActor(npc);
@@ -94,20 +93,15 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     animator.animationSet.clips.push_back(
         {simple_platformer::AnimationName::Move, {region}, 0.1F, true});
 
-    simple_platformer::Actor player;
-    player.body.bounds = {{32.0F, 196.0F}, {12.0F, 12.0F}};
-    player.platformerMovement = simple_platformer::PlatformerMovement{};
-    player.sprite = simple_platformer::Sprite{1, region, {32.0F, 24.0F}};
-    player.animator = animator;
+    const simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 12.0F})
+                                                .atFeet({38.0F, 208.0F})
+                                                .walking()
+                                                .withSprite({1, region, {32.0F, 24.0F}})
+                                                .withAnimator(animator);
 
-    simple_platformer::Actor npc;
-    npc.body.bounds = {{80.0F, 196.0F}, {12.0F, 12.0F}};
-    npc.platformerMovement = simple_platformer::PlatformerMovement{};
-    simple_platformer::NpcBrain brain;
-    brain.state = simple_platformer::NpcState::Chase;
-    npc.brain = brain;
-    npc.senses = simple_platformer::NpcSenses{};
-    npc.pathFollower = simple_platformer::PathFollower{};
+    simple_platformer::Actor npc =
+        tests::ActorBuilder::sized({12.0F, 12.0F}).at({80.0F, 196.0F}).walking().thinking({});
+    tests::brain(npc).state = simple_platformer::NpcState::Chase;
 
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(player);
@@ -149,32 +143,29 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
 
 TEST_CASE("Debug overlay data describes visible and remembered targets", "[app][debug]")
 {
-    simple_platformer::Actor player;
-    player.body.bounds = {{48.0F, 20.0F}, {12.0F, 12.0F}};
-    player.platformerMovement = simple_platformer::PlatformerMovement{};
-    player.team = simple_platformer::Team::Player;
-
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(player);
+    const simple_platformer::ActorId playerId =
+        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                           .atFeet({54.0F, 32.0F})
+                           .walking()
+                           .onTeam(simple_platformer::Team::Player));
     world.setPlayer(playerId, {54.0F, 32.0F});
 
-    simple_platformer::Actor visibleNpc;
-    visibleNpc.body.bounds = {{16.0F, 20.0F}, {12.0F, 12.0F}};
-    visibleNpc.platformerMovement = simple_platformer::PlatformerMovement{};
-    visibleNpc.team = simple_platformer::Team::Enemy;
-    visibleNpc.brain = simple_platformer::NpcBrain{};
-    visibleNpc.brain->target = playerId;
-    visibleNpc.brain->targetVisible = true;
-    visibleNpc.brain->targetMemoryRemaining = 1.5F;
-    visibleNpc.senses = simple_platformer::NpcSenses{80.0F, 1.5F};
-    visibleNpc.pathFollower = simple_platformer::PathFollower{};
+    simple_platformer::Actor visibleNpc = tests::ActorBuilder::sized({12.0F, 12.0F})
+                                              .at({16.0F, 20.0F})
+                                              .walking()
+                                              .onTeam(simple_platformer::Team::Enemy)
+                                              .thinking({80.0F, 1.5F});
+    tests::brain(visibleNpc).target = playerId;
+    tests::brain(visibleNpc).targetVisible = true;
+    tests::brain(visibleNpc).targetMemoryRemaining = 1.5F;
     world.addActor(visibleNpc);
 
     simple_platformer::Actor rememberedNpc = visibleNpc;
     rememberedNpc.body.bounds.position = {80.0F, 20.0F};
-    rememberedNpc.brain->targetVisible = false;
-    rememberedNpc.brain->lastSeenTargetFeet = {40.0F, 32.0F};
-    rememberedNpc.brain->targetMemoryRemaining = 0.6F;
+    tests::brain(rememberedNpc).targetVisible = false;
+    tests::brain(rememberedNpc).lastSeenTargetFeet = {40.0F, 32.0F};
+    tests::brain(rememberedNpc).targetMemoryRemaining = 0.6F;
     world.addActor(rememberedNpc);
 
     const simple_platformer::TileMap map = tests::TileMapBuilder({".......", "#######"});
@@ -250,18 +241,18 @@ TEST_CASE("Debug overlay data describes pickup bounds", "[app][debug]")
 
 TEST_CASE("Debug overlay data shows only an active bite hitbox", "[app][debug]")
 {
-    simple_platformer::Actor activeBiter;
-    activeBiter.body.bounds = {{16.0F, 20.0F}, {12.0F, 12.0F}};
-    activeBiter.platformerMovement = simple_platformer::PlatformerMovement{};
+    simple_platformer::Actor activeBiter = tests::ActorBuilder::sized({12.0F, 12.0F})
+                                               .at({16.0F, 20.0F})
+                                               .walking()
+                                               .onTeam(simple_platformer::Team::Enemy)
+                                               .thatBites();
     activeBiter.facing = simple_platformer::Facing::Right;
-    activeBiter.team = simple_platformer::Team::Enemy;
-    activeBiter.bite = simple_platformer::BiteAttack{};
-    activeBiter.bite->phase = simple_platformer::BitePhase::Active;
-    activeBiter.bite->phaseTimeRemaining = 0.05F;
+    tests::bite(activeBiter).phase = simple_platformer::BitePhase::Active;
+    tests::bite(activeBiter).phaseTimeRemaining = 0.05F;
 
     simple_platformer::Actor recoveringBiter = activeBiter;
     recoveringBiter.body.bounds.position = {48.0F, 20.0F};
-    recoveringBiter.bite->phase = simple_platformer::BitePhase::Recovery;
+    tests::bite(recoveringBiter).phase = simple_platformer::BitePhase::Recovery;
 
     simple_platformer::World world;
     world.addActor(activeBiter);
@@ -293,11 +284,8 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
     follower.destination = simple_platformer::GridPosition{4, 3};
     follower.repathRemaining = 0.12F;
 
-    simple_platformer::Actor npc;
-    npc.body.bounds = {{16.0F, 32.0F}, {12.0F, 12.0F}};
-    npc.platformerMovement = simple_platformer::PlatformerMovement{};
-    npc.brain = simple_platformer::NpcBrain{};
-    npc.senses = simple_platformer::NpcSenses{};
+    simple_platformer::Actor npc =
+        tests::ActorBuilder::sized({12.0F, 12.0F}).at({16.0F, 32.0F}).walking().thinking({});
     npc.pathFollower = follower;
 
     simple_platformer::World world;
@@ -356,11 +344,10 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
         throw std::logic_error("The test map did not produce a jump connection");
     }
 
-    simple_platformer::Actor npc;
-    npc.body.bounds = {{0.0F, 0.0F}, {12.0F, 12.0F}};
-    npc.platformerMovement = simple_platformer::PlatformerMovement{movementConfig};
-    npc.brain = simple_platformer::NpcBrain{};
-    npc.senses = simple_platformer::NpcSenses{};
+    simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
+                                       .at({0.0F, 0.0F})
+                                       .walking(movementConfig)
+                                       .thinking({});
     npc.pathFollower = simple_platformer::PathFollower{
         simple_platformer::NavigationPath{
             {2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},

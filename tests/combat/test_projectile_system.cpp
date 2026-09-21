@@ -13,18 +13,19 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
+#include "support/actor_builder.hpp"
+#include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace
 {
-    simple_platformer::Actor makeActor(glm::vec2 position, simple_platformer::Team team)
+    simple_platformer::Actor makeActor(glm::vec2 topLeft, simple_platformer::Team team)
     {
-        simple_platformer::Actor actor;
-        actor.body.bounds = {position, {10.0F, 10.0F}};
-        actor.platformerMovement = simple_platformer::PlatformerMovement{};
-        actor.health = simple_platformer::Health{3, 3};
-        actor.team = team;
-        return actor;
+        return tests::ActorBuilder::sized({10.0F, 10.0F})
+            .at(topLeft)
+            .walking()
+            .withHealth(3, 3)
+            .onTeam(team);
     }
 
     simple_platformer::Projectile makeProjectile()
@@ -37,16 +38,6 @@ namespace
         projectile.team = simple_platformer::Team::Player;
         projectile.sprite.size = projectile.bounds.size;
         return projectile;
-    }
-
-    int healthOf(const simple_platformer::World& world, simple_platformer::ActorId id)
-    {
-        const simple_platformer::Actor* actor = world.findActor(id);
-        if (actor == nullptr || !actor->health.has_value())
-        {
-            throw std::logic_error("Test actor has no health");
-        }
-        return actor->health->current;
     }
 
     simple_platformer::TileMap emptyMap()
@@ -74,13 +65,13 @@ TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[c
     simple_platformer::TileMap map = emptyMap();
     simple_platformer::updateProjectiles(map, world, requests, 0.5F);
 
-    REQUIRE(healthOf(world, near) == 3);
+    REQUIRE(tests::health(world, near).current == 3);
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectileBursts().empty());
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
-    REQUIRE(healthOf(world, near) == 2);
-    REQUIRE(healthOf(world, far) == 3);
+    REQUIRE(tests::health(world, near).current == 2);
+    REQUIRE(tests::health(world, far).current == 3);
     REQUIRE(world.projectiles().empty());
     REQUIRE(world.projectileBursts().size() == 1);
     REQUIRE(
@@ -103,7 +94,7 @@ TEST_CASE("A solid tile stops a projectile before an actor", "[combat][projectil
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
-    REQUIRE(healthOf(world, target) == 3);
+    REQUIRE(tests::health(world, target).current == 3);
     REQUIRE(world.projectiles().empty());
     REQUIRE(world.projectileBursts().size() == 1);
     REQUIRE(
@@ -130,9 +121,9 @@ TEST_CASE("Projectiles ignore their owner and actors on the same team", "[combat
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
-    REQUIRE(healthOf(world, owner) == 3);
-    REQUIRE(healthOf(world, teammate) == 3);
-    REQUIRE(healthOf(world, enemy) == 2);
+    REQUIRE(tests::health(world, owner).current == 3);
+    REQUIRE(tests::health(world, teammate).current == 3);
+    REQUIRE(tests::health(world, enemy).current == 2);
 }
 
 TEST_CASE("A projectile is removed when its lifetime expires", "[combat][projectile]")
@@ -190,7 +181,7 @@ TEST_CASE("Separate projectile hits have no shared invulnerability", "[combat][p
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
-    REQUIRE(healthOf(world, target) == 1);
+    REQUIRE(tests::health(world, target).current == 1);
     REQUIRE(world.projectiles().empty());
     REQUIRE(world.projectileBursts().size() == 2);
 }

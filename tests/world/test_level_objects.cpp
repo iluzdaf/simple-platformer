@@ -22,6 +22,8 @@
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
+#include "support/actor_builder.hpp"
+#include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace
@@ -37,39 +39,13 @@ namespace
     simple_platformer::World makeWorld()
     {
         simple_platformer::World world(items());
-        simple_platformer::Actor actor;
-        actor.body.bounds = {{16.0F, 16.0F}, {12.0F, 16.0F}};
-        actor.platformerMovement = simple_platformer::PlatformerMovement{};
-        actor.health = simple_platformer::Health{1, 3};
-        actor.inventory = simple_platformer::Inventory(2);
-        const auto id = world.addActor(actor);
+        const auto id = world.addActor(tests::ActorBuilder::sized({12.0F, 16.0F})
+                                           .atFeet({22.0F, 32.0F})
+                                           .walking()
+                                           .withHealth(1, 3)
+                                           .withInventory(simple_platformer::Inventory(2)));
         world.setPlayer(id, {22.0F, 32.0F});
         return world;
-    }
-
-    simple_platformer::Actor& player(simple_platformer::World& world)
-    {
-        return *world.findActor(world.playerId());
-    }
-
-    simple_platformer::Inventory& inventory(simple_platformer::World& world)
-    {
-        auto& value = player(world).inventory;
-        if (!value.has_value())
-        {
-            throw std::logic_error("Expected player inventory");
-        }
-        return *value;
-    }
-
-    simple_platformer::Health& health(simple_platformer::World& world)
-    {
-        auto& value = player(world).health;
-        if (!value.has_value())
-        {
-            throw std::logic_error("Expected player health");
-        }
-        return *value;
     }
 
     const simple_platformer::LevelExit& exitOf(const simple_platformer::World& world)
@@ -100,10 +76,10 @@ TEST_CASE(
     world.addPickup({{{80.0F, 20.0F}, {8.0F, 8.0F}}, {1, 2}});
     simple_platformer::WorldRequests requests;
     simple_platformer::updatePickups(world, requests);
-    REQUIRE(inventory(world).count(1) == 0);
+    REQUIRE(tests::inventory(tests::player(world)).count(1) == 0);
     REQUIRE(world.pickups().size() == 2);
     simple_platformer::applyWorldRequests(world, requests);
-    REQUIRE(inventory(world).count(1) == 3);
+    REQUIRE(tests::inventory(tests::player(world)).count(1) == 3);
     REQUIRE(world.pickups().size() == 1);
     REQUIRE(world.pickups().front().bounds.position.x == 80.0F);
     REQUIRE(requests.empty());
@@ -112,18 +88,18 @@ TEST_CASE(
 TEST_CASE("Partial pickups stay in the world and can be collected after freeing space", "[pickups]")
 {
     auto world = makeWorld();
-    player(world).inventory = simple_platformer::Inventory(1);
-    inventory(world).add(world.itemDefinition(1), 4);
+    tests::player(world).inventory = simple_platformer::Inventory(1);
+    tests::inventory(tests::player(world)).add(world.itemDefinition(1), 4);
     world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {1, 4}});
     collect(world);
-    REQUIRE(inventory(world).count(1) == 5);
+    REQUIRE(tests::inventory(tests::player(world)).count(1) == 5);
     REQUIRE(world.pickups().front().stack.quantity == 3);
     collect(world);
     REQUIRE(world.pickups().front().stack.quantity == 3);
-    inventory(world).remove(1, 3);
+    tests::inventory(tests::player(world)).remove(1, 3);
     collect(world);
     REQUIRE(world.pickups().empty());
-    REQUIRE(inventory(world).count(1) == 5);
+    REQUIRE(tests::inventory(tests::player(world)).count(1) == 5);
 }
 
 TEST_CASE(
@@ -138,19 +114,19 @@ TEST_CASE(
     simple_platformer::updatePickups(world, requests);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.pickups().empty());
-    REQUIRE(inventory(world).count(1) == 2);
-    REQUIRE(inventory(world).count(2) == 1);
+    REQUIRE(tests::inventory(tests::player(world)).count(1) == 2);
+    REQUIRE(tests::inventory(tests::player(world)).count(2) == 1);
 }
 
 TEST_CASE("Dead players and players without inventory do not collect pickups", "[pickups]")
 {
     auto world = makeWorld();
     world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {1, 2}});
-    player(world).life = simple_platformer::LifeState::Dying;
+    tests::player(world).life = simple_platformer::LifeState::Dying;
     collect(world);
     REQUIRE(world.pickups().size() == 1);
-    player(world).life = simple_platformer::LifeState::Alive;
-    player(world).inventory.reset();
+    tests::player(world).life = simple_platformer::LifeState::Alive;
+    tests::player(world).inventory.reset();
     collect(world);
     REQUIRE(world.pickups().size() == 1);
 }
@@ -160,36 +136,36 @@ TEST_CASE(
     "[inventory][use]")
 {
     auto world = makeWorld();
-    inventory(world).add(world.itemDefinition(2), 3);
+    tests::inventory(tests::player(world)).add(world.itemDefinition(2), 3);
     simple_platformer::WorldRequests requests;
     requests.useItem(world.playerId(), 0);
-    REQUIRE(health(world).current == 1);
+    REQUIRE(tests::health(tests::player(world)).current == 1);
     simple_platformer::applyWorldRequests(world, requests);
-    REQUIRE(health(world).current == 3);
-    REQUIRE(inventory(world).count(2) == 2);
+    REQUIRE(tests::health(tests::player(world)).current == 3);
+    REQUIRE(tests::inventory(tests::player(world)).count(2) == 2);
     REQUIRE(requests.empty());
     REQUIRE_FALSE(simple_platformer::useItem(world, world.playerId(), 0));
-    REQUIRE(inventory(world).count(2) == 2);
-    health(world).current = 2;
+    REQUIRE(tests::inventory(tests::player(world)).count(2) == 2);
+    tests::health(tests::player(world)).current = 2;
     REQUIRE(simple_platformer::useItem(world, world.playerId(), 0));
-    REQUIRE(health(world).current == 3);
-    REQUIRE(inventory(world).count(2) == 1);
+    REQUIRE(tests::health(tests::player(world)).current == 3);
+    REQUIRE(tests::inventory(tests::player(world)).count(2) == 1);
 }
 
 TEST_CASE("Unusable or stale item requests are harmless", "[inventory][use]")
 {
     auto world = makeWorld();
-    inventory(world).add(world.itemDefinition(1), 1);
-    inventory(world).add(world.itemDefinition(2), 1);
+    tests::inventory(tests::player(world)).add(world.itemDefinition(1), 1);
+    tests::inventory(tests::player(world)).add(world.itemDefinition(2), 1);
     REQUIRE_FALSE(simple_platformer::useItem(world, world.playerId(), 0));
     REQUIRE_FALSE(simple_platformer::useItem(world, world.playerId(), 99));
     REQUIRE_FALSE(simple_platformer::useItem(world, simple_platformer::ActorId{999}, 0));
-    player(world).life = simple_platformer::LifeState::Dying;
+    tests::player(world).life = simple_platformer::LifeState::Dying;
     REQUIRE_FALSE(simple_platformer::useItem(world, world.playerId(), 1));
-    player(world).life = simple_platformer::LifeState::Alive;
-    player(world).health.reset();
+    tests::player(world).life = simple_platformer::LifeState::Alive;
+    tests::player(world).health.reset();
     REQUIRE_FALSE(simple_platformer::useItem(world, world.playerId(), 1));
-    REQUIRE(inventory(world).count(2) == 1);
+    REQUIRE(tests::inventory(tests::player(world)).count(2) == 1);
 }
 
 TEST_CASE("An exit checks overlap and its required quantity", "[exit]")
@@ -197,17 +173,17 @@ TEST_CASE("An exit checks overlap and its required quantity", "[exit]")
     auto world = makeWorld();
     world.setExit(
         {{{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{1, 2}, false, 2, {}});
-    inventory(world).add(world.itemDefinition(1), 1);
+    tests::inventory(tests::player(world)).add(world.itemDefinition(1), 1);
     simple_platformer::updateLevelExit(world);
     REQUIRE_FALSE(world.levelComplete());
-    inventory(world).add(world.itemDefinition(1), 1);
-    player(world).body.bounds.position.x = 60.0F;
+    tests::inventory(tests::player(world)).add(world.itemDefinition(1), 1);
+    tests::player(world).body.bounds.position.x = 60.0F;
     simple_platformer::updateLevelExit(world);
     REQUIRE_FALSE(world.levelComplete());
-    player(world).body.bounds.position.x = 16.0F;
+    tests::player(world).body.bounds.position.x = 16.0F;
     simple_platformer::updateLevelExit(world);
     REQUIRE(world.levelComplete());
-    REQUIRE(inventory(world).count(1) == 2);
+    REQUIRE(tests::inventory(tests::player(world)).count(1) == 2);
     REQUIRE(exitOf(world).nextLevel == 2);
 }
 
@@ -216,11 +192,11 @@ TEST_CASE("An exit consumes its requirement once and supports final levels", "[e
     auto world = makeWorld();
     world.setExit(
         {{{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{1, 2}, true, {}, {}});
-    inventory(world).add(world.itemDefinition(1), 4);
+    tests::inventory(tests::player(world)).add(world.itemDefinition(1), 4);
     simple_platformer::updateLevelExit(world);
     simple_platformer::updateLevelExit(world);
     REQUIRE(world.levelComplete());
-    REQUIRE(inventory(world).count(1) == 2);
+    REQUIRE(tests::inventory(tests::player(world)).count(1) == 2);
     REQUIRE_FALSE(exitOf(world).nextLevel.has_value());
 }
 
@@ -228,11 +204,11 @@ TEST_CASE("Unrestricted exits need no inventory but cannot be used while dying",
 {
     auto world = makeWorld();
     world.setExit({{{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, {}, {}});
-    player(world).inventory.reset();
-    player(world).life = simple_platformer::LifeState::Dying;
+    tests::player(world).inventory.reset();
+    tests::player(world).life = simple_platformer::LifeState::Dying;
     simple_platformer::updateLevelExit(world);
     REQUIRE_FALSE(world.levelComplete());
-    player(world).life = simple_platformer::LifeState::Alive;
+    tests::player(world).life = simple_platformer::LifeState::Alive;
     simple_platformer::updateLevelExit(world);
     REQUIRE(world.levelComplete());
 }
@@ -249,20 +225,20 @@ TEST_CASE(
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
     REQUIRE(world.pickups().empty());
     REQUIRE(world.levelComplete());
-    const auto position = player(world).body.bounds.position;
-    player(world).intentions.direction.x = 1.0F;
+    const auto position = tests::player(world).body.bounds.position;
+    tests::player(world).intentions.direction.x = 1.0F;
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
-    REQUIRE(player(world).body.bounds.position == position);
+    REQUIRE(tests::player(world).body.bounds.position == position);
 }
 
 TEST_CASE("Respawning preserves the collected inventory", "[inventory][lifecycle]")
 {
     auto world = makeWorld();
-    inventory(world).add(world.itemDefinition(3), 1);
-    player(world).life = simple_platformer::LifeState::Dying;
+    tests::inventory(tests::player(world)).add(world.itemDefinition(3), 1);
+    tests::player(world).life = simple_platformer::LifeState::Dying;
     world.respawnPlayer();
-    REQUIRE(inventory(world).count(3) == 1);
-    REQUIRE(player(world).life == simple_platformer::LifeState::Alive);
+    REQUIRE(tests::inventory(tests::player(world)).count(3) == 1);
+    REQUIRE(tests::player(world).life == simple_platformer::LifeState::Alive);
 }
 
 TEST_CASE(
@@ -270,7 +246,7 @@ TEST_CASE(
     "[simulation][pickups]")
 {
     auto world = makeWorld();
-    player(world).team = simple_platformer::Team::Player;
+    tests::player(world).team = simple_platformer::Team::Player;
     world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {3, 1}});
     world.setExit({{{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, {}, {}});
     simple_platformer::Projectile projectile;
@@ -280,8 +256,8 @@ TEST_CASE(
     world.addProjectile(projectile);
     simple_platformer::TileMap map = tests::TileMapBuilder({"......", "......", "######"});
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
-    REQUIRE(player(world).life == simple_platformer::LifeState::Dying);
-    REQUIRE(inventory(world).count(3) == 0);
+    REQUIRE(tests::player(world).life == simple_platformer::LifeState::Dying);
+    REQUIRE(tests::inventory(tests::player(world)).count(3) == 0);
     REQUIRE(world.pickups().size() == 1);
     REQUIRE_FALSE(world.levelComplete());
 }

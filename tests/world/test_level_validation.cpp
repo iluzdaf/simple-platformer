@@ -5,42 +5,21 @@
 
 #include <glm/vec2.hpp>
 
-#include "simple_platformer/actor/actor.hpp"
-#include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/movement/flying_movement.hpp"
-#include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/level_validation.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/actor_builder.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace
 {
-    simple_platformer::Actor makePlatformer(glm::vec2 feet)
+    tests::ActorBuilder makePlatformer(glm::vec2 feet)
     {
-        simple_platformer::Actor actor;
-        actor.body.bounds.size = {12.0F, 20.0F};
-        simple_platformer::placeFeetAt(actor.body.bounds, feet);
-        actor.platformerMovement = simple_platformer::PlatformerMovement{};
-        return actor;
+        return tests::ActorBuilder::sized({12.0F, 20.0F}).atFeet(feet).walking();
     }
 
-    simple_platformer::Actor makeFlyer(glm::vec2 feet)
+    tests::ActorBuilder makeFlyer(glm::vec2 feet)
     {
-        simple_platformer::Actor actor;
-        actor.body.bounds.size = {12.0F, 8.0F};
-        simple_platformer::placeFeetAt(actor.body.bounds, feet);
-        actor.flyingMovement = simple_platformer::FlyingMovement{};
-        return actor;
-    }
-
-    void addPatrol(simple_platformer::Actor& actor, glm::vec2 firstFeet, glm::vec2 secondFeet)
-    {
-        actor.brain = simple_platformer::NpcBrain{};
-        actor.senses = simple_platformer::NpcSenses{};
-        actor.patrol = simple_platformer::Patrol{firstFeet, secondFeet, true};
-        actor.pathFollower = simple_platformer::PathFollower{};
+        return tests::ActorBuilder::sized({12.0F, 8.0F}).atFeet(feet).flying(0.0F);
     }
 }
 
@@ -68,9 +47,8 @@ TEST_CASE("Platformer spawns and patrol points require ground support", "[world]
     SECTION("patrol point")
     {
         simple_platformer::World world;
-        auto actor = makePlatformer({24.0F, 32.0F});
-        addPatrol(actor, {16.0F, 32.0F}, {16.0F, 16.0F});
-        world.addActor(actor);
+        world.addActor(
+            makePlatformer({24.0F, 32.0F}).thinking({}).patrolling({16.0F, 32.0F}, {16.0F, 16.0F}));
         REQUIRE_THROWS_AS(
             simple_platformer::validateLevelActors(map, world, 1), std::invalid_argument);
     }
@@ -107,9 +85,8 @@ TEST_CASE("Flying actors require clearance but not ground support", "[world][lev
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "...", "###"});
     simple_platformer::World world;
-    auto actor = makeFlyer({24.0F, 16.0F});
-    addPatrol(actor, {24.0F, 16.0F}, {32.0F, 24.0F});
-    world.addActor(actor);
+    world.addActor(
+        makeFlyer({24.0F, 16.0F}).thinking({}).patrolling({24.0F, 16.0F}, {32.0F, 24.0F}));
 
     REQUIRE_NOTHROW(simple_platformer::validateLevelActors(map, world, 1));
 }

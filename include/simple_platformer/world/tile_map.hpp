@@ -11,6 +11,9 @@
 
 namespace simple_platformer
 {
+    // Nothing can stand in a tile that blocks movement, so a sight-blocking tile only hides
+    // what is in it when it can be walked into. That is the difference between grass, which
+    // blocks sight and conceals whoever stands in it, and stone, which only blocks.
     struct TileDefinition
     {
         bool blocksMovement = false;

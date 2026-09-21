@@ -2,19 +2,83 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/inventory/item.hpp"
+#include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/actor_builder.hpp"
 #include "support/tile_map_builder.hpp"
+
+namespace
+{
+    // Each kind of thing draws from its own texture, so a scene can be searched for it.
+    constexpr int PlayerTexture = 1;
+    constexpr int NpcTexture = 2;
+    constexpr int PickupTexture = 3;
+    constexpr int TileTexture = 7;
+
+    std::size_t spritesFrom(const simple_platformer::RenderScene& scene, int textureId)
+    {
+        return static_cast<std::size_t>(std::count_if(
+            scene.sprites.begin(),
+            scene.sprites.end(),
+            [textureId](const simple_platformer::SpriteDrawCommand& sprite)
+            { return sprite.textureId == textureId; }));
+    }
+
+    simple_platformer::Sprite square(int textureId, float size)
+    {
+        return {textureId, {{0.0F, 0.0F}, {size, size}}, {size, size}};
+    }
+
+    simple_platformer::World worldWithPickupItem()
+    {
+        simple_platformer::ItemDefinition coin;
+        coin.id = 1;
+        coin.name = "coin";
+        coin.icon = square(PickupTexture, 8.0F);
+        coin.maximumStack = 9;
+        return simple_platformer::World({coin});
+    }
+
+    // 12-pixel actors and 8-pixel pickups centred on a cell of row 1.
+    simple_platformer::Aabb actorInCell(int column)
+    {
+        return {{static_cast<float>(column * 16 + 2), 18.0F}, {12.0F, 12.0F}};
+    }
+
+    simple_platformer::Aabb pickupInCell(int column)
+    {
+        return {{static_cast<float>(column * 16 + 4), 20.0F}, {8.0F, 8.0F}};
+    }
+
+    void addPlayerInCell(simple_platformer::World& world, int column)
+    {
+        const simple_platformer::ActorId player =
+            world.addActor(tests::ActorBuilder::walking(actorInCell(column))
+                               .withSprite(square(PlayerTexture, 12.0F)));
+        world.setPlayer(player, simple_platformer::feetOf(actorInCell(column)));
+    }
+
+    void addNpcInCell(simple_platformer::World& world, int column)
+    {
+        world.addActor(tests::ActorBuilder::flying(actorInCell(column), 0.0F)
+                           .withSprite(square(NpcTexture, 12.0F)));
+    }
+}
 
 TEST_CASE("A render scene contains visible tiles followed by the player", "[render][scene]")
 {
@@ -30,7 +94,8 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
     actor.facing = simple_platformer::Facing::Left;
     actor.sprite = player;
     simple_platformer::World world;
-    world.addActor(actor);
+    const simple_platformer::ActorId playerId = world.addActor(actor);
+    world.setPlayer(playerId, simple_platformer::feetOf(playerBounds));
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, 7, camera, world);
@@ -219,4 +284,25 @@ TEST_CASE("Projectile bursts expand and fade around their world position", "[ren
     REQUIRE_THAT(
         scene.sprites.front().rotationRadians,
         Catch::Matchers::WithinAbs(-std::acos(-1.0F) * 0.5F, 0.0001F));
+}
+
+TEST_CASE("NPCs and pickups the player cannot see are not drawn", "[render][scene][cover]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "...cc...", "........"})
+            .where('c', tests::Tile().blocksSight());
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, {128.0F, 48.0F}};
+    simple_platformer::World world = worldWithPickupItem();
+    addPlayerInCell(world, 0);
+    addNpcInCell(world, 4);
+    world.addPickup({pickupInCell(3), {1, 1}});
+    addNpcInCell(world, 7);
+
+    const simple_platformer::RenderScene scene =
+        simple_platformer::buildRenderScene(map, TileTexture, camera, world);
+
+    REQUIRE(spritesFrom(scene, PlayerTexture) == 1);
+    // Only the NPC in the open.
+    REQUIRE(spritesFrom(scene, NpcTexture) == 1);
+    REQUIRE(spritesFrom(scene, PickupTexture) == 0);
 }

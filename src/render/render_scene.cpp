@@ -14,6 +14,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -111,10 +112,19 @@ namespace simple_platformer
             }
         }
 
-        void appendPickups(RenderScene& scene, const World& world, const Camera& camera)
+        void appendPickups(
+            RenderScene& scene,
+            const TileMap& map,
+            const World& world,
+            const Actor* player,
+            const Camera& camera)
         {
             for (const Pickup& pickup : world.pickups())
             {
+                if (hiddenByCover(map, player, pickup.bounds))
+                {
+                    continue;
+                }
                 const Sprite& sprite =
                     pickup.sprite ? *pickup.sprite : world.itemDefinition(pickup.stack.item).icon;
                 Aabb bounds = spriteBounds(pickup.bounds, sprite);
@@ -153,11 +163,20 @@ namespace simple_platformer
                  false});
         }
 
-        void appendActors(RenderScene& scene, const World& world, const Camera& camera)
+        void appendActors(
+            RenderScene& scene,
+            const TileMap& map,
+            const World& world,
+            const Actor* player,
+            const Camera& camera)
         {
             for (const Actor& actor : world.actors())
             {
                 if (!actor.sprite.has_value())
+                {
+                    continue;
+                }
+                if (&actor != player && hiddenByCover(map, player, actor.body.bounds))
                 {
                     continue;
                 }
@@ -222,11 +241,12 @@ namespace simple_platformer
         const Camera& camera,
         const World& world)
     {
+        const Actor* player = world.findActor(world.playerId());
         RenderScene scene;
         appendTiles(scene, map, tileTextureId, camera);
-        appendPickups(scene, world, camera);
+        appendPickups(scene, map, world, player, camera);
         appendExit(scene, world, camera);
-        appendActors(scene, world, camera);
+        appendActors(scene, map, world, player, camera);
         appendProjectiles(scene, world, camera);
         appendProjectileBursts(scene, world, camera);
         return scene;

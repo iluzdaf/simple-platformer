@@ -11,6 +11,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/render/sprite.hpp"
 
 namespace tests
 {
@@ -59,6 +60,12 @@ namespace tests
         ActorBuilder patrolling(glm::vec2 firstFeet, glm::vec2 secondFeet) &&
         {
             built.patrol = simple_platformer::Patrol{firstFeet, secondFeet, true};
+            return std::move(*this);
+        }
+
+        ActorBuilder withSprite(simple_platformer::Sprite sprite) &&
+        {
+            built.sprite = sprite;
             return std::move(*this);
         }
 

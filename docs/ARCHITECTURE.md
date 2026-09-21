@@ -360,7 +360,9 @@ location.
 An NPC detects the living player when the player is within its notice distance and a
 tile segment cast finds clear line of sight. It stores the player's ID and last seen
 feet. When sight is lost, a configurable timer lets it continue toward the remembered
-position before forgetting the target.
+position before forgetting the target. Firing gives the player away without making
+them visible: every opponent NPC within notice distance hears the shot through any
+tiles, remembers the player's feet at that moment, and starts the same timer.
 
 Ground NPCs chase a standable destination using their own collider size. If the
 last-seen feet cell is not standable (for example, during a jump or just past a

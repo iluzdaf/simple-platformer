@@ -1,0 +1,244 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <map>
+#include <optional>
+#include <stdexcept>
+
+#include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_senses.hpp"
+#include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/world/world.hpp"
+#include "support/ascii_map.hpp"
+#include "support/actor_builder.hpp"
+#include "support/actor_components.hpp"
+
+using simple_platformer::TileDefinition;
+using tests::actor;
+using tests::brain;
+using tests::rangedWeapon;
+
+namespace
+{
+    // An actor the world can treat as the player. The senses and behaviour only read its
+    // team and body; World requires it to move somehow, so it walks.
+    tests::ActorBuilder makePlayer(glm::vec2 position)
+    {
+        return tests::ActorBuilder::walking({position, {12.0F, 12.0F}})
+            .onTeam(simple_platformer::Team::Player);
+    }
+
+    // The NPC these tests measure their maps against: 12 pixels wide, flying at 20 pixels
+    // per second, noticing within 64 pixels and remembering for one second.
+    tests::ActorBuilder makeNpc(glm::vec2 position)
+    {
+        return tests::ActorBuilder::flying({position, {12.0F, 12.0F}}, 20.0F)
+            .onTeam(simple_platformer::Team::Enemy)
+            .thinking({64.0F, 1.0F});
+    }
+}
+
+TEST_CASE("NPC sight observes distance and solid tiles", "[npc][senses]")
+{
+    const simple_platformer::TileMap clear = tests::asciiMap({".....", ".....", ".....", "#####"});
+    const simple_platformer::TileMap blocked =
+        tests::asciiMap({".....", "..#..", ".....", "#####"});
+    const simple_platformer::Aabb observer{{8.0F, 16.0F}, {12.0F, 12.0F}};
+    const simple_platformer::Aabb target{{56.0F, 16.0F}, {12.0F, 12.0F}};
+
+    REQUIRE(simple_platformer::canSeeTarget(clear, observer, target, {64.0F, 1.0F}));
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(blocked, observer, target, {64.0F, 1.0F}));
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(clear, observer, target, {32.0F, 1.0F}));
+}
+
+TEST_CASE("Sight-blocking cover hides whoever stands in it", "[npc][senses]")
+{
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....", "c....", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::Aabb inCover{{2.0F, 18.0F}, {12.0F, 12.0F}};
+    const simple_platformer::Aabb inOpen{{50.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(map, inOpen, inCover, {64.0F, 1.0F}));
+    REQUIRE(simple_platformer::canSeeTarget(map, inCover, inOpen, {64.0F, 1.0F}));
+}
+
+TEST_CASE("Actors in one patch of sight-blocking cover see each other", "[npc][senses]")
+{
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....", "ccc..", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::Aabb first{{2.0F, 18.0F}, {12.0F, 12.0F}};
+    const simple_platformer::Aabb second{{34.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE(simple_platformer::canSeeTarget(map, first, second, {64.0F, 1.0F}));
+    REQUIRE(simple_platformer::canSeeTarget(map, second, first, {64.0F, 1.0F}));
+}
+
+TEST_CASE("Actors at the same position in sight-blocking cover see each other", "[npc][senses]")
+{
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....", "c....", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::Aabb inCover{{2.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE(simple_platformer::canSeeTarget(map, inCover, inCover, {64.0F, 1.0F}));
+}
+
+TEST_CASE("Actors in separate patches of sight-blocking cover are hidden", "[npc][senses]")
+{
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {".....", "c.c..", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::Aabb first{{2.0F, 18.0F}, {12.0F, 12.0F}};
+    const simple_platformer::Aabb second{{34.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(map, first, second, {64.0F, 1.0F}));
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(map, second, first, {64.0F, 1.0F}));
+}
+
+TEST_CASE("Only sight-blocking tiles block sight between actors in the open", "[npc][senses]")
+{
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    TileDefinition window;
+    window.blocksMovement = true;
+    window.sprite = {{0.0F, 0.0F}, {1.0F, 1.0F}};
+    const std::map<char, int> legend{{'.', 0}, {'c', 1}, {'w', 2}};
+    const simple_platformer::TileMap covered = simple_platformer::TileMap::fromAscii(
+        {"...", ".c.", "..."}, {empty, cover, window}, legend);
+    const simple_platformer::TileMap windowed = simple_platformer::TileMap::fromAscii(
+        {"...", ".w.", "..."}, {empty, cover, window}, legend);
+    const simple_platformer::Aabb left{{2.0F, 18.0F}, {12.0F, 12.0F}};
+    const simple_platformer::Aabb right{{34.0F, 18.0F}, {12.0F, 12.0F}};
+
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(covered, left, right, {64.0F, 1.0F}));
+    REQUIRE_FALSE(simple_platformer::canSeeTarget(covered, right, left, {64.0F, 1.0F}));
+    REQUIRE(simple_platformer::canSeeTarget(windowed, left, right, {64.0F, 1.0F}));
+    REQUIRE(simple_platformer::canSeeTarget(windowed, right, left, {64.0F, 1.0F}));
+}
+
+TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]")
+{
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"............", "............", "............", "############"});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({32.0F, 16.0F}));
+    world.setPlayer(playerId, {38.0F, 28.0F});
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({16.0F, 16.0F}));
+
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE(brain(world, npcId).targetVisible);
+
+    actor(world, playerId).body.bounds.position.x = 160.0F;
+    simple_platformer::updateNpcSenses(map, world, 0.4F);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE_FALSE(brain(world, npcId).targetVisible);
+    REQUIRE_THAT(
+        brain(world, npcId).targetMemoryRemaining, Catch::Matchers::WithinAbs(0.6F, 0.0001F));
+
+    simple_platformer::updateNpcSenses(map, world, 0.7F);
+    REQUIRE_FALSE(brain(world, npcId).target.has_value());
+
+    actor(world, playerId).body.bounds.position.x = 32.0F;
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE(brain(world, npcId).targetVisible);
+    actor(world, playerId).life = simple_platformer::LifeState::Dying;
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(brain(world, npcId).target.has_value());
+}
+
+TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses]")
+{
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"........", "..c.....", "........"}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId =
+        world.addActor(makePlayer({34.0F, 18.0F}).thatShoots());
+    world.setPlayer(playerId, simple_platformer::feetOf(actor(world, playerId).body.bounds));
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({2.0F, 18.0F}));
+    const glm::vec2 shotFeet = simple_platformer::feetOf(actor(world, playerId).body.bounds);
+
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(brain(world, npcId).target.has_value());
+
+    rangedWeapon(world, playerId).firedThisUpdate = true;
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE_FALSE(brain(world, npcId).targetVisible);
+    REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
+    REQUIRE_THAT(
+        brain(world, npcId).targetMemoryRemaining, Catch::Matchers::WithinAbs(1.0F, 0.0001F));
+
+    // Moving away afterwards doesn't update the remembered spot.
+    rangedWeapon(world, playerId).firedThisUpdate = false;
+    actor(world, playerId).body.bounds.position.x = 112.0F;
+    simple_platformer::updateNpcSenses(map, world, 0.4F);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
+    REQUIRE_THAT(
+        brain(world, npcId).targetMemoryRemaining, Catch::Matchers::WithinAbs(0.6F, 0.0001F));
+}
+
+TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
+{
+    const simple_platformer::TileMap map = tests::asciiMap({".....", "..#..", "....."});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId =
+        world.addActor(makePlayer({50.0F, 18.0F}).thatShoots());
+    world.setPlayer(playerId, simple_platformer::feetOf(actor(world, playerId).body.bounds));
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({2.0F, 18.0F}));
+
+    rangedWeapon(world, playerId).firedThisUpdate = true;
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE_FALSE(brain(world, npcId).targetVisible);
+    REQUIRE(
+        brain(world, npcId).lastSeenTargetFeet ==
+        simple_platformer::feetOf(actor(world, playerId).body.bounds));
+}
+
+TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][senses]")
+{
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"..........", "..........", ".........."});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId =
+        world.addActor(makePlayer({98.0F, 18.0F}).thatShoots());
+    world.setPlayer(playerId, simple_platformer::feetOf(actor(world, playerId).body.bounds));
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({2.0F, 18.0F}));
+
+    rangedWeapon(world, playerId).firedThisUpdate = true;
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(brain(world, npcId).target.has_value());
+}
+
+TEST_CASE("NPC senses reject invalid timing and sensing ranges", "[npc][validation]")
+{
+    const simple_platformer::TileMap map = tests::asciiMap({"...", "...", "###"});
+    const simple_platformer::Aabb bounds{{16.0F, 16.0F}, {8.0F, 8.0F}};
+    simple_platformer::World world;
+
+    REQUIRE_THROWS_AS(
+        simple_platformer::canSeeTarget(map, bounds, bounds, {-1.0F, 1.0F}), std::invalid_argument);
+    REQUIRE_THROWS_AS(simple_platformer::updateNpcSenses(map, world, -0.1F), std::invalid_argument);
+}

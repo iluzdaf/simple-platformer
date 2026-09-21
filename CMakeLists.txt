@@ -368,6 +368,7 @@ if(BUILD_TESTING)
         tests/navigation/test_input_program.cpp
         tests/navigation/test_path_follower.cpp
         tests/navigation/test_platformer_navigation.cpp
+        tests/npc/test_npc_senses.cpp
         tests/npc/test_npc_system.cpp
         tests/physics/test_collision.cpp
         tests/physics/test_segment_cast.cpp

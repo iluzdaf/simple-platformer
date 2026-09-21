@@ -48,7 +48,7 @@ TEST_CASE("World simulation spawns a projectile after projectile movement", "[wo
                                           .atFeet({22.0F, 28.0F})
                                           .walking()
                                           .onTeam(simple_platformer::Team::Player)
-                                          .thatShoots();
+                                          .shooting();
     player.intentions.aimDirection = {1.0F, 0.0F};
     player.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId playerId = world.addActor(player);
@@ -84,7 +84,7 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
                                        .flying(60.0F)
                                        .withHealth(3, 3)
                                        .onTeam(simple_platformer::Team::Enemy)
-                                       .thatBites()
+                                       .biting()
                                        .thinking({96.0F, 1.0F});
     const simple_platformer::ActorId npcId = world.addActor(npc);
 
@@ -115,7 +115,7 @@ TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][
                                        .flying(60.0F)
                                        .withHealth(3, 3)
                                        .onTeam(simple_platformer::Team::Enemy)
-                                       .thatShoots()
+                                       .shooting()
                                        .thinking({96.0F, 1.0F});
     const simple_platformer::ActorId npcId = world.addActor(npc);
 
@@ -140,7 +140,7 @@ TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world
                                           .walking()
                                           .withHealth(3, 3)
                                           .onTeam(simple_platformer::Team::Player)
-                                          .thatShoots();
+                                          .shooting();
     player.intentions.aimDirection = {1.0F, 0.0F};
     player.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId playerId = world.addActor(player);
@@ -429,7 +429,7 @@ TEST_CASE(
                                           .atFeet(simple_platformer::feetInCell({6, 1}))
                                           .walking()
                                           .onTeam(simple_platformer::Team::Enemy)
-                                          .thatBites()
+                                          .biting()
                                           .thinking({});
     tests::platformerMovement(zombie).grounded = true;
     const simple_platformer::ActorId zombieId = world.addActor(zombie);

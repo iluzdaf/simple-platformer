@@ -121,7 +121,7 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({38.0F, 28.0F}));
     world.setPlayer(playerId, {38.0F, 28.0F});
     const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({22.0F, 28.0F}).onTeam(simple_platformer::Team::Enemy).thatBites());
+        world.addActor(makeNpc({22.0F, 28.0F}).onTeam(simple_platformer::Team::Enemy).biting());
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
     brain(world, npcId).targetVisible = true;
@@ -168,7 +168,7 @@ TEST_CASE("A ranged NPC stops and requests an attack while its target is visible
     const simple_platformer::ActorId playerId = world.addActor(makePlayer({54.0F, 12.0F}));
     world.setPlayer(playerId, {54.0F, 12.0F});
     const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({22.0F, 28.0F}).onTeam(simple_platformer::Team::Enemy).thatShoots());
+        world.addActor(makeNpc({22.0F, 28.0F}).onTeam(simple_platformer::Team::Enemy).shooting());
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {54.0F, 12.0F};
     brain(world, npcId).targetVisible = true;

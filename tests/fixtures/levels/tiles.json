@@ -3,7 +3,8 @@
     "empty": { "blocksMovement": false, "blocksSight": false },
     "stone": {
       "sprite": { "position": [0, 0], "size": [16, 16] },
-      "blocksMovement": true, "blocksSight": true
+      "blocksMovement": true,
+      "blocksSight": true
     }
   }
 }

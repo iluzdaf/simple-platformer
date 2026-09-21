@@ -1,10 +1,5 @@
 {
-  "map": [
-    "............",
-    "............",
-    "............",
-    "############"
-  ],
+  "map": ["............", "............", "............", "############"],
   "playerSpawnCell": [1, 2],
   "actors": [],
   "pickups": [
@@ -13,7 +8,8 @@
       "spawnCell": [2, 2]
     }
   ],
-  "exit": {"definition": "test_door",
+  "exit": {
+    "definition": "test_door",
     "spawnCell": [5, 2],
     "requirement": {
       "item": "key",

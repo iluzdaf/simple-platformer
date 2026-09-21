@@ -2,44 +2,32 @@
   "animations": {
     "test_actor": {
       "idle": {
-        "frames": [
-          {"position": [0, 0], "size": [8, 12]}
-        ],
+        "frames": [{ "position": [0, 0], "size": [8, 12] }],
         "frameDuration": 0.2,
         "looping": true
       },
       "move": {
-        "frames": [
-          {"position": [0, 0], "size": [8, 12]}
-        ],
+        "frames": [{ "position": [0, 0], "size": [8, 12] }],
         "frameDuration": 0.2,
         "looping": true
       },
       "jump": {
-        "frames": [
-          {"position": [0, 0], "size": [8, 12]}
-        ],
+        "frames": [{ "position": [0, 0], "size": [8, 12] }],
         "frameDuration": 0.2,
         "looping": true
       },
       "fall": {
-        "frames": [
-          {"position": [0, 0], "size": [8, 12]}
-        ],
+        "frames": [{ "position": [0, 0], "size": [8, 12] }],
         "frameDuration": 0.2,
         "looping": true
       },
       "attack": {
-        "frames": [
-          {"position": [0, 0], "size": [8, 12]}
-        ],
+        "frames": [{ "position": [0, 0], "size": [8, 12] }],
         "frameDuration": 0.2,
         "looping": true
       },
       "death": {
-        "frames": [
-          {"position": [0, 0], "size": [8, 12]}
-        ],
+        "frames": [{ "position": [0, 0], "size": [8, 12] }],
         "frameDuration": 0.2,
         "looping": false
       }

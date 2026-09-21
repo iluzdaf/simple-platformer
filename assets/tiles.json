@@ -3,15 +3,18 @@
     "empty": { "blocksMovement": false, "blocksSight": false },
     "stone": {
       "sprite": { "position": [0, 192], "size": [16, 16] },
-      "blocksMovement": true, "blocksSight": true
+      "blocksMovement": true,
+      "blocksSight": true
     },
     "grass": {
       "sprite": { "position": [128, 192], "size": [16, 16] },
-      "blocksMovement": false, "blocksSight": true
+      "blocksMovement": false,
+      "blocksSight": true
     },
     "glass": {
       "sprite": { "position": [144, 192], "size": [16, 16] },
-      "blocksMovement": true, "blocksSight": false,
+      "blocksMovement": true,
+      "blocksSight": false,
       "breaksInto": "empty"
     }
   }

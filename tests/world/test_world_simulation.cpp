@@ -139,6 +139,60 @@ TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][
     REQUIRE(storedNpc->body.bounds.position.x == 16.0F);
 }
 
+TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world][simulation]")
+{
+    simple_platformer::TileMap map =
+        tests::asciiMap({"........", "........", "...#....", "########"});
+    simple_platformer::World world;
+
+    simple_platformer::Actor player;
+    player.body.bounds = {{80.0F, 36.0F}, {12.0F, 12.0F}};
+    player.platformerMovement = simple_platformer::PlatformerMovement{};
+    player.health = simple_platformer::Health{3, 3};
+    player.team = simple_platformer::Team::Player;
+    player.rangedWeapon = simple_platformer::RangedWeapon{};
+    player.intentions.aimDirection = {1.0F, 0.0F};
+    player.intentions.primaryAttackPressed = true;
+    const simple_platformer::ActorId playerId = world.addActor(player);
+    world.setPlayer(playerId, {86.0F, 48.0F});
+
+    simple_platformer::Actor npc;
+    npc.body.bounds = {{16.0F, 36.0F}, {12.0F, 12.0F}};
+    npc.flyingMovement = simple_platformer::FlyingMovement{60.0F};
+    npc.health = simple_platformer::Health{3, 3};
+    npc.team = simple_platformer::Team::Enemy;
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.senses = simple_platformer::NpcSenses{96.0F, 1.0F};
+    npc.pathFollower = simple_platformer::PathFollower{};
+    const simple_platformer::ActorId npcId = world.addActor(npc);
+
+    // Senses run before attacks, so the update that fires is not yet heard.
+    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    REQUIRE(world.projectiles().size() == 1);
+    const simple_platformer::Actor* storedNpc = world.findActor(npcId);
+    REQUIRE(storedNpc != nullptr);
+    if (!storedNpc->brain.has_value())
+    {
+        throw std::logic_error("The test NPC has no brain");
+    }
+    REQUIRE_FALSE(storedNpc->brain->target.has_value());
+
+    simple_platformer::Actor* storedPlayer = world.findActor(playerId);
+    REQUIRE(storedPlayer != nullptr);
+    storedPlayer->intentions.primaryAttackPressed = false;
+    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+
+    storedNpc = world.findActor(npcId);
+    REQUIRE(storedNpc != nullptr);
+    if (!storedNpc->brain.has_value())
+    {
+        throw std::logic_error("The test NPC has no brain");
+    }
+    REQUIRE(storedNpc->brain->target == playerId);
+    REQUIRE_FALSE(storedNpc->brain->targetVisible);
+    REQUIRE(storedNpc->brain->state == simple_platformer::NpcState::Chase);
+}
+
 TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulation]")
 {
     simple_platformer::TileMap map = tests::asciiMap(

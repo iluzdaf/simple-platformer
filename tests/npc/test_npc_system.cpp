@@ -36,6 +36,13 @@ namespace
         return player;
     }
 
+    simple_platformer::Actor makeArmedPlayer(glm::vec2 position)
+    {
+        simple_platformer::Actor player = composePlayer(position);
+        player.rangedWeapon = simple_platformer::RangedWeapon{};
+        return player;
+    }
+
     simple_platformer::Actor makeNpc(glm::vec2 position)
     {
         simple_platformer::Actor npc;
@@ -90,6 +97,18 @@ namespace
         if (!component.has_value())
         {
             throw std::logic_error("The test actor has no bite");
+        }
+        return *component;
+    }
+
+    simple_platformer::RangedWeapon& rangedWeapon(
+        simple_platformer::World& world,
+        simple_platformer::ActorId id)
+    {
+        std::optional<simple_platformer::RangedWeapon>& component = actor(world, id).rangedWeapon;
+        if (!component.has_value())
+        {
+            throw std::logic_error("The test actor has no ranged weapon");
         }
         return *component;
     }
@@ -251,6 +270,73 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE(brain(world, npcId).targetVisible);
     actor(world, playerId).life = simple_platformer::LifeState::Dying;
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(brain(world, npcId).target.has_value());
+}
+
+TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses]")
+{
+    using simple_platformer::TileDefinition;
+
+    TileDefinition empty;
+    TileDefinition cover;
+    cover.blocksSight = true;
+    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
+        {"........", "..c.....", "........"}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = world.addActor(makeArmedPlayer({34.0F, 18.0F}));
+    world.setPlayer(playerId, simple_platformer::feetOf(actor(world, playerId).body.bounds));
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({2.0F, 18.0F}));
+    const glm::vec2 shotFeet = simple_platformer::feetOf(actor(world, playerId).body.bounds);
+
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(brain(world, npcId).target.has_value());
+
+    rangedWeapon(world, playerId).firedThisUpdate = true;
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE_FALSE(brain(world, npcId).targetVisible);
+    REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
+    REQUIRE_THAT(
+        brain(world, npcId).targetMemoryRemaining, Catch::Matchers::WithinAbs(1.0F, 0.0001F));
+
+    // Moving away afterwards doesn't update the remembered spot.
+    rangedWeapon(world, playerId).firedThisUpdate = false;
+    actor(world, playerId).body.bounds.position.x = 112.0F;
+    simple_platformer::updateNpcSenses(map, world, 0.4F);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
+    REQUIRE_THAT(
+        brain(world, npcId).targetMemoryRemaining, Catch::Matchers::WithinAbs(0.6F, 0.0001F));
+}
+
+TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
+{
+    const simple_platformer::TileMap map = tests::asciiMap({".....", "..#..", "....."});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = world.addActor(makeArmedPlayer({50.0F, 18.0F}));
+    world.setPlayer(playerId, simple_platformer::feetOf(actor(world, playerId).body.bounds));
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({2.0F, 18.0F}));
+
+    rangedWeapon(world, playerId).firedThisUpdate = true;
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE_FALSE(brain(world, npcId).targetVisible);
+    REQUIRE(
+        brain(world, npcId).lastSeenTargetFeet ==
+        simple_platformer::feetOf(actor(world, playerId).body.bounds));
+}
+
+TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][senses]")
+{
+    const simple_platformer::TileMap map =
+        tests::asciiMap({"..........", "..........", ".........."});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = world.addActor(makeArmedPlayer({98.0F, 18.0F}));
+    world.setPlayer(playerId, simple_platformer::feetOf(actor(world, playerId).body.bounds));
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({2.0F, 18.0F}));
+
+    rangedWeapon(world, playerId).firedThisUpdate = true;
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
 }

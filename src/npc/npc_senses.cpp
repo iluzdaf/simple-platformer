@@ -25,6 +25,31 @@ namespace simple_platformer
             const Actor* target = world.findActor(brain.target.value_or(ActorId{}));
             return target != nullptr && target->life == LifeState::Alive ? target : nullptr;
         }
+
+        bool withinNoticeDistance(const Aabb& observer, const Aabb& target, const NpcSenses& senses)
+        {
+            if (!std::isfinite(senses.noticeDistance) || senses.noticeDistance < 0.0F)
+            {
+                throw std::invalid_argument("NPC notice distance must be finite and non-negative");
+            }
+
+            const glm::vec2 offset = centerOf(target) - centerOf(observer);
+            return glm::dot(offset, offset) <= senses.noticeDistance * senses.noticeDistance;
+        }
+
+        // The attack system sets the flag after senses run and clears it on its next update,
+        // so senses see a shot on the update after it was fired.
+        bool firedLastUpdate(const Actor& actor)
+        {
+            return actor.rangedWeapon.has_value() && actor.rangedWeapon->firedThisUpdate;
+        }
+
+        void rememberTarget(NpcBrain& brain, const Actor& target, const NpcSenses& senses)
+        {
+            brain.target = target.id;
+            brain.lastSeenTargetFeet = feetOf(target.body.bounds);
+            brain.targetMemoryRemaining = senses.forgetAfter;
+        }
     }
 
     bool canSeeTarget(
@@ -33,20 +58,13 @@ namespace simple_platformer
         const Aabb& target,
         const NpcSenses& senses)
     {
-        if (!std::isfinite(senses.noticeDistance) || senses.noticeDistance < 0.0F)
-        {
-            throw std::invalid_argument("NPC notice distance must be finite and non-negative");
-        }
-
-        const glm::vec2 start = centerOf(observer);
-        const glm::vec2 end = centerOf(target);
-        const glm::vec2 offset = end - start;
-        if (glm::dot(offset, offset) > senses.noticeDistance * senses.noticeDistance)
+        if (!withinNoticeDistance(observer, target, senses))
         {
             return false;
         }
 
-        return !segmentCastSightBlockingTiles(map, start, end).has_value();
+        return !segmentCastSightBlockingTiles(map, centerOf(observer), centerOf(target))
+                    .has_value();
     }
 
     void updateNpcSenses(const TileMap& map, World& world, float deltaTime)
@@ -71,14 +89,21 @@ namespace simple_platformer
             NpcBrain& brain = *actor.brain;
             brain.targetVisible = false;
             const bool livingPlayer = player != nullptr && player->life == LifeState::Alive;
-            if (actor.life == LifeState::Alive && livingPlayer &&
-                areOpponents(actor.team, player->team) &&
+            const bool sensesPlayer = actor.life == LifeState::Alive && livingPlayer &&
+                                      areOpponents(actor.team, player->team);
+            if (sensesPlayer &&
                 canSeeTarget(map, actor.body.bounds, player->body.bounds, *actor.senses))
             {
-                brain.target = player->id;
-                brain.lastSeenTargetFeet = feetOf(player->body.bounds);
-                brain.targetMemoryRemaining = actor.senses->forgetAfter;
+                rememberTarget(brain, *player, *actor.senses);
                 brain.targetVisible = true;
+                continue;
+            }
+            // A shot is heard through anything within notice distance, and remembers where
+            // the player fired from without making them visible.
+            if (sensesPlayer && firedLastUpdate(*player) &&
+                withinNoticeDistance(actor.body.bounds, player->body.bounds, *actor.senses))
+            {
+                rememberTarget(brain, *player, *actor.senses);
                 continue;
             }
 

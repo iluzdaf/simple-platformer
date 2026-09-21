@@ -12,7 +12,7 @@
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/physics/segment_cast.hpp"
+#include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 

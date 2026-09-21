@@ -201,9 +201,4 @@ namespace simple_platformer
         }
         return std::nullopt;
     }
-
-    bool lineOfSight(const TileMap& map, glm::vec2 from, glm::vec2 to)
-    {
-        return !segmentCastSightBlockingTiles(map, from, to).has_value();
-    }
 }

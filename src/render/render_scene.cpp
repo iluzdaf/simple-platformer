@@ -14,7 +14,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
-#include "simple_platformer/world/player_sight.hpp"
+#include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -121,7 +121,7 @@ namespace simple_platformer
         {
             for (const Pickup& pickup : world.pickups())
             {
-                if (!playerCanSee(map, player, pickup.bounds))
+                if (hiddenByCover(map, player, pickup.bounds))
                 {
                     continue;
                 }
@@ -176,7 +176,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                if (&actor != player && !playerCanSee(map, player, actor.body.bounds))
+                if (&actor != player && hiddenByCover(map, player, actor.body.bounds))
                 {
                     continue;
                 }
@@ -241,7 +241,7 @@ namespace simple_platformer
         const Camera& camera,
         const World& world)
     {
-        // One viewer for the whole scene: what the player can see decides what is drawn.
+        // The player is the one viewer for the whole scene: cover hides what it cannot see.
         const Actor* player = world.findActor(world.playerId());
         RenderScene scene;
         appendTiles(scene, map, tileTextureId, camera);

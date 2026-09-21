@@ -114,7 +114,7 @@ GitHub Actions runs three jobs. The names below are the ones shown on a pull req
 | --- | --- | --- | --- |
 | macOS / Apple Clang | `macos-latest` | Configures, builds, and runs the whole test suite. | pushes to `main` and pull requests |
 | Windows / Visual Studio 2022 | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds the `.sln` with MSBuild, then builds its `run_tests` project. | pushes to `main` and pull requests |
-| Formatting and static analysis | `ubuntu-24.04` | Checks formatting, runs clang-tidy, and verifies that every public header compiles on its own. | pull requests only |
+| Formatting and static analysis | `ubuntu-24.04` | Checks C++ and JSON formatting, runs clang-tidy, and verifies that every public header compiles on its own. | pull requests only |
 
 The quality job is skipped on pushes because branch protection already ran it on the
 pull request. Its checks add no tools to the macOS or Visual Studio build, and Linux is
@@ -127,32 +127,40 @@ built as generated. None of this affects local builds.
 
 ## Formatting
 
-The checked-in `.clang-format` defines the shared C and C++ style, while
-`.editorconfig` provides basic editor settings such as indentation and line endings.
-Both Visual Studio and VS Code discover these files automatically.
+`.clang-format` defines the C and C++ style and `.prettierrc` the JSON style.
+`.editorconfig` supplies the indentation and line endings shared by both.
 
-In Visual Studio, use **Format Document** (`Ctrl+K`, `Ctrl+D`) to format the current
-file. No additional formatting extension is required.
+| | Config | Tool | VS Code | Visual Studio |
+| --- | --- | --- | --- | --- |
+| C and C++ | `.clang-format` | clang-format 18 | on save, through clangd | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
+| JSON | `.prettierrc` | Prettier 3.9.8 | on save, through the Prettier extension | not supported, use the command line |
 
-In VS Code, the recommended clangd extension formats C and C++ files automatically
-when they are saved.
+Both editors read `.clang-format` and `.editorconfig` without an extension. Visual
+Studio does not read `.prettierrc`, so JSON there is formatted from the command line
+or caught by CI.
 
-To format every first-party C++ file from the command line, use:
+Format first-party C++, or check it without changing files:
 
 ```sh
 cmake --build --preset mac-debug --target format
-```
-
-To check formatting without changing files, use:
-
-```sh
 cmake --build --preset mac-debug --target format-check
 ```
 
-These command-line targets use the `CLANG_FORMAT_EXECUTABLE` found during CMake
-configuration (or set explicitly) and deliberately exclude `external/`. CI uses
-clang-format 18. Editor formatting uses the editor's selected tool, which may be a
-different version even when a CMake preset selects LLVM 18.
+Format first-party JSON, or check it without changing files:
+
+```sh
+cmake --build --preset mac-debug --target format-json
+cmake --build --preset mac-debug --target format-json-check
+```
+
+The C++ targets skip `external/`; the JSON targets cover `assets/` and
+`tests/fixtures/`. CMake looks for both tools while configuring and reports any it
+cannot find, leaving those targets unavailable. Use `-DCLANG_FORMAT_EXECUTABLE=` or
+`-DPRETTIER_EXECUTABLE=` to choose a specific one.
+
+CI runs clang-format 18 and Prettier 3.9.8, and a pull request cannot merge until both
+checks pass. Local versions do not have to match. If yours formats differently, CI
+fails and you reformat with the commands above.
 
 ## Static analysis
 

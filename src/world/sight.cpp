@@ -1,8 +1,9 @@
 #include "simple_platformer/world/sight.hpp"
 
+#include <optional>
+
 #include <glm/vec2.hpp>
 
-#include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
@@ -20,13 +21,12 @@ namespace simple_platformer
         return map.blocksSight(worldToGrid(centerOf(bounds)));
     }
 
-    bool hiddenByCover(const TileMap& map, const Actor* viewer, const Aabb& target)
+    bool hiddenByCover(const TileMap& map, std::optional<glm::vec2> viewer, const Aabb& target)
     {
         if (!standsInCover(map, target))
         {
             return false;
         }
-        return viewer == nullptr ||
-               !lineOfSight(map, centerOf(viewer->body.bounds), centerOf(target));
+        return !viewer.has_value() || !lineOfSight(map, *viewer, centerOf(target));
     }
 }

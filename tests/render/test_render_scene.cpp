@@ -54,12 +54,15 @@ namespace
         return simple_platformer::World({coin});
     }
 
-    // 12-pixel actors and 8-pixel pickups centred on a cell of row 1.
-    simple_platformer::Aabb actorInCell(int column)
+    // Things stand centred on a cell of row 1, which spans y 16 to 32.
+
+    // The feet of a 12-pixel actor.
+    glm::vec2 actorFeetInCell(int column)
     {
-        return {{static_cast<float>(column * 16 + 2), 18.0F}, {12.0F, 12.0F}};
+        return {static_cast<float>(column * 16 + 8), 30.0F};
     }
 
+    // An 8-pixel pickup.
     simple_platformer::Aabb pickupInCell(int column)
     {
         return {{static_cast<float>(column * 16 + 4), 20.0F}, {8.0F, 8.0F}};
@@ -67,15 +70,21 @@ namespace
 
     void addPlayerInCell(simple_platformer::World& world, int column)
     {
+        const glm::vec2 feet = actorFeetInCell(column);
         const simple_platformer::ActorId player =
-            world.addActor(tests::ActorBuilder::walking(actorInCell(column))
+            world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                               .atFeet(feet)
+                               .walking()
                                .withSprite(square(PlayerTexture, 12.0F)));
-        world.setPlayer(player, simple_platformer::feetOf(actorInCell(column)));
+        world.setPlayer(player, feet);
     }
 
     void addNpcInCell(simple_platformer::World& world, int column)
     {
-        world.addActor(tests::ActorBuilder::flying(actorInCell(column), 0.0F)
+        // Rendering never moves an actor, so its speed doesn't matter.
+        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                           .atFeet(actorFeetInCell(column))
+                           .flying(0.0F)
                            .withSprite(square(NpcTexture, 12.0F)));
     }
 }

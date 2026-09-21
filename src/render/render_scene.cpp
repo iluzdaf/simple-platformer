@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
@@ -116,12 +118,12 @@ namespace simple_platformer
             RenderScene& scene,
             const TileMap& map,
             const World& world,
-            const Actor* player,
+            std::optional<glm::vec2> viewer,
             const Camera& camera)
         {
             for (const Pickup& pickup : world.pickups())
             {
-                if (hiddenByCover(map, player, pickup.bounds))
+                if (hiddenByCover(map, viewer, pickup.bounds))
                 {
                     continue;
                 }
@@ -167,7 +169,7 @@ namespace simple_platformer
             RenderScene& scene,
             const TileMap& map,
             const World& world,
-            const Actor* player,
+            std::optional<glm::vec2> viewer,
             const Camera& camera)
         {
             for (const Actor& actor : world.actors())
@@ -176,7 +178,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                if (&actor != player && hiddenByCover(map, player, actor.body.bounds))
+                if (actor.id != world.playerId() && hiddenByCover(map, viewer, actor.body.bounds))
                 {
                     continue;
                 }
@@ -242,11 +244,13 @@ namespace simple_platformer
         const World& world)
     {
         const Actor* player = world.findActor(world.playerId());
+        const std::optional<glm::vec2> viewer =
+            player != nullptr ? std::optional(centerOf(player->body.bounds)) : std::nullopt;
         RenderScene scene;
         appendTiles(scene, map, tileTextureId, camera);
-        appendPickups(scene, map, world, player, camera);
+        appendPickups(scene, map, world, viewer, camera);
         appendExit(scene, world, camera);
-        appendActors(scene, map, world, player, camera);
+        appendActors(scene, map, world, viewer, camera);
         appendProjectiles(scene, world, camera);
         appendProjectileBursts(scene, world, camera);
         return scene;

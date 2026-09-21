@@ -1,5 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
 #include <stdexcept>
@@ -16,6 +15,7 @@
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
 
 TEST_CASE("A flying path follower produces intentions for its next step", "[navigation][path]")
@@ -61,7 +61,7 @@ TEST_CASE("A flying path follower uses the exact remaining waypoint distance", "
     const simple_platformer::InputIntentions intentions =
         simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime);
 
-    REQUIRE_THAT(intentions.direction.x, Catch::Matchers::WithinAbs(0.25F, 0.0001F));
+    REQUIRE_NEAR(intentions.direction.x, 0.25F);
     REQUIRE(intentions.direction.y == 0.0F);
     REQUIRE_FALSE(simple_platformer::pathComplete(follower));
 }

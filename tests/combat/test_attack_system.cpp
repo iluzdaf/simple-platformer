@@ -1,5 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <glm/vec2.hpp>
 
@@ -12,12 +11,12 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
+#include "support/require_near.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 
 namespace
 {
-    using Catch::Matchers::WithinAbs;
 
     simple_platformer::Actor makeActor(
         glm::vec2 topLeft,
@@ -75,8 +74,8 @@ TEST_CASE("A ranged weapon normalises a diagonal aim direction", "[combat][weapo
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(world.projectiles().size() == 1);
-    REQUIRE_THAT(world.projectiles().front().velocity.x, WithinAbs(108.0F, 0.0001F));
-    REQUIRE_THAT(world.projectiles().front().velocity.y, WithinAbs(144.0F, 0.0001F));
+    REQUIRE_NEAR(world.projectiles().front().velocity.x, 108.0F);
+    REQUIRE_NEAR(world.projectiles().front().velocity.y, 144.0F);
 }
 
 TEST_CASE("A ranged weapon does not fire without an aim direction", "[combat][weapon]")

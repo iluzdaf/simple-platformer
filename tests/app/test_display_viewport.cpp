@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <optional>
 #include <stdexcept>
@@ -8,10 +7,10 @@
 #include <glm/vec2.hpp>
 
 #include "graphics/display_viewport.hpp"
+#include "support/require_near.hpp"
 
 namespace
 {
-    using Catch::Matchers::WithinAbs;
 
     simple_platformer::DisplayViewport required(
         const std::optional<simple_platformer::DisplayViewport>& viewport)
@@ -68,8 +67,8 @@ TEST_CASE("Window cursor positions account for high DPI and letterboxing", "[app
     const glm::vec2 internal =
         required(simple_platformer::windowToInternal({250.0F, 150.0F}, {500, 300}, {1000, 600}));
 
-    REQUIRE_THAT(internal.x, WithinAbs(160.0F, 0.0001F));
-    REQUIRE_THAT(internal.y, WithinAbs(90.0F, 0.0001F));
+    REQUIRE_NEAR(internal.x, 160.0F);
+    REQUIRE_NEAR(internal.y, 90.0F);
 }
 
 TEST_CASE("Window viewport coordinates account for high DPI", "[app][viewport]")

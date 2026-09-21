@@ -9,3 +9,9 @@
 
 # Widen the shared C++ style and reformat
 55f6d0875f464d23449c740e2758d6590232b08b
+
+# Format first-party JSON with Prettier
+56dc6e75c2ed2bd6c0b0cf70bb02ff624afcf58f
+
+# Nest file-local helpers inside simple_platformer (#43)
+6d3a42e6d0f623f2ecaa58625e5f7b7a0ce45318

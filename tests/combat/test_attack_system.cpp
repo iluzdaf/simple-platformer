@@ -1,8 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <stdexcept>
-
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -14,67 +12,25 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
+#include "support/actor_builder.hpp"
+#include "support/actor_components.hpp"
 
 namespace
 {
     using Catch::Matchers::WithinAbs;
 
     simple_platformer::Actor makeActor(
-        glm::vec2 position,
+        glm::vec2 topLeft,
         simple_platformer::Team team,
         int health = 3)
     {
-        simple_platformer::Actor actor;
-        actor.body.bounds = {position, {12.0F, 12.0F}};
-        actor.platformerMovement = simple_platformer::PlatformerMovement{};
-        actor.health = simple_platformer::Health{health, health};
-        actor.team = team;
-        return actor;
+        return tests::ActorBuilder::sized({12.0F, 12.0F})
+            .at(topLeft)
+            .walking()
+            .withHealth(health, health)
+            .onTeam(team);
     }
 
-    int healthOf(const simple_platformer::World& world, simple_platformer::ActorId id)
-    {
-        const simple_platformer::Actor* actor = world.findActor(id);
-        if (actor == nullptr || !actor->health.has_value())
-        {
-            throw std::logic_error("Test actor has no health");
-        }
-        return actor->health->current;
-    }
-
-    simple_platformer::BitePhase bitePhaseOf(
-        const simple_platformer::World& world,
-        simple_platformer::ActorId id)
-    {
-        const simple_platformer::Actor* actor = world.findActor(id);
-        if (actor == nullptr || !actor->bite.has_value())
-        {
-            throw std::logic_error("Test actor has no bite");
-        }
-        return actor->bite->phase;
-    }
-
-    bool firedThisUpdate(const simple_platformer::World& world, simple_platformer::ActorId id)
-    {
-        const simple_platformer::Actor* actor = world.findActor(id);
-        if (actor == nullptr || !actor->rangedWeapon.has_value())
-        {
-            throw std::logic_error("Test actor has no ranged weapon");
-        }
-        return actor->rangedWeapon->firedThisUpdate;
-    }
-
-    simple_platformer::RangedPhase rangedPhaseOf(
-        const simple_platformer::World& world,
-        simple_platformer::ActorId id)
-    {
-        const simple_platformer::Actor* actor = world.findActor(id);
-        if (actor == nullptr || !actor->rangedWeapon.has_value())
-        {
-            throw std::logic_error("Test actor has no ranged weapon");
-        }
-        return actor->rangedWeapon->phase;
-    }
 }
 
 TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][weapon]")
@@ -92,8 +48,8 @@ TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][
     simple_platformer::updateAttacks(world, requests, 0.1F);
 
     REQUIRE(world.projectiles().empty());
-    REQUIRE(firedThisUpdate(world, shooter));
-    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Shoot);
+    REQUIRE(tests::rangedWeapon(world, shooter).firedThisUpdate);
+    REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 1);
     const simple_platformer::Projectile& projectile = world.projectiles().front();
@@ -136,7 +92,7 @@ TEST_CASE("A ranged weapon does not fire without an aim direction", "[combat][we
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(world.projectiles().empty());
-    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Ready);
+    REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Ready);
 }
 
 TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
@@ -151,25 +107,25 @@ TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
 
     simple_platformer::updateAttacks(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
-    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Shoot);
+    REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
 
     simple_platformer::updateAttacks(world, requests, 0.15F);
-    REQUIRE_FALSE(firedThisUpdate(world, shooter));
-    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Recovery);
+    REQUIRE_FALSE(tests::rangedWeapon(world, shooter).firedThisUpdate);
+    REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Recovery);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectiles().front().velocity.x > 0.0F);
 
     simple_platformer::updateAttacks(world, requests, 0.20F);
-    REQUIRE_FALSE(firedThisUpdate(world, shooter));
-    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Ready);
+    REQUIRE_FALSE(tests::rangedWeapon(world, shooter).firedThisUpdate);
+    REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Ready);
 
     simple_platformer::Actor* stored = world.findActor(shooter);
     REQUIRE(stored != nullptr);
     stored->intentions.primaryAttackPressed = true;
     simple_platformer::updateAttacks(world, requests, 0.0F);
-    REQUIRE(firedThisUpdate(world, shooter));
-    REQUIRE(rangedPhaseOf(world, shooter) == simple_platformer::RangedPhase::Shoot);
+    REQUIRE(tests::rangedWeapon(world, shooter).firedThisUpdate);
+    REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 2);
 }
@@ -187,24 +143,24 @@ TEST_CASE("A bite uses windup active and recovery phases", "[combat][bite]")
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    REQUIRE(healthOf(world, target) == 3);
-    REQUIRE(bitePhaseOf(world, attackerId) == simple_platformer::BitePhase::Windup);
+    REQUIRE(tests::health(world, target).current == 3);
+    REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Windup);
 
     simple_platformer::updateAttacks(world, requests, 0.12F);
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
-    REQUIRE(healthOf(world, target) == 2);
-    REQUIRE(bitePhaseOf(world, attackerId) == simple_platformer::BitePhase::Active);
+    REQUIRE(tests::health(world, target).current == 2);
+    REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Active);
 
     simple_platformer::updateAttacks(world, requests, 0.04F);
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
-    REQUIRE(healthOf(world, target) == 2);
+    REQUIRE(tests::health(world, target).current == 2);
 
     simple_platformer::updateAttacks(world, requests, 0.04F);
-    REQUIRE(bitePhaseOf(world, attackerId) == simple_platformer::BitePhase::Recovery);
+    REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Recovery);
     simple_platformer::updateAttacks(world, requests, 0.30F);
-    REQUIRE(bitePhaseOf(world, attackerId) == simple_platformer::BitePhase::Ready);
+    REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Ready);
 }
 
 TEST_CASE("A ready bite is harmless and never lunges", "[combat][bite]")
@@ -220,7 +176,7 @@ TEST_CASE("A ready bite is harmless and never lunges", "[combat][bite]")
     simple_platformer::updateAttacks(world, requests, 1.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
-    REQUIRE(healthOf(world, target) == 3);
+    REQUIRE(tests::health(world, target).current == 3);
     REQUIRE(world.findActor(attackerId)->body.bounds.position.x == 10.0F);
 }
 
@@ -243,8 +199,8 @@ TEST_CASE("A committed bite completes but can miss", "[combat][bite]")
     simple_platformer::updateAttacks(world, requests, 0.51F);
     simple_platformer::applyWorldRequests(world, requests);
 
-    REQUIRE(healthOf(world, target) == 3);
-    REQUIRE(bitePhaseOf(world, attackerId) == simple_platformer::BitePhase::Ready);
+    REQUIRE(tests::health(world, target).current == 3);
+    REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Ready);
 }
 
 TEST_CASE("Dying actors cannot begin attacks", "[combat][lifecycle]")
@@ -260,7 +216,7 @@ TEST_CASE("Dying actors cannot begin attacks", "[combat][lifecycle]")
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    REQUIRE(rangedPhaseOf(world, actorId) == simple_platformer::RangedPhase::Ready);
+    REQUIRE(tests::rangedWeapon(world, actorId).phase == simple_platformer::RangedPhase::Ready);
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(world.projectiles().empty());

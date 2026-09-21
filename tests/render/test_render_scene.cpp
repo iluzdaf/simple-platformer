@@ -9,17 +9,20 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/world/pickup.hpp"
+#include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
+#include "support/boxes.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace
@@ -54,23 +57,9 @@ namespace
         return simple_platformer::World({coin});
     }
 
-    // Things stand centred on a cell of row 1, which spans y 16 to 32.
-
-    // The feet of a 12-pixel actor.
-    glm::vec2 actorFeetInCell(int column)
+    void addPlayerIn(simple_platformer::World& world, simple_platformer::GridPosition cell)
     {
-        return {static_cast<float>(column * 16 + 8), 30.0F};
-    }
-
-    // An 8-pixel pickup.
-    simple_platformer::Aabb pickupInCell(int column)
-    {
-        return {{static_cast<float>(column * 16 + 4), 20.0F}, {8.0F, 8.0F}};
-    }
-
-    void addPlayerInCell(simple_platformer::World& world, int column)
-    {
-        const glm::vec2 feet = actorFeetInCell(column);
+        const glm::vec2 feet = simple_platformer::navigationFeet(cell);
         const simple_platformer::ActorId player =
             world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                .atFeet(feet)
@@ -79,11 +68,10 @@ namespace
         world.setPlayer(player, feet);
     }
 
-    void addNpcInCell(simple_platformer::World& world, int column)
+    void addNpcIn(simple_platformer::World& world, simple_platformer::GridPosition cell)
     {
-        // Rendering never moves an actor, so its speed doesn't matter.
         world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                           .atFeet(actorFeetInCell(column))
+                           .atFeet(simple_platformer::navigationFeet(cell))
                            .flying(0.0F)
                            .withSprite(square(NpcTexture, 12.0F)));
     }
@@ -97,11 +85,11 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
     const simple_platformer::Camera camera{{16.0F, 0.0F}, {32.0F, 16.0F}};
     const simple_platformer::Sprite player{9, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {10.0F, 14.0F}};
     const simple_platformer::Aabb playerBounds{{20.0F, 2.0F}, {8.0F, 12.0F}};
-    simple_platformer::Actor actor;
-    actor.body.bounds = playerBounds;
-    actor.platformerMovement = simple_platformer::PlatformerMovement{};
+    simple_platformer::Actor actor = tests::ActorBuilder::sized(playerBounds.size)
+                                         .at(playerBounds.position)
+                                         .walking()
+                                         .withSprite(player);
     actor.facing = simple_platformer::Facing::Left;
-    actor.sprite = player;
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = world.addActor(actor);
     world.setPlayer(playerId, simple_platformer::feetOf(playerBounds));
@@ -148,12 +136,9 @@ TEST_CASE("Facing right does not flip the player sprite", "[render][scene]")
     const simple_platformer::TileMap map = tests::TileMapBuilder({"..", "##"});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 32.0F}};
     const simple_platformer::Sprite player{1, {{1.0F, 0.0F}, {1.0F, 1.0F}}, {12.0F, 12.0F}};
-    simple_platformer::Actor actor;
-    actor.body = {{{4.0F, 4.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
-    actor.platformerMovement = simple_platformer::PlatformerMovement{};
-    actor.sprite = player;
     simple_platformer::World world;
-    world.addActor(actor);
+    world.addActor(
+        tests::ActorBuilder::sized({12.0F, 12.0F}).at({4.0F, 4.0F}).walking().withSprite(player));
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, 1, camera, world);
@@ -165,16 +150,15 @@ TEST_CASE("A centre-anchored sprite surrounds a smaller flying body", "[render][
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"..."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {48.0F, 32.0F}};
-    simple_platformer::Actor bat;
-    bat.body = {{{10.0F, 10.0F}, {12.0F, 8.0F}}, {0.0F, 0.0F}};
-    bat.flyingMovement = simple_platformer::FlyingMovement{};
-    bat.sprite = simple_platformer::Sprite{
-        1,
-        {{0.0F, 96.0F}, {32.0F, 24.0F}},
-        {32.0F, 24.0F},
-        simple_platformer::SpriteAnchor::BodyCenter};
     simple_platformer::World world;
-    world.addActor(bat);
+    world.addActor(tests::ActorBuilder::sized({12.0F, 8.0F})
+                       .at({10.0F, 10.0F})
+                       .flying(0.0F)
+                       .withSprite(
+                           {1,
+                            {{0.0F, 96.0F}, {32.0F, 24.0F}},
+                            {32.0F, 24.0F},
+                            simple_platformer::SpriteAnchor::BodyCenter}));
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, 1, camera, world);
@@ -188,11 +172,8 @@ TEST_CASE("Actors without sprites do not produce draw commands", "[render][scene
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 16.0F}};
-    simple_platformer::Actor actor;
-    actor.body = {{{4.0F, 4.0F}, {8.0F, 8.0F}}, {0.0F, 0.0F}};
-    actor.platformerMovement = simple_platformer::PlatformerMovement{};
     simple_platformer::World world;
-    world.addActor(actor);
+    world.addActor(tests::ActorBuilder::sized({8.0F, 8.0F}).at({4.0F, 4.0F}).walking());
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, 1, camera, world);
@@ -204,12 +185,11 @@ TEST_CASE("Dying actors fade during the final part of their death", "[render][sc
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 16.0F}};
-    simple_platformer::Actor actor;
-    actor.body.bounds = {{4.0F, 4.0F}, {8.0F, 8.0F}};
-    actor.platformerMovement = simple_platformer::PlatformerMovement{};
-    actor.sprite = simple_platformer::Sprite{1, {{0.0F, 0.0F}, {8.0F, 8.0F}}, {8.0F, 8.0F}};
     simple_platformer::World world;
-    world.addActor(actor);
+    world.addActor(tests::ActorBuilder::sized({8.0F, 8.0F})
+                       .at({4.0F, 4.0F})
+                       .walking()
+                       .withSprite({1, {{0.0F, 0.0F}, {8.0F, 8.0F}}, {8.0F, 8.0F}}));
 
     const auto aliveScene = simple_platformer::buildRenderScene(map, 1, camera, world);
     REQUIRE(aliveScene.sprites.back().opacity == 1.0F);
@@ -228,10 +208,11 @@ TEST_CASE("Actors with active hit feedback produce a white flash", "[render][sce
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 16.0F}};
-    simple_platformer::Actor actor;
-    actor.body.bounds = {{4.0F, 4.0F}, {8.0F, 8.0F}};
-    actor.platformerMovement = simple_platformer::PlatformerMovement{};
-    actor.sprite = simple_platformer::Sprite{1, {{0.0F, 0.0F}, {8.0F, 8.0F}}, {8.0F, 8.0F}};
+    simple_platformer::Actor actor =
+        tests::ActorBuilder::sized({8.0F, 8.0F})
+            .at({4.0F, 4.0F})
+            .walking()
+            .withSprite({1, {{0.0F, 0.0F}, {8.0F, 8.0F}}, {8.0F, 8.0F}});
     actor.lastDamageTimeSeconds = 0.0F;
     simple_platformer::World world;
     world.addActor(actor);
@@ -302,10 +283,10 @@ TEST_CASE("NPCs and pickups the player cannot see are not drawn", "[render][scen
             .where('c', tests::Tile().blocksSight());
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {128.0F, 48.0F}};
     simple_platformer::World world = worldWithPickupItem();
-    addPlayerInCell(world, 0);
-    addNpcInCell(world, 4);
-    world.addPickup({pickupInCell(3), {1, 1}});
-    addNpcInCell(world, 7);
+    addPlayerIn(world, {0, 1});
+    addNpcIn(world, {4, 1});
+    world.addPickup({tests::boxStandingIn({3, 1}, {8.0F, 8.0F}), {1, 1}});
+    addNpcIn(world, {7, 1});
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, TileTexture, camera, world);

@@ -8,21 +8,18 @@
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
-#include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/actor_builder.hpp"
 
 namespace
 {
     simple_platformer::Actor makeActor()
     {
-        simple_platformer::Actor actor;
-        actor.body.bounds = {{8.0F, 8.0F}, {12.0F, 12.0F}};
-        actor.platformerMovement = simple_platformer::PlatformerMovement{};
-        return actor;
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).at({8.0F, 8.0F}).walking();
     }
 }
 

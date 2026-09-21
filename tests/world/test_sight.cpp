@@ -5,22 +5,17 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/boxes.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace
 {
-    // A 12-pixel box centred on a cell of row 1.
-    simple_platformer::Aabb boxInCell(int column)
+    simple_platformer::Aabb boxIn(simple_platformer::GridPosition cell)
     {
-        return {{static_cast<float>(column * 16 + 2), 18.0F}, {12.0F, 12.0F}};
-    }
-
-    // Where a viewer standing in a cell of row 1 sees from.
-    glm::vec2 viewerInCell(int column)
-    {
-        return simple_platformer::centerOf(boxInCell(column));
+        return tests::boxStandingIn(cell, {12.0F, 12.0F});
     }
 }
 
@@ -29,10 +24,10 @@ TEST_CASE("Cover hides what stands in it from a viewer outside it", "[world][sig
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "...cc...", "........"})
             .where('c', tests::Tile().blocksSight());
-    const glm::vec2 viewer = viewerInCell(0);
+    const glm::vec2 viewer = simple_platformer::centerOf(boxIn({0, 1}));
 
-    REQUIRE(simple_platformer::hiddenByCover(map, viewer, boxInCell(3)));
-    REQUIRE(simple_platformer::hiddenByCover(map, viewer, boxInCell(4)));
+    REQUIRE(simple_platformer::hiddenByCover(map, viewer, boxIn({3, 1})));
+    REQUIRE(simple_platformer::hiddenByCover(map, viewer, boxIn({4, 1})));
 }
 
 TEST_CASE("Cover hides nothing standing outside it", "[world][sight]")
@@ -40,10 +35,10 @@ TEST_CASE("Cover hides nothing standing outside it", "[world][sight]")
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "...cc...", "........"})
             .where('c', tests::Tile().blocksSight());
-    const glm::vec2 viewer = viewerInCell(0);
+    const glm::vec2 viewer = simple_platformer::centerOf(boxIn({0, 1}));
 
     // The cover between them does not matter: only standing in cover hides.
-    REQUIRE_FALSE(simple_platformer::hiddenByCover(map, viewer, boxInCell(7)));
+    REQUIRE_FALSE(simple_platformer::hiddenByCover(map, viewer, boxIn({7, 1})));
 }
 
 TEST_CASE("A viewer in cover sees its own patch but not another", "[world][sight]")
@@ -51,10 +46,10 @@ TEST_CASE("A viewer in cover sees its own patch but not another", "[world][sight
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "...ccc.c", "........"})
             .where('c', tests::Tile().blocksSight());
-    const glm::vec2 viewer = viewerInCell(3);
+    const glm::vec2 viewer = simple_platformer::centerOf(boxIn({3, 1}));
 
-    REQUIRE_FALSE(simple_platformer::hiddenByCover(map, viewer, boxInCell(5)));
-    REQUIRE(simple_platformer::hiddenByCover(map, viewer, boxInCell(7)));
+    REQUIRE_FALSE(simple_platformer::hiddenByCover(map, viewer, boxIn({5, 1})));
+    REQUIRE(simple_platformer::hiddenByCover(map, viewer, boxIn({7, 1})));
 }
 
 TEST_CASE("Without a viewer, everything in cover is hidden", "[world][sight]")
@@ -62,8 +57,8 @@ TEST_CASE("Without a viewer, everything in cover is hidden", "[world][sight]")
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"....", ".cc.", "...."}).where('c', tests::Tile().blocksSight());
 
-    REQUIRE(simple_platformer::hiddenByCover(map, std::nullopt, boxInCell(1)));
-    REQUIRE_FALSE(simple_platformer::hiddenByCover(map, std::nullopt, boxInCell(3)));
+    REQUIRE(simple_platformer::hiddenByCover(map, std::nullopt, boxIn({1, 1})));
+    REQUIRE_FALSE(simple_platformer::hiddenByCover(map, std::nullopt, boxIn({3, 1})));
 }
 
 TEST_CASE("A wall breaks line of sight but hides nothing in the open", "[world][sight]")
@@ -71,8 +66,8 @@ TEST_CASE("A wall breaks line of sight but hides nothing in the open", "[world][
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({".....", "..w..", "....."})
             .where('w', tests::Tile().blocksMovement().blocksSight());
-    const glm::vec2 viewer = viewerInCell(0);
-    const simple_platformer::Aabb target = boxInCell(4);
+    const glm::vec2 viewer = simple_platformer::centerOf(boxIn({0, 1}));
+    const simple_platformer::Aabb target = boxIn({4, 1});
 
     REQUIRE_FALSE(simple_platformer::lineOfSight(map, viewer, simple_platformer::centerOf(target)));
     REQUIRE_FALSE(simple_platformer::hiddenByCover(map, viewer, target));

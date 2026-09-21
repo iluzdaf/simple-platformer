@@ -23,8 +23,7 @@ using tests::rangedWeapon;
 
 namespace
 {
-    // An actor the world can treat as the player. The senses and behaviour only read its
-    // team and body; World requires it to move somehow, so it walks.
+    // An actor the world can treat as the player.
     tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})
@@ -33,8 +32,7 @@ namespace
             .onTeam(simple_platformer::Team::Player);
     }
 
-    // The NPC these tests measure their maps against: 12 pixels wide, flying at 20 pixels
-    // per second, noticing within 64 pixels and remembering for one second.
+    // The NPC these tests measure their maps against.
     tests::ActorBuilder makeNpc(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})

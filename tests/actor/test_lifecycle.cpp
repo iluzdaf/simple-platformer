@@ -9,34 +9,17 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
+#include "support/actor_builder.hpp"
+#include "support/actor_components.hpp"
 
 namespace
 {
     simple_platformer::Actor makeActor(int health = 3)
     {
-        simple_platformer::Actor actor;
-        actor.body.bounds = {{8.0F, 8.0F}, {12.0F, 12.0F}};
-        actor.platformerMovement = simple_platformer::PlatformerMovement{};
-        actor.health = simple_platformer::Health{health, health};
-        return actor;
-    }
-
-    const simple_platformer::Health& healthOf(const simple_platformer::Actor& actor)
-    {
-        if (!actor.health.has_value())
-        {
-            throw std::logic_error("Test actor has no health");
-        }
-        return *actor.health;
-    }
-
-    const simple_platformer::PlatformerMovement& movementOf(const simple_platformer::Actor& actor)
-    {
-        if (!actor.platformerMovement.has_value())
-        {
-            throw std::logic_error("Test actor has no platformer movement");
-        }
-        return *actor.platformerMovement;
+        return tests::ActorBuilder::sized({12.0F, 12.0F})
+            .at({8.0F, 8.0F})
+            .walking()
+            .withHealth(health, health);
     }
 }
 
@@ -47,15 +30,15 @@ TEST_CASE("Damage is deferred until lifecycle requests are applied", "[actor][li
     simple_platformer::WorldRequests requests;
 
     requests.damage(id, 1);
-    const simple_platformer::Actor* undamaged = world.findActor(id);
+    simple_platformer::Actor* undamaged = world.findActor(id);
     REQUIRE(undamaged != nullptr);
-    REQUIRE(healthOf(*undamaged).current == 3);
+    REQUIRE(tests::health(*undamaged).current == 3);
 
     simple_platformer::updateLifeState(world, requests, 0.1F);
 
-    const simple_platformer::Actor* damaged = world.findActor(id);
+    simple_platformer::Actor* damaged = world.findActor(id);
     REQUIRE(damaged != nullptr);
-    REQUIRE(healthOf(*damaged).current == 2);
+    REQUIRE(tests::health(*damaged).current == 2);
     REQUIRE(damaged->life == simple_platformer::LifeState::Alive);
     REQUIRE(requests.empty());
 }
@@ -70,7 +53,7 @@ TEST_CASE("Applied damage records the current simulation time", "[actor][lifecyc
 
     simple_platformer::updateLifeState(world, requests, 0.02F);
 
-    const simple_platformer::Actor* damaged = world.findActor(id);
+    simple_platformer::Actor* damaged = world.findActor(id);
     REQUIRE(damaged != nullptr);
     REQUIRE(damaged->lastDamageTimeSeconds == 2.0F);
 }
@@ -86,9 +69,9 @@ TEST_CASE("Fatal damage begins a timed death", "[actor][lifecycle]")
 
     simple_platformer::updateLifeState(world, requests, 0.1F);
 
-    const simple_platformer::Actor* dying = world.findActor(id);
+    simple_platformer::Actor* dying = world.findActor(id);
     REQUIRE(dying != nullptr);
-    REQUIRE(healthOf(*dying).current == 0);
+    REQUIRE(tests::health(*dying).current == 0);
     REQUIRE(dying->life == simple_platformer::LifeState::Dying);
     REQUIRE(dying->deathTimeRemaining == 0.4F);
     REQUIRE(dying->lastDamageTimeSeconds == 0.0F);
@@ -106,9 +89,9 @@ TEST_CASE("Dying actors cannot take further damage", "[actor][lifecycle]")
     requests.damage(id, 1);
     simple_platformer::updateLifeState(world, requests, 0.1F);
 
-    const simple_platformer::Actor* dying = world.findActor(id);
+    simple_platformer::Actor* dying = world.findActor(id);
     REQUIRE(dying != nullptr);
-    REQUIRE(healthOf(*dying).current == 0);
+    REQUIRE(tests::health(*dying).current == 0);
     REQUIRE(dying->deathTimeRemaining < 0.4F);
 }
 
@@ -146,18 +129,18 @@ TEST_CASE("The player respawns with restored runtime state", "[actor][lifecycle]
 
     simple_platformer::updateLifeState(world, requests, 0.4F);
 
-    const simple_platformer::Actor* respawned = world.findActor(player);
+    simple_platformer::Actor* respawned = world.findActor(player);
     REQUIRE(respawned != nullptr);
     REQUIRE(respawned->life == simple_platformer::LifeState::Alive);
     REQUIRE_FALSE(respawned->lastDamageTimeSeconds.has_value());
-    REQUIRE(healthOf(*respawned).current == 3);
+    REQUIRE(tests::health(*respawned).current == 3);
     REQUIRE(simple_platformer::feetOf(respawned->body.bounds).x == 40.0F);
     REQUIRE(simple_platformer::feetOf(respawned->body.bounds).y == 48.0F);
     REQUIRE(respawned->body.velocity.x == 0.0F);
     REQUIRE(respawned->body.velocity.y == 0.0F);
-    REQUIRE_FALSE(movementOf(*respawned).grounded);
-    REQUIRE(movementOf(*respawned).coyoteRemaining == 0.0F);
-    REQUIRE(movementOf(*respawned).jumpBufferRemaining == 0.0F);
+    REQUIRE_FALSE(tests::platformerMovement(*respawned).grounded);
+    REQUIRE(tests::platformerMovement(*respawned).coyoteRemaining == 0.0F);
+    REQUIRE(tests::platformerMovement(*respawned).jumpBufferRemaining == 0.0F);
 }
 
 TEST_CASE("Explicit removals are deferred until world requests are applied", "[world][requests]")

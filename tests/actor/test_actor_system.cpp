@@ -9,23 +9,21 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/actor_builder.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace
 {
-    simple_platformer::Actor makeActor(glm::vec2 position)
+    simple_platformer::Actor makeActor(glm::vec2 feet)
     {
-        simple_platformer::Actor actor;
-        actor.body.bounds = {position, {12.0F, 12.0F}};
-        actor.platformerMovement = simple_platformer::PlatformerMovement{};
-        return actor;
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
     }
 }
 
 TEST_CASE("Actor movement consumes its intentions", "[actor][movement]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"..........", "##########"});
-    simple_platformer::Actor actor = makeActor({16.0F, 4.0F});
+    simple_platformer::Actor actor = makeActor({22.0F, 16.0F});
     simple_platformer::PlatformerMovement movement;
     movement.grounded = true;
     actor.platformerMovement = movement;
@@ -46,7 +44,7 @@ TEST_CASE("Dying actors ignore intentions but continue falling", "[actor][moveme
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"..........", "..........", "##########"});
-    simple_platformer::Actor actor = makeActor({16.0F, 4.0F});
+    simple_platformer::Actor actor = makeActor({22.0F, 16.0F});
     actor.life = simple_platformer::LifeState::Dying;
     actor.intentions.direction.x = 1.0F;
     actor.intentions.jumpPressed = true;
@@ -67,7 +65,7 @@ TEST_CASE("Dying actors ignore intentions but continue falling", "[actor][moveme
 TEST_CASE("Aim direction controls horizontal facing independently of movement", "[actor][movement]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"..........", "##########"});
-    simple_platformer::Actor actor = makeActor({16.0F, 4.0F});
+    simple_platformer::Actor actor = makeActor({22.0F, 16.0F});
     simple_platformer::PlatformerMovement movement;
     movement.grounded = true;
     actor.platformerMovement = movement;

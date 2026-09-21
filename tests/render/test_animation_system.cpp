@@ -8,8 +8,9 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/animation_system.hpp"
-#include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/actor_builder.hpp"
+#include "support/actor_components.hpp"
 
 namespace
 {
@@ -22,13 +23,8 @@ namespace
     {
         using simple_platformer::AnimationName;
 
-        simple_platformer::Actor actor;
-        actor.body.bounds = {{0.0F, 0.0F}, {12.0F, 12.0F}};
-        actor.platformerMovement = simple_platformer::PlatformerMovement{};
-        actor.platformerMovement->grounded = true;
-        actor.sprite = simple_platformer::Sprite{0, {}, {1.0F, 1.0F}};
-        actor.animator = simple_platformer::Animator{};
-        actor.animator->animationSet = {{
+        simple_platformer::Animator animator;
+        animator.animationSet = {{
             clip(AnimationName::Idle, 0.0F),
             clip(AnimationName::Move, 1.0F),
             clip(AnimationName::Jump, 2.0F),
@@ -36,53 +32,13 @@ namespace
             clip(AnimationName::Attack, 4.0F),
             clip(AnimationName::Death, 5.0F),
         }};
+        simple_platformer::Actor actor = tests::ActorBuilder::sized({12.0F, 12.0F})
+                                             .at({0.0F, 0.0F})
+                                             .walking()
+                                             .withSprite({0, {}, {1.0F, 1.0F}})
+                                             .withAnimator(animator);
+        tests::platformerMovement(actor).grounded = true;
         return actor;
-    }
-
-    simple_platformer::Actor& actor(simple_platformer::World& world, simple_platformer::ActorId id)
-    {
-        simple_platformer::Actor* found = world.findActor(id);
-        if (found == nullptr)
-        {
-            throw std::logic_error("Test actor was not found");
-        }
-        return *found;
-    }
-
-    simple_platformer::Animator& animator(
-        simple_platformer::World& world,
-        simple_platformer::ActorId id)
-    {
-        simple_platformer::Actor& found = actor(world, id);
-        if (!found.animator.has_value())
-        {
-            throw std::logic_error("Test actor has no animator");
-        }
-        return *found.animator;
-    }
-
-    simple_platformer::RangedWeapon& rangedWeapon(
-        simple_platformer::World& world,
-        simple_platformer::ActorId id)
-    {
-        simple_platformer::Actor& found = actor(world, id);
-        if (!found.rangedWeapon.has_value())
-        {
-            throw std::logic_error("Test actor has no ranged weapon");
-        }
-        return *found.rangedWeapon;
-    }
-
-    simple_platformer::BiteAttack& bite(
-        simple_platformer::World& world,
-        simple_platformer::ActorId id)
-    {
-        simple_platformer::Actor& found = actor(world, id);
-        if (!found.bite.has_value())
-        {
-            throw std::logic_error("Test actor has no bite attack");
-        }
-        return *found.bite;
     }
 }
 
@@ -92,18 +48,20 @@ TEST_CASE("A ranged actor uses Attack only during its Shoot phase", "[render][an
     simple_platformer::Actor rangedActor = makeAnimatedActor();
     rangedActor.team = simple_platformer::Team::Player;
     rangedActor.rangedWeapon = simple_platformer::RangedWeapon{};
-    rangedActor.rangedWeapon->phase = simple_platformer::RangedPhase::Shoot;
-    rangedActor.rangedWeapon->phaseTimeRemaining = rangedActor.rangedWeapon->shootDuration;
+    tests::rangedWeapon(rangedActor).phase = simple_platformer::RangedPhase::Shoot;
+    tests::rangedWeapon(rangedActor).phaseTimeRemaining =
+        tests::rangedWeapon(rangedActor).shootDuration;
     const simple_platformer::ActorId id = world.addActor(rangedActor);
 
     simple_platformer::updateWorldAnimations(world, 0.0F);
-    REQUIRE(animator(world, id).current == simple_platformer::AnimationName::Attack);
+    REQUIRE(tests::animator(world, id).current == simple_platformer::AnimationName::Attack);
 
-    rangedWeapon(world, id).phase = simple_platformer::RangedPhase::Recovery;
-    rangedWeapon(world, id).phaseTimeRemaining = rangedWeapon(world, id).recoveryDuration;
-    actor(world, id).body.velocity.x = 10.0F;
+    tests::rangedWeapon(world, id).phase = simple_platformer::RangedPhase::Recovery;
+    tests::rangedWeapon(world, id).phaseTimeRemaining =
+        tests::rangedWeapon(world, id).recoveryDuration;
+    tests::actor(world, id).body.velocity.x = 10.0F;
     simple_platformer::updateWorldAnimations(world, 0.0F);
-    REQUIRE(animator(world, id).current == simple_platformer::AnimationName::Move);
+    REQUIRE(tests::animator(world, id).current == simple_platformer::AnimationName::Move);
 }
 
 TEST_CASE("Every committed bite phase uses Attack", "[render][animation][system]")
@@ -120,9 +78,9 @@ TEST_CASE("Every committed bite phase uses Attack", "[render][animation][system]
              simple_platformer::BitePhase::Recovery,
          })
     {
-        bite(world, id).phase = phase;
+        tests::bite(world, id).phase = phase;
         simple_platformer::updateWorldAnimations(world, 0.0F);
-        REQUIRE(animator(world, id).current == simple_platformer::AnimationName::Attack);
+        REQUIRE(tests::animator(world, id).current == simple_platformer::AnimationName::Attack);
     }
 }
 
@@ -133,13 +91,14 @@ TEST_CASE("Death animation has priority over a shot", "[render][animation][syste
     dyingActor.team = simple_platformer::Team::Player;
     dyingActor.life = simple_platformer::LifeState::Dying;
     dyingActor.rangedWeapon = simple_platformer::RangedWeapon{};
-    dyingActor.rangedWeapon->phase = simple_platformer::RangedPhase::Shoot;
-    dyingActor.rangedWeapon->phaseTimeRemaining = dyingActor.rangedWeapon->shootDuration;
+    tests::rangedWeapon(dyingActor).phase = simple_platformer::RangedPhase::Shoot;
+    tests::rangedWeapon(dyingActor).phaseTimeRemaining =
+        tests::rangedWeapon(dyingActor).shootDuration;
     const simple_platformer::ActorId id = world.addActor(dyingActor);
 
     simple_platformer::updateWorldAnimations(world, 0.0F);
 
-    REQUIRE(animator(world, id).current == simple_platformer::AnimationName::Death);
+    REQUIRE(tests::animator(world, id).current == simple_platformer::AnimationName::Death);
 }
 
 TEST_CASE("World animation rejects a negative delta time", "[render][animation][system]")

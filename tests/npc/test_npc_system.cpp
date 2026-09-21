@@ -31,16 +31,13 @@ using tests::patrol;
 
 namespace
 {
-    // An actor the world can treat as the player. Behaviour only reads its body; World
-    // requires it to move somehow, so it walks.
+    // An actor the world can treat as the player.
     tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
     }
 
-    // The NPC these tests measure their maps against: 12 pixels wide, flying at 20 pixels
-    // per second. Behaviour doesn't read teams or senses; World requires an NPC to have
-    // senses, and an attacking NPC to have a team, so tests that attack choose one.
+    // The NPC these tests measure their maps against.
     tests::ActorBuilder makeNpc(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})

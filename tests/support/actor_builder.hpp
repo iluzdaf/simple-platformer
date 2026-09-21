@@ -6,11 +6,13 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 
 namespace tests
@@ -58,21 +60,39 @@ namespace tests
             return std::move(*this);
         }
 
+        ActorBuilder withHealth(int current, int maximum) &&
+        {
+            built.health = simple_platformer::Health{current, maximum};
+            return std::move(*this);
+        }
+
+        ActorBuilder withInventory(simple_platformer::Inventory inventory) &&
+        {
+            built.inventory = std::move(inventory);
+            return std::move(*this);
+        }
+
         ActorBuilder withSprite(simple_platformer::Sprite sprite) &&
         {
             built.sprite = sprite;
             return std::move(*this);
         }
 
-        ActorBuilder thatBites() &&
+        ActorBuilder withAnimator(simple_platformer::Animator animator) &&
         {
-            built.bite = simple_platformer::BiteAttack{};
+            built.animator = std::move(animator);
             return std::move(*this);
         }
 
-        ActorBuilder thatShoots() &&
+        ActorBuilder thatBites(simple_platformer::BiteAttack bite = {}) &&
         {
-            built.rangedWeapon = simple_platformer::RangedWeapon{};
+            built.bite = std::move(bite);
+            return std::move(*this);
+        }
+
+        ActorBuilder thatShoots(simple_platformer::RangedWeapon weapon = {}) &&
+        {
+            built.rangedWeapon = weapon;
             return std::move(*this);
         }
 
@@ -94,9 +114,9 @@ namespace tests
     class ActorBuilder::Placed
     {
     public:
-        ActorBuilder walking() &&
+        ActorBuilder walking(simple_platformer::PlatformerMovementConfig config = {}) &&
         {
-            built.platformerMovement = simple_platformer::PlatformerMovement{};
+            built.platformerMovement = simple_platformer::PlatformerMovement{config};
             return ActorBuilder(std::move(built));
         }
 

@@ -24,7 +24,7 @@
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 
 TEST_CASE("Debug overlay data supports actors without presentation components", "[app][debug]")
 {
@@ -34,7 +34,7 @@ TEST_CASE("Debug overlay data supports actors without presentation components", 
 
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(actor);
-    const simple_platformer::TileMap map = tests::asciiMap({"....", "####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
     const simple_platformer::Camera camera{{4.0F, 5.0F}, {320.0F, 180.0F}};
     const simple_platformer::CameraController cameraController{camera, {80.0F, 40.0F}};
 
@@ -71,7 +71,7 @@ TEST_CASE("Debug overlay data describes NPC patrol points", "[app][debug]")
 
     simple_platformer::World world;
     world.addActor(npc);
-    const simple_platformer::TileMap map = tests::asciiMap({".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", "#####"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
@@ -113,7 +113,7 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     const simple_platformer::ActorId playerId = world.addActor(player);
     const simple_platformer::ActorId npcId = world.addActor(npc);
     world.setPlayer(playerId, {38.0F, 208.0F});
-    const simple_platformer::TileMap map = tests::asciiMap({"......", "######"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "######"});
 
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
@@ -177,7 +177,7 @@ TEST_CASE("Debug overlay data describes visible and remembered targets", "[app][
     rememberedNpc.brain->targetMemoryRemaining = 0.6F;
     world.addActor(rememberedNpc);
 
-    const simple_platformer::TileMap map = tests::asciiMap({".......", "#######"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".......", "#######"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
     const simple_platformer::DebugOverlay debug =
@@ -215,7 +215,7 @@ TEST_CASE("Debug overlay data describes projectiles", "[app][debug]")
     unowned.owner = std::nullopt;
     world.addProjectile(unowned);
 
-    const simple_platformer::TileMap map = tests::asciiMap({"....", "####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
     const simple_platformer::DebugOverlay debug =
@@ -235,7 +235,7 @@ TEST_CASE("Debug overlay data describes pickup bounds", "[app][debug]")
     simple_platformer::World world({{1, "Coin", {}, 5}});
     const simple_platformer::Aabb bounds{{24.0F, 32.0F}, {8.0F, 8.0F}};
     world.addPickup({bounds, {1, 2}});
-    const simple_platformer::TileMap map = tests::asciiMap({"....", "####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
@@ -266,7 +266,7 @@ TEST_CASE("Debug overlay data shows only an active bite hitbox", "[app][debug]")
     simple_platformer::World world;
     world.addActor(activeBiter);
     world.addActor(recoveringBiter);
-    const simple_platformer::TileMap map = tests::asciiMap({"....", "####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
@@ -302,7 +302,7 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
 
     simple_platformer::World world;
     world.addActor(npc);
-    const simple_platformer::TileMap map = tests::asciiMap({"......", "######"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "######"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
@@ -342,7 +342,7 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
 TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"..........", "....##....", "..........", "##########"});
+        tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const simple_platformer::PlatformerMovementConfig movementConfig;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
         simple_platformer::platformerNeighbors(map, {2, 2}, {12.0F, 12.0F}, movementConfig);
@@ -391,7 +391,7 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
 TEST_CASE("Debug overlay data rejects an invalid atlas width", "[app][debug]")
 {
     const simple_platformer::World world;
-    const simple_platformer::TileMap map = tests::asciiMap({"....", "####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 

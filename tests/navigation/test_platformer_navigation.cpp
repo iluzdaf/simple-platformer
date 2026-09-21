@@ -22,7 +22,7 @@
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 
 namespace
 {
@@ -45,7 +45,7 @@ namespace
 
 TEST_CASE("Standable cells require support and body clearance", "[navigation][platformer]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".#.", "...", "###"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".#.", "...", "###"});
 
     REQUIRE(simple_platformer::canStandAt(map, {1, 1}, {12.0F, 12.0F}));
     REQUIRE_FALSE(simple_platformer::canStandAt(map, {1, 1}, {12.0F, 20.0F}));
@@ -56,7 +56,8 @@ TEST_CASE(
     "A platformer start cell comes from the collider support at a ledge",
     "[navigation][platformer][regression]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"........", "........", "..###..."});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "..###..."});
     simple_platformer::Aabb bounds{{0.0F, 0.0F}, {12.0F, 20.0F}};
     simple_platformer::placeFeetAt(bounds, {80.5F, 32.0F});
 
@@ -72,7 +73,7 @@ TEST_CASE(
     "A supported collider uses its ordinary platformer start cell",
     "[navigation][platformer][exercise]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"....", "....", "####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "####"});
     simple_platformer::Aabb bounds{{0.0F, 0.0F}, {12.0F, 20.0F}};
     simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
 
@@ -85,7 +86,7 @@ TEST_CASE(
     "An unsupported collider has no platformer start cell",
     "[navigation][platformer][exercise]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"....", "....", "...."});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "...."});
     simple_platformer::Aabb bounds{{0.0F, 0.0F}, {12.0F, 20.0F}};
     simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
 
@@ -96,7 +97,7 @@ TEST_CASE(
     "A platformer start cell supports bodies wider than one tile",
     "[navigation][platformer][exercise]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"....", "....", "####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "####"});
     simple_platformer::Aabb bounds{{0.0F, 0.0F}, {20.0F, 20.0F}};
     simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
 
@@ -107,7 +108,7 @@ TEST_CASE(
 
 TEST_CASE("Platformer start cells reject invalid bounds", "[navigation][platformer][exercise]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"....", "....", "####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "####"});
     const simple_platformer::Aabb bounds{{0.0F, 0.0F}, {0.0F, 20.0F}};
 
     REQUIRE_THROWS_AS(
@@ -116,7 +117,7 @@ TEST_CASE("Platformer start cells reject invalid bounds", "[navigation][platform
 
 TEST_CASE("A platformer chase keeps an already standable target cell", "[navigation][platformer]")
 {
-    const auto map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     REQUIRE(
         simple_platformer::findPlatformerChaseCell(map, {47.5F, 32.0F}, {12.0F, 20.0F}) ==
         simple_platformer::GridPosition{2, 1});
@@ -124,7 +125,8 @@ TEST_CASE("A platformer chase keeps an already standable target cell", "[navigat
 
 TEST_CASE("Platformer chase destinations handle either platform edge", "[navigation][platformer]")
 {
-    const auto map = tests::asciiMap({"........", "........", "..###...", "........", "########"});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "..###...", "........", "########"});
     REQUIRE(
         simple_platformer::findPlatformerChaseCell(map, {31.5F, 32.0F}, {12.0F, 20.0F}) ==
         simple_platformer::GridPosition{2, 1});
@@ -135,7 +137,8 @@ TEST_CASE("Platformer chase destinations handle either platform edge", "[navigat
 
 TEST_CASE("An airborne chase target selects the closest standable feet", "[navigation][platformer]")
 {
-    const auto map = tests::asciiMap({"........", "........", "..###...", "........", "########"});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "..###...", "........", "########"});
     REQUIRE(
         simple_platformer::findPlatformerChaseCell(map, {31.0F, 20.0F}, {12.0F, 20.0F}) ==
         simple_platformer::GridPosition{2, 1});
@@ -143,7 +146,7 @@ TEST_CASE("An airborne chase target selects the closest standable feet", "[navig
 
 TEST_CASE("Chase destinations use the pursuing body size", "[navigation][platformer]")
 {
-    const auto map = tests::asciiMap({"..#....", ".......", "#######"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"..#....", ".......", "#######"});
     REQUIRE(
         simple_platformer::findPlatformerChaseCell(map, {40.0F, 32.0F}, {12.0F, 12.0F}) ==
         simple_platformer::GridPosition{2, 1});
@@ -161,10 +164,10 @@ TEST_CASE(
     "Chase destinations handle missing support and outside targets",
     "[navigation][platformer]")
 {
-    const auto blocked = tests::asciiMap({"###", "###"});
+    const simple_platformer::TileMap blocked = tests::TileMapBuilder({"###", "###"});
     REQUIRE_FALSE(
         simple_platformer::findPlatformerChaseCell(blocked, {24.0F, 16.0F}, {12.0F, 20.0F}));
-    const auto map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     REQUIRE(
         simple_platformer::findPlatformerChaseCell(map, {-16.0F, 32.0F}, {12.0F, 20.0F}) ==
         simple_platformer::GridPosition{0, 1});
@@ -172,7 +175,7 @@ TEST_CASE(
 
 TEST_CASE("Chase destinations reject invalid inputs", "[navigation][platformer]")
 {
-    const auto map = tests::asciiMap({".....", ".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     const float infinity = std::numeric_limits<float>::infinity();
     const float nan = std::numeric_limits<float>::quiet_NaN();
     REQUIRE_THROWS_AS(
@@ -218,7 +221,7 @@ TEST_CASE(
 
 TEST_CASE("Platformer neighbors include walks and simulated falls", "[navigation][platformer]")
 {
-    const simple_platformer::TileMap floor = tests::asciiMap({"....", "####"});
+    const simple_platformer::TileMap floor = tests::TileMapBuilder({"....", "####"});
     const auto walks = simple_platformer::platformerNeighbors(
         floor, {1, 0}, {12.0F, 12.0F}, simple_platformer::PlatformerMovementConfig{});
     REQUIRE(
@@ -229,7 +232,7 @@ TEST_CASE("Platformer neighbors include walks and simulated falls", "[navigation
             { return neighbor.traversal == simple_platformer::Traversal::Walk; }) == 3);
 
     const simple_platformer::TileMap ledge =
-        tests::asciiMap({"........", "###.....", "........", "........", "########"});
+        tests::TileMapBuilder({"........", "###.....", "........", "........", "########"});
     const auto falls = simple_platformer::platformerNeighbors(
         ledge, {2, 0}, {12.0F, 12.0F}, simple_platformer::PlatformerMovementConfig{});
     const simple_platformer::NavigationNeighbor& fall =
@@ -240,7 +243,7 @@ TEST_CASE("Platformer neighbors include walks and simulated falls", "[navigation
 
 TEST_CASE("Platformer neighbors include continuous multi-cell walks", "[navigation][platformer]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"......", "######"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "######"});
     const simple_platformer::PlatformerMovementConfig movement;
 
     const auto neighbors =
@@ -281,7 +284,7 @@ TEST_CASE("Platformer neighbors include continuous multi-cell walks", "[navigati
 TEST_CASE("Generated jump inputs replay to their promised landing", "[navigation][platformer]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"..........", "....##....", "..........", "##########"});
+        tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const simple_platformer::PlatformerMovementConfig config;
     const auto neighbors =
         simple_platformer::platformerNeighbors(map, {2, 2}, {12.0F, 12.0F}, config);
@@ -317,7 +320,7 @@ TEST_CASE(
     const simple_platformer::PlatformerMovementConfig config;
     constexpr float FixedDelta = static_cast<float>(simple_platformer::FixedDeltaSeconds);
 
-    const simple_platformer::TileMap walkMap = tests::asciiMap({"....", "####"});
+    const simple_platformer::TileMap walkMap = tests::TileMapBuilder({"....", "####"});
     const auto walkNeighbors =
         simple_platformer::platformerNeighbors(walkMap, {1, 0}, {12.0F, 12.0F}, config);
     const simple_platformer::NavigationNeighbor& walk =
@@ -347,7 +350,7 @@ TEST_CASE(
         simple_platformer::platformerTickHeuristic({1, 0}, walk.destination, config) <= walk.cost);
 
     const simple_platformer::TileMap jumpMap =
-        tests::asciiMap({"..........", "....##....", "..........", "##########"});
+        tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const auto jumpNeighbors =
         simple_platformer::platformerNeighbors(jumpMap, {2, 2}, {12.0F, 12.0F}, config);
     const simple_platformer::NavigationNeighbor& jump =
@@ -357,7 +360,7 @@ TEST_CASE(
         simple_platformer::platformerTickHeuristic({2, 2}, jump.destination, config) <= jump.cost);
 
     const simple_platformer::TileMap fallMap =
-        tests::asciiMap({"........", "###.....", "........", "........", "########"});
+        tests::TileMapBuilder({"........", "###.....", "........", "........", "########"});
     const auto fallNeighbors =
         simple_platformer::platformerNeighbors(fallMap, {2, 0}, {12.0F, 12.0F}, config);
     const simple_platformer::NavigationNeighbor& fall =
@@ -371,7 +374,7 @@ TEST_CASE(
     "Platformer path search uses the platformer navigation policy",
     "[navigation][platformer]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".....", "#####"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", "#####"});
 
     const simple_platformer::PlatformerMovementConfig movement;
     const auto path =
@@ -406,7 +409,7 @@ TEST_CASE(
     "[navigation][platformer][regression]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({".....###.....", ".............", ".............", "#############"});
+        tests::TileMapBuilder({".....###.....", ".............", ".............", "#############"});
     simple_platformer::PlatformerMovementConfig movement;
     movement.maximumSpeed = 60.0F;
 
@@ -440,7 +443,7 @@ TEST_CASE(
 TEST_CASE("A jump start penalty preserves required jumps", "[navigation][platformer]")
 {
     const simple_platformer::TileMap map =
-        tests::asciiMap({"..........", "....##....", "..........", "##########"});
+        tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const simple_platformer::PlatformerMovementConfig movement;
     const auto neighbors =
         simple_platformer::platformerNeighbors(map, {2, 2}, {12.0F, 12.0F}, movement);
@@ -468,7 +471,7 @@ TEST_CASE("A jump start penalty preserves required jumps", "[navigation][platfor
 
 TEST_CASE("Platformer paths reject a negative jump start penalty", "[navigation][platformer]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"...", "###"});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "###"});
     simple_platformer::PlatformerNavigationConfig navigation;
     navigation.jumpStartPenaltyTicks = -1;
 

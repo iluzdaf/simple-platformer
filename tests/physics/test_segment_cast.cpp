@@ -2,7 +2,6 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <map>
 #include <stdexcept>
 #include <optional>
 
@@ -12,7 +11,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
 #include "simple_platformer/world/tile_map.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 
 TEST_CASE("A segment cast reports its first entry into an AABB", "[physics][segment]")
 {
@@ -41,7 +40,8 @@ TEST_CASE("Segment casts reject invalid data", "[physics][segment]")
 
 TEST_CASE("A solid tile cast reports the earliest tile", "[physics][segment][tile]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".....", ".#.#.", "....."});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".x.x.", "....."})
+                                               .where('x', tests::Tile().blocksMovement());
 
     const std::optional<simple_platformer::TileSegmentHit> hit =
         simple_platformer::segmentCastMovementBlockingTiles(map, {0.0F, 24.0F}, {80.0F, 24.0F});
@@ -56,7 +56,8 @@ TEST_CASE("A solid tile cast reports the earliest tile", "[physics][segment][til
 
 TEST_CASE("A solid tile cast accounts for the moving box size", "[physics][segment][tile]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".....", "..#..", "....."});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", "..x..", "....."})
+                                               .where('x', tests::Tile().blocksMovement());
     const glm::vec2 start = {0.0F, 8.0F};
     const glm::vec2 end = {64.0F, 8.0F};
 
@@ -69,16 +70,10 @@ TEST_CASE(
     "A sight cast ignores the cover it starts in until it reaches open ground",
     "[physics][segment][tile]")
 {
-    using simple_platformer::TileDefinition;
-
-    TileDefinition empty;
-    TileDefinition cover;
-    cover.blocksSight = true;
-    const std::map<char, int> legend{{'.', 0}, {'c', 1}};
     const simple_platformer::TileMap onePatch =
-        simple_platformer::TileMap::fromAscii({".....", "ccc..", "....."}, {empty, cover}, legend);
+        tests::TileMapBuilder({".....", "ccc..", "....."}).where('c', tests::Tile().blocksSight());
     const simple_platformer::TileMap twoPatches =
-        simple_platformer::TileMap::fromAscii({".....", "cc.c.", "....."}, {empty, cover}, legend);
+        tests::TileMapBuilder({".....", "cc.c.", "....."}).where('c', tests::Tile().blocksSight());
 
     REQUIRE_FALSE(
         simple_platformer::segmentCastSightBlockingTiles(onePatch, {8.0F, 24.0F}, {72.0F, 24.0F}));
@@ -92,13 +87,8 @@ TEST_CASE(
     "A sight cast starting on the edge of cover counts as starting in it",
     "[physics][segment][tile]")
 {
-    using simple_platformer::TileDefinition;
-
-    TileDefinition empty;
-    TileDefinition cover;
-    cover.blocksSight = true;
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {".....", ".c...", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", ".c...", "....."}).where('c', tests::Tile().blocksSight());
 
     REQUIRE_FALSE(
         simple_platformer::segmentCastSightBlockingTiles(map, {16.0F, 24.0F}, {72.0F, 24.0F}));
@@ -110,13 +100,8 @@ TEST_CASE(
     "A sight cast joins cover tiles only through the exact corner they share",
     "[physics][segment][tile]")
 {
-    using simple_platformer::TileDefinition;
-
-    TileDefinition empty;
-    TileDefinition cover;
-    cover.blocksSight = true;
-    const simple_platformer::TileMap map = simple_platformer::TileMap::fromAscii(
-        {".c...", "c....", "....."}, {empty, cover}, {{'.', 0}, {'c', 1}});
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".c...", "c....", "....."}).where('c', tests::Tile().blocksSight());
 
     // Through the shared corner at (16, 16), the line never reaches open ground.
     REQUIRE_FALSE(
@@ -131,7 +116,7 @@ TEST_CASE(
 
 TEST_CASE("Solid tile casts reject an invalid moving size", "[physics][segment][tile]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"..."});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"..."});
 
     REQUIRE_THROWS_AS(
         simple_platformer::segmentCastMovementBlockingTiles(

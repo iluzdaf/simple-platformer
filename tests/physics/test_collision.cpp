@@ -8,7 +8,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 
 namespace
 {
@@ -34,7 +34,7 @@ namespace
 
 TEST_CASE("An AABB moves freely through empty tiles", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({"....", "....", "...."});
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
     Aabb bounds{{8.0F, 8.0F}, {8.0F, 8.0F}};
 
     const CollisionContacts contacts =
@@ -46,7 +46,7 @@ TEST_CASE("An AABB moves freely through empty tiles", "[physics][collision]")
 
 TEST_CASE("Horizontal movement stops on either side of a solid tile", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({"..#...", "..#..."});
+    const TileMap map = tests::TileMapBuilder({"..#...", "..#..."});
 
     SECTION("moving right")
     {
@@ -71,7 +71,7 @@ TEST_CASE("Horizontal movement stops on either side of a solid tile", "[physics]
 
 TEST_CASE("Landing exactly on a floor reports ground contact", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({"....", "....", "####"});
+    const TileMap map = tests::TileMapBuilder({"....", "....", "####"});
     Aabb bounds{{20.0F, 4.0F}, {12.0F, 12.0F}};
 
     const CollisionContacts contacts =
@@ -85,7 +85,7 @@ TEST_CASE("Vertical movement stops on floors and ceilings", "[physics][collision
 {
     SECTION("falling onto a floor")
     {
-        const TileMap map = tests::asciiMap({"....", "....", "####", "...."});
+        const TileMap map = tests::TileMapBuilder({"....", "....", "####", "...."});
         Aabb bounds{{20.0F, 4.0F}, {12.0F, 12.0F}};
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {0.0F, 30.0F});
@@ -96,7 +96,7 @@ TEST_CASE("Vertical movement stops on floors and ceilings", "[physics][collision
 
     SECTION("jumping into a ceiling")
     {
-        const TileMap map = tests::asciiMap({".##.", "....", "...."});
+        const TileMap map = tests::TileMapBuilder({".##.", "....", "...."});
         Aabb bounds{{20.0F, 24.0F}, {12.0F, 8.0F}};
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {0.0F, -20.0F});
@@ -108,7 +108,7 @@ TEST_CASE("Vertical movement stops on floors and ceilings", "[physics][collision
 
 TEST_CASE("Collision resolves X before Y at a corner", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({"...", ".#.", "..."});
+    const TileMap map = tests::TileMapBuilder({"...", ".#.", "..."});
     Aabb bounds{{0.0F, 0.0F}, {8.0F, 8.0F}};
 
     const CollisionContacts contacts =
@@ -121,7 +121,7 @@ TEST_CASE("Collision resolves X before Y at a corner", "[physics][collision]")
 
 TEST_CASE("Collision supports bodies larger than one tile", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({".....", ".....", ".....", "#####"});
+    const TileMap map = tests::TileMapBuilder({".....", ".....", ".....", "#####"});
     Aabb bounds{{18.0F, 2.0F}, {28.0F, 30.0F}};
 
     const CollisionContacts contacts =
@@ -133,7 +133,7 @@ TEST_CASE("Collision supports bodies larger than one tile", "[physics][collision
 
 TEST_CASE("Fast movement cannot pass through a solid tile", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({"...#..", "...#.."});
+    const TileMap map = tests::TileMapBuilder({"...#..", "...#.."});
     Aabb bounds{{4.0F, 4.0F}, {8.0F, 20.0F}};
 
     const CollisionContacts contacts =
@@ -145,7 +145,7 @@ TEST_CASE("Fast movement cannot pass through a solid tile", "[physics][collision
 
 TEST_CASE("Very large finite movement respects map boundaries", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({"....", "....", "...."});
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
     const float largeMovement = std::numeric_limits<float>::max();
 
     SECTION("closed boundaries stop movement")
@@ -174,7 +174,7 @@ TEST_CASE("Very large finite movement respects map boundaries", "[physics][colli
 
 TEST_CASE("The left right and bottom map edges are solid", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({"....", "....", "...."});
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
 
     SECTION("left edge")
     {
@@ -206,7 +206,7 @@ TEST_CASE("The left right and bottom map edges are solid", "[physics][collision]
 
 TEST_CASE("The top map edge stays open", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({"....", "....", "...."});
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
     Aabb bounds{{8.0F, 0.0F}, {8.0F, 8.0F}};
 
     const CollisionContacts contacts =
@@ -218,7 +218,7 @@ TEST_CASE("The top map edge stays open", "[physics][collision]")
 
 TEST_CASE("Collision rejects invalid bounds and movement", "[physics][collision]")
 {
-    const TileMap map = tests::asciiMap({"....", "....", "...."});
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
 
     Aabb emptyBounds{{0.0F, 0.0F}, {0.0F, 8.0F}};
     REQUIRE_THROWS_AS(

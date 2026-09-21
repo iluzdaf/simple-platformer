@@ -1,14 +1,15 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <map>
 #include <stdexcept>
 #include <vector>
 
 #include "simple_platformer/world/tile_map.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 
 TEST_CASE("An ASCII tile map is rectangular and row-major", "[world][tile-map]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({".#.", "##."});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".#.", "##."});
 
     REQUIRE(map.width() == 3);
     REQUIRE(map.height() == 2);
@@ -31,7 +32,7 @@ TEST_CASE("Tile movement blocking comes from its definition", "[world][tile-map]
 
 TEST_CASE("Map sides and bottom block movement while the top stays open", "[world][tile-map]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"..", ".."});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"..", ".."});
 
     REQUIRE(map.blocksMovement({-1, 0}));
     REQUIRE(map.blocksMovement({2, 0}));
@@ -44,7 +45,7 @@ TEST_CASE("Map sides and bottom block movement while the top stays open", "[worl
 
 TEST_CASE("Tile lookup rejects positions outside the map", "[world][tile-map]")
 {
-    const simple_platformer::TileMap map = tests::asciiMap({"..", ".."});
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"..", ".."});
 
     REQUIRE_THROWS_AS(map.tileAt({-1, 0}), std::out_of_range);
     REQUIRE_THROWS_AS(map.tileAt({2, 0}), std::out_of_range);
@@ -54,8 +55,8 @@ TEST_CASE("Tile lookup rejects positions outside the map", "[world][tile-map]")
 TEST_CASE("ASCII tile maps reject malformed input", "[world][tile-map]")
 {
     using simple_platformer::TileMap;
-    const auto definitions = tests::asciiDefinitions();
-    const auto legend = tests::asciiLegend();
+    const std::vector<simple_platformer::TileDefinition> definitions{{}};
+    const std::map<char, int> legend{{'.', 0}};
 
     REQUIRE_THROWS_AS(TileMap::fromAscii({}, definitions, legend), std::invalid_argument);
     REQUIRE_THROWS_AS(TileMap::fromAscii({""}, definitions, legend), std::invalid_argument);
@@ -92,7 +93,7 @@ TEST_CASE("Breaking a tile replaces it with what its definition breaks into", "[
 TEST_CASE("Breaking reports failure outside the map instead of throwing", "[world][tile-map]")
 {
     // Map boundaries block movement, so a cast can report a cell that is not in the map.
-    simple_platformer::TileMap map = tests::asciiMap({"..", ".."});
+    simple_platformer::TileMap map = tests::TileMapBuilder({"..", ".."});
 
     REQUIRE_FALSE(map.breakTile({-1, 0}));
     REQUIRE_FALSE(map.breakTile({2, 0}));

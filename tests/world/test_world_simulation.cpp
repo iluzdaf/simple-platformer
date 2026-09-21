@@ -22,11 +22,11 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
-#include "support/ascii_map.hpp"
+#include "support/tile_map_builder.hpp"
 
 TEST_CASE("World simulation advances its shared clock once per update", "[world][simulation][time]")
 {
-    simple_platformer::TileMap map = tests::asciiMap({"."});
+    simple_platformer::TileMap map = tests::TileMapBuilder({"."});
     simple_platformer::World world;
 
     simple_platformer::updateWorldSimulation(map, world, 0.25F);
@@ -42,7 +42,7 @@ TEST_CASE("World simulation advances its shared clock once per update", "[world]
 
 TEST_CASE("World simulation spawns a projectile after projectile movement", "[world][simulation]")
 {
-    simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
+    simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
     simple_platformer::Actor player;
     player.body.bounds = {{16.0F, 16.0F}, {12.0F, 12.0F}};
@@ -69,7 +69,7 @@ TEST_CASE("World simulation spawns a projectile after projectile movement", "[wo
 
 TEST_CASE("World simulation senses decides and moves an NPC in one update", "[world][simulation]")
 {
-    simple_platformer::TileMap map = tests::asciiMap({"........", "........", "########"});
+    simple_platformer::TileMap map = tests::TileMapBuilder({"........", "........", "########"});
     simple_platformer::World world;
 
     simple_platformer::Actor player;
@@ -107,7 +107,7 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
 
 TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][simulation]")
 {
-    simple_platformer::TileMap map = tests::asciiMap({".....", ".....", "#####"});
+    simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
 
     simple_platformer::Actor player;
@@ -142,7 +142,8 @@ TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][
 TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world][simulation]")
 {
     simple_platformer::TileMap map =
-        tests::asciiMap({"........", "........", "...#....", "########"});
+        tests::TileMapBuilder({"........", "........", "...x....", "########"})
+            .where('x', tests::Tile().blocksSight());
     simple_platformer::World world;
 
     simple_platformer::Actor player;
@@ -195,7 +196,7 @@ TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world
 
 TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulation]")
 {
-    simple_platformer::TileMap map = tests::asciiMap(
+    simple_platformer::TileMap map = tests::TileMapBuilder(
         {"..........", "..........", "..........", "....###...", "..........", "##########"});
     simple_platformer::World world;
     constexpr simple_platformer::GridPosition LowerEndpoint{2, 4};
@@ -267,7 +268,7 @@ TEST_CASE(
 {
     // The raised platform provides an unnecessary jump route above the continuous floor.
     simple_platformer::TileMap map =
-        tests::asciiMap({".....###.....", ".............", ".............", "#############"});
+        tests::TileMapBuilder({".....###.....", ".............", ".............", "#############"});
     simple_platformer::World world;
     constexpr simple_platformer::GridPosition FirstEndpoint{4, 2};
     constexpr simple_platformer::GridPosition SpawnCell{12, 2};
@@ -311,7 +312,7 @@ TEST_CASE(
     "[world][simulation][platformer][regression]")
 {
     simple_platformer::TileMap map =
-        tests::asciiMap({"........", "........", "..###...", "........", "########"});
+        tests::TileMapBuilder({"........", "........", "..###...", "........", "########"});
     simple_platformer::World world;
 
     simple_platformer::Actor player;
@@ -378,8 +379,8 @@ TEST_CASE(
 {
     // The player jumps from the floor beside the raised platform. Its solid
     // edge hides the player before the jump and again after landing.
-    simple_platformer::TileMap map =
-        tests::asciiMap({"..........", "..........", "...#######", "..........", "##########"});
+    simple_platformer::TileMap map = tests::TileMapBuilder(
+        {"..........", "..........", "...#######", "..........", "##########"});
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     constexpr int JumpAndLandingTicks = 40;
     constexpr int RememberedChaseTicks = 30;
@@ -471,8 +472,8 @@ TEST_CASE(
     "A ground NPC approaches a visible player supported at a platform edge",
     "[world][simulation][platformer][regression]")
 {
-    simple_platformer::TileMap map =
-        tests::asciiMap({"..........", "..........", "..#######.", "..........", "##########"});
+    simple_platformer::TileMap map = tests::TileMapBuilder(
+        {"..........", "..........", "..#######.", "..........", "##########"});
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     constexpr int MaximumChaseTicks = 180;
     const glm::vec2 upperPlatformFeet = simple_platformer::navigationFeet({2, 1});
@@ -547,7 +548,7 @@ TEST_CASE(
     "A bat continuously patrols around a platform corner",
     "[world][simulation][flying][regression]")
 {
-    simple_platformer::TileMap map = tests::asciiMap(
+    simple_platformer::TileMap map = tests::TileMapBuilder(
         {"..........", "..........", "..........", "....###...", "..........", "##########"});
     // The bat must rise beside the platform before turning over its top edge.
     // Both endpoints are reachable with ample clearance for its 12 x 8 body.

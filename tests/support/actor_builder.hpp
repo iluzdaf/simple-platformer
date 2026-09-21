@@ -25,7 +25,10 @@ namespace tests
     //
     // A chain reads what the actor is, where it is, how it moves, then what else it does:
     //
-    //   ActorBuilder::sized({12.0F, 20.0F}).atFeet({24.0F, 32.0F}).walking().thatBites()
+    //   ActorBuilder::sized({12.0F, 20.0F}).atFeet({24.0F, 32.0F}).walking().biting()
+    //
+    // A step for something the actor does ends in -ing, and a step for something it has
+    // starts with "with".
     //
     // Placement and movement can't be skipped: sized() offers only at() and atFeet(), and
     // those offer only walking() and flying(). A forgotten placement would silently put the
@@ -84,13 +87,13 @@ namespace tests
             return std::move(*this);
         }
 
-        ActorBuilder thatBites(simple_platformer::BiteAttack bite = {}) &&
+        ActorBuilder biting(simple_platformer::BiteAttack bite = {}) &&
         {
             built.bite = std::move(bite);
             return std::move(*this);
         }
 
-        ActorBuilder thatShoots(simple_platformer::RangedWeapon weapon = {}) &&
+        ActorBuilder shooting(simple_platformer::RangedWeapon weapon = {}) &&
         {
             built.rangedWeapon = weapon;
             return std::move(*this);

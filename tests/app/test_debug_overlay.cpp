@@ -245,7 +245,7 @@ TEST_CASE("Debug overlay data shows only an active bite hitbox", "[app][debug]")
                                                .at({16.0F, 20.0F})
                                                .walking()
                                                .onTeam(simple_platformer::Team::Enemy)
-                                               .thatBites();
+                                               .biting();
     activeBiter.facing = simple_platformer::Facing::Right;
     tests::bite(activeBiter).phase = simple_platformer::BitePhase::Active;
     tests::bite(activeBiter).phaseTimeRemaining = 0.05F;

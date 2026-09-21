@@ -152,7 +152,7 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
             .where('c', tests::Tile().blocksSight());
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
-        world.addActor(makePlayer({40.0F, 30.0F}).thatShoots());
+        world.addActor(makePlayer({40.0F, 30.0F}).shooting());
     world.setPlayer(playerId, {40.0F, 30.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
     const glm::vec2 shotFeet{40.0F, 30.0F};
@@ -182,7 +182,7 @@ TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
         tests::TileMapBuilder({".....", "..x..", "....."}).where('x', tests::Tile().blocksSight());
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
-        world.addActor(makePlayer({56.0F, 30.0F}).thatShoots());
+        world.addActor(makePlayer({56.0F, 30.0F}).shooting());
     world.setPlayer(playerId, {56.0F, 30.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 
@@ -199,7 +199,7 @@ TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][sense
         tests::TileMapBuilder({"..........", "..........", ".........."});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
-        world.addActor(makePlayer({104.0F, 30.0F}).thatShoots());
+        world.addActor(makePlayer({104.0F, 30.0F}).shooting());
     world.setPlayer(playerId, {104.0F, 30.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 

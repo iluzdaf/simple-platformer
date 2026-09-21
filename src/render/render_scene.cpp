@@ -241,7 +241,6 @@ namespace simple_platformer
         const Camera& camera,
         const World& world)
     {
-        // The player is the one viewer for the whole scene: cover hides what it cannot see.
         const Actor* player = world.findActor(world.playerId());
         RenderScene scene;
         appendTiles(scene, map, tileTextureId, camera);

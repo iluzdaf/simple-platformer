@@ -44,7 +44,6 @@ namespace
         return {textureId, {{0.0F, 0.0F}, {size, size}}, {size, size}};
     }
 
-    // A world whose one item draws with PickupTexture.
     simple_platformer::World worldWithPickupItem()
     {
         simple_platformer::ItemDefinition coin;

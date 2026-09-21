@@ -6,12 +6,14 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/physics/segment_cast.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -111,10 +113,34 @@ namespace simple_platformer
             }
         }
 
-        void appendPickups(RenderScene& scene, const World& world, const Camera& camera)
+        // Grass hides what stands in it. Something whose centre is in a sight-blocking tile is
+        // drawn only when the player can see it by the NPC sight rule: a clear line from the
+        // player, ignoring the cover the player stands in. Without a player, nobody sees it.
+        bool visibleToPlayer(const TileMap& map, const World& world, const Aabb& bounds)
+        {
+            const glm::vec2 center = centerOf(bounds);
+            if (!map.blocksSight(worldToGrid(center)))
+            {
+                return true;
+            }
+            const Actor* player = world.findActor(world.playerId());
+            return player != nullptr &&
+                   !segmentCastSightBlockingTiles(map, centerOf(player->body.bounds), center)
+                        .has_value();
+        }
+
+        void appendPickups(
+            RenderScene& scene,
+            const TileMap& map,
+            const World& world,
+            const Camera& camera)
         {
             for (const Pickup& pickup : world.pickups())
             {
+                if (!visibleToPlayer(map, world, pickup.bounds))
+                {
+                    continue;
+                }
                 const Sprite& sprite =
                     pickup.sprite ? *pickup.sprite : world.itemDefinition(pickup.stack.item).icon;
                 Aabb bounds = spriteBounds(pickup.bounds, sprite);
@@ -153,11 +179,19 @@ namespace simple_platformer
                  false});
         }
 
-        void appendActors(RenderScene& scene, const World& world, const Camera& camera)
+        void appendActors(
+            RenderScene& scene,
+            const TileMap& map,
+            const World& world,
+            const Camera& camera)
         {
             for (const Actor& actor : world.actors())
             {
                 if (!actor.sprite.has_value())
+                {
+                    continue;
+                }
+                if (actor.id != world.playerId() && !visibleToPlayer(map, world, actor.body.bounds))
                 {
                     continue;
                 }
@@ -224,9 +258,9 @@ namespace simple_platformer
     {
         RenderScene scene;
         appendTiles(scene, map, tileTextureId, camera);
-        appendPickups(scene, world, camera);
+        appendPickups(scene, map, world, camera);
         appendExit(scene, world, camera);
-        appendActors(scene, world, camera);
+        appendActors(scene, map, world, camera);
         appendProjectiles(scene, world, camera);
         appendProjectileBursts(scene, world, camera);
         return scene;

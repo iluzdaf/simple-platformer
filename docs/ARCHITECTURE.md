@@ -314,10 +314,11 @@ jumping, or acceleration state.
 `TileMap` stores a rectangular row-major vector of integer tile IDs. Tile zero is
 empty. Each nonzero tile definition supplies a sprite region, `blocksMovement`, and
 `blocksSight`. The same map layer supports rendering, collision, and sensing.
-Glass blocks movement and projectiles but allows sight. Grass allows movement and
-projectiles but blocks sight rays. Sight rays ignore the grass they start in, so an NPC
-in grass sees out of it and across it, while a player in grass stays hidden from NPCs
-outside it. Grass does not hide actors, pickups, or exits from the player's screen.
+Glass blocks movement and projectiles but not sight. Grass blocks sight but not
+movement or projectiles. Grass hides whatever stands in it from anyone outside it, while
+anyone inside can see out and across it. This applies both to NPCs looking for the
+player and to the player's screen, where NPCs and pickups in grass are drawn only when
+the player can see them. The debug overlay shows everything.
 
 A tile definition may name the tile it `breaksInto`, so breaking swaps a cell's tile ID
 instead of adding per-cell state, and a tile that names nothing is unbreakable. A

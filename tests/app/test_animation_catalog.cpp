@@ -9,6 +9,7 @@
 #include "content/content_json.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "support/actor_components.hpp"
 
 TEST_CASE("Animation JSON preserves frame order timing and looping", "[app][animations]")
 {
@@ -146,15 +147,11 @@ TEST_CASE("Actors have independent playback of shared animation definitions", "[
         animations);
     const auto& definition = simple_platformer::actorDefinition(actors, "hero");
     auto first = simple_platformer::composeActor(definition, animations, 7);
-    const auto second = simple_platformer::composeActor(definition, animations, 7);
-    if (!first.animator || !second.animator || !first.sprite)
-    {
-        throw std::logic_error("Missing animation components");
-    }
+    auto second = simple_platformer::composeActor(definition, animations, 7);
     simple_platformer::updateAnimation(
-        *first.animator, *first.sprite, simple_platformer::AnimationName::Idle, 0.1F);
-    REQUIRE(first.animator->elapsed == 0.1F);
-    REQUIRE(second.animator->elapsed == 0);
-    REQUIRE(first.sprite->textureId == 7);
-    REQUIRE(first.sprite->region.size == glm::vec2{8, 12});
+        tests::animator(first), tests::sprite(first), simple_platformer::AnimationName::Idle, 0.1F);
+    REQUIRE(tests::animator(first).elapsed == 0.1F);
+    REQUIRE(tests::animator(second).elapsed == 0);
+    REQUIRE(tests::sprite(first).textureId == 7);
+    REQUIRE(tests::sprite(first).region.size == glm::vec2{8, 12});
 }

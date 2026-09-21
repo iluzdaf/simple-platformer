@@ -38,7 +38,7 @@ TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][
     simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
     actor.facing = simple_platformer::Facing::Right;
     actor.rangedWeapon = simple_platformer::RangedWeapon{};
-    actor.rangedWeapon->projectileSprite.size = {8.0F, 6.0F};
+    tests::rangedWeapon(actor).projectileSprite.size = {8.0F, 6.0F};
     actor.intentions.aimDirection = {-1.0F, 0.0F};
     actor.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId shooter = world.addActor(actor);
@@ -119,9 +119,8 @@ TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
     REQUIRE_FALSE(tests::rangedWeapon(world, shooter).firedThisUpdate);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Ready);
 
-    simple_platformer::Actor* stored = world.findActor(shooter);
-    REQUIRE(stored != nullptr);
-    stored->intentions.primaryAttackPressed = true;
+    simple_platformer::Actor& stored = tests::actor(world, shooter);
+    stored.intentions.primaryAttackPressed = true;
     simple_platformer::updateAttacks(world, requests, 0.0F);
     REQUIRE(tests::rangedWeapon(world, shooter).firedThisUpdate);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
@@ -134,7 +133,7 @@ TEST_CASE("A bite uses windup active and recovery phases", "[combat][bite]")
     simple_platformer::World world;
     simple_platformer::Actor attacker = makeActor({10.0F, 10.0F}, simple_platformer::Team::Enemy);
     attacker.bite = simple_platformer::BiteAttack{};
-    attacker.bite->reach = 0.0F;
+    tests::bite(attacker).reach = 0.0F;
     attacker.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId attackerId = world.addActor(attacker);
     const simple_platformer::ActorId target =
@@ -176,7 +175,7 @@ TEST_CASE("A ready bite is harmless and never lunges", "[combat][bite]")
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(tests::health(world, target).current == 3);
-    REQUIRE(world.findActor(attackerId)->body.bounds.position.x == 10.0F);
+    REQUIRE(tests::actor(world, attackerId).body.bounds.position.x == 10.0F);
 }
 
 TEST_CASE("A committed bite completes but can miss", "[combat][bite]")
@@ -184,7 +183,7 @@ TEST_CASE("A committed bite completes but can miss", "[combat][bite]")
     simple_platformer::World world;
     simple_platformer::Actor attacker = makeActor({10.0F, 10.0F}, simple_platformer::Team::Enemy);
     attacker.bite = simple_platformer::BiteAttack{};
-    attacker.bite->reach = 0.0F;
+    tests::bite(attacker).reach = 0.0F;
     attacker.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId attackerId = world.addActor(attacker);
     const simple_platformer::ActorId target =
@@ -192,9 +191,8 @@ TEST_CASE("A committed bite completes but can miss", "[combat][bite]")
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateAttacks(world, requests, 0.0F);
-    simple_platformer::Actor* movedTarget = world.findActor(target);
-    REQUIRE(movedTarget != nullptr);
-    movedTarget->body.bounds.position.x = 100.0F;
+    simple_platformer::Actor& movedTarget = tests::actor(world, target);
+    movedTarget.body.bounds.position.x = 100.0F;
     simple_platformer::updateAttacks(world, requests, 0.51F);
     simple_platformer::applyWorldRequests(world, requests);
 
@@ -207,8 +205,8 @@ TEST_CASE("Dying actors cannot begin attacks", "[combat][lifecycle]")
     simple_platformer::World world;
     simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
     actor.rangedWeapon = simple_platformer::RangedWeapon{};
-    actor.rangedWeapon->phase = simple_platformer::RangedPhase::Shoot;
-    actor.rangedWeapon->phaseTimeRemaining = actor.rangedWeapon->shootDuration;
+    tests::rangedWeapon(actor).phase = simple_platformer::RangedPhase::Shoot;
+    tests::rangedWeapon(actor).phaseTimeRemaining = tests::rangedWeapon(actor).shootDuration;
     actor.intentions.primaryAttackPressed = true;
     actor.life = simple_platformer::LifeState::Dying;
     const simple_platformer::ActorId actorId = world.addActor(actor);

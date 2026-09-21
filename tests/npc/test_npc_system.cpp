@@ -101,12 +101,7 @@ TEST_CASE(
                                           .atFeet({56.0F, 32.0F})
                                           .walking()
                                           .thinking({64.0F, 1.0F}));
-    auto& movement = actor(world, npcId).platformerMovement;
-    if (!movement.has_value())
-    {
-        throw std::logic_error("The walking NPC has no platformer movement");
-    }
-    movement->grounded = true;
+    tests::platformerMovement(world, npcId).grounded = true;
     const glm::vec2 lastSeenFeet{8.0F, 20.0F};
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = lastSeenFeet;

@@ -2,8 +2,6 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include <stdexcept>
-
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
@@ -60,9 +58,8 @@ TEST_CASE("World simulation spawns a projectile after projectile movement", "[wo
     REQUIRE(world.projectiles().size() == 1);
     const float spawnPosition = world.projectiles().front().bounds.position.x;
 
-    simple_platformer::Actor* storedPlayer = world.findActor(playerId);
-    REQUIRE(storedPlayer != nullptr);
-    storedPlayer->intentions.primaryAttackPressed = false;
+    simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
+    storedPlayer.intentions.primaryAttackPressed = false;
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
 
     REQUIRE(world.projectiles().size() == 1);
@@ -93,16 +90,11 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
 
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
 
-    const simple_platformer::Actor* storedNpc = world.findActor(npcId);
-    REQUIRE(storedNpc != nullptr);
-    if (!storedNpc->brain.has_value())
-    {
-        throw std::logic_error("The test NPC has no brain");
-    }
-    const simple_platformer::NpcBrain& brain = *storedNpc->brain;
+    simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
+    const simple_platformer::NpcBrain& brain = tests::brain(storedNpc);
     REQUIRE(brain.target == playerId);
     REQUIRE(brain.state == simple_platformer::NpcState::Chase);
-    REQUIRE(storedNpc->body.bounds.position.x > 16.0F);
+    REQUIRE(storedNpc.body.bounds.position.x > 16.0F);
 }
 
 TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][simulation]")
@@ -132,9 +124,8 @@ TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectiles().front().owner == npcId);
     REQUIRE(world.projectiles().front().velocity.x > 0.0F);
-    const simple_platformer::Actor* storedNpc = world.findActor(npcId);
-    REQUIRE(storedNpc != nullptr);
-    REQUIRE(storedNpc->body.bounds.position.x == 16.0F);
+    simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
+    REQUIRE(storedNpc.body.bounds.position.x == 16.0F);
 }
 
 TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world][simulation]")
@@ -166,28 +157,16 @@ TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world
     // Senses run before attacks, so the update that fires is not yet heard.
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
     REQUIRE(world.projectiles().size() == 1);
-    const simple_platformer::Actor* storedNpc = world.findActor(npcId);
-    REQUIRE(storedNpc != nullptr);
-    if (!storedNpc->brain.has_value())
-    {
-        throw std::logic_error("The test NPC has no brain");
-    }
-    REQUIRE_FALSE(storedNpc->brain->target.has_value());
+    simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
+    REQUIRE_FALSE(tests::brain(storedNpc).target.has_value());
 
-    simple_platformer::Actor* storedPlayer = world.findActor(playerId);
-    REQUIRE(storedPlayer != nullptr);
-    storedPlayer->intentions.primaryAttackPressed = false;
+    simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
+    storedPlayer.intentions.primaryAttackPressed = false;
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
 
-    storedNpc = world.findActor(npcId);
-    REQUIRE(storedNpc != nullptr);
-    if (!storedNpc->brain.has_value())
-    {
-        throw std::logic_error("The test NPC has no brain");
-    }
-    REQUIRE(storedNpc->brain->target == playerId);
-    REQUIRE_FALSE(storedNpc->brain->targetVisible);
-    REQUIRE(storedNpc->brain->state == simple_platformer::NpcState::Chase);
+    REQUIRE(tests::brain(world, npcId).target == playerId);
+    REQUIRE_FALSE(tests::brain(world, npcId).targetVisible);
+    REQUIRE(tests::brain(world, npcId).state == simple_platformer::NpcState::Chase);
 }
 
 TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulation]")
@@ -218,21 +197,15 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
     for (int tick = 0; tick < 1200 && completedPatrolLegs < 4; ++tick)
     {
         simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
-        const simple_platformer::Actor* storedNpc = world.findActor(npcId);
-        REQUIRE(storedNpc != nullptr);
-        if (!storedNpc->platformerMovement.has_value() || !storedNpc->brain.has_value() ||
-            !storedNpc->patrol.has_value())
-        {
-            throw std::logic_error("The test NPC is missing its patrol components");
-        }
+        simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
         const simple_platformer::PlatformerMovement& movement =
-            storedNpc->platformerMovement.value();
-        const simple_platformer::Patrol& patrol = storedNpc->patrol.value();
+            tests::platformerMovement(storedNpc);
+        const simple_platformer::Patrol& patrol = tests::patrol(storedNpc);
         const simple_platformer::GridPosition cell =
-            simple_platformer::cellAtFeet(simple_platformer::feetOf(storedNpc->body.bounds));
+            simple_platformer::cellAtFeet(simple_platformer::feetOf(storedNpc.body.bounds));
 
         enteredPatrol =
-            enteredPatrol || storedNpc->brain->state == simple_platformer::NpcState::Patrol;
+            enteredPatrol || tests::brain(storedNpc).state == simple_platformer::NpcState::Patrol;
         wasAirborne = wasAirborne || !movement.grounded;
         reachedUpperEndpoint = reachedUpperEndpoint || (movement.grounded && cell == UpperEndpoint);
         switchedTowardLowerEndpoint =
@@ -284,14 +257,9 @@ TEST_CASE(
     for (int tick = 0; tick < 900 && !completedPatrolLeg; ++tick)
     {
         simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
-        const simple_platformer::Actor* storedNpc = world.findActor(npcId);
-        REQUIRE(storedNpc != nullptr);
-        if (!storedNpc->platformerMovement.has_value() || !storedNpc->patrol.has_value())
-        {
-            throw std::logic_error("The test NPC is missing its patrol components");
-        }
-        becameAirborne = becameAirborne || !storedNpc->platformerMovement.value().grounded;
-        completedPatrolLeg = storedNpc->patrol.value().headingToSecond;
+        simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
+        becameAirborne = becameAirborne || !tests::platformerMovement(storedNpc).grounded;
+        completedPatrolLeg = tests::patrol(storedNpc).headingToSecond;
     }
 
     REQUIRE(completedPatrolLeg);
@@ -341,23 +309,17 @@ TEST_CASE(
 
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
 
-    const simple_platformer::Actor* storedZombie = world.findActor(zombieId);
-    REQUIRE(storedZombie != nullptr);
-    if (!storedZombie->brain.has_value())
-    {
-        throw std::logic_error("The test zombie has no brain");
-    }
-    REQUIRE(storedZombie->brain->state == simple_platformer::NpcState::Patrol);
-    REQUIRE_FALSE(storedZombie->brain->target.has_value());
+    simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
+    REQUIRE(tests::brain(storedZombie).state == simple_platformer::NpcState::Patrol);
+    REQUIRE_FALSE(tests::brain(storedZombie).target.has_value());
 
     for (int tick = 0; tick < 180; ++tick)
     {
         simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
     }
 
-    storedZombie = world.findActor(zombieId);
-    REQUIRE(storedZombie != nullptr);
-    const glm::vec2 finalFeet = simple_platformer::feetOf(storedZombie->body.bounds);
+    const glm::vec2 finalFeet =
+        simple_platformer::feetOf(tests::actor(world, zombieId).body.bounds);
     CAPTURE(finalFeet.x, finalFeet.y);
     REQUIRE(finalFeet.x < rightPatrolFeet.x);
 }
@@ -396,37 +358,26 @@ TEST_CASE(
     bool seenDuringJump = false;
     for (int tick = 0; tick < JumpAndLandingTicks; ++tick)
     {
-        simple_platformer::Actor* storedPlayer = world.findActor(playerId);
-        REQUIRE(storedPlayer != nullptr);
-        storedPlayer->intentions.jumpPressed = tick == 0;
-        storedPlayer->intentions.jumpHeld = tick < 25;
+        simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
+        storedPlayer.intentions.jumpPressed = tick == 0;
+        storedPlayer.intentions.jumpHeld = tick < 25;
         simple_platformer::updateWorldSimulation(map, world, DeltaTime);
-        const simple_platformer::Actor* storedZombie = world.findActor(zombieId);
-        REQUIRE(storedZombie != nullptr);
-        if (!storedZombie->brain.has_value())
-        {
-            throw std::logic_error("The test zombie has no brain");
-        }
+        simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
         seenDuringJump = seenDuringJump ||
-                         (storedZombie->brain.value().targetVisible &&
-                          storedZombie->brain.value().state == simple_platformer::NpcState::Chase);
+                         (tests::brain(storedZombie).targetVisible &&
+                          tests::brain(storedZombie).state == simple_platformer::NpcState::Chase);
     }
     REQUIRE(seenDuringJump);
-    const simple_platformer::Actor* rememberedZombie = world.findActor(zombieId);
-    REQUIRE(rememberedZombie != nullptr);
-    if (!rememberedZombie->brain.has_value())
-    {
-        throw std::logic_error("The test zombie has no brain");
-    }
-    REQUIRE_FALSE(rememberedZombie->brain.value().targetVisible);
-    REQUIRE(rememberedZombie->brain.value().target == playerId);
-    REQUIRE(rememberedZombie->brain.value().targetMemoryRemaining > 0.0F);
-    REQUIRE(rememberedZombie->brain.value().state == simple_platformer::NpcState::Chase);
-    const glm::vec2 lastSeenFeet = rememberedZombie->brain.value().lastSeenTargetFeet;
+    simple_platformer::Actor& rememberedZombie = tests::actor(world, zombieId);
+    REQUIRE_FALSE(tests::brain(rememberedZombie).targetVisible);
+    REQUIRE(tests::brain(rememberedZombie).target == playerId);
+    REQUIRE(tests::brain(rememberedZombie).targetMemoryRemaining > 0.0F);
+    REQUIRE(tests::brain(rememberedZombie).state == simple_platformer::NpcState::Chase);
+    const glm::vec2 lastSeenFeet = tests::brain(rememberedZombie).lastSeenTargetFeet;
     REQUIRE_FALSE(simple_platformer::canStandAt(
-        map, simple_platformer::cellAtFeet(lastSeenFeet), rememberedZombie->body.bounds.size));
+        map, simple_platformer::cellAtFeet(lastSeenFeet), rememberedZombie.body.bounds.size));
     const float startingDistance =
-        glm::distance(simple_platformer::feetOf(rememberedZombie->body.bounds), lastSeenFeet);
+        glm::distance(simple_platformer::feetOf(rememberedZombie.body.bounds), lastSeenFeet);
 
     // The remembered point is in the air, but the zombie can approach the
     // platform edge toward it. Check progress without prescribing a goal cell.
@@ -434,19 +385,14 @@ TEST_CASE(
     for (int tick = 0; tick < RememberedChaseTicks; ++tick)
     {
         simple_platformer::updateWorldSimulation(map, world, DeltaTime);
-        const simple_platformer::Actor* storedZombie = world.findActor(zombieId);
-        REQUIRE(storedZombie != nullptr);
-        if (!storedZombie->brain.has_value())
-        {
-            throw std::logic_error("The test zombie has no brain");
-        }
-        REQUIRE_FALSE(storedZombie->brain.value().targetVisible);
-        REQUIRE(storedZombie->brain.value().target == playerId);
-        REQUIRE(storedZombie->brain.value().targetMemoryRemaining > 0.0F);
-        REQUIRE(storedZombie->brain.value().lastSeenTargetFeet == lastSeenFeet);
-        REQUIRE(storedZombie->brain.value().state == simple_platformer::NpcState::Chase);
+        simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
+        REQUIRE_FALSE(tests::brain(storedZombie).targetVisible);
+        REQUIRE(tests::brain(storedZombie).target == playerId);
+        REQUIRE(tests::brain(storedZombie).targetMemoryRemaining > 0.0F);
+        REQUIRE(tests::brain(storedZombie).lastSeenTargetFeet == lastSeenFeet);
+        REQUIRE(tests::brain(storedZombie).state == simple_platformer::NpcState::Chase);
         distanceToRememberedPosition =
-            glm::distance(simple_platformer::feetOf(storedZombie->body.bounds), lastSeenFeet);
+            glm::distance(simple_platformer::feetOf(storedZombie.body.bounds), lastSeenFeet);
     }
     CAPTURE(startingDistance, distanceToRememberedPosition);
     constexpr float MinimumPursuitProgress = 0.5F * simple_platformer::TileSize;
@@ -490,16 +436,11 @@ TEST_CASE(
 
     simple_platformer::updateWorldSimulation(map, world, DeltaTime);
 
-    const simple_platformer::Actor* chasingZombie = world.findActor(zombieId);
-    REQUIRE(chasingZombie != nullptr);
-    if (!chasingZombie->brain.has_value())
-    {
-        throw std::logic_error("The test zombie has no brain");
-    }
-    REQUIRE(chasingZombie->brain.value().targetVisible);
-    REQUIRE(chasingZombie->brain.value().state == simple_platformer::NpcState::Chase);
+    simple_platformer::Actor& chasingZombie = tests::actor(world, zombieId);
+    REQUIRE(tests::brain(chasingZombie).targetVisible);
+    REQUIRE(tests::brain(chasingZombie).state == simple_platformer::NpcState::Chase);
     const float startingDistance =
-        glm::distance(simple_platformer::feetOf(chasingZombie->body.bounds), playerFeet);
+        glm::distance(simple_platformer::feetOf(chasingZombie.body.bounds), playerFeet);
     constexpr float CloseDistance = 2.0F * simple_platformer::TileSize;
     REQUIRE(startingDistance > CloseDistance);
 
@@ -507,19 +448,13 @@ TEST_CASE(
     for (int tick = 0; tick < MaximumChaseTicks && distanceToPlayer > CloseDistance; ++tick)
     {
         simple_platformer::updateWorldSimulation(map, world, DeltaTime);
-        const simple_platformer::Actor* storedZombie = world.findActor(zombieId);
-        const simple_platformer::Actor* storedPlayer = world.findActor(playerId);
-        REQUIRE(storedZombie != nullptr);
-        REQUIRE(storedPlayer != nullptr);
-        if (!storedZombie->brain.has_value() || !storedPlayer->platformerMovement.has_value())
-        {
-            throw std::logic_error("The test actors are missing chase components");
-        }
-        REQUIRE(storedZombie->brain.value().targetVisible);
-        REQUIRE(storedPlayer->platformerMovement.value().grounded);
-        REQUIRE(simple_platformer::feetOf(storedPlayer->body.bounds) == playerFeet);
+        simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
+        simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
+        REQUIRE(tests::brain(storedZombie).targetVisible);
+        REQUIRE(tests::platformerMovement(storedPlayer).grounded);
+        REQUIRE(simple_platformer::feetOf(storedPlayer.body.bounds) == playerFeet);
         distanceToPlayer =
-            glm::distance(simple_platformer::feetOf(storedZombie->body.bounds), playerFeet);
+            glm::distance(simple_platformer::feetOf(storedZombie.body.bounds), playerFeet);
     }
     CAPTURE(startingDistance, distanceToPlayer);
     REQUIRE(distanceToPlayer <= CloseDistance);
@@ -549,30 +484,20 @@ TEST_CASE(
     for (int tick = 0; tick < 1200 && completedPatrolLegs < 4; ++tick)
     {
         simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
-        const simple_platformer::Actor* storedBat = world.findActor(batId);
-        REQUIRE(storedBat != nullptr);
-        if (!storedBat->patrol.has_value())
-        {
-            throw std::logic_error("The test bat has no patrol");
-        }
-        if (storedBat->patrol->headingToSecond != headingToSecond)
+        simple_platformer::Actor& storedBat = tests::actor(world, batId);
+        if (tests::patrol(storedBat).headingToSecond != headingToSecond)
         {
             const glm::vec2 expectedFeet = headingToSecond ? upperFeet : lowerFeet;
-            const glm::vec2 actualFeet = simple_platformer::feetOf(storedBat->body.bounds);
+            const glm::vec2 actualFeet = simple_platformer::feetOf(storedBat.body.bounds);
             CAPTURE(tick, completedPatrolLegs, actualFeet.x, actualFeet.y);
             REQUIRE(glm::distance(actualFeet, expectedFeet) <= 2.0F);
             ++completedPatrolLegs;
-            headingToSecond = storedBat->patrol->headingToSecond;
+            headingToSecond = tests::patrol(storedBat).headingToSecond;
         }
     }
 
-    const simple_platformer::Actor* storedBat = world.findActor(batId);
-    REQUIRE(storedBat != nullptr);
-    if (!storedBat->pathFollower.has_value())
-    {
-        throw std::logic_error("The test bat has no path follower");
-    }
-    const glm::vec2 finalFeet = simple_platformer::feetOf(storedBat->body.bounds);
-    CAPTURE(finalFeet.x, finalFeet.y, storedBat->pathFollower->nextStep, completedPatrolLegs);
+    simple_platformer::Actor& storedBat = tests::actor(world, batId);
+    const glm::vec2 finalFeet = simple_platformer::feetOf(storedBat.body.bounds);
+    CAPTURE(finalFeet.x, finalFeet.y, tests::pathFollower(storedBat).nextStep, completedPatrolLegs);
     REQUIRE(completedPatrolLegs == 4);
 }

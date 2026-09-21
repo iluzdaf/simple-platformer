@@ -5,7 +5,12 @@
       "item": "medicine",
       "quantity": 2,
       "bodySize": [14, 10],
-      "sprite": { "position": [24, 0], "size": [12, 8], "displaySize": [24, 16], "anchor": "center" }
+      "sprite": {
+        "position": [24, 0],
+        "size": [12, 8],
+        "displaySize": [24, 16],
+        "anchor": "center"
+      }
     }
   }
 }

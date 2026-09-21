@@ -1,0 +1,9 @@
+{
+  "printWidth": 100,
+  "overrides": [
+    {
+      "files": "*.json",
+      "options": { "parser": "json" }
+    }
+  ]
+}

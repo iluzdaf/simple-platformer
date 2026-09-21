@@ -68,7 +68,7 @@ namespace
         glm::vec2 goalFeet)
     {
         simple_platformer::GridPosition start =
-            simple_platformer::navigationCell(simple_platformer::feetOf(actor.body.bounds));
+            simple_platformer::cellAtFeet(simple_platformer::feetOf(actor.body.bounds));
         if (actor.platformerMovement.has_value())
         {
             if (!actor.platformerMovement->grounded)
@@ -83,7 +83,7 @@ namespace
             }
             start = supportedStart.value_or(start);
         }
-        const simple_platformer::GridPosition goal = simple_platformer::navigationCell(goalFeet);
+        const simple_platformer::GridPosition goal = simple_platformer::cellAtFeet(goalFeet);
         const bool destinationChanged =
             !follower.destination.has_value() || follower.destination.value_or(goal) != goal;
         const bool displacedAfterCompletion =
@@ -274,7 +274,7 @@ namespace
                 simple_platformer::clearPath(follower);
                 return;
             }
-            destination = simple_platformer::navigationFeet(chaseCell.value());
+            destination = simple_platformer::feetInCell(chaseCell.value());
         }
         followDestination(map, actor, follower, destination, deltaTime);
     }

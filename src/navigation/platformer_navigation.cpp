@@ -49,13 +49,6 @@ namespace simple_platformer
             program.push_back({SimulationStep, intentions});
         }
 
-        Aabb bodyAt(GridPosition position, glm::vec2 bodySize)
-        {
-            Aabb bounds{{0.0F, 0.0F}, bodySize};
-            placeFeetAt(bounds, navigationFeet(position));
-            return bounds;
-        }
-
         bool bodyFits(const TileMap& map, const Aabb& bounds)
         {
             constexpr float Inside = 0.001F;
@@ -92,7 +85,7 @@ namespace simple_platformer
             glm::vec2 bodySize,
             const PlatformerMovementConfig& config)
         {
-            Body body{bodyAt(start, bodySize), {0.0F, 0.0F}};
+            Body body{boxInCell(start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
             Facing facing = destination.x < start.x ? Facing::Left : Facing::Right;
             PathFollower follower;
@@ -142,7 +135,7 @@ namespace simple_platformer
             const Aabb& bounds,
             glm::vec2 bodySize)
         {
-            const GridPosition destination = navigationCell(feetOf(bounds));
+            const GridPosition destination = cellAtFeet(feetOf(bounds));
             if (destination == start || !canStandAt(map, destination, bodySize))
             {
                 return std::nullopt;
@@ -162,7 +155,7 @@ namespace simple_platformer
             float direction,
             int jumpHoldTicks)
         {
-            Body body{bodyAt(start, bodySize), {0.0F, 0.0F}};
+            Body body{boxInCell(start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
             Facing facing = direction < 0.0F ? Facing::Left : Facing::Right;
             InputProgram program;
@@ -199,7 +192,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                const GridPosition stoppedCell = navigationCell(feetOf(body.bounds));
+                const GridPosition stoppedCell = cellAtFeet(feetOf(body.bounds));
                 if (stoppedCell != landing.value())
                 {
                     return std::nullopt;
@@ -304,7 +297,7 @@ namespace simple_platformer
         }
         return map.contains(position) && !map.blocksMovement(position) &&
                map.blocksMovement({position.x, position.y + 1}) &&
-               bodyFits(map, bodyAt(position, bodySize));
+               bodyFits(map, boxInCell(position, bodySize));
     }
 
     std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds)
@@ -317,7 +310,7 @@ namespace simple_platformer
         }
 
         const glm::vec2 feet = feetOf(bounds);
-        const GridPosition feetCell = navigationCell(feet);
+        const GridPosition feetCell = cellAtFeet(feet);
         if (canStandAt(map, feetCell, bounds.size))
         {
             return feetCell;
@@ -339,7 +332,7 @@ namespace simple_platformer
                 continue;
             }
 
-            const float distance = std::abs(navigationFeet(candidate).x - feet.x);
+            const float distance = std::abs(feetInCell(candidate).x - feet.x);
             if (!closest.has_value() || distance < closestDistance)
             {
                 closest = candidate;
@@ -365,7 +358,7 @@ namespace simple_platformer
         if (lastSeenFeet.x >= 0.0F && lastSeenFeet.x < map.pixelWidth() && lastSeenFeet.y >= 0.0F &&
             lastSeenFeet.y <= map.pixelHeight())
         {
-            const GridPosition targetCell = navigationCell(lastSeenFeet);
+            const GridPosition targetCell = cellAtFeet(lastSeenFeet);
             if (canStandAt(map, targetCell, bodySize))
             {
                 return targetCell;
@@ -384,7 +377,7 @@ namespace simple_platformer
                     continue;
                 }
 
-                const glm::vec2 candidateFeet = navigationFeet(candidate);
+                const glm::vec2 candidateFeet = feetInCell(candidate);
                 const double dx = static_cast<double>(candidateFeet.x) - lastSeenFeet.x;
                 const double dy = static_cast<double>(candidateFeet.y) - lastSeenFeet.y;
                 const double distanceSquared = dx * dx + dy * dy;

@@ -8,14 +8,13 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
-#include "support/boxes.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace
 {
     simple_platformer::Aabb boxIn(simple_platformer::GridPosition cell)
     {
-        return tests::boxStandingIn(cell, {12.0F, 12.0F});
+        return simple_platformer::boxInCell(cell, {12.0F, 12.0F});
     }
 }
 

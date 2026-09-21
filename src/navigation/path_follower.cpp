@@ -37,7 +37,7 @@ namespace
         const simple_platformer::PlatformerMovement& movement,
         simple_platformer::GridPosition destination)
     {
-        const glm::vec2 target = simple_platformer::navigationFeet(destination);
+        const glm::vec2 target = simple_platformer::feetInCell(destination);
         const glm::vec2 feet = simple_platformer::feetOf(body.bounds);
         return movement.grounded && std::abs(target.x - feet.x) <= ArrivalDistance &&
                std::abs(target.y - feet.y) <= ArrivalDistance;
@@ -62,7 +62,7 @@ namespace
             return intentions;
         }
 
-        const glm::vec2 target = simple_platformer::navigationFeet(takeoff);
+        const glm::vec2 target = simple_platformer::feetInCell(takeoff);
         const glm::vec2 feet = simple_platformer::feetOf(body.bounds);
         const float horizontalOffset = target.x - feet.x;
         const float verticalOffset = target.y - feet.y;
@@ -89,20 +89,6 @@ namespace
 
 namespace simple_platformer
 {
-    GridPosition navigationCell(glm::vec2 feet)
-    {
-        constexpr float BoundaryOffset = 0.001F;
-        return worldToGrid({feet.x, feet.y - BoundaryOffset});
-    }
-
-    glm::vec2 navigationFeet(GridPosition cell)
-    {
-        const glm::vec2 topLeft = gridToWorld(cell);
-        return {
-            topLeft.x + static_cast<float>(TileSize) * 0.5F,
-            topLeft.y + static_cast<float>(TileSize)};
-    }
-
     void setPath(PathFollower& follower, NavigationPath path, GridPosition destination)
     {
         if ((!path.steps.empty() && path.steps.back().destination != destination) ||
@@ -158,7 +144,7 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("A flying actor requires flying path steps");
             }
-            const glm::vec2 offset = navigationFeet(step.destination) - feet;
+            const glm::vec2 offset = feetInCell(step.destination) - feet;
             const float distance = glm::length(offset);
             if (distance > FlyingArrivalDistance)
             {
@@ -232,7 +218,7 @@ namespace simple_platformer
                     std::min(programDuration, follower.programElapsed + deltaTime);
                 return intentions;
             }
-            if (movement.grounded && navigationCell(feetOf(body.bounds)) == step.destination)
+            if (movement.grounded && cellAtFeet(feetOf(body.bounds)) == step.destination)
             {
                 ++follower.nextStep;
                 follower.programElapsed = 0.0F;

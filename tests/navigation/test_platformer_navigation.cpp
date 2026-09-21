@@ -62,7 +62,7 @@ TEST_CASE(
     simple_platformer::placeFeetAt(bounds, {80.5F, 32.0F});
 
     REQUIRE(
-        simple_platformer::navigationCell(simple_platformer::feetOf(bounds)) ==
+        simple_platformer::cellAtFeet(simple_platformer::feetOf(bounds)) ==
         simple_platformer::GridPosition{5, 1});
     REQUIRE(
         simple_platformer::findPlatformerStartCell(map, bounds) ==
@@ -74,8 +74,7 @@ TEST_CASE(
     "[navigation][platformer][exercise]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "####"});
-    simple_platformer::Aabb bounds{{0.0F, 0.0F}, {12.0F, 20.0F}};
-    simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
+    simple_platformer::Aabb bounds = simple_platformer::boxInCell({1, 1}, {12.0F, 20.0F});
 
     REQUIRE(
         simple_platformer::findPlatformerStartCell(map, bounds) ==
@@ -87,8 +86,7 @@ TEST_CASE(
     "[navigation][platformer][exercise]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "...."});
-    simple_platformer::Aabb bounds{{0.0F, 0.0F}, {12.0F, 20.0F}};
-    simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
+    simple_platformer::Aabb bounds = simple_platformer::boxInCell({1, 1}, {12.0F, 20.0F});
 
     REQUIRE(simple_platformer::findPlatformerStartCell(map, bounds) == std::nullopt);
 }
@@ -98,8 +96,7 @@ TEST_CASE(
     "[navigation][platformer][exercise]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "####"});
-    simple_platformer::Aabb bounds{{0.0F, 0.0F}, {20.0F, 20.0F}};
-    simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
+    simple_platformer::Aabb bounds = simple_platformer::boxInCell({1, 1}, {20.0F, 20.0F});
 
     REQUIRE(
         simple_platformer::findPlatformerStartCell(map, bounds) ==
@@ -291,8 +288,8 @@ TEST_CASE("Generated jump inputs replay to their promised landing", "[navigation
     const simple_platformer::NavigationNeighbor& jump =
         neighborWith(neighbors, simple_platformer::Traversal::Jump);
 
-    simple_platformer::Body body{{{0.0F, 0.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
-    simple_platformer::placeFeetAt(body.bounds, simple_platformer::navigationFeet({2, 2}));
+    simple_platformer::Body body{
+        simple_platformer::boxInCell({2, 2}, {12.0F, 12.0F}), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
     const float fixedDelta = static_cast<float>(simple_platformer::FixedDeltaSeconds);
@@ -309,8 +306,7 @@ TEST_CASE("Generated jump inputs replay to their promised landing", "[navigation
 
     REQUIRE(movement.grounded);
     REQUIRE(
-        simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds)) ==
-        jump.destination);
+        simple_platformer::cellAtFeet(simple_platformer::feetOf(body.bounds)) == jump.destination);
 }
 
 TEST_CASE(
@@ -328,8 +324,8 @@ TEST_CASE(
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower, {{1, 0}, {{walk.destination, walk.traversal, {}}}}, walk.destination);
-    simple_platformer::Body body{{{0.0F, 0.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
-    simple_platformer::placeFeetAt(body.bounds, simple_platformer::navigationFeet({1, 0}));
+    simple_platformer::Body body{
+        simple_platformer::boxInCell({1, 0}, {12.0F, 12.0F}), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
     int walkTicks = 0;

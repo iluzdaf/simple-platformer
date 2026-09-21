@@ -18,13 +18,6 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/tile_map_builder.hpp"
 
-TEST_CASE("Navigation cells use feet on tile boundaries", "[navigation][path]")
-{
-    REQUIRE(
-        simple_platformer::navigationCell({24.0F, 32.0F}) == simple_platformer::GridPosition{1, 1});
-    REQUIRE(simple_platformer::navigationFeet({1, 1}) == glm::vec2{24.0F, 32.0F});
-}
-
 TEST_CASE("A flying path follower produces intentions for its next step", "[navigation][path]")
 {
     simple_platformer::PathFollower follower;
@@ -43,13 +36,13 @@ TEST_CASE("A flying path follower produces intentions for its next step", "[navi
     REQUIRE(right.direction.x == 1.0F);
     REQUIRE(right.direction.y == 0.0F);
 
-    simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 0}));
+    bounds = simple_platformer::boxInCell({1, 0}, bounds.size);
     const simple_platformer::InputIntentions down =
         simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime);
     REQUIRE(down.direction.x == 0.0F);
     REQUIRE(down.direction.y == 1.0F);
 
-    simple_platformer::placeFeetAt(bounds, simple_platformer::navigationFeet({1, 1}));
+    bounds = simple_platformer::boxInCell({1, 1}, bounds.size);
     REQUIRE(
         simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime).direction ==
         glm::vec2{0.0F});
@@ -98,8 +91,7 @@ TEST_CASE(
         follower,
         {{2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},
         jump->destination);
-    simple_platformer::Body body{{{0.0F, 0.0F}, bodySize}, {0.0F, 0.0F}};
-    simple_platformer::placeFeetAt(body.bounds, simple_platformer::navigationFeet({2, 2}));
+    simple_platformer::Body body{simple_platformer::boxInCell({2, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
@@ -114,8 +106,7 @@ TEST_CASE(
 
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
-        simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds)) ==
-        jump->destination);
+        simple_platformer::cellAtFeet(simple_platformer::feetOf(body.bounds)) == jump->destination);
 }
 
 TEST_CASE(
@@ -143,8 +134,7 @@ TEST_CASE(
         follower,
         {{2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},
         jump->destination);
-    simple_platformer::Body body{{{0.0F, 0.0F}, bodySize}, {80.0F, 0.0F}};
-    simple_platformer::placeFeetAt(body.bounds, simple_platformer::navigationFeet({2, 2}));
+    simple_platformer::Body body{simple_platformer::boxInCell({2, 2}, bodySize), {80.0F, 0.0F}};
     body.bounds.position.x -= 6.0F;
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
@@ -168,8 +158,7 @@ TEST_CASE(
     REQUIRE(preparedForJump);
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
-        simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds)) ==
-        jump->destination);
+        simple_platformer::cellAtFeet(simple_platformer::feetOf(body.bounds)) == jump->destination);
 }
 
 TEST_CASE(
@@ -199,8 +188,7 @@ TEST_CASE(
          {{{2, 2}, simple_platformer::Traversal::Walk, {}},
           {jump->destination, jump->traversal, jump->inputs}}},
         jump->destination);
-    simple_platformer::Body body{{{0.0F, 0.0F}, bodySize}, {0.0F, 0.0F}};
-    simple_platformer::placeFeetAt(body.bounds, simple_platformer::navigationFeet({1, 2}));
+    simple_platformer::Body body{simple_platformer::boxInCell({1, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
@@ -220,6 +208,5 @@ TEST_CASE(
     REQUIRE(brakedAfterWalking);
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
-        simple_platformer::navigationCell(simple_platformer::feetOf(body.bounds)) ==
-        jump->destination);
+        simple_platformer::cellAtFeet(simple_platformer::feetOf(body.bounds)) == jump->destination);
 }

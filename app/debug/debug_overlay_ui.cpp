@@ -11,6 +11,7 @@
 #include <imgui.h>
 
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
@@ -241,7 +242,7 @@ namespace
         {
             constexpr float DestinationRadius = 6.0F;
             const ImVec2 destination = screenPosition(
-                simple_platformer::navigationFeet(follower.destination.value()), scene, viewport);
+                simple_platformer::feetInCell(follower.destination.value()), scene, viewport);
             drawList.AddCircle(destination, DestinationRadius, PathDestinationColour, 16, 2.0F);
             drawList.AddText(
                 {destination.x + DestinationRadius + 2.0F,

@@ -85,8 +85,7 @@ namespace
 
         constexpr float SimulationStep = static_cast<float>(simple_platformer::FixedDeltaSeconds);
         simple_platformer::Body body;
-        body.bounds.size = actor.body.bounds.size;
-        simple_platformer::placeFeetAt(body.bounds, simple_platformer::navigationFeet(start));
+        body.bounds = simple_platformer::boxInCell(start, actor.body.bounds.size);
         simple_platformer::PlatformerMovement movement{
             actor.platformerMovement->config, true, 0.0F, 0.0F};
         simple_platformer::Facing facing = step.destination.x < start.x
@@ -127,11 +126,11 @@ namespace
         info.connections.reserve(info.stepCount);
 
         simple_platformer::GridPosition fromCell = follower.path->start;
-        glm::vec2 from = simple_platformer::navigationFeet(fromCell);
+        glm::vec2 from = simple_platformer::feetInCell(fromCell);
         for (std::size_t index = 0; index < follower.path->steps.size(); ++index)
         {
             const simple_platformer::NavigationStep& step = follower.path->steps[index];
-            const glm::vec2 to = simple_platformer::navigationFeet(step.destination);
+            const glm::vec2 to = simple_platformer::feetInCell(step.destination);
             info.connections.push_back(
                 {from,
                  to,

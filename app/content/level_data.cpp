@@ -17,7 +17,6 @@
 
 #include "content/item_catalog.hpp"
 #include "simple_platformer/math/coordinates.hpp"
-#include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 
 namespace simple_platformer
@@ -60,8 +59,7 @@ namespace simple_platformer
             }
             if (cell != object.end())
             {
-                return navigationFeet(
-                    jsonGridPosition(*cell, sourceName, fieldPath(path, cellKey)));
+                return feetInCell(jsonGridPosition(*cell, sourceName, fieldPath(path, cellKey)));
             }
             return jsonVector(*feet, sourceName, fieldPath(path, feetKey));
         }

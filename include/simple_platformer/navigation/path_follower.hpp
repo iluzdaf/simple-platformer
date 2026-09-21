@@ -26,8 +26,6 @@ namespace simple_platformer
         float repathRemaining = 0.0F;
     };
 
-    GridPosition navigationCell(glm::vec2 feet);
-    glm::vec2 navigationFeet(GridPosition cell);
     void setPath(PathFollower& follower, NavigationPath path, GridPosition destination);
     void clearPath(PathFollower& follower);
     bool pathComplete(const PathFollower& follower);

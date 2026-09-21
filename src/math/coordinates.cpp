@@ -19,4 +19,18 @@ namespace simple_platformer
             static_cast<float>(gridPosition.y * TileSize),
         };
     }
+
+    GridPosition cellAtFeet(glm::vec2 feet)
+    {
+        constexpr float BoundaryOffset = 0.001F;
+        return worldToGrid({feet.x, feet.y - BoundaryOffset});
+    }
+
+    glm::vec2 feetInCell(GridPosition cell)
+    {
+        const glm::vec2 topLeft = gridToWorld(cell);
+        return {
+            topLeft.x + static_cast<float>(TileSize) * 0.5F,
+            topLeft.y + static_cast<float>(TileSize)};
+    }
 }

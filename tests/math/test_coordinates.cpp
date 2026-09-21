@@ -69,3 +69,9 @@ TEST_CASE("World and grid coordinates convert at tile boundaries", "[math][coord
     REQUIRE(simple_platformer::worldToGrid({-0.1F, -16.1F}) == GridPosition{-1, -2});
     requireVector(simple_platformer::gridToWorld({2, 3}), {32.0F, 48.0F});
 }
+
+TEST_CASE("Cells and feet convert on tile boundaries", "[math][coordinates]")
+{
+    REQUIRE(simple_platformer::cellAtFeet({24.0F, 32.0F}) == simple_platformer::GridPosition{1, 1});
+    REQUIRE(simple_platformer::feetInCell({1, 1}) == glm::vec2{24.0F, 32.0F});
+}

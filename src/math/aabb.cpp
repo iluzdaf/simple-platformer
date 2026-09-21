@@ -1,5 +1,9 @@
 #include "simple_platformer/math/aabb.hpp"
 
+#include <glm/vec2.hpp>
+
+#include "simple_platformer/math/coordinates.hpp"
+
 namespace simple_platformer
 {
     glm::vec2 centerOf(const Aabb& box)
@@ -15,6 +19,13 @@ namespace simple_platformer
     void placeFeetAt(Aabb& box, glm::vec2 feet)
     {
         box.position = {feet.x - box.size.x * 0.5F, feet.y - box.size.y};
+    }
+
+    Aabb boxInCell(GridPosition cell, glm::vec2 size)
+    {
+        Aabb box{{0.0F, 0.0F}, size};
+        placeFeetAt(box, feetInCell(cell));
+        return box;
     }
 
     bool overlaps(const Aabb& first, const Aabb& second)

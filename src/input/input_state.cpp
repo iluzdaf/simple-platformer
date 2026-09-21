@@ -4,27 +4,27 @@
 #include <cstddef>
 #include <stdexcept>
 
-namespace
-{
-    std::size_t indexOf(simple_platformer::InputButton button)
-    {
-        const std::size_t index = static_cast<std::size_t>(button);
-        if (index >= static_cast<std::size_t>(simple_platformer::InputButton::Count))
-        {
-            throw std::invalid_argument("Input button is invalid");
-        }
-
-        return index;
-    }
-
-    float axis(bool negative, bool positive)
-    {
-        return static_cast<float>(positive) - static_cast<float>(negative);
-    }
-}
-
 namespace simple_platformer
 {
+    namespace
+    {
+        std::size_t indexOf(InputButton button)
+        {
+            const std::size_t index = static_cast<std::size_t>(button);
+            if (index >= static_cast<std::size_t>(InputButton::Count))
+            {
+                throw std::invalid_argument("Input button is invalid");
+            }
+
+            return index;
+        }
+
+        float axis(bool negative, bool positive)
+        {
+            return static_cast<float>(positive) - static_cast<float>(negative);
+        }
+    }
+
     void InputState::setButton(InputButton button, bool down)
     {
         const std::size_t index = indexOf(button);

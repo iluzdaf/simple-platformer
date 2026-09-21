@@ -15,93 +15,90 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
-namespace
-{
-    constexpr float InsideBody = 0.001F;
-
-    int tileContaining(float position)
-    {
-        return static_cast<int>(
-            std::floor(position / static_cast<float>(simple_platformer::TileSize)));
-    }
-
-    bool hasClearance(const simple_platformer::TileMap& map, const simple_platformer::Aabb& bounds)
-    {
-        const int firstColumn = tileContaining(bounds.position.x + InsideBody);
-        const int lastColumn = tileContaining(bounds.position.x + bounds.size.x - InsideBody);
-        const int firstRow = tileContaining(bounds.position.y + InsideBody);
-        const int lastRow = tileContaining(bounds.position.y + bounds.size.y - InsideBody);
-
-        for (int row = firstRow; row <= lastRow; ++row)
-        {
-            for (int column = firstColumn; column <= lastColumn; ++column)
-            {
-                if (map.blocksMovement({column, row}))
-                {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    bool hasGroundSupport(
-        const simple_platformer::TileMap& map,
-        const simple_platformer::Aabb& bounds)
-    {
-        const int firstColumn = tileContaining(bounds.position.x + InsideBody);
-        const int lastColumn = tileContaining(bounds.position.x + bounds.size.x - InsideBody);
-        const int rowBelow = tileContaining(bounds.position.y + bounds.size.y + InsideBody);
-
-        for (int column = firstColumn; column <= lastColumn; ++column)
-        {
-            if (map.blocksMovement({column, rowBelow}))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    std::string actorLocation(int level, simple_platformer::ActorId actor, std::string_view place)
-    {
-        return "Level " + std::to_string(level) + " actor " + std::to_string(actor.value) + " " +
-               std::string(place);
-    }
-
-    void validatePlacement(
-        const simple_platformer::TileMap& map,
-        const simple_platformer::Actor& actor,
-        const simple_platformer::Aabb& bounds,
-        int level,
-        std::string_view place)
-    {
-        const std::string location = actorLocation(level, actor.id, place);
-        if (!hasClearance(map, bounds))
-        {
-            throw std::invalid_argument(location + " overlaps a blocked tile");
-        }
-        if (actor.platformerMovement.has_value() && !hasGroundSupport(map, bounds))
-        {
-            throw std::invalid_argument(location + " has no ground support");
-        }
-    }
-
-    void validateAtFeet(
-        const simple_platformer::TileMap& map,
-        const simple_platformer::Actor& actor,
-        glm::vec2 feet,
-        int level,
-        std::string_view place)
-    {
-        simple_platformer::Aabb bounds{{0.0F, 0.0F}, actor.body.bounds.size};
-        simple_platformer::placeFeetAt(bounds, feet);
-        validatePlacement(map, actor, bounds, level, place);
-    }
-}
-
 namespace simple_platformer
 {
+    namespace
+    {
+        constexpr float InsideBody = 0.001F;
+
+        int tileContaining(float position)
+        {
+            return static_cast<int>(std::floor(position / static_cast<float>(TileSize)));
+        }
+
+        bool hasClearance(const TileMap& map, const Aabb& bounds)
+        {
+            const int firstColumn = tileContaining(bounds.position.x + InsideBody);
+            const int lastColumn = tileContaining(bounds.position.x + bounds.size.x - InsideBody);
+            const int firstRow = tileContaining(bounds.position.y + InsideBody);
+            const int lastRow = tileContaining(bounds.position.y + bounds.size.y - InsideBody);
+
+            for (int row = firstRow; row <= lastRow; ++row)
+            {
+                for (int column = firstColumn; column <= lastColumn; ++column)
+                {
+                    if (map.blocksMovement({column, row}))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        bool hasGroundSupport(const TileMap& map, const Aabb& bounds)
+        {
+            const int firstColumn = tileContaining(bounds.position.x + InsideBody);
+            const int lastColumn = tileContaining(bounds.position.x + bounds.size.x - InsideBody);
+            const int rowBelow = tileContaining(bounds.position.y + bounds.size.y + InsideBody);
+
+            for (int column = firstColumn; column <= lastColumn; ++column)
+            {
+                if (map.blocksMovement({column, rowBelow}))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        std::string actorLocation(int level, ActorId actor, std::string_view place)
+        {
+            return "Level " + std::to_string(level) + " actor " + std::to_string(actor.value) +
+                   " " + std::string(place);
+        }
+
+        void validatePlacement(
+            const TileMap& map,
+            const Actor& actor,
+            const Aabb& bounds,
+            int level,
+            std::string_view place)
+        {
+            const std::string location = actorLocation(level, actor.id, place);
+            if (!hasClearance(map, bounds))
+            {
+                throw std::invalid_argument(location + " overlaps a blocked tile");
+            }
+            if (actor.platformerMovement.has_value() && !hasGroundSupport(map, bounds))
+            {
+                throw std::invalid_argument(location + " has no ground support");
+            }
+        }
+
+        void validateAtFeet(
+            const TileMap& map,
+            const Actor& actor,
+            glm::vec2 feet,
+            int level,
+            std::string_view place)
+        {
+            Aabb bounds{{0.0F, 0.0F}, actor.body.bounds.size};
+            placeFeetAt(bounds, feet);
+            validatePlacement(map, actor, bounds, level, place);
+        }
+    }
+
     void validateLevelActors(const TileMap& map, const World& world, int level)
     {
         for (const Actor& actor : world.actors())

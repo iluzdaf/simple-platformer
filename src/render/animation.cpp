@@ -9,23 +9,21 @@
 
 #include "simple_platformer/render/sprite.hpp"
 
-namespace
-{
-    simple_platformer::AnimationName selectMovementAnimation(bool grounded, glm::vec2 velocity)
-    {
-        using simple_platformer::AnimationName;
-
-        if (!grounded)
-        {
-            return velocity.y < 0.0F ? AnimationName::Jump : AnimationName::Fall;
-        }
-
-        return velocity == glm::vec2{0.0F, 0.0F} ? AnimationName::Idle : AnimationName::Move;
-    }
-}
-
 namespace simple_platformer
 {
+    namespace
+    {
+        AnimationName selectMovementAnimation(bool grounded, glm::vec2 velocity)
+        {
+            if (!grounded)
+            {
+                return velocity.y < 0.0F ? AnimationName::Jump : AnimationName::Fall;
+            }
+
+            return velocity == glm::vec2{0.0F, 0.0F} ? AnimationName::Idle : AnimationName::Move;
+        }
+    }
+
     const AnimationClip& clipFor(const AnimationSet& animationSet, AnimationName name)
     {
         const auto clip = std::find_if(

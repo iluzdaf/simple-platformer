@@ -23,300 +23,281 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
-namespace
-{
-    void changeState(simple_platformer::NpcBrain& brain, simple_platformer::NpcState state)
-    {
-        brain.state = state;
-        brain.stateTime = 0.0F;
-    }
-
-    void faceToward(simple_platformer::Actor& actor, glm::vec2 targetFeet)
-    {
-        if (targetFeet.x < simple_platformer::feetOf(actor.body.bounds).x)
-        {
-            actor.facing = simple_platformer::Facing::Left;
-        }
-        else if (targetFeet.x > simple_platformer::feetOf(actor.body.bounds).x)
-        {
-            actor.facing = simple_platformer::Facing::Right;
-        }
-    }
-
-    bool targetIsInBiteRange(
-        const simple_platformer::Actor& actor,
-        const simple_platformer::Actor& target)
-    {
-        if (!actor.bite.has_value())
-        {
-            return false;
-        }
-        return overlaps(
-            simple_platformer::biteHitbox(actor.body.bounds, *actor.bite, actor.facing),
-            target.body.bounds);
-    }
-
-    glm::vec2 patrolDestination(const simple_platformer::Patrol& patrol)
-    {
-        return patrol.headingToSecond ? patrol.secondFeet : patrol.firstFeet;
-    }
-
-    void requestPath(
-        const simple_platformer::TileMap& map,
-        const simple_platformer::Actor& actor,
-        simple_platformer::PathFollower& follower,
-        glm::vec2 goalFeet)
-    {
-        simple_platformer::GridPosition start =
-            simple_platformer::cellAtFeet(simple_platformer::feetOf(actor.body.bounds));
-        if (actor.platformerMovement.has_value())
-        {
-            if (!actor.platformerMovement->grounded)
-            {
-                return;
-            }
-            const std::optional<simple_platformer::GridPosition> supportedStart =
-                simple_platformer::findPlatformerStartCell(map, actor.body.bounds);
-            if (!supportedStart.has_value())
-            {
-                return;
-            }
-            start = supportedStart.value_or(start);
-        }
-        const simple_platformer::GridPosition goal = simple_platformer::cellAtFeet(goalFeet);
-        const bool destinationChanged =
-            !follower.destination.has_value() || follower.destination.value_or(goal) != goal;
-        const bool displacedAfterCompletion =
-            simple_platformer::pathComplete(follower) && start != goal;
-        if (!destinationChanged && follower.path.has_value() && !displacedAfterCompletion)
-        {
-            return;
-        }
-        if (follower.repathRemaining > 0.0F)
-        {
-            return;
-        }
-
-        std::optional<simple_platformer::NavigationPath> path;
-        if (actor.flyingMovement.has_value())
-        {
-            path = simple_platformer::findFlyingPath(map, start, goal);
-        }
-        else if (actor.platformerMovement.has_value())
-        {
-            path = simple_platformer::findPlatformerPath(
-                map, start, goal, actor.body.bounds.size, actor.platformerMovement->config);
-        }
-        follower.destination = goal;
-        follower.repathRemaining = follower.repathCooldown;
-        if (path.has_value())
-        {
-            simple_platformer::setPath(follower, path.value(), goal);
-        }
-        else
-        {
-            follower.path.reset();
-            follower.nextStep = 0;
-            follower.programElapsed = 0.0F;
-        }
-    }
-
-    void followDestination(
-        const simple_platformer::TileMap& map,
-        simple_platformer::Actor& actor,
-        simple_platformer::PathFollower& follower,
-        glm::vec2 destination,
-        float deltaTime)
-    {
-        requestPath(map, actor, follower, destination);
-        if (actor.flyingMovement.has_value())
-        {
-            actor.intentions = simple_platformer::followFlyingPath(
-                actor.body.bounds, *actor.flyingMovement, follower, deltaTime);
-        }
-        else if (actor.platformerMovement.has_value())
-        {
-            actor.intentions = simple_platformer::followPlatformerPath(
-                actor.body, *actor.platformerMovement, follower, deltaTime);
-        }
-    }
-
-    void enterPatrolOrIdle(
-        simple_platformer::NpcBrain& brain,
-        simple_platformer::PathFollower& follower,
-        bool hasPatrol)
-    {
-        simple_platformer::clearPath(follower);
-        changeState(
-            brain,
-            hasPatrol ? simple_platformer::NpcState::Patrol : simple_platformer::NpcState::Idle);
-    }
-
-    const simple_platformer::Actor* livingTarget(
-        const simple_platformer::World& world,
-        const simple_platformer::NpcBrain& brain)
-    {
-        if (!brain.target.has_value())
-        {
-            return nullptr;
-        }
-        const simple_platformer::Actor* target =
-            world.findActor(brain.target.value_or(simple_platformer::ActorId{}));
-        return target != nullptr && target->life == simple_platformer::LifeState::Alive ? target
-                                                                                        : nullptr;
-    }
-
-    void chooseNpcState(
-        simple_platformer::NpcBrain& brain,
-        simple_platformer::PathFollower& follower,
-        bool hasPatrol,
-        const simple_platformer::Actor* target)
-    {
-        if (brain.state == simple_platformer::NpcState::Bite)
-        {
-            return;
-        }
-
-        if (target != nullptr && brain.state != simple_platformer::NpcState::Chase)
-        {
-            simple_platformer::clearPath(follower);
-            changeState(brain, simple_platformer::NpcState::Chase);
-        }
-        else if (target == nullptr && brain.state == simple_platformer::NpcState::Chase)
-        {
-            enterPatrolOrIdle(brain, follower, hasPatrol);
-        }
-        else if (brain.state == simple_platformer::NpcState::Idle && hasPatrol)
-        {
-            changeState(brain, simple_platformer::NpcState::Patrol);
-        }
-    }
-
-    void updateBiteState(
-        simple_platformer::Actor& actor,
-        simple_platformer::NpcBrain& brain,
-        simple_platformer::PathFollower& follower,
-        const simple_platformer::BiteAttack& bite,
-        const simple_platformer::Actor* target)
-    {
-        faceToward(actor, brain.lastSeenTargetFeet);
-        if (bite.phase != simple_platformer::BitePhase::Ready || brain.stateTime <= 0.0F)
-        {
-            return;
-        }
-
-        if (target == nullptr)
-        {
-            enterPatrolOrIdle(brain, follower, actor.patrol.has_value());
-        }
-        else
-        {
-            changeState(brain, simple_platformer::NpcState::Chase);
-        }
-    }
-
-    void updatePatrolState(
-        const simple_platformer::TileMap& map,
-        simple_platformer::Actor& actor,
-        simple_platformer::PathFollower& follower,
-        float deltaTime)
-    {
-        if (!actor.patrol.has_value())
-        {
-            throw std::logic_error("A patrolling NPC is missing its patrol");
-        }
-        simple_platformer::Patrol& patrol = *actor.patrol;
-        followDestination(map, actor, follower, patrolDestination(patrol), deltaTime);
-        if (simple_platformer::pathComplete(follower))
-        {
-            patrol.headingToSecond = !patrol.headingToSecond;
-            simple_platformer::clearPath(follower);
-        }
-    }
-
-    void updateChaseState(
-        const simple_platformer::TileMap& map,
-        simple_platformer::Actor& actor,
-        simple_platformer::NpcBrain& brain,
-        simple_platformer::PathFollower& follower,
-        const simple_platformer::Actor* target,
-        float deltaTime)
-    {
-        if (target == nullptr)
-        {
-            return;
-        }
-
-        faceToward(actor, brain.lastSeenTargetFeet);
-        if (brain.targetVisible && targetIsInBiteRange(actor, *target))
-        {
-            simple_platformer::clearPath(follower);
-            actor.intentions.primaryAttackPressed = true;
-            changeState(brain, simple_platformer::NpcState::Bite);
-            return;
-        }
-        if (brain.targetVisible && actor.rangedWeapon.has_value())
-        {
-            simple_platformer::clearPath(follower);
-            actor.intentions.aimDirection = simple_platformer::centerOf(target->body.bounds) -
-                                            simple_platformer::centerOf(actor.body.bounds);
-            actor.intentions.primaryAttackPressed = true;
-            return;
-        }
-        glm::vec2 destination = brain.lastSeenTargetFeet;
-        if (actor.platformerMovement.has_value())
-        {
-            const std::optional<simple_platformer::GridPosition> chaseCell =
-                simple_platformer::findPlatformerChaseCell(
-                    map, brain.lastSeenTargetFeet, actor.body.bounds.size);
-            if (!chaseCell.has_value())
-            {
-                simple_platformer::clearPath(follower);
-                return;
-            }
-            destination = simple_platformer::feetInCell(chaseCell.value());
-        }
-        followDestination(map, actor, follower, destination, deltaTime);
-    }
-
-    void updateNpcState(
-        const simple_platformer::TileMap& map,
-        simple_platformer::World& world,
-        simple_platformer::Actor& actor,
-        float deltaTime)
-    {
-        if (!actor.brain.has_value() || !actor.pathFollower.has_value())
-        {
-            throw std::logic_error("An NPC is missing behaviour components");
-        }
-        simple_platformer::NpcBrain& brain = *actor.brain;
-        simple_platformer::PathFollower& follower = *actor.pathFollower;
-        const simple_platformer::Actor* target = livingTarget(world, brain);
-        chooseNpcState(brain, follower, actor.patrol.has_value(), target);
-
-        switch (brain.state)
-        {
-        case simple_platformer::NpcState::Idle:
-            break;
-        case simple_platformer::NpcState::Patrol:
-            updatePatrolState(map, actor, follower, deltaTime);
-            break;
-        case simple_platformer::NpcState::Chase:
-            updateChaseState(map, actor, brain, follower, target, deltaTime);
-            break;
-        case simple_platformer::NpcState::Bite:
-            if (!actor.bite.has_value())
-            {
-                throw std::logic_error("An NPC in the Bite state is missing its bite attack");
-            }
-            updateBiteState(actor, brain, follower, *actor.bite, target);
-            break;
-        }
-    }
-}
-
 namespace simple_platformer
 {
+    namespace
+    {
+        void changeState(NpcBrain& brain, NpcState state)
+        {
+            brain.state = state;
+            brain.stateTime = 0.0F;
+        }
+
+        void faceToward(Actor& actor, glm::vec2 targetFeet)
+        {
+            if (targetFeet.x < feetOf(actor.body.bounds).x)
+            {
+                actor.facing = Facing::Left;
+            }
+            else if (targetFeet.x > feetOf(actor.body.bounds).x)
+            {
+                actor.facing = Facing::Right;
+            }
+        }
+
+        bool targetIsInBiteRange(const Actor& actor, const Actor& target)
+        {
+            if (!actor.bite.has_value())
+            {
+                return false;
+            }
+            return overlaps(
+                biteHitbox(actor.body.bounds, *actor.bite, actor.facing), target.body.bounds);
+        }
+
+        glm::vec2 patrolDestination(const Patrol& patrol)
+        {
+            return patrol.headingToSecond ? patrol.secondFeet : patrol.firstFeet;
+        }
+
+        void requestPath(
+            const TileMap& map,
+            const Actor& actor,
+            PathFollower& follower,
+            glm::vec2 goalFeet)
+        {
+            GridPosition start = cellAtFeet(feetOf(actor.body.bounds));
+            if (actor.platformerMovement.has_value())
+            {
+                if (!actor.platformerMovement->grounded)
+                {
+                    return;
+                }
+                const std::optional<GridPosition> supportedStart =
+                    findPlatformerStartCell(map, actor.body.bounds);
+                if (!supportedStart.has_value())
+                {
+                    return;
+                }
+                start = supportedStart.value_or(start);
+            }
+            const GridPosition goal = cellAtFeet(goalFeet);
+            const bool destinationChanged =
+                !follower.destination.has_value() || follower.destination.value_or(goal) != goal;
+            const bool displacedAfterCompletion = pathComplete(follower) && start != goal;
+            if (!destinationChanged && follower.path.has_value() && !displacedAfterCompletion)
+            {
+                return;
+            }
+            if (follower.repathRemaining > 0.0F)
+            {
+                return;
+            }
+
+            std::optional<NavigationPath> path;
+            if (actor.flyingMovement.has_value())
+            {
+                path = findFlyingPath(map, start, goal);
+            }
+            else if (actor.platformerMovement.has_value())
+            {
+                path = findPlatformerPath(
+                    map, start, goal, actor.body.bounds.size, actor.platformerMovement->config);
+            }
+            follower.destination = goal;
+            follower.repathRemaining = follower.repathCooldown;
+            if (path.has_value())
+            {
+                setPath(follower, path.value(), goal);
+            }
+            else
+            {
+                follower.path.reset();
+                follower.nextStep = 0;
+                follower.programElapsed = 0.0F;
+            }
+        }
+
+        void followDestination(
+            const TileMap& map,
+            Actor& actor,
+            PathFollower& follower,
+            glm::vec2 destination,
+            float deltaTime)
+        {
+            requestPath(map, actor, follower, destination);
+            if (actor.flyingMovement.has_value())
+            {
+                actor.intentions =
+                    followFlyingPath(actor.body.bounds, *actor.flyingMovement, follower, deltaTime);
+            }
+            else if (actor.platformerMovement.has_value())
+            {
+                actor.intentions = followPlatformerPath(
+                    actor.body, *actor.platformerMovement, follower, deltaTime);
+            }
+        }
+
+        void enterPatrolOrIdle(NpcBrain& brain, PathFollower& follower, bool hasPatrol)
+        {
+            clearPath(follower);
+            changeState(brain, hasPatrol ? NpcState::Patrol : NpcState::Idle);
+        }
+
+        const Actor* livingTarget(const World& world, const NpcBrain& brain)
+        {
+            if (!brain.target.has_value())
+            {
+                return nullptr;
+            }
+            const Actor* target = world.findActor(brain.target.value_or(ActorId{}));
+            return target != nullptr && target->life == LifeState::Alive ? target : nullptr;
+        }
+
+        void chooseNpcState(
+            NpcBrain& brain,
+            PathFollower& follower,
+            bool hasPatrol,
+            const Actor* target)
+        {
+            if (brain.state == NpcState::Bite)
+            {
+                return;
+            }
+
+            if (target != nullptr && brain.state != NpcState::Chase)
+            {
+                clearPath(follower);
+                changeState(brain, NpcState::Chase);
+            }
+            else if (target == nullptr && brain.state == NpcState::Chase)
+            {
+                enterPatrolOrIdle(brain, follower, hasPatrol);
+            }
+            else if (brain.state == NpcState::Idle && hasPatrol)
+            {
+                changeState(brain, NpcState::Patrol);
+            }
+        }
+
+        void updateBiteState(
+            Actor& actor,
+            NpcBrain& brain,
+            PathFollower& follower,
+            const BiteAttack& bite,
+            const Actor* target)
+        {
+            faceToward(actor, brain.lastSeenTargetFeet);
+            if (bite.phase != BitePhase::Ready || brain.stateTime <= 0.0F)
+            {
+                return;
+            }
+
+            if (target == nullptr)
+            {
+                enterPatrolOrIdle(brain, follower, actor.patrol.has_value());
+            }
+            else
+            {
+                changeState(brain, NpcState::Chase);
+            }
+        }
+
+        void updatePatrolState(
+            const TileMap& map,
+            Actor& actor,
+            PathFollower& follower,
+            float deltaTime)
+        {
+            if (!actor.patrol.has_value())
+            {
+                throw std::logic_error("A patrolling NPC is missing its patrol");
+            }
+            Patrol& patrol = *actor.patrol;
+            followDestination(map, actor, follower, patrolDestination(patrol), deltaTime);
+            if (pathComplete(follower))
+            {
+                patrol.headingToSecond = !patrol.headingToSecond;
+                clearPath(follower);
+            }
+        }
+
+        void updateChaseState(
+            const TileMap& map,
+            Actor& actor,
+            NpcBrain& brain,
+            PathFollower& follower,
+            const Actor* target,
+            float deltaTime)
+        {
+            if (target == nullptr)
+            {
+                return;
+            }
+
+            faceToward(actor, brain.lastSeenTargetFeet);
+            if (brain.targetVisible && targetIsInBiteRange(actor, *target))
+            {
+                clearPath(follower);
+                actor.intentions.primaryAttackPressed = true;
+                changeState(brain, NpcState::Bite);
+                return;
+            }
+            if (brain.targetVisible && actor.rangedWeapon.has_value())
+            {
+                clearPath(follower);
+                actor.intentions.aimDirection =
+                    centerOf(target->body.bounds) - centerOf(actor.body.bounds);
+                actor.intentions.primaryAttackPressed = true;
+                return;
+            }
+            glm::vec2 destination = brain.lastSeenTargetFeet;
+            if (actor.platformerMovement.has_value())
+            {
+                const std::optional<GridPosition> chaseCell =
+                    findPlatformerChaseCell(map, brain.lastSeenTargetFeet, actor.body.bounds.size);
+                if (!chaseCell.has_value())
+                {
+                    clearPath(follower);
+                    return;
+                }
+                destination = feetInCell(chaseCell.value());
+            }
+            followDestination(map, actor, follower, destination, deltaTime);
+        }
+
+        void updateNpcState(const TileMap& map, World& world, Actor& actor, float deltaTime)
+        {
+            if (!actor.brain.has_value() || !actor.pathFollower.has_value())
+            {
+                throw std::logic_error("An NPC is missing behaviour components");
+            }
+            NpcBrain& brain = *actor.brain;
+            PathFollower& follower = *actor.pathFollower;
+            const Actor* target = livingTarget(world, brain);
+            chooseNpcState(brain, follower, actor.patrol.has_value(), target);
+
+            switch (brain.state)
+            {
+            case NpcState::Idle:
+                break;
+            case NpcState::Patrol:
+                updatePatrolState(map, actor, follower, deltaTime);
+                break;
+            case NpcState::Chase:
+                updateChaseState(map, actor, brain, follower, target, deltaTime);
+                break;
+            case NpcState::Bite:
+                if (!actor.bite.has_value())
+                {
+                    throw std::logic_error("An NPC in the Bite state is missing its bite attack");
+                }
+                updateBiteState(actor, brain, follower, *actor.bite, target);
+                break;
+            }
+        }
+    }
+
     void updateNpcBehaviour(const TileMap& map, World& world, float deltaTime)
     {
         if (!std::isfinite(deltaTime) || deltaTime < 0.0F)

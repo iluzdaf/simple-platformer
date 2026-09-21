@@ -10,77 +10,75 @@
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
-namespace
-{
-    void validateViewport(glm::vec2 viewportSize)
-    {
-        if (!simple_platformer::isFinite(viewportSize) || viewportSize.x <= 0.0F ||
-            viewportSize.y <= 0.0F)
-        {
-            throw std::invalid_argument("Camera viewport must be positive and finite");
-        }
-    }
-
-    void validateDeadZone(glm::vec2 deadZoneSize, glm::vec2 viewportSize)
-    {
-        if (!simple_platformer::isFinite(deadZoneSize) || deadZoneSize.x <= 0.0F ||
-            deadZoneSize.y <= 0.0F || deadZoneSize.x > viewportSize.x ||
-            deadZoneSize.y > viewportSize.y)
-        {
-            throw std::invalid_argument(
-                "Camera dead zone must be positive, finite, and no larger than the viewport");
-        }
-    }
-
-    void validateCamera(const simple_platformer::Camera& camera)
-    {
-        validateViewport(camera.viewportSize);
-        if (!simple_platformer::isFinite(camera.position))
-        {
-            throw std::invalid_argument("Camera position must be finite");
-        }
-    }
-
-    float cameraAxis(float targetCenter, float mapSize, float viewportSize)
-    {
-        if (mapSize <= viewportSize)
-        {
-            return std::round((mapSize - viewportSize) * 0.5F);
-        }
-
-        return std::round(
-            std::clamp(targetCenter - viewportSize * 0.5F, 0.0F, mapSize - viewportSize));
-    }
-
-    float followAxis(
-        float cameraPosition,
-        float targetCenter,
-        float mapSize,
-        float viewportSize,
-        float deadZoneSize)
-    {
-        if (mapSize <= viewportSize)
-        {
-            return std::round((mapSize - viewportSize) * 0.5F);
-        }
-
-        const float deadZoneStart = cameraPosition + (viewportSize - deadZoneSize) * 0.5F;
-        const float deadZoneEnd = deadZoneStart + deadZoneSize;
-        if (targetCenter < deadZoneStart)
-        {
-            cameraPosition -= deadZoneStart - targetCenter;
-        }
-        else if (targetCenter > deadZoneEnd)
-        {
-            cameraPosition += targetCenter - deadZoneEnd;
-        }
-
-        return std::round(std::clamp(cameraPosition, 0.0F, mapSize - viewportSize));
-    }
-}
-
 namespace simple_platformer
 {
+    namespace
+    {
+        void validateViewport(glm::vec2 viewportSize)
+        {
+            if (!isFinite(viewportSize) || viewportSize.x <= 0.0F || viewportSize.y <= 0.0F)
+            {
+                throw std::invalid_argument("Camera viewport must be positive and finite");
+            }
+        }
+
+        void validateDeadZone(glm::vec2 deadZoneSize, glm::vec2 viewportSize)
+        {
+            if (!isFinite(deadZoneSize) || deadZoneSize.x <= 0.0F || deadZoneSize.y <= 0.0F ||
+                deadZoneSize.x > viewportSize.x || deadZoneSize.y > viewportSize.y)
+            {
+                throw std::invalid_argument(
+                    "Camera dead zone must be positive, finite, and no larger than the viewport");
+            }
+        }
+
+        void validateCamera(const Camera& camera)
+        {
+            validateViewport(camera.viewportSize);
+            if (!isFinite(camera.position))
+            {
+                throw std::invalid_argument("Camera position must be finite");
+            }
+        }
+
+        float cameraAxis(float targetCenter, float mapSize, float viewportSize)
+        {
+            if (mapSize <= viewportSize)
+            {
+                return std::round((mapSize - viewportSize) * 0.5F);
+            }
+
+            return std::round(
+                std::clamp(targetCenter - viewportSize * 0.5F, 0.0F, mapSize - viewportSize));
+        }
+
+        float followAxis(
+            float cameraPosition,
+            float targetCenter,
+            float mapSize,
+            float viewportSize,
+            float deadZoneSize)
+        {
+            if (mapSize <= viewportSize)
+            {
+                return std::round((mapSize - viewportSize) * 0.5F);
+            }
+
+            const float deadZoneStart = cameraPosition + (viewportSize - deadZoneSize) * 0.5F;
+            const float deadZoneEnd = deadZoneStart + deadZoneSize;
+            if (targetCenter < deadZoneStart)
+            {
+                cameraPosition -= deadZoneStart - targetCenter;
+            }
+            else if (targetCenter > deadZoneEnd)
+            {
+                cameraPosition += targetCenter - deadZoneEnd;
+            }
+
+            return std::round(std::clamp(cameraPosition, 0.0F, mapSize - viewportSize));
+        }
+    }
+
     CameraController::CameraController(Camera initialCamera, glm::vec2 initialDeadZoneSize)
         : camera(initialCamera),
           deadZoneSize(initialDeadZoneSize)

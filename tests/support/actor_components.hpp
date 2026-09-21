@@ -9,10 +9,12 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/inventory/inventory.hpp"
+#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
+#include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace tests
@@ -68,6 +70,23 @@ namespace tests
         simple_platformer::ActorId id)
     {
         return inventory(actor(world, id));
+    }
+
+    inline simple_platformer::Sprite& sprite(simple_platformer::Actor& actor)
+    {
+        std::optional<simple_platformer::Sprite>& component = actor.sprite;
+        if (!component.has_value())
+        {
+            throw std::logic_error("The test actor has no sprite");
+        }
+        return *component;
+    }
+
+    inline simple_platformer::Sprite& sprite(
+        simple_platformer::World& world,
+        simple_platformer::ActorId id)
+    {
+        return sprite(actor(world, id));
     }
 
     inline simple_platformer::Animator& animator(simple_platformer::Actor& actor)
@@ -170,6 +189,23 @@ namespace tests
         simple_platformer::ActorId id)
     {
         return patrol(actor(world, id));
+    }
+
+    inline simple_platformer::FlyingMovement& flyingMovement(simple_platformer::Actor& actor)
+    {
+        std::optional<simple_platformer::FlyingMovement>& component = actor.flyingMovement;
+        if (!component.has_value())
+        {
+            throw std::logic_error("The test actor has no flying movement");
+        }
+        return *component;
+    }
+
+    inline simple_platformer::FlyingMovement& flyingMovement(
+        simple_platformer::World& world,
+        simple_platformer::ActorId id)
+    {
+        return flyingMovement(actor(world, id));
     }
 
     inline simple_platformer::PlatformerMovement& platformerMovement(

@@ -13,6 +13,7 @@
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "support/actor_components.hpp"
 
 TEST_CASE("Actor catalogue references compose through level loading", "[app][actors]")
 {
@@ -20,14 +21,10 @@ TEST_CASE("Actor catalogue references compose through level loading", "[app][act
         R"({"startLevel":1,"levels":[{"number":1,"file":"actor_placement.json"}]})",
         "fixture",
         "tests/fixtures/levels");
-    const auto level = simple_platformer::composeGameLevel(levels, 1, 0);
+    auto level = simple_platformer::composeGameLevel(levels, 1, 0);
     REQUIRE(level.world.actors().size() == 1);
-    const auto& actor = level.world.actors().front();
-    if (!actor.platformerMovement)
-    {
-        throw std::logic_error("Guard has no movement");
-    }
-    REQUIRE(actor.platformerMovement->config.maximumSpeed == 23);
+    auto& actor = level.world.actors().front();
+    REQUIRE(tests::platformerMovement(actor).config.maximumSpeed == 23);
     REQUIRE(simple_platformer::feetOf(actor.body.bounds).x == 56);
     const auto invalid = simple_platformer::parseLevelCatalog(
         R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_actor.json"}]})",
@@ -56,17 +53,13 @@ TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[
     }
     definition.ranged->phase = simple_platformer::RangedPhase::Recovery;
     definition.ranged->firedThisUpdate = true;
-    const auto actor = simple_platformer::composeActor(definition, {}, 9);
-    if (!actor.rangedWeapon)
-    {
-        throw std::logic_error("Weapon was not composed");
-    }
-    REQUIRE(actor.rangedWeapon->damage == 2);
-    REQUIRE(actor.rangedWeapon->projectileSpeed == 120);
-    REQUIRE(actor.rangedWeapon->projectileSprite.textureId == 9);
-    REQUIRE(actor.rangedWeapon->projectileSprite.region.position.x == 4);
-    REQUIRE(actor.rangedWeapon->phase == simple_platformer::RangedPhase::Ready);
-    REQUIRE_FALSE(actor.rangedWeapon->firedThisUpdate);
+    auto actor = simple_platformer::composeActor(definition, {}, 9);
+    REQUIRE(tests::rangedWeapon(actor).damage == 2);
+    REQUIRE(tests::rangedWeapon(actor).projectileSpeed == 120);
+    REQUIRE(tests::rangedWeapon(actor).projectileSprite.textureId == 9);
+    REQUIRE(tests::rangedWeapon(actor).projectileSprite.region.position.x == 4);
+    REQUIRE(tests::rangedWeapon(actor).phase == simple_platformer::RangedPhase::Ready);
+    REQUIRE_FALSE(tests::rangedWeapon(actor).firedThisUpdate);
 }
 
 TEST_CASE("Actor composition creates fresh independent runtime state", "[app][actors]")
@@ -81,25 +74,20 @@ TEST_CASE("Actor composition creates fresh independent runtime state", "[app][ac
     definition.bite = simple_platformer::BiteAttack{};
     definition.bite.value().phase = simple_platformer::BitePhase::Recovery;
     definition.bite.value().phaseTimeRemaining = 10;
-    const auto first = simple_platformer::composeActor(
+    auto first = simple_platformer::composeActor(
         definition, {}, 0, {24, 32}, simple_platformer::Patrol{{8, 32}, {40, 32}, true});
     auto second = simple_platformer::composeActor(definition, {}, 0, {40, 32});
-    if (!first.platformerMovement || !first.bite || !first.health || !first.inventory ||
-        !second.health)
-    {
-        throw std::logic_error("Composition omitted a requested component");
-    }
-    REQUIRE(first.platformerMovement.value().config.maximumSpeed == 42);
+    REQUIRE(tests::platformerMovement(first).config.maximumSpeed == 42);
     REQUIRE(simple_platformer::feetOf(first.body.bounds).x == 24);
     REQUIRE(first.brain.has_value());
     REQUIRE(first.pathFollower.has_value());
     REQUIRE(first.patrol.has_value());
     REQUIRE_FALSE(second.patrol.has_value());
-    REQUIRE(first.bite.value().phase == simple_platformer::BitePhase::Ready);
-    REQUIRE(first.bite.value().phaseTimeRemaining == 0);
-    second.health.value().current = 1;
-    REQUIRE(first.health.value().current == 4);
-    REQUIRE(first.inventory.value().slots().size() == 2);
+    REQUIRE(tests::bite(first).phase == simple_platformer::BitePhase::Ready);
+    REQUIRE(tests::bite(first).phaseTimeRemaining == 0);
+    tests::health(second).current = 1;
+    REQUIRE(tests::health(first).current == 4);
+    REQUIRE(tests::inventory(first).slots().size() == 2);
 }
 
 TEST_CASE("Actor definitions reuse engine component validation", "[app][actors]")
@@ -152,16 +140,12 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
         "test actors",
         animations);
     REQUIRE(catalog.player == "hero");
-    const auto actor = simple_platformer::composeActor(
+    auto actor = simple_platformer::composeActor(
         simple_platformer::actorDefinition(catalog, "scout"), animations, 7);
-    if (!actor.flyingMovement || !actor.bite || !actor.sprite)
-    {
-        throw std::logic_error("Composition omitted scout components");
-    }
-    REQUIRE(actor.flyingMovement.value().speed == 25);
-    REQUIRE(actor.bite.value().damage == 2);
-    REQUIRE(actor.sprite.value().textureId == 7);
-    REQUIRE(actor.sprite.value().anchor == simple_platformer::SpriteAnchor::BodyCenter);
+    REQUIRE(tests::flyingMovement(actor).speed == 25);
+    REQUIRE(tests::bite(actor).damage == 2);
+    REQUIRE(tests::sprite(actor).textureId == 7);
+    REQUIRE(tests::sprite(actor).anchor == simple_platformer::SpriteAnchor::BodyCenter);
     REQUIRE_FALSE(actor.platformerMovement.has_value());
     REQUIRE_THROWS_AS(
         simple_platformer::actorDefinition(catalog, "missing"), std::invalid_argument);

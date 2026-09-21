@@ -1,6 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <optional>
 #include <stdexcept>
@@ -19,6 +17,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
+#include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
@@ -237,13 +236,10 @@ TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
     REQUIRE(pathFollower(world, npcId).destination == simple_platformer::GridPosition{7, 1});
-    REQUIRE_THAT(
-        pathFollower(world, npcId).repathRemaining, Catch::Matchers::WithinAbs(0.25F, 0.0001F));
+    REQUIRE_NEAR(pathFollower(world, npcId).repathRemaining, 0.25F);
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE_THAT(
-        pathFollower(world, npcId).repathRemaining, Catch::Matchers::WithinAbs(0.15F, 0.0001F));
+    REQUIRE_NEAR(pathFollower(world, npcId).repathRemaining, 0.15F);
     simple_platformer::updateNpcBehaviour(map, world, 0.2F);
-    REQUIRE_THAT(
-        pathFollower(world, npcId).repathRemaining, Catch::Matchers::WithinAbs(0.25F, 0.0001F));
+    REQUIRE_NEAR(pathFollower(world, npcId).repathRemaining, 0.25F);
 }

@@ -1,6 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -21,6 +19,7 @@
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/require_near.hpp"
 #include "support/actor_builder.hpp"
 #include "support/tile_map_builder.hpp"
 
@@ -200,7 +199,7 @@ TEST_CASE("Dying actors fade during the final part of their death", "[render][sc
 
     world.actors().front().deathTimeRemaining = 0.1F;
     const auto lateDeathScene = simple_platformer::buildRenderScene(map, 1, camera, world);
-    REQUIRE_THAT(lateDeathScene.sprites.back().opacity, Catch::Matchers::WithinAbs(0.5F, 0.0001F));
+    REQUIRE_NEAR(lateDeathScene.sprites.back().opacity, 0.5F);
 }
 
 TEST_CASE("Actors with active hit feedback produce a white flash", "[render][scene]")
@@ -244,9 +243,7 @@ TEST_CASE("Projectile sprites are centred and rotated in their direction", "[ren
     REQUIRE(scene.sprites.front().position.y == 9.0F);
     REQUIRE(scene.sprites.front().size.x == 6.0F);
     REQUIRE_FALSE(scene.sprites.front().flipHorizontal);
-    REQUIRE_THAT(
-        scene.sprites.front().rotationRadians,
-        Catch::Matchers::WithinAbs(-std::acos(-1.0F) * 0.5F, 0.0001F));
+    REQUIRE_NEAR(scene.sprites.front().rotationRadians, -std::acos(-1.0F) * 0.5F);
 }
 
 TEST_CASE("Projectile bursts expand and fade around their world position", "[render][scene]")
@@ -265,14 +262,12 @@ TEST_CASE("Projectile bursts expand and fade around their world position", "[ren
         simple_platformer::buildRenderScene(map, 0, camera, world);
 
     REQUIRE(scene.sprites.size() == 1);
-    REQUIRE_THAT(scene.sprites.front().position.x, Catch::Matchers::WithinAbs(15.5F, 0.0001F));
-    REQUIRE_THAT(scene.sprites.front().position.y, Catch::Matchers::WithinAbs(7.0F, 0.0001F));
-    REQUIRE_THAT(scene.sprites.front().size.x, Catch::Matchers::WithinAbs(9.0F, 0.0001F));
-    REQUIRE_THAT(scene.sprites.front().size.y, Catch::Matchers::WithinAbs(6.0F, 0.0001F));
-    REQUIRE_THAT(scene.sprites.front().opacity, Catch::Matchers::WithinAbs(0.5F, 0.0001F));
-    REQUIRE_THAT(
-        scene.sprites.front().rotationRadians,
-        Catch::Matchers::WithinAbs(-std::acos(-1.0F) * 0.5F, 0.0001F));
+    REQUIRE_NEAR(scene.sprites.front().position.x, 15.5F);
+    REQUIRE_NEAR(scene.sprites.front().position.y, 7.0F);
+    REQUIRE_NEAR(scene.sprites.front().size.x, 9.0F);
+    REQUIRE_NEAR(scene.sprites.front().size.y, 6.0F);
+    REQUIRE_NEAR(scene.sprites.front().opacity, 0.5F);
+    REQUIRE_NEAR(scene.sprites.front().rotationRadians, -std::acos(-1.0F) * 0.5F);
 }
 
 TEST_CASE("NPCs and pickups the player cannot see are not drawn", "[render][scene][cover]")

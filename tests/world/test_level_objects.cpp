@@ -1,6 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <optional>
 #include <stdexcept>
@@ -22,6 +20,7 @@
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
+#include "support/require_near.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
@@ -301,10 +300,10 @@ TEST_CASE(
     world.advanceSimulationTime(0.5F);
     const auto advancedScene = simple_platformer::buildRenderScene(map, 0, camera, world);
 
-    REQUIRE_THAT(initialScene.sprites[0].position.y, Catch::Matchers::WithinAbs(6.0F, 0.0001F));
-    REQUIRE_THAT(initialScene.sprites[1].position.y, Catch::Matchers::WithinAbs(5.0F, 0.0001F));
-    REQUIRE_THAT(advancedScene.sprites[0].position.y, Catch::Matchers::WithinAbs(4.0F, 0.0001F));
-    REQUIRE_THAT(advancedScene.sprites[1].position.y, Catch::Matchers::WithinAbs(5.0F, 0.0001F));
+    REQUIRE_NEAR(initialScene.sprites[0].position.y, 6.0F);
+    REQUIRE_NEAR(initialScene.sprites[1].position.y, 5.0F);
+    REQUIRE_NEAR(advancedScene.sprites[0].position.y, 4.0F);
+    REQUIRE_NEAR(advancedScene.sprites[1].position.y, 5.0F);
     REQUIRE(world.pickups()[0].bounds.position == glm::vec2{0.0F, 0.0F});
     REQUIRE(world.pickups()[1].bounds.position == glm::vec2{16.0F, 0.0F});
 }

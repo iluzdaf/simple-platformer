@@ -1,6 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <optional>
 #include <stdexcept>
@@ -13,6 +11,7 @@
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/require_near.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
@@ -132,8 +131,7 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
     simple_platformer::updateNpcSenses(map, world, 0.4F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE_FALSE(brain(world, npcId).targetVisible);
-    REQUIRE_THAT(
-        brain(world, npcId).targetMemoryRemaining, Catch::Matchers::WithinAbs(0.6F, 0.0001F));
+    REQUIRE_NEAR(brain(world, npcId).targetMemoryRemaining, 0.6F);
 
     simple_platformer::updateNpcSenses(map, world, 0.7F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
@@ -167,8 +165,7 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE_FALSE(brain(world, npcId).targetVisible);
     REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
-    REQUIRE_THAT(
-        brain(world, npcId).targetMemoryRemaining, Catch::Matchers::WithinAbs(1.0F, 0.0001F));
+    REQUIRE_NEAR(brain(world, npcId).targetMemoryRemaining, 1.0F);
 
     // Moving away afterwards doesn't update the remembered spot.
     rangedWeapon(world, playerId).firedThisUpdate = false;
@@ -176,8 +173,7 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
     simple_platformer::updateNpcSenses(map, world, 0.4F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
-    REQUIRE_THAT(
-        brain(world, npcId).targetMemoryRemaining, Catch::Matchers::WithinAbs(0.6F, 0.0001F));
+    REQUIRE_NEAR(brain(world, npcId).targetMemoryRemaining, 0.6F);
 }
 
 TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")

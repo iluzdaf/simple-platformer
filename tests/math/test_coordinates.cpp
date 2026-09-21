@@ -1,27 +1,24 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "support/require_near.hpp"
 
 namespace
 {
-    using Catch::Matchers::WithinAbs;
     using simple_platformer::Aabb;
 
-    void requireVector(glm::vec2 actual, glm::vec2 expected)
-    {
-        REQUIRE_THAT(actual.x, WithinAbs(expected.x, 0.0001F));
-        REQUIRE_THAT(actual.y, WithinAbs(expected.y, 0.0001F));
-    }
 }
 
 TEST_CASE("An AABB position is its top-left corner", "[math][coordinates]")
 {
     const Aabb box{{10.0F, 20.0F}, {12.0F, 24.0F}};
 
-    requireVector(simple_platformer::centerOf(box), {16.0F, 32.0F});
-    requireVector(simple_platformer::feetOf(box), {16.0F, 44.0F});
+    REQUIRE_NEAR(simple_platformer::centerOf(box).x, 16.0F);
+
+    REQUIRE_NEAR(simple_platformer::centerOf(box).y, 32.0F);
+    REQUIRE_NEAR(simple_platformer::feetOf(box).x, 16.0F);
+    REQUIRE_NEAR(simple_platformer::feetOf(box).y, 44.0F);
 }
 
 TEST_CASE("An arbitrary-sized AABB can be placed by its feet", "[math][coordinates]")
@@ -30,8 +27,11 @@ TEST_CASE("An arbitrary-sized AABB can be placed by its feet", "[math][coordinat
 
     simple_platformer::placeFeetAt(box, {40.0F, 128.0F});
 
-    requireVector(box.position, {34.0F, 104.0F});
-    requireVector(simple_platformer::feetOf(box), {40.0F, 128.0F});
+    REQUIRE_NEAR(box.position.x, 34.0F);
+
+    REQUIRE_NEAR(box.position.y, 104.0F);
+    REQUIRE_NEAR(simple_platformer::feetOf(box).x, 40.0F);
+    REQUIRE_NEAR(simple_platformer::feetOf(box).y, 128.0F);
 }
 
 TEST_CASE("AABBs overlap when their areas intersect", "[math][aabb]")
@@ -67,7 +67,8 @@ TEST_CASE("World and grid coordinates convert at tile boundaries", "[math][coord
     REQUIRE(simple_platformer::worldToGrid({15.9F, 31.9F}) == GridPosition{0, 1});
     REQUIRE(simple_platformer::worldToGrid({16.0F, 32.0F}) == GridPosition{1, 2});
     REQUIRE(simple_platformer::worldToGrid({-0.1F, -16.1F}) == GridPosition{-1, -2});
-    requireVector(simple_platformer::gridToWorld({2, 3}), {32.0F, 48.0F});
+    REQUIRE_NEAR(simple_platformer::gridToWorld({2, 3}).x, 32.0F);
+    REQUIRE_NEAR(simple_platformer::gridToWorld({2, 3}).y, 48.0F);
 }
 
 TEST_CASE("Cells and feet convert on tile boundaries", "[math][coordinates]")

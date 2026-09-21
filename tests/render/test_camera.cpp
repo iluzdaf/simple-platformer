@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <cstddef>
 #include <limits>
@@ -11,10 +10,10 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/require_near.hpp"
 
 namespace
 {
-    using Catch::Matchers::WithinAbs;
     using simple_platformer::Aabb;
     using simple_platformer::Camera;
     using simple_platformer::CameraController;
@@ -29,11 +28,6 @@ namespace
             {{false, false, {}}}};
     }
 
-    void requireVector(glm::vec2 actual, glm::vec2 expected)
-    {
-        REQUIRE_THAT(actual.x, WithinAbs(expected.x, 0.0001F));
-        REQUIRE_THAT(actual.y, WithinAbs(expected.y, 0.0001F));
-    }
 }
 
 static_assert(!std::is_default_constructible_v<CameraController>);
@@ -45,9 +39,13 @@ TEST_CASE("The camera locks to the target centre", "[render][camera]")
 
     const Camera camera = simple_platformer::makeLockedCamera(map, target, {100.0F, 60.0F});
 
-    requireVector(camera.position, {100.0F, 70.0F});
-    requireVector(simple_platformer::worldToScreen(camera, target.position), {45.0F, 25.0F});
-    requireVector(simple_platformer::screenToWorld(camera, {45.0F, 25.0F}), target.position);
+    REQUIRE_NEAR(camera.position.x, 100.0F);
+
+    REQUIRE_NEAR(camera.position.y, 70.0F);
+    REQUIRE_NEAR(simple_platformer::worldToScreen(camera, target.position).x, 45.0F);
+    REQUIRE_NEAR(simple_platformer::worldToScreen(camera, target.position).y, 25.0F);
+    REQUIRE_NEAR(simple_platformer::screenToWorld(camera, {45.0F, 25.0F}).x, target.position.x);
+    REQUIRE_NEAR(simple_platformer::screenToWorld(camera, {45.0F, 25.0F}).y, target.position.y);
 }
 
 TEST_CASE("The camera clamps to every map edge", "[render][camera]")
@@ -58,14 +56,16 @@ TEST_CASE("The camera clamps to every map edge", "[render][camera]")
     {
         const Camera camera = simple_platformer::makeLockedCamera(
             map, {{0.0F, 0.0F}, {10.0F, 10.0F}}, {100.0F, 60.0F});
-        requireVector(camera.position, {0.0F, 0.0F});
+        REQUIRE_NEAR(camera.position.x, 0.0F);
+        REQUIRE_NEAR(camera.position.y, 0.0F);
     }
 
     SECTION("bottom right")
     {
         const Camera camera = simple_platformer::makeLockedCamera(
             map, {{470.0F, 310.0F}, {10.0F, 10.0F}}, {100.0F, 60.0F});
-        requireVector(camera.position, {380.0F, 260.0F});
+        REQUIRE_NEAR(camera.position.x, 380.0F);
+        REQUIRE_NEAR(camera.position.y, 260.0F);
     }
 }
 
@@ -76,7 +76,9 @@ TEST_CASE("Maps smaller than the viewport are centred", "[render][camera]")
     const Camera camera =
         simple_platformer::makeLockedCamera(map, {{20.0F, 20.0F}, {10.0F, 10.0F}});
 
-    requireVector(camera.position, {-128.0F, -66.0F});
+    REQUIRE_NEAR(camera.position.x, -128.0F);
+
+    REQUIRE_NEAR(camera.position.y, -66.0F);
 }
 
 TEST_CASE("Camera movement is rounded to internal pixels", "[render][camera]")
@@ -86,7 +88,9 @@ TEST_CASE("Camera movement is rounded to internal pixels", "[render][camera]")
 
     const Camera camera = simple_platformer::makeLockedCamera(map, target, {100.0F, 60.0F});
 
-    requireVector(camera.position, {111.0F, 45.0F});
+    REQUIRE_NEAR(camera.position.x, 111.0F);
+
+    REQUIRE_NEAR(camera.position.y, 45.0F);
 }
 
 TEST_CASE("A target inside the dead zone does not move the camera", "[render][camera]")
@@ -98,7 +102,9 @@ TEST_CASE("A target inside the dead zone does not move the camera", "[render][ca
 
     simple_platformer::followTarget(controller, map, {{154.0F, 99.0F}, {10.0F, 10.0F}});
 
-    requireVector(controller.camera.position, {100.0F, 70.0F});
+    REQUIRE_NEAR(controller.camera.position.x, 100.0F);
+
+    REQUIRE_NEAR(controller.camera.position.y, 70.0F);
 }
 
 TEST_CASE("The camera follows only after its target leaves the dead zone", "[render][camera]")
@@ -110,7 +116,9 @@ TEST_CASE("The camera follows only after its target leaves the dead zone", "[ren
 
     simple_platformer::followTarget(controller, map, {{170.0F, 95.0F}, {10.0F, 10.0F}});
 
-    requireVector(controller.camera.position, {115.0F, 70.0F});
+    REQUIRE_NEAR(controller.camera.position.x, 115.0F);
+
+    REQUIRE_NEAR(controller.camera.position.y, 70.0F);
 }
 
 TEST_CASE("Dead-zone camera movement remains inside map bounds", "[render][camera]")
@@ -120,10 +128,12 @@ TEST_CASE("Dead-zone camera movement remains inside map bounds", "[render][camer
         map, {{145.0F, 95.0F}, {10.0F, 10.0F}}, {20.0F, 20.0F}, {100.0F, 60.0F});
 
     simple_platformer::followTarget(controller, map, {{0.0F, 0.0F}, {10.0F, 10.0F}});
-    requireVector(controller.camera.position, {0.0F, 0.0F});
+    REQUIRE_NEAR(controller.camera.position.x, 0.0F);
+    REQUIRE_NEAR(controller.camera.position.y, 0.0F);
 
     simple_platformer::followTarget(controller, map, {{470.0F, 310.0F}, {10.0F, 10.0F}});
-    requireVector(controller.camera.position, {380.0F, 260.0F});
+    REQUIRE_NEAR(controller.camera.position.x, 380.0F);
+    REQUIRE_NEAR(controller.camera.position.y, 260.0F);
 }
 
 TEST_CASE("Camera viewports must have positive finite dimensions", "[render][camera]")

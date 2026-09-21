@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <cstddef>
 #include <stdexcept>
@@ -12,11 +11,11 @@
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace
 {
-    using Catch::Matchers::WithinAbs;
     using simple_platformer::Body;
     using simple_platformer::Facing;
     using simple_platformer::InputIntentions;
@@ -62,10 +61,6 @@ namespace
         return {{{80.0F, FloorTop - 12.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
     }
 
-    void requireNear(float actual, float expected)
-    {
-        REQUIRE_THAT(actual, WithinAbs(expected, 0.0001F));
-    }
 }
 
 TEST_CASE("Ground movement accelerates and decelerates", "[movement][platformer]")
@@ -80,15 +75,15 @@ TEST_CASE("Ground movement accelerates and decelerates", "[movement][platformer]
     intentions.direction.x = 1.0F;
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
 
-    requireNear(body.velocity.x, 20.0F);
-    requireNear(body.bounds.position.x, 82.0F);
+    REQUIRE_NEAR(body.velocity.x, 20.0F);
+    REQUIRE_NEAR(body.bounds.position.x, 82.0F);
     REQUIRE(facing == Facing::Right);
     REQUIRE(movement.grounded);
 
     intentions.direction.x = 0.0F;
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
 
-    requireNear(body.velocity.x, 15.0F);
+    REQUIRE_NEAR(body.velocity.x, 15.0F);
     REQUIRE(facing == Facing::Right);
 }
 
@@ -103,15 +98,15 @@ TEST_CASE("Air movement uses its separate acceleration", "[movement][platformer]
 
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
 
-    requireNear(body.velocity.x, -10.0F);
-    requireNear(body.velocity.y, 10.0F);
+    REQUIRE_NEAR(body.velocity.x, -10.0F);
+    REQUIRE_NEAR(body.velocity.y, 10.0F);
     REQUIRE(facing == Facing::Left);
     REQUIRE_FALSE(movement.grounded);
 
     intentions.direction.x = 0.0F;
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
 
-    requireNear(body.velocity.x, -10.0F);
+    REQUIRE_NEAR(body.velocity.x, -10.0F);
     REQUIRE(facing == Facing::Left);
 }
 
@@ -130,7 +125,7 @@ TEST_CASE("Horizontal acceleration stops at maximum speed", "[movement][platform
         simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
     }
 
-    requireNear(body.velocity.x, movement.config.maximumSpeed);
+    REQUIRE_NEAR(body.velocity.x, movement.config.maximumSpeed);
 }
 
 TEST_CASE("Grounded actors can jump", "[movement][platformer]")
@@ -146,7 +141,7 @@ TEST_CASE("Grounded actors can jump", "[movement][platformer]")
 
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
 
-    requireNear(body.velocity.y, -190.0F);
+    REQUIRE_NEAR(body.velocity.y, -190.0F);
     REQUIRE(body.bounds.position.y < FloorTop - body.bounds.size.y);
     REQUIRE_FALSE(movement.grounded);
     REQUIRE(movement.coyoteRemaining == 0.0F);
@@ -185,7 +180,7 @@ TEST_CASE("Coyote time permits a jump shortly after leaving ground", "[movement]
 
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.01F);
 
-    requireNear(body.velocity.y, -199.0F);
+    REQUIRE_NEAR(body.velocity.y, -199.0F);
 }
 
 TEST_CASE("Expired coyote time does not permit a jump", "[movement][platformer]")
@@ -201,7 +196,7 @@ TEST_CASE("Expired coyote time does not permit a jump", "[movement][platformer]"
 
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.01F);
 
-    requireNear(body.velocity.y, 1.0F);
+    REQUIRE_NEAR(body.velocity.y, 1.0F);
     REQUIRE(movement.jumpBufferRemaining > 0.0F);
 }
 
@@ -246,8 +241,8 @@ TEST_CASE("Releasing jump early produces a shorter jump", "[movement][platformer
     simple_platformer::updatePlatformerMovement(
         map, releasedBody, releasedMovement, releasedIntentions, releasedFacing, 0.1F);
 
-    requireNear(heldBody.velocity.y, -90.0F);
-    requireNear(releasedBody.velocity.y, -70.0F);
+    REQUIRE_NEAR(heldBody.velocity.y, -90.0F);
+    REQUIRE_NEAR(releasedBody.velocity.y, -70.0F);
     REQUIRE(releasedBody.bounds.position.y > heldBody.bounds.position.y);
 }
 
@@ -260,11 +255,11 @@ TEST_CASE("Falling speed is limited by terminal velocity", "[movement][platforme
 
     simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, 0.01F);
 
-    requireNear(body.velocity.y, 591.0F);
+    REQUIRE_NEAR(body.velocity.y, 591.0F);
 
     simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, 0.1F);
 
-    requireNear(body.velocity.y, 600.0F);
+    REQUIRE_NEAR(body.velocity.y, 600.0F);
 }
 
 TEST_CASE("Tile contacts stop velocity and update grounded state", "[movement][platformer]")

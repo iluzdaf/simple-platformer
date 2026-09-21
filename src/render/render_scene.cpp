@@ -6,7 +6,6 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
-#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
@@ -117,11 +116,12 @@ namespace simple_platformer
             RenderScene& scene,
             const TileMap& map,
             const World& world,
+            const Actor* player,
             const Camera& camera)
         {
             for (const Pickup& pickup : world.pickups())
             {
-                if (!playerCanSee(map, world, pickup.bounds))
+                if (!playerCanSee(map, player, pickup.bounds))
                 {
                     continue;
                 }
@@ -167,6 +167,7 @@ namespace simple_platformer
             RenderScene& scene,
             const TileMap& map,
             const World& world,
+            const Actor* player,
             const Camera& camera)
         {
             for (const Actor& actor : world.actors())
@@ -175,7 +176,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                if (actor.id != world.playerId() && !playerCanSee(map, world, actor.body.bounds))
+                if (&actor != player && !playerCanSee(map, player, actor.body.bounds))
                 {
                     continue;
                 }
@@ -240,11 +241,13 @@ namespace simple_platformer
         const Camera& camera,
         const World& world)
     {
+        // One viewer for the whole scene: what the player can see decides what is drawn.
+        const Actor* player = world.findActor(world.playerId());
         RenderScene scene;
         appendTiles(scene, map, tileTextureId, camera);
-        appendPickups(scene, map, world, camera);
+        appendPickups(scene, map, world, player, camera);
         appendExit(scene, world, camera);
-        appendActors(scene, map, world, camera);
+        appendActors(scene, map, world, player, camera);
         appendProjectiles(scene, world, camera);
         appendProjectileBursts(scene, world, camera);
         return scene;

@@ -7,7 +7,6 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
 #include "simple_platformer/world/tile_map.hpp"
-#include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
 {
@@ -19,13 +18,12 @@ namespace simple_platformer
         }
     }
 
-    bool playerCanSee(const TileMap& map, const World& world, const Aabb& bounds)
+    bool playerCanSee(const TileMap& map, const Actor* player, const Aabb& bounds)
     {
         if (!standsInCover(map, bounds))
         {
             return true;
         }
-        const Actor* player = world.findActor(world.playerId());
         return player != nullptr &&
                lineOfSight(map, centerOf(player->body.bounds), centerOf(bounds));
     }

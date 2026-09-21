@@ -30,148 +30,148 @@
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 
-namespace
-{
-    class GlfwSession
-    {
-    public:
-        GlfwSession()
-        {
-            if (glfwInit() == GLFW_FALSE)
-            {
-                throw std::runtime_error("GLFW could not start");
-            }
-        }
-
-        ~GlfwSession()
-        {
-            glfwTerminate();
-        }
-
-        GlfwSession(const GlfwSession&) = delete;
-        GlfwSession& operator=(const GlfwSession&) = delete;
-    };
-
-    class ImGuiSession
-    {
-    public:
-        explicit ImGuiSession(GLFWwindow* window)
-        {
-            IMGUI_CHECKVERSION();
-            ImGui::CreateContext();
-            ImGui::StyleColorsDark();
-
-            if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
-            {
-                ImGui::DestroyContext();
-                throw std::runtime_error("ImGui could not start its GLFW backend");
-            }
-            if (!ImGui_ImplOpenGL3_Init("#version 330 core"))
-            {
-                ImGui_ImplGlfw_Shutdown();
-                ImGui::DestroyContext();
-                throw std::runtime_error("ImGui could not start its OpenGL backend");
-            }
-        }
-
-        ~ImGuiSession()
-        {
-            ImGui_ImplOpenGL3_Shutdown();
-            ImGui_ImplGlfw_Shutdown();
-            ImGui::DestroyContext();
-        }
-
-        ImGuiSession(const ImGuiSession&) = delete;
-        ImGuiSession& operator=(const ImGuiSession&) = delete;
-    };
-
-    struct ApplicationContext
-    {
-        simple_platformer::InputState input;
-        glm::vec2 aimDirection = {1.0F, 0.0F};
-        bool showDebugOverlay = false;
-        bool inventoryOpen = false;
-        bool inventoryToggled = false;
-        bool restartRequested = false;
-    };
-
-    std::optional<simple_platformer::InputButton> buttonForKey(int key)
-    {
-        switch (key)
-        {
-        case GLFW_KEY_A:
-        case GLFW_KEY_LEFT:
-            return simple_platformer::InputButton::Left;
-        case GLFW_KEY_D:
-        case GLFW_KEY_RIGHT:
-            return simple_platformer::InputButton::Right;
-        case GLFW_KEY_W:
-        case GLFW_KEY_UP:
-        case GLFW_KEY_SPACE:
-            return simple_platformer::InputButton::Jump;
-        case GLFW_KEY_DOWN:
-            return simple_platformer::InputButton::Down;
-        default:
-            return std::nullopt;
-        }
-    }
-
-    void handleKey(GLFWwindow* window, int key, int, int action, int)
-    {
-        auto* context = static_cast<ApplicationContext*>(glfwGetWindowUserPointer(window));
-
-        if (key == GLFW_KEY_Q && action == GLFW_PRESS)
-        {
-            context->inventoryOpen = !context->inventoryOpen;
-            context->inventoryToggled = true;
-            context->input = {};
-            return;
-        }
-        if (key == GLFW_KEY_R && action == GLFW_PRESS)
-        {
-            context->restartRequested = true;
-            return;
-        }
-
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        {
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
-        }
-        if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
-        {
-            context->showDebugOverlay = !context->showDebugOverlay;
-            return;
-        }
-
-        if (action != GLFW_PRESS && action != GLFW_RELEASE)
-        {
-            return;
-        }
-
-        const std::optional<simple_platformer::InputButton> button = buttonForKey(key);
-        if (!button.has_value())
-        {
-            return;
-        }
-
-        context->input.setButton(*button, action == GLFW_PRESS);
-    }
-
-    void handleMouseButton(GLFWwindow* window, int button, int action, int)
-    {
-        if (button != GLFW_MOUSE_BUTTON_LEFT || (action != GLFW_PRESS && action != GLFW_RELEASE))
-        {
-            return;
-        }
-
-        auto* context = static_cast<ApplicationContext*>(glfwGetWindowUserPointer(window));
-        context->input.setButton(
-            simple_platformer::InputButton::PrimaryAttack, action == GLFW_PRESS);
-    }
-}
-
 namespace simple_platformer
 {
+    namespace
+    {
+        class GlfwSession
+        {
+        public:
+            GlfwSession()
+            {
+                if (glfwInit() == GLFW_FALSE)
+                {
+                    throw std::runtime_error("GLFW could not start");
+                }
+            }
+
+            ~GlfwSession()
+            {
+                glfwTerminate();
+            }
+
+            GlfwSession(const GlfwSession&) = delete;
+            GlfwSession& operator=(const GlfwSession&) = delete;
+        };
+
+        class ImGuiSession
+        {
+        public:
+            explicit ImGuiSession(GLFWwindow* window)
+            {
+                IMGUI_CHECKVERSION();
+                ImGui::CreateContext();
+                ImGui::StyleColorsDark();
+
+                if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
+                {
+                    ImGui::DestroyContext();
+                    throw std::runtime_error("ImGui could not start its GLFW backend");
+                }
+                if (!ImGui_ImplOpenGL3_Init("#version 330 core"))
+                {
+                    ImGui_ImplGlfw_Shutdown();
+                    ImGui::DestroyContext();
+                    throw std::runtime_error("ImGui could not start its OpenGL backend");
+                }
+            }
+
+            ~ImGuiSession()
+            {
+                ImGui_ImplOpenGL3_Shutdown();
+                ImGui_ImplGlfw_Shutdown();
+                ImGui::DestroyContext();
+            }
+
+            ImGuiSession(const ImGuiSession&) = delete;
+            ImGuiSession& operator=(const ImGuiSession&) = delete;
+        };
+
+        struct ApplicationContext
+        {
+            InputState input;
+            glm::vec2 aimDirection = {1.0F, 0.0F};
+            bool showDebugOverlay = false;
+            bool inventoryOpen = false;
+            bool inventoryToggled = false;
+            bool restartRequested = false;
+        };
+
+        std::optional<InputButton> buttonForKey(int key)
+        {
+            switch (key)
+            {
+            case GLFW_KEY_A:
+            case GLFW_KEY_LEFT:
+                return InputButton::Left;
+            case GLFW_KEY_D:
+            case GLFW_KEY_RIGHT:
+                return InputButton::Right;
+            case GLFW_KEY_W:
+            case GLFW_KEY_UP:
+            case GLFW_KEY_SPACE:
+                return InputButton::Jump;
+            case GLFW_KEY_DOWN:
+                return InputButton::Down;
+            default:
+                return std::nullopt;
+            }
+        }
+
+        void handleKey(GLFWwindow* window, int key, int, int action, int)
+        {
+            auto* context = static_cast<ApplicationContext*>(glfwGetWindowUserPointer(window));
+
+            if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+            {
+                context->inventoryOpen = !context->inventoryOpen;
+                context->inventoryToggled = true;
+                context->input = {};
+                return;
+            }
+            if (key == GLFW_KEY_R && action == GLFW_PRESS)
+            {
+                context->restartRequested = true;
+                return;
+            }
+
+            if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+            {
+                glfwSetWindowShouldClose(window, GLFW_TRUE);
+            }
+            if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
+            {
+                context->showDebugOverlay = !context->showDebugOverlay;
+                return;
+            }
+
+            if (action != GLFW_PRESS && action != GLFW_RELEASE)
+            {
+                return;
+            }
+
+            const std::optional<InputButton> button = buttonForKey(key);
+            if (!button.has_value())
+            {
+                return;
+            }
+
+            context->input.setButton(*button, action == GLFW_PRESS);
+        }
+
+        void handleMouseButton(GLFWwindow* window, int button, int action, int)
+        {
+            if (button != GLFW_MOUSE_BUTTON_LEFT ||
+                (action != GLFW_PRESS && action != GLFW_RELEASE))
+            {
+                return;
+            }
+
+            auto* context = static_cast<ApplicationContext*>(glfwGetWindowUserPointer(window));
+            context->input.setButton(InputButton::PrimaryAttack, action == GLFW_PRESS);
+        }
+    }
+
     int runApplication()
     {
         glfwSetErrorCallback([](int, const char* description)
@@ -305,7 +305,7 @@ namespace simple_platformer
                     });
             }
 
-            const simple_platformer::RenderScene scene = game.buildScene();
+            const RenderScene scene = game.buildScene();
             renderer.render(scene, framebufferWidth, framebufferHeight);
             if (windowViewport.has_value())
             {

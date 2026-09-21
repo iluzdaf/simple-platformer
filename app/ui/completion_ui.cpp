@@ -8,18 +8,18 @@
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 
-namespace
-{
-    void drawCenteredText(ImDrawList& drawList, ImVec2 center, float y, const char* text)
-    {
-        const float left = center.x - ImGui::CalcTextSize(text).x * 0.5F;
-        drawList.AddText({left + 1.0F, y + 1.0F}, IM_COL32(0, 0, 0, 220), text);
-        drawList.AddText({left, y}, IM_COL32(255, 255, 255, 255), text);
-    }
-}
-
 namespace simple_platformer
 {
+    namespace
+    {
+        void drawCenteredText(ImDrawList& drawList, ImVec2 center, float y, const char* text)
+        {
+            const float left = center.x - ImGui::CalcTextSize(text).x * 0.5F;
+            drawList.AddText({left + 1.0F, y + 1.0F}, IM_COL32(0, 0, 0, 220), text);
+            drawList.AddText({left, y}, IM_COL32(255, 255, 255, 255), text);
+        }
+    }
+
     void drawLevelCompletion(const Game& game, const WindowViewport& viewport)
     {
         if (!game.complete())

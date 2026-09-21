@@ -17,78 +17,78 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/physics/body.hpp"
 
-namespace
-{
-    constexpr float ArrivalDistance = 1.0F;
-    constexpr float FlyingArrivalDistance = 0.001F;
-    constexpr float StoppedSpeed = 0.001F;
-
-    float directionTowards(float from, float to)
-    {
-        if (to < from)
-        {
-            return -1.0F;
-        }
-        return to > from ? 1.0F : 0.0F;
-    }
-
-    bool arrivedAt(
-        const simple_platformer::Body& body,
-        const simple_platformer::PlatformerMovement& movement,
-        simple_platformer::GridPosition destination)
-    {
-        const glm::vec2 target = simple_platformer::feetInCell(destination);
-        const glm::vec2 feet = simple_platformer::feetOf(body.bounds);
-        return movement.grounded && std::abs(target.x - feet.x) <= ArrivalDistance &&
-               std::abs(target.y - feet.y) <= ArrivalDistance;
-    }
-
-    bool readyForInputProgram(
-        const simple_platformer::Body& body,
-        const simple_platformer::PlatformerMovement& movement,
-        simple_platformer::GridPosition takeoff)
-    {
-        return arrivedAt(body, movement, takeoff) && std::abs(body.velocity.x) <= StoppedSpeed;
-    }
-
-    simple_platformer::InputIntentions approachAndBrake(
-        const simple_platformer::Body& body,
-        const simple_platformer::PlatformerMovement& movement,
-        simple_platformer::GridPosition takeoff)
-    {
-        simple_platformer::InputIntentions intentions;
-        if (!movement.grounded)
-        {
-            return intentions;
-        }
-
-        const glm::vec2 target = simple_platformer::feetInCell(takeoff);
-        const glm::vec2 feet = simple_platformer::feetOf(body.bounds);
-        const float horizontalOffset = target.x - feet.x;
-        const float verticalOffset = target.y - feet.y;
-        if (std::abs(verticalOffset) > ArrivalDistance ||
-            std::abs(horizontalOffset) <= ArrivalDistance)
-        {
-            return intentions;
-        }
-
-        const float direction = directionTowards(feet.x, target.x);
-        const float speedTowardTarget = body.velocity.x * direction;
-        const float deceleration = movement.config.groundDeceleration;
-        const float brakingDistance =
-            deceleration > 0.0F && speedTowardTarget > 0.0F
-                ? speedTowardTarget * speedTowardTarget / (2.0F * deceleration)
-                : 0.0F;
-        if (brakingDistance < std::abs(horizontalOffset) - ArrivalDistance)
-        {
-            intentions.direction.x = direction;
-        }
-        return intentions;
-    }
-}
-
 namespace simple_platformer
 {
+    namespace
+    {
+        constexpr float ArrivalDistance = 1.0F;
+        constexpr float FlyingArrivalDistance = 0.001F;
+        constexpr float StoppedSpeed = 0.001F;
+
+        float directionTowards(float from, float to)
+        {
+            if (to < from)
+            {
+                return -1.0F;
+            }
+            return to > from ? 1.0F : 0.0F;
+        }
+
+        bool arrivedAt(
+            const Body& body,
+            const PlatformerMovement& movement,
+            GridPosition destination)
+        {
+            const glm::vec2 target = feetInCell(destination);
+            const glm::vec2 feet = feetOf(body.bounds);
+            return movement.grounded && std::abs(target.x - feet.x) <= ArrivalDistance &&
+                   std::abs(target.y - feet.y) <= ArrivalDistance;
+        }
+
+        bool readyForInputProgram(
+            const Body& body,
+            const PlatformerMovement& movement,
+            GridPosition takeoff)
+        {
+            return arrivedAt(body, movement, takeoff) && std::abs(body.velocity.x) <= StoppedSpeed;
+        }
+
+        InputIntentions approachAndBrake(
+            const Body& body,
+            const PlatformerMovement& movement,
+            GridPosition takeoff)
+        {
+            InputIntentions intentions;
+            if (!movement.grounded)
+            {
+                return intentions;
+            }
+
+            const glm::vec2 target = feetInCell(takeoff);
+            const glm::vec2 feet = feetOf(body.bounds);
+            const float horizontalOffset = target.x - feet.x;
+            const float verticalOffset = target.y - feet.y;
+            if (std::abs(verticalOffset) > ArrivalDistance ||
+                std::abs(horizontalOffset) <= ArrivalDistance)
+            {
+                return intentions;
+            }
+
+            const float direction = directionTowards(feet.x, target.x);
+            const float speedTowardTarget = body.velocity.x * direction;
+            const float deceleration = movement.config.groundDeceleration;
+            const float brakingDistance =
+                deceleration > 0.0F && speedTowardTarget > 0.0F
+                    ? speedTowardTarget * speedTowardTarget / (2.0F * deceleration)
+                    : 0.0F;
+            if (brakingDistance < std::abs(horizontalOffset) - ArrivalDistance)
+            {
+                intentions.direction.x = direction;
+            }
+            return intentions;
+        }
+    }
+
     void setPath(PathFollower& follower, NavigationPath path, GridPosition destination)
     {
         if ((!path.steps.empty() && path.steps.back().destination != destination) ||

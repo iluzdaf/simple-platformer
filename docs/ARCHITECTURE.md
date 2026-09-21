@@ -8,35 +8,24 @@ reading this document from top to bottom.
 
 Use this as a reference when working on a particular feature:
 
-**Orientation**
-
-- [Purpose and scope](#purpose-and-scope): what the repository is and is not.
-- [Project shape](#project-shape): targets, folders, and the dependency boundary.
-- [Runtime flow](#runtime-flow): the fixed step and the order systems run in.
-- [Coordinates and time](#coordinates-and-time): axes, feet positions, and the shared clock.
-
-**The data model**
-
-- [World ownership and identity](#world-ownership-and-identity): what the world owns.
-- [Actor composition](#actor-composition): how capabilities fit together.
-
-**Gameplay systems**
-
-- [Input and movement](#input-and-movement): intentions, platformer and flying movement.
-- [Tile map, collision, and validation](#tile-map-collision-and-validation): terrain and sweeps.
-- [NPC behaviour](#npc-behaviour): sensing, memory, and the explicit state machine.
-- [Navigation](#navigation): path search, following, and simulated jumps.
-- [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle): attacks and death.
-- [Inventory, pickups, and levels](#inventory-pickups-and-levels): the level loop and the
-  [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the
-  file-by-file authoring reference.
-
-**Presentation and practice**
-
-- [Presentation](#presentation): animation, rendering, camera, and UI.
-- [Extension recipes](#extension-recipes-for-project-work): where to make a gameplay change.
-- [Error handling and validation](#error-handling-and-validation): which layer rejects what.
-- [Testing and quality checks](#testing-and-quality-checks): how to verify it.
+| Area | Section | What it covers |
+| --- | --- | --- |
+| Orientation | [Purpose and scope](#purpose-and-scope) | What the repository is and is not. |
+| | [Project shape](#project-shape) | Targets, folders, and the dependency boundary. |
+| | [Runtime flow](#runtime-flow) | The fixed step and the order systems run in. |
+| | [Coordinates and time](#coordinates-and-time) | Axes, feet positions, and the shared clock. |
+| The data model | [World ownership and identity](#world-ownership-and-identity) | What the world owns. |
+| | [Actor composition](#actor-composition) | How capabilities fit together. |
+| Gameplay systems | [Input and movement](#input-and-movement) | Intentions, platformer and flying movement. |
+| | [Tile map, collision, and validation](#tile-map-collision-and-validation) | Terrain and sweeps. |
+| | [NPC behaviour](#npc-behaviour) | Sensing, memory, and the explicit state machine. |
+| | [Navigation](#navigation) | Path search, following, and simulated jumps. |
+| | [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle) | Attacks and death. |
+| | [Inventory, pickups, and levels](#inventory-pickups-and-levels) | The level loop and the [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the file-by-file authoring reference. |
+| Presentation and practice | [Presentation](#presentation) | Animation, rendering, camera, and UI. |
+| | [Extension recipes](#extension-recipes-for-project-work) | Where to make a gameplay change. |
+| | [Error handling and validation](#error-handling-and-validation) | Which layer rejects what. |
+| | [Testing and quality checks](#testing-and-quality-checks) | How to verify it. |
 
 ## Purpose and scope
 
@@ -507,21 +496,6 @@ and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
 The final exit shows completion text and R creates a fresh copy of the catalogue's start
 level.
-
-### Example campaign
-
-The three levels in `assets` use the same movement and combat systems with
-different layouts. Each exit requires and consumes one key. Coins and health potions
-are optional rewards, not exit requirements.
-
-1. **Introduction:** low obstacles and patrolling zombies lead toward a key and an
-   exit to the right, with optional rewards on raised platforms.
-2. **Route choice:** the upper route crosses platform gaps guarded by bats. The lower
-   route passes a zombie soldier, with solid cover breaking its line of sight. Both
-   routes meet at the key platform before the exit.
-3. **Key hunt and return:** the exit is near the starting point. A stepped climb past
-   a zombie, soldier, and bat reaches the key high on the right. Dropping off the right
-   side leads to a lower return route with cover, enemies, and optional supplies.
 
 ### Data-driven level boundary
 

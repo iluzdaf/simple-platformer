@@ -94,17 +94,24 @@ configured. Omit `-R "Pickup"` to run the complete suite.
 
 ## Playing the example game
 
-These controls apply on both platforms. Use A and D or the left and right arrow keys
-to move, W, Up, or Space to jump, the mouse to aim, the left mouse button to fire, and
-Escape to close the window. Press F1 to toggle the debug overlay, including colliders,
-NPC sensing, patrol points, and navigation paths. The hearts at the top-left show
-the player's current and maximum health.
+| Action | Controls |
+| --- | --- |
+| Move | A and D, or the left and right arrow keys |
+| Jump | W, Up, or Space |
+| Aim | Mouse |
+| Fire | Left mouse button |
+| Collect an item | Walk over it |
+| Open or close the inventory (pauses the game) | Q, or click the bag at the bottom-left |
+| Drink a health potion | Click it in the open inventory |
+| Restart from the starting level | R, at the completion message |
+| Toggle the debug overlay | F1 |
+| Close the window | Escape |
 
-Walk over items to collect them. Click the bag at the bottom-left or press Q to pause
-and open the inventory, then click a health potion to drink it. Click the bag or press Q
-again to resume. Find each level's key and reach its bunker door to unlock the exit.
-Each door consumes one key; the third exit completes the example campaign. Press R
-at the completion message to restart from the configured starting level.
+The debug overlay shows colliders, NPC sensing, patrol points, and navigation paths.
+The hearts at the top-left show the player's current and maximum health.
+
+Find each level's key and reach its bunker door to unlock the exit. Each door consumes
+one key; the third exit completes the example campaign.
 
 ## Continuous integration
 

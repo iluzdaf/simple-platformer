@@ -13,9 +13,9 @@
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/physics/segment_cast.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "simple_platformer/world/player_sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -113,22 +113,6 @@ namespace simple_platformer
             }
         }
 
-        // Grass hides what stands in it. Something whose centre is in a sight-blocking tile is
-        // drawn only when the player can see it by the NPC sight rule: a clear line from the
-        // player, ignoring the cover the player stands in. Without a player, nobody sees it.
-        bool visibleToPlayer(const TileMap& map, const World& world, const Aabb& bounds)
-        {
-            const glm::vec2 center = centerOf(bounds);
-            if (!map.blocksSight(worldToGrid(center)))
-            {
-                return true;
-            }
-            const Actor* player = world.findActor(world.playerId());
-            return player != nullptr &&
-                   !segmentCastSightBlockingTiles(map, centerOf(player->body.bounds), center)
-                        .has_value();
-        }
-
         void appendPickups(
             RenderScene& scene,
             const TileMap& map,
@@ -137,7 +121,7 @@ namespace simple_platformer
         {
             for (const Pickup& pickup : world.pickups())
             {
-                if (!visibleToPlayer(map, world, pickup.bounds))
+                if (!playerCanSee(map, world, pickup.bounds))
                 {
                     continue;
                 }
@@ -191,7 +175,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                if (actor.id != world.playerId() && !visibleToPlayer(map, world, actor.body.bounds))
+                if (actor.id != world.playerId() && !playerCanSee(map, world, actor.body.bounds))
                 {
                     continue;
                 }

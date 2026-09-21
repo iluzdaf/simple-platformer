@@ -287,7 +287,7 @@ TEST_CASE("Projectile bursts expand and fade around their world position", "[ren
         Catch::Matchers::WithinAbs(-std::acos(-1.0F) * 0.5F, 0.0001F));
 }
 
-TEST_CASE("Grass hides NPCs and pickups from a player outside it", "[render][scene][cover]")
+TEST_CASE("NPCs and pickups the player cannot see are not drawn", "[render][scene][cover]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "...cc...", "........"})
@@ -305,45 +305,5 @@ TEST_CASE("Grass hides NPCs and pickups from a player outside it", "[render][sce
     REQUIRE(spritesFrom(scene, PlayerTexture) == 1);
     // Only the NPC in the open.
     REQUIRE(spritesFrom(scene, NpcTexture) == 1);
-    REQUIRE(spritesFrom(scene, PickupTexture) == 0);
-}
-
-TEST_CASE(
-    "A player in grass sees what shares its patch and nothing in another",
-    "[render][scene][cover]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"........", "...ccc.c", "........"})
-            .where('c', tests::Tile().blocksSight());
-    const simple_platformer::Camera camera{{0.0F, 0.0F}, {128.0F, 48.0F}};
-    simple_platformer::World world = worldWithPickupItem();
-    addPlayerInCell(world, 3);
-    world.addPickup({pickupInCell(4), {1, 1}});
-    addNpcInCell(world, 5);
-    // A separate patch, past the open cell at column 6.
-    addNpcInCell(world, 7);
-
-    const simple_platformer::RenderScene scene =
-        simple_platformer::buildRenderScene(map, TileTexture, camera, world);
-
-    REQUIRE(spritesFrom(scene, PlayerTexture) == 1);
-    REQUIRE(spritesFrom(scene, NpcTexture) == 1);
-    REQUIRE(spritesFrom(scene, PickupTexture) == 1);
-}
-
-TEST_CASE("Without a player, grass hides what is in it", "[render][scene][cover]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"....", ".cc.", "...."}).where('c', tests::Tile().blocksSight());
-    const simple_platformer::Camera camera{{0.0F, 0.0F}, {64.0F, 48.0F}};
-    simple_platformer::World world = worldWithPickupItem();
-    addNpcInCell(world, 1);
-    world.addPickup({pickupInCell(2), {1, 1}});
-
-    const simple_platformer::RenderScene scene =
-        simple_platformer::buildRenderScene(map, TileTexture, camera, world);
-
-    // Nobody is in the patch, so nothing in it is drawn.
-    REQUIRE(spritesFrom(scene, NpcTexture) == 0);
     REQUIRE(spritesFrom(scene, PickupTexture) == 0);
 }

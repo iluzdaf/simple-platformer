@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <stdexcept>
-#include <utility>
+#include <string>
 #include <vector>
 
 #include "simple_platformer/input/input_state.hpp"
@@ -13,7 +13,6 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
-#include "support/tile_size.hpp"
 
 namespace
 {
@@ -21,29 +20,18 @@ namespace
     using simple_platformer::Facing;
     using simple_platformer::InputIntentions;
     using simple_platformer::PlatformerMovement;
-    using simple_platformer::TileDefinition;
     using simple_platformer::TileMap;
 
     constexpr int MapWidth = 20;
     constexpr int MapHeight = 8;
     constexpr float FloorTop = 112.0F;
 
+    // Open air over one row of floor, wide enough to run and high enough to jump.
     TileMap makeFloorMap()
     {
-        std::vector<int> tiles(static_cast<std::size_t>(MapWidth * MapHeight), 0);
-        const std::size_t floorStart =
-            static_cast<std::size_t>(MapHeight - 1) * static_cast<std::size_t>(MapWidth);
-        for (int column = 0; column < MapWidth; ++column)
-        {
-            tiles[floorStart + static_cast<std::size_t>(column)] = 1;
-        }
-
-        return {
-            tests::TileSize,
-            MapWidth,
-            MapHeight,
-            std::move(tiles),
-            {{false, false, {}}, {true, true, {}}}};
+        std::vector<std::string> rows(MapHeight - 1, std::string(MapWidth, '.'));
+        rows.emplace_back(MapWidth, '#');
+        return tests::TileMapBuilder(rows);
     }
 
     PlatformerMovement makeMovement()

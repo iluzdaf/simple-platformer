@@ -26,6 +26,10 @@ namespace simple_platformer
         std::string_view sourceName = {},
         std::string_view path = {});
 
+    // The member when the object has it, otherwise nullptr: for fields whose absence means
+    // "keep the C++ default".
+    const nlohmann::json* optionalJsonMember(const nlohmann::json& object, std::string_view key);
+
     int jsonInteger(
         const nlohmann::json& value,
         std::string_view sourceName = {},

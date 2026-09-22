@@ -21,6 +21,162 @@ namespace simple_platformer
     {
         using Json = nlohmann::json;
 
+        Team jsonTeam(const Json& value, std::string_view sourceName, std::string_view path)
+        {
+            const std::string team = jsonText(value, sourceName, path);
+            if (team == "player")
+            {
+                return Team::Player;
+            }
+            if (team == "enemy")
+            {
+                return Team::Enemy;
+            }
+            if (team == "neutral")
+            {
+                return Team::Neutral;
+            }
+            failJson(
+                sourceName,
+                path,
+                "unknown team '" + team + "'; expected player, enemy, or neutral");
+        }
+
+        Facing jsonFacing(const Json& value, std::string_view sourceName, std::string_view path)
+        {
+            const std::string facing = jsonText(value, sourceName, path);
+            if (facing == "left")
+            {
+                return Facing::Left;
+            }
+            if (facing == "right")
+            {
+                return Facing::Right;
+            }
+            failJson(sourceName, path, "unknown facing '" + facing + "'; expected left or right");
+        }
+
+        // Each component reader starts from the C++ defaults and takes only the fields the
+        // file names, so an empty object means "this component, as configured in code".
+
+        PlatformerMovementConfig jsonPlatformerConfig(
+            const Json& value,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            checkJsonFields(
+                value,
+                {"maximumSpeed",
+                 "groundAcceleration",
+                 "airAcceleration",
+                 "groundDeceleration",
+                 "jumpSpeed",
+                 "gravity",
+                 "jumpReleaseGravity",
+                 "maximumFallSpeed",
+                 "coyoteDuration",
+                 "jumpBufferDuration"},
+                sourceName,
+                path);
+            PlatformerMovementConfig config;
+            const auto number = [&](std::string_view key, float& field)
+            { readOptionalNumber(value, key, field, sourceName, path); };
+            number("maximumSpeed", config.maximumSpeed);
+            number("groundAcceleration", config.groundAcceleration);
+            number("airAcceleration", config.airAcceleration);
+            number("groundDeceleration", config.groundDeceleration);
+            number("jumpSpeed", config.jumpSpeed);
+            number("gravity", config.gravity);
+            number("jumpReleaseGravity", config.jumpReleaseGravity);
+            number("maximumFallSpeed", config.maximumFallSpeed);
+            number("coyoteDuration", config.coyoteDuration);
+            number("jumpBufferDuration", config.jumpBufferDuration);
+            return config;
+        }
+
+        FlyingMovement jsonFlyingMovement(
+            const Json& value,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            checkJsonFields(value, {"speed"}, sourceName, path);
+            FlyingMovement config;
+            readOptionalNumber(value, "speed", config.speed, sourceName, path);
+            return config;
+        }
+
+        NpcSenses jsonNpcSenses(
+            const Json& value,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            checkJsonFields(value, {"noticeDistance", "targetMemoryDuration"}, sourceName, path);
+            NpcSenses config;
+            readOptionalNumber(value, "noticeDistance", config.noticeDistance, sourceName, path);
+            readOptionalNumber(
+                value, "targetMemoryDuration", config.targetMemoryDuration, sourceName, path);
+            return config;
+        }
+
+        BiteAttack jsonBite(const Json& value, std::string_view sourceName, const std::string& path)
+        {
+            checkJsonFields(
+                value,
+                {"damage",
+                 "hitboxSize",
+                 "reach",
+                 "windupDuration",
+                 "activeDuration",
+                 "recoveryDuration"},
+                sourceName,
+                path);
+            BiteAttack config;
+            const auto number = [&](std::string_view key, float& field)
+            { readOptionalNumber(value, key, field, sourceName, path); };
+            readOptionalInteger(value, "damage", config.damage, sourceName, path);
+            readOptionalVector(value, "hitboxSize", config.hitboxSize, sourceName, path);
+            number("reach", config.reach);
+            number("windupDuration", config.windupDuration);
+            number("activeDuration", config.activeDuration);
+            number("recoveryDuration", config.recoveryDuration);
+            return config;
+        }
+
+        RangedWeapon jsonRangedWeapon(
+            const Json& value,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            checkJsonFields(
+                value,
+                {"damage",
+                 "projectileSize",
+                 "projectileSpeed",
+                 "projectileLifetime",
+                 "shootDuration",
+                 "recoveryDuration",
+                 "breaksTiles",
+                 "sprite"},
+                sourceName,
+                path);
+            RangedWeapon config;
+            const auto number = [&](std::string_view key, float& field)
+            { readOptionalNumber(value, key, field, sourceName, path); };
+            readOptionalInteger(value, "damage", config.damage, sourceName, path);
+            readOptionalVector(value, "projectileSize", config.projectileSize, sourceName, path);
+            number("projectileSpeed", config.projectileSpeed);
+            number("projectileLifetime", config.projectileLifetime);
+            number("shootDuration", config.shootDuration);
+            number("recoveryDuration", config.recoveryDuration);
+            readOptionalBoolean(value, "breaksTiles", config.breaksTiles, sourceName, path);
+            if (const Json* sprite = optionalJsonMember(value, "sprite"))
+            {
+                config.projectileSprite =
+                    jsonSprite(*sprite, sourceName, fieldPath(path, "sprite"));
+            }
+            return config;
+        }
+
         ActorDefinition jsonActorDefinition(
             const Json& value,
             std::string_view sourceName,
@@ -45,202 +201,44 @@ namespace simple_platformer
             ActorDefinition result;
             result.bodySize = readVector(value, "bodySize", sourceName, path);
             readOptionalText(value, "animations", result.animations, sourceName, path);
-            std::string team = "neutral", facing = "right";
-            readOptionalText(value, "team", team, sourceName, path);
-            readOptionalText(value, "facing", facing, sourceName, path);
             readOptionalSpriteAnchor(value, "spriteAnchor", result.spriteAnchor, sourceName, path);
-            if (team == "player")
+            if (const Json* team = optionalJsonMember(value, "team"))
             {
-                result.team = Team::Player;
+                result.team = jsonTeam(*team, sourceName, fieldPath(path, "team"));
             }
-            else if (team == "enemy")
+            if (const Json* facing = optionalJsonMember(value, "facing"))
             {
-                result.team = Team::Enemy;
+                result.facing = jsonFacing(*facing, sourceName, fieldPath(path, "facing"));
             }
-            else if (team != "neutral")
+            if (const Json* health = optionalJsonMember(value, "health"))
             {
-                failJson(
-                    sourceName,
-                    fieldPath(path, "team"),
-                    "unknown team '" + team + "'; expected player, enemy, or neutral");
+                result.health = jsonInteger(*health, sourceName, fieldPath(path, "health"));
             }
-            if (facing == "left")
+            if (const Json* slots = optionalJsonMember(value, "inventorySlots"))
             {
-                result.facing = Facing::Left;
+                result.inventorySlots =
+                    jsonInteger(*slots, sourceName, fieldPath(path, "inventorySlots"));
             }
-            else if (facing != "right")
+            if (const Json* platformer = optionalJsonMember(value, "platformer"))
             {
-                failJson(
-                    sourceName,
-                    fieldPath(path, "facing"),
-                    "unknown facing '" + facing + "'; expected left or right");
+                result.platformer =
+                    jsonPlatformerConfig(*platformer, sourceName, fieldPath(path, "platformer"));
             }
-            if (value.contains("health"))
+            if (const Json* flying = optionalJsonMember(value, "flying"))
             {
-                result.health = readInteger(value, "health", sourceName, path);
+                result.flying = jsonFlyingMovement(*flying, sourceName, fieldPath(path, "flying"));
             }
-            if (value.contains("inventorySlots"))
+            if (const Json* senses = optionalJsonMember(value, "senses"))
             {
-                result.inventorySlots = readInteger(value, "inventorySlots", sourceName, path);
+                result.senses = jsonNpcSenses(*senses, sourceName, fieldPath(path, "senses"));
             }
-            if (value.contains("platformer"))
+            if (const Json* bite = optionalJsonMember(value, "bite"))
             {
-                const auto& movement = requiredJsonMember(value, "platformer", sourceName, path);
-                const std::string platformerPath = fieldPath(path, "platformer");
-                checkJsonFields(
-                    movement,
-                    {"maximumSpeed",
-                     "groundAcceleration",
-                     "airAcceleration",
-                     "groundDeceleration",
-                     "jumpSpeed",
-                     "gravity",
-                     "jumpReleaseGravity",
-                     "maximumFallSpeed",
-                     "coyoteDuration",
-                     "jumpBufferDuration"},
-                    sourceName,
-                    platformerPath);
-                PlatformerMovementConfig config;
-                readOptionalNumber(
-                    movement, "maximumSpeed", config.maximumSpeed, sourceName, platformerPath);
-                readOptionalNumber(
-                    movement,
-                    "groundAcceleration",
-                    config.groundAcceleration,
-                    sourceName,
-                    platformerPath);
-                readOptionalNumber(
-                    movement,
-                    "airAcceleration",
-                    config.airAcceleration,
-                    sourceName,
-                    platformerPath);
-                readOptionalNumber(
-                    movement,
-                    "groundDeceleration",
-                    config.groundDeceleration,
-                    sourceName,
-                    platformerPath);
-                readOptionalNumber(
-                    movement, "jumpSpeed", config.jumpSpeed, sourceName, platformerPath);
-                readOptionalNumber(movement, "gravity", config.gravity, sourceName, platformerPath);
-                readOptionalNumber(
-                    movement,
-                    "jumpReleaseGravity",
-                    config.jumpReleaseGravity,
-                    sourceName,
-                    platformerPath);
-                readOptionalNumber(
-                    movement,
-                    "maximumFallSpeed",
-                    config.maximumFallSpeed,
-                    sourceName,
-                    platformerPath);
-                readOptionalNumber(
-                    movement, "coyoteDuration", config.coyoteDuration, sourceName, platformerPath);
-                readOptionalNumber(
-                    movement,
-                    "jumpBufferDuration",
-                    config.jumpBufferDuration,
-                    sourceName,
-                    platformerPath);
-                result.platformer = config;
+                result.bite = jsonBite(*bite, sourceName, fieldPath(path, "bite"));
             }
-            if (value.contains("flying"))
+            if (const Json* ranged = optionalJsonMember(value, "ranged"))
             {
-                const auto& movement = requiredJsonMember(value, "flying", sourceName, path);
-                const std::string flyingPath = fieldPath(path, "flying");
-                checkJsonFields(movement, {"speed"}, sourceName, flyingPath);
-                FlyingMovement config;
-                readOptionalNumber(movement, "speed", config.speed, sourceName, flyingPath);
-                result.flying = config;
-            }
-            if (value.contains("senses"))
-            {
-                const auto& senses = requiredJsonMember(value, "senses", sourceName, path);
-                const std::string sensesPath = fieldPath(path, "senses");
-                checkJsonFields(
-                    senses, {"noticeDistance", "targetMemoryDuration"}, sourceName, sensesPath);
-                NpcSenses config;
-                readOptionalNumber(
-                    senses, "noticeDistance", config.noticeDistance, sourceName, sensesPath);
-                readOptionalNumber(
-                    senses,
-                    "targetMemoryDuration",
-                    config.targetMemoryDuration,
-                    sourceName,
-                    sensesPath);
-                result.senses = config;
-            }
-            if (value.contains("bite"))
-            {
-                const auto& bite = requiredJsonMember(value, "bite", sourceName, path);
-                const std::string bitePath = fieldPath(path, "bite");
-                checkJsonFields(
-                    bite,
-                    {"damage",
-                     "hitboxSize",
-                     "reach",
-                     "windupDuration",
-                     "activeDuration",
-                     "recoveryDuration"},
-                    sourceName,
-                    bitePath);
-                BiteAttack config;
-                readOptionalInteger(bite, "damage", config.damage, sourceName, bitePath);
-                readOptionalVector(bite, "hitboxSize", config.hitboxSize, sourceName, bitePath);
-                readOptionalNumber(bite, "reach", config.reach, sourceName, bitePath);
-                readOptionalNumber(
-                    bite, "windupDuration", config.windupDuration, sourceName, bitePath);
-                readOptionalNumber(
-                    bite, "activeDuration", config.activeDuration, sourceName, bitePath);
-                readOptionalNumber(
-                    bite, "recoveryDuration", config.recoveryDuration, sourceName, bitePath);
-                result.bite = config;
-            }
-            if (value.contains("ranged"))
-            {
-                const auto& ranged = requiredJsonMember(value, "ranged", sourceName, path);
-                const std::string rangedPath = fieldPath(path, "ranged");
-                checkJsonFields(
-                    ranged,
-                    {"damage",
-                     "projectileSize",
-                     "projectileSpeed",
-                     "projectileLifetime",
-                     "shootDuration",
-                     "recoveryDuration",
-                     "breaksTiles",
-                     "sprite"},
-                    sourceName,
-                    rangedPath);
-                RangedWeapon config;
-                readOptionalInteger(ranged, "damage", config.damage, sourceName, rangedPath);
-                readOptionalVector(
-                    ranged, "projectileSize", config.projectileSize, sourceName, rangedPath);
-                readOptionalNumber(
-                    ranged, "projectileSpeed", config.projectileSpeed, sourceName, rangedPath);
-                readOptionalNumber(
-                    ranged,
-                    "projectileLifetime",
-                    config.projectileLifetime,
-                    sourceName,
-                    rangedPath);
-                readOptionalNumber(
-                    ranged, "shootDuration", config.shootDuration, sourceName, rangedPath);
-                readOptionalNumber(
-                    ranged, "recoveryDuration", config.recoveryDuration, sourceName, rangedPath);
-                readOptionalBoolean(
-                    ranged, "breaksTiles", config.breaksTiles, sourceName, rangedPath);
-                if (ranged.contains("sprite"))
-                {
-                    config.projectileSprite = jsonSprite(
-                        requiredJsonMember(ranged, "sprite", sourceName, rangedPath),
-                        sourceName,
-                        fieldPath(rangedPath, "sprite"));
-                }
-                result.ranged = config;
+                result.ranged = jsonRangedWeapon(*ranged, sourceName, fieldPath(path, "ranged"));
             }
             return result;
         }

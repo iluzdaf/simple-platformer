@@ -59,6 +59,16 @@ namespace simple_platformer
         return *found;
     }
 
+    const nlohmann::json* optionalJsonMember(const nlohmann::json& object, std::string_view key)
+    {
+        if (!object.is_object())
+        {
+            return nullptr;
+        }
+        const auto found = object.find(std::string(key));
+        return found == object.end() ? nullptr : &*found;
+    }
+
     int jsonInteger(const nlohmann::json& value, std::string_view sourceName, std::string_view path)
     {
         if (!value.is_number_integer())

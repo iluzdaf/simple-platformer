@@ -41,7 +41,9 @@ namespace simple_platformer
 
         RangedPhase phase = RangedPhase::Ready;
         float phaseTimeRemaining = 0.0F;
-        bool firedThisUpdate = false;
+        // When the weapon last fired, on the world clock. Senses hear a shot on the update
+        // after it, and the screen shows the shooter exposed for a while.
+        std::optional<float> lastFiredTimeSeconds;
         // Its display size is independent of projectileSize, just like an actor sprite and body.
         Sprite projectileSprite = {0, {}, {4.0F, 2.0F}};
     };

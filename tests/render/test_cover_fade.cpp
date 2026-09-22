@@ -6,6 +6,7 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/coordinates.hpp"
@@ -15,6 +16,7 @@
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
+#include "support/add_player.hpp"
 #include "support/add_player.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
@@ -128,13 +130,58 @@ TEST_CASE("Pickups fade the same way as NPCs", "[render][cover-fade]")
     REQUIRE_NEAR(world.pickups().front().screenVisibility.value_or(-1.0F), 0.25F);
 }
 
-TEST_CASE("The player's own visibility is never faded", "[render][cover-fade]")
+TEST_CASE("A player alone in cover is shown concealed", "[render][cover-fade]")
 {
     const simple_platformer::TileMap map = patchMap();
     simple_platformer::World world;
     const simple_platformer::ActorId player = addPlayerIn(world, {3, 1});
 
     simple_platformer::updateCoverFades(map, world, QuarterFade);
+    REQUIRE(shown(world, player) == 0.0F);
 
-    REQUIRE_FALSE(tests::actor(world, player).screenVisibility.has_value());
+    movePlayerTo(world, {0, 1});
+    simple_platformer::updateCoverFades(map, world, QuarterFade);
+    REQUIRE_NEAR(shown(world, player), 0.25F);
+}
+
+TEST_CASE("An NPC that can see the player exposes them", "[render][cover-fade]")
+{
+    const simple_platformer::TileMap map = patchMap();
+    simple_platformer::World world;
+    const simple_platformer::ActorId player = addPlayerIn(world, {3, 1});
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .inCell({4, 1})
+                       .flying(0.0F)
+                       .thinking({64.0F, 1.0F}));
+
+    simple_platformer::updateCoverFades(map, world, QuarterFade);
+
+    REQUIRE(shown(world, player) == 1.0F);
+}
+
+TEST_CASE("Firing exposes a hidden player for the reveal window", "[render][cover-fade]")
+{
+    const simple_platformer::TileMap map = patchMap();
+    simple_platformer::World world;
+    const simple_platformer::ActorId player = tests::addPlayer(
+        world,
+        tests::ActorBuilder::sized({12.0F, 12.0F})
+            .inCell({3, 1})
+            .walking()
+            .onTeam(simple_platformer::Team::Player)
+            .shooting());
+    simple_platformer::updateCoverFades(map, world, QuarterFade);
+    REQUIRE(shown(world, player) == 0.0F);
+
+    tests::rangedWeapon(world, player).lastFiredTimeSeconds = world.simulationTimeSeconds();
+    simple_platformer::updateCoverFades(map, world, QuarterFade);
+    REQUIRE_NEAR(shown(world, player), 0.25F);
+
+    world.advanceSimulationTime(simple_platformer::ShotRevealSeconds * 0.5F);
+    simple_platformer::updateCoverFades(map, world, QuarterFade);
+    REQUIRE_NEAR(shown(world, player), 0.5F);
+
+    world.advanceSimulationTime(simple_platformer::ShotRevealSeconds);
+    simple_platformer::updateCoverFades(map, world, QuarterFade);
+    REQUIRE_NEAR(shown(world, player), 0.25F);
 }

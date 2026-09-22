@@ -337,6 +337,13 @@ its patch fades in rather than popping. `updateCoverFades` keeps this `screenVis
 and `buildRenderScene` draws it. NPCs still see the
 player by line of sight alone. The debug overlay shows everything.
 
+The player's own sprite shows whether the world can see them. Their `screenVisibility`
+eases towards their own cover fade, raised to fully exposed while any NPC's senses reach
+them (`seenByAnyNpc`, the same rule NPCs use to notice the player) or for
+`ShotRevealSeconds` after they fire. The renderer draws the player shaded by
+`PlayerConcealedShade` rather than faded, so a hidden player darkens instead of
+disappearing.
+
 A tile definition may name the tile it `breaksInto`, so breaking swaps a cell's tile ID
 instead of adding per-cell state, and a tile that names nothing is unbreakable. A
 projectile carries `breaksTiles` from the weapon that fired it and breaks a tile only
@@ -380,7 +387,9 @@ tile segment cast finds clear line of sight. It stores the player's ID and last 
 feet. When sight is lost, a configurable timer lets it continue toward the remembered
 position before forgetting the target. Firing gives the player away without making
 them visible: every opponent NPC within notice distance hears the shot through any
-tiles, remembers the player's feet at that moment, and starts the same timer.
+tiles, remembers the player's feet at that moment, and starts the same timer. The
+weapon stamps each shot with the world clock, and senses hear the shot whose stamp is
+one update old.
 
 Ground NPCs chase a standable destination using their own collider size. If the
 last-seen feet cell is not standable (for example, during a jump or just past a

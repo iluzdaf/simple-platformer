@@ -25,7 +25,13 @@ namespace simple_platformer
         float opacity = 1.0F;
         // Mixes the sprite colour towards white: 0 is unchanged and 1 is fully white.
         float whiteFlashAmount = 0.0F;
+        // Mixes the sprite colour towards black: 0 is unchanged and 1 is fully black.
+        float shadeAmount = 0.0F;
     };
+
+    // How dark the player is drawn when nothing in the world can see them. The player is
+    // shaded rather than faded, so they never look like a fading NPC.
+    constexpr float PlayerConcealedShade = 0.6F;
 
     struct RenderScene
     {

@@ -176,7 +176,8 @@ namespace simple_platformer
                     continue;
                 }
                 const float actorVisibility = actor.screenVisibility.value_or(1.0F);
-                if (actorVisibility <= 0.0F)
+                const bool isPlayer = actor.id == world.playerId();
+                if (!isPlayer && actorVisibility <= 0.0F)
                 {
                     continue;
                 }
@@ -189,8 +190,9 @@ namespace simple_platformer
                      actor.sprite->region,
                      actor.facing == Facing::Left,
                      0.0F,
-                     actorOpacity(actor) * actorVisibility,
-                     actorWhiteFlashAmount(actor, world.simulationTimeSeconds())});
+                     actorOpacity(actor) * (isPlayer ? 1.0F : actorVisibility),
+                     actorWhiteFlashAmount(actor, world.simulationTimeSeconds()),
+                     isPlayer ? (1.0F - actorVisibility) * PlayerConcealedShade : 0.0F});
             }
         }
 

@@ -43,11 +43,12 @@ TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][
     actor.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId shooter = world.addActor(actor);
     simple_platformer::WorldRequests requests;
+    world.advanceSimulationTime(0.25F);
 
     simple_platformer::updateAttacks(world, requests, 0.1F);
 
     REQUIRE(world.projectiles().empty());
-    REQUIRE(tests::rangedWeapon(world, shooter).firedThisUpdate);
+    REQUIRE(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds == 0.25F);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 1);
@@ -108,21 +109,24 @@ TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
 
+    world.advanceSimulationTime(0.15F);
     simple_platformer::updateAttacks(world, requests, 0.15F);
-    REQUIRE_FALSE(tests::rangedWeapon(world, shooter).firedThisUpdate);
+    // The stamp keeps the time of the shot.
+    REQUIRE(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds == 0.0F);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Recovery);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectiles().front().velocity.x > 0.0F);
 
+    world.advanceSimulationTime(0.20F);
     simple_platformer::updateAttacks(world, requests, 0.20F);
-    REQUIRE_FALSE(tests::rangedWeapon(world, shooter).firedThisUpdate);
+    REQUIRE(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds == 0.0F);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Ready);
 
     simple_platformer::Actor& stored = tests::actor(world, shooter);
     stored.intentions.primaryAttackPressed = true;
     simple_platformer::updateAttacks(world, requests, 0.0F);
-    REQUIRE(tests::rangedWeapon(world, shooter).firedThisUpdate);
+    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0F), 0.35F);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 2);

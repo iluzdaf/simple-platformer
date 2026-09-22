@@ -21,6 +21,7 @@
 #include "simple_platformer/world/world.hpp"
 #include "support/require_near.hpp"
 #include "support/actor_builder.hpp"
+#include "support/actor_components.hpp"
 #include "support/add_player.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
@@ -342,4 +343,30 @@ TEST_CASE("NPCs and pickups are drawn at their screen visibility", "[render][sce
         simple_platformer::buildRenderScene(map, TileTexture, camera, world);
     REQUIRE(spritesFrom(hidden, NpcTexture) == 0);
     REQUIRE(spritesFrom(hidden, PickupTexture) == 0);
+}
+
+TEST_CASE("The player is shaded by how concealed they are, never faded", "[render][scene][cover]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "...."});
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, {64.0F, 48.0F}};
+    simple_platformer::World world;
+    addPlayerIn(world, {0, 1});
+    addNpcIn(world, {2, 1});
+    tests::player(world).screenVisibility = 0.0F;
+    world.actors().back().screenVisibility = 0.5F;
+
+    const simple_platformer::RenderScene scene =
+        simple_platformer::buildRenderScene(map, TileTexture, camera, world);
+
+    const simple_platformer::SpriteDrawCommand& player = onlySpriteFrom(scene, PlayerTexture);
+    REQUIRE(player.opacity == 1.0F);
+    REQUIRE_NEAR(player.shadeAmount, simple_platformer::PlayerConcealedShade);
+    const simple_platformer::SpriteDrawCommand& npc = onlySpriteFrom(scene, NpcTexture);
+    REQUIRE_NEAR(npc.opacity, 0.5F);
+    REQUIRE(npc.shadeAmount == 0.0F);
+
+    tests::player(world).screenVisibility = 1.0F;
+    const simple_platformer::RenderScene exposed =
+        simple_platformer::buildRenderScene(map, TileTexture, camera, world);
+    REQUIRE(onlySpriteFrom(exposed, PlayerTexture).shadeAmount == 0.0F);
 }

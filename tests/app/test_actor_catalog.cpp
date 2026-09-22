@@ -52,14 +52,14 @@ TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[
         throw std::logic_error("Weapon was not parsed");
     }
     definition.ranged->phase = simple_platformer::RangedPhase::Recovery;
-    definition.ranged->firedThisUpdate = true;
+    definition.ranged->lastFiredTimeSeconds = 3.0F;
     auto actor = simple_platformer::composeActor(definition, {}, 9);
     REQUIRE(tests::rangedWeapon(actor).damage == 2);
     REQUIRE(tests::rangedWeapon(actor).projectileSpeed == 120);
     REQUIRE(tests::rangedWeapon(actor).projectileSprite.textureId == 9);
     REQUIRE(tests::rangedWeapon(actor).projectileSprite.region.position.x == 4);
     REQUIRE(tests::rangedWeapon(actor).phase == simple_platformer::RangedPhase::Ready);
-    REQUIRE_FALSE(tests::rangedWeapon(actor).firedThisUpdate);
+    REQUIRE_FALSE(tests::rangedWeapon(actor).lastFiredTimeSeconds.has_value());
 }
 
 TEST_CASE("Actor composition creates fresh independent runtime state", "[app][actors]")

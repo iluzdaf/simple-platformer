@@ -68,7 +68,7 @@ namespace simple_platformer
         {
             actor.rangedWeapon->phase = RangedPhase::Ready;
             actor.rangedWeapon->phaseTimeRemaining = 0;
-            actor.rangedWeapon->firedThisUpdate = false;
+            actor.rangedWeapon->lastFiredTimeSeconds = std::nullopt;
             actor.rangedWeapon->projectileSprite.textureId = textureId;
         }
         if (!definition.animations.empty())

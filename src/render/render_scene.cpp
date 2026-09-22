@@ -7,7 +7,6 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
-#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
@@ -16,7 +15,6 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
-#include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -119,12 +117,12 @@ namespace simple_platformer
             RenderScene& scene,
             const TileMap& map,
             const World& world,
-            std::optional<glm::vec2> viewer,
             const Camera& camera)
         {
             for (const Pickup& pickup : world.pickups())
             {
-                if (hiddenByCover(map, viewer, pickup.bounds))
+                const float pickupVisibility = pickup.screenVisibility.value_or(1.0F);
+                if (pickupVisibility <= 0.0F)
                 {
                     continue;
                 }
@@ -139,7 +137,9 @@ namespace simple_platformer
                      worldToScreen(camera, bounds.position),
                      bounds.size,
                      sprite.region,
-                     false});
+                     false,
+                     0.0F,
+                     pickupVisibility});
             }
         }
 
@@ -167,12 +167,7 @@ namespace simple_platformer
                  false});
         }
 
-        void appendActors(
-            RenderScene& scene,
-            const TileMap& map,
-            const World& world,
-            std::optional<glm::vec2> viewer,
-            const Camera& camera)
+        void appendActors(RenderScene& scene, const World& world, const Camera& camera)
         {
             for (const Actor& actor : world.actors())
             {
@@ -180,7 +175,8 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                if (actor.id != world.playerId() && hiddenByCover(map, viewer, actor.body.bounds))
+                const float actorVisibility = actor.screenVisibility.value_or(1.0F);
+                if (actorVisibility <= 0.0F)
                 {
                     continue;
                 }
@@ -193,7 +189,7 @@ namespace simple_platformer
                      actor.sprite->region,
                      actor.facing == Facing::Left,
                      0.0F,
-                     actorOpacity(actor),
+                     actorOpacity(actor) * actorVisibility,
                      actorWhiteFlashAmount(actor, world.simulationTimeSeconds())});
             }
         }
@@ -245,14 +241,11 @@ namespace simple_platformer
         const Camera& camera,
         const World& world)
     {
-        const Actor* player = world.findActor(world.playerId());
-        const std::optional<glm::vec2> viewer =
-            player != nullptr ? std::optional(centerOf(player->body.bounds)) : std::nullopt;
         RenderScene scene;
         appendTiles(scene, map, tileTextureId, camera);
-        appendPickups(scene, map, world, viewer, camera);
+        appendPickups(scene, map, world, camera);
         appendExit(scene, world, camera);
-        appendActors(scene, map, world, viewer, camera);
+        appendActors(scene, world, camera);
         appendProjectiles(scene, world, camera);
         appendProjectileBursts(scene, world, camera);
         return scene;

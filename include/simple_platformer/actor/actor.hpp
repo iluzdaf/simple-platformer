@@ -43,6 +43,9 @@ namespace simple_platformer
 
         std::optional<Sprite> sprite;
         std::optional<Animator> animator;
+        // How much of the actor the player's screen shows, eased towards what the player can
+        // see of it. Unset until first presented.
+        std::optional<float> screenVisibility;
         std::optional<Health> health;
         std::optional<Inventory> inventory;
         Team team = Team::Neutral;

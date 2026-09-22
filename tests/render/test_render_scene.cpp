@@ -10,17 +10,18 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/render/camera.hpp"
+#include "simple_platformer/render/cover_fade.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/require_near.hpp"
 #include "support/actor_builder.hpp"
+#include "support/add_player.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 
@@ -41,6 +42,18 @@ namespace
             { return sprite.textureId == textureId; }));
     }
 
+    const simple_platformer::SpriteDrawCommand& onlySpriteFrom(
+        const simple_platformer::RenderScene& scene,
+        int textureId)
+    {
+        REQUIRE(spritesFrom(scene, textureId) == 1);
+        return *std::find_if(
+            scene.sprites.begin(),
+            scene.sprites.end(),
+            [textureId](const simple_platformer::SpriteDrawCommand& sprite)
+            { return sprite.textureId == textureId; });
+    }
+
     simple_platformer::Sprite square(int textureId, float size)
     {
         return {textureId, {{0.0F, 0.0F}, {size, size}}, {size, size}};
@@ -58,13 +71,12 @@ namespace
 
     void addPlayerIn(simple_platformer::World& world, simple_platformer::GridPosition cell)
     {
-        const glm::vec2 feet = simple_platformer::feetInCell(tests::TileSize, cell);
-        const simple_platformer::ActorId player =
-            world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                               .inCell(cell)
-                               .walking()
-                               .withSprite(square(PlayerTexture, 12.0F)));
-        world.setPlayer(player, feet);
+        tests::addPlayer(
+            world,
+            tests::ActorBuilder::sized({12.0F, 12.0F})
+                .inCell(cell)
+                .walking()
+                .withSprite(square(PlayerTexture, 12.0F)));
     }
 
     void addNpcIn(simple_platformer::World& world, simple_platformer::GridPosition cell)
@@ -91,8 +103,7 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
                                          .withSprite(player);
     actor.facing = simple_platformer::Facing::Left;
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(actor);
-    world.setPlayer(playerId, simple_platformer::feetOf(playerBounds));
+    tests::addPlayer(world, actor);
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, 7, camera, world);
@@ -281,6 +292,7 @@ TEST_CASE("NPCs and pickups the player cannot see are not drawn", "[render][scen
     addNpcIn(world, {4, 1});
     world.addPickup({simple_platformer::boxInCell(tests::TileSize, {3, 1}, {8.0F, 8.0F}), {1, 1}});
     addNpcIn(world, {7, 1});
+    simple_platformer::updateCoverFades(map, world, 0.0F);
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, TileTexture, camera, world);
@@ -289,4 +301,45 @@ TEST_CASE("NPCs and pickups the player cannot see are not drawn", "[render][scen
     // Only the NPC in the open.
     REQUIRE(spritesFrom(scene, NpcTexture) == 1);
     REQUIRE(spritesFrom(scene, PickupTexture) == 0);
+}
+
+TEST_CASE("NPCs in the player's own patch of cover are drawn fully", "[render][scene][cover]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "...cc...", "........"})
+            .where('c', tests::Tile().blocksSight());
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, {128.0F, 48.0F}};
+    simple_platformer::World world;
+    addPlayerIn(world, {3, 1});
+    addNpcIn(world, {4, 1});
+    simple_platformer::updateCoverFades(map, world, 0.0F);
+
+    const simple_platformer::RenderScene scene =
+        simple_platformer::buildRenderScene(map, TileTexture, camera, world);
+
+    REQUIRE(onlySpriteFrom(scene, NpcTexture).opacity == 1.0F);
+}
+
+TEST_CASE("NPCs and pickups are drawn at their screen visibility", "[render][scene][cover]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "...."});
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, {64.0F, 48.0F}};
+    simple_platformer::World world = worldWithPickupItem();
+    addPlayerIn(world, {0, 1});
+    addNpcIn(world, {2, 1});
+    world.addPickup({simple_platformer::boxInCell(tests::TileSize, {3, 1}, {8.0F, 8.0F}), {1, 1}});
+    world.actors().back().screenVisibility = 0.4F;
+    world.pickups().front().screenVisibility = 0.4F;
+
+    const simple_platformer::RenderScene partlyShown =
+        simple_platformer::buildRenderScene(map, TileTexture, camera, world);
+    REQUIRE_NEAR(onlySpriteFrom(partlyShown, NpcTexture).opacity, 0.4F);
+    REQUIRE_NEAR(onlySpriteFrom(partlyShown, PickupTexture).opacity, 0.4F);
+
+    world.actors().back().screenVisibility = 0.0F;
+    world.pickups().front().screenVisibility = 0.0F;
+    const simple_platformer::RenderScene hidden =
+        simple_platformer::buildRenderScene(map, TileTexture, camera, world);
+    REQUIRE(spritesFrom(hidden, NpcTexture) == 0);
+    REQUIRE(spritesFrom(hidden, PickupTexture) == 0);
 }

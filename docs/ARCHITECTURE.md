@@ -133,8 +133,9 @@ breakpoint or stall does not cause an excessive catch-up.
 10. Apply queued world requests.
 11. Check the level exit.
 
-The player intentions are written before this sequence. Camera and actor animation are
-updated afterward on ordinary gameplay ticks because they present the resulting state.
+The player intentions are written before this sequence. The camera and
+`updateWorldPresentation` (actor animation and cover fades) run afterward on ordinary
+gameplay ticks because they present the resulting state.
 Level completion takes the transition or completion path instead. Animation updates
 change state; they do not issue draw calls.
 
@@ -326,9 +327,15 @@ Each nonzero tile definition supplies a sprite region, `blocksMovement`, and
 
 Only a sight-blocking tile that can be walked into hides anything, since nothing can
 stand in a tile that blocks movement. Anyone inside grass can see out and across it.
-This applies both to NPCs looking for the player and to the player's screen, where NPCs
-and pickups in grass are drawn only when the player can see them. The debug overlay
-shows everything.
+This applies both to NPCs looking for the player and to the player's screen.
+
+On the player's screen, NPCs and pickups fade by how much of their body is in grass:
+fully visible up to the first `ScreenCoverFade` threshold, not drawn from the second, and
+fading between. Anything the player has a line of sight to is drawn fully. The screen eases
+towards that target over `CoverFadeSeconds`, so an NPC revealed when the player steps into
+its patch fades in rather than popping. `updateCoverFades` keeps this `screenVisibility`
+and `buildRenderScene` draws it. NPCs still see the
+player by line of sight alone. The debug overlay shows everything.
 
 A tile definition may name the tile it `breaksInto`, so breaking swaps a cell's tile ID
 instead of adding per-cell state, and a tile that names nothing is unbreakable. A

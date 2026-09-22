@@ -208,9 +208,12 @@ Read these after the movement loop:
    sprite draw commands;
 2. [`camera.cpp`](../src/render/camera.cpp) follows the player and converts world space to
    screen space;
-3. [`animation_system.cpp`](../src/render/animation_system.cpp) selects and advances
-   actor animation clips through `updateWorldAnimations`; pickup bobbing and timed
-   feedback are calculated from world state in `render_scene.cpp`;
+3. [`presentation.cpp`](../src/render/presentation.cpp) runs the presentation systems
+   after the simulation: [`animation_system.cpp`](../src/render/animation_system.cpp)
+   selects and advances actor animation clips, and
+   [`cover_fade.cpp`](../src/render/cover_fade.cpp) eases what the player can see of
+   NPCs and pickups in grass; pickup bobbing and timed feedback are calculated from world
+   state in `render_scene.cpp`;
 4. [`sprite_renderer.cpp`](../app/graphics/sprite_renderer.cpp) submits the finished draw
    commands to OpenGL.
 

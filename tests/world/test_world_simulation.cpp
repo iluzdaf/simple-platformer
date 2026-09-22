@@ -16,7 +16,9 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
+#include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_simulation.hpp"
@@ -504,4 +506,21 @@ TEST_CASE(
     const glm::vec2 finalFeet = simple_platformer::feetOf(storedBat.body.bounds);
     CAPTURE(finalFeet.x, finalFeet.y, tests::pathFollower(storedBat).nextStep, completedPatrolLegs);
     REQUIRE(completedPatrolLegs == 4);
+}
+
+TEST_CASE("World simulation lets a pickup fall onto the tile below", "[world][simulation]")
+{
+    simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "####"});
+    simple_platformer::World world({{1, "Coin", {}, 5}});
+    simple_platformer::Pickup pickup;
+    pickup.body.bounds = {{4.0F, 4.0F}, {8.0F, 8.0F}};
+    pickup.stack = {1, 1};
+    world.addPickup(pickup);
+
+    for (int step = 0; step < 12; ++step)
+    {
+        simple_platformer::updateWorldSimulation(map, world, 0.1F);
+    }
+
+    REQUIRE(world.pickups().front().body.bounds.position.y == 24.0F);
 }

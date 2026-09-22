@@ -20,8 +20,8 @@ TEST_CASE("Pickup definitions compose bounds and optional world sprites", "[app]
         simple_platformer::pickupDefinition(catalog, "door_key"), items, 7, {40, 48});
     REQUIRE(key.stack.item == simple_platformer::itemDefinition(items, "key").id);
     REQUIRE(key.stack.quantity == 1);
-    REQUIRE(key.bounds.size == glm::vec2{10, 12});
-    REQUIRE(simple_platformer::feetOf(key.bounds) == glm::vec2{40, 48});
+    REQUIRE(key.body.bounds.size == glm::vec2{10, 12});
+    REQUIRE(simple_platformer::feetOf(key.body.bounds) == glm::vec2{40, 48});
     REQUIRE_FALSE(key.sprite.has_value());
     const auto medicine = simple_platformer::composePickup(
         simple_platformer::pickupDefinition(catalog, "medicine_box"), items, 7, {24, 32});
@@ -101,7 +101,7 @@ TEST_CASE("Named pickups and exit requirements resolve through level composition
         simple_platformer::itemDefinition(items, "medicine").id);
     REQUIRE(
         level.world.pickups()[1].stack.item == simple_platformer::itemDefinition(items, "key").id);
-    REQUIRE(level.world.pickups()[1].bounds.size == glm::vec2{10, 12});
+    REQUIRE(level.world.pickups()[1].body.bounds.size == glm::vec2{10, 12});
     const auto& exit = level.world.exit();
     if (!exit || !exit->requirement)
     {

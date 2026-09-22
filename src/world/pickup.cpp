@@ -9,6 +9,7 @@
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 
@@ -16,11 +17,12 @@ namespace simple_platformer
 {
     void validatePickup(const Pickup& pickup)
     {
-        if (!simple_platformer::isFinite(pickup.bounds.position) ||
-            !simple_platformer::isFinite(pickup.bounds.size) || pickup.bounds.size.x <= 0.0F ||
-            pickup.bounds.size.y <= 0.0F)
+        if (!simple_platformer::isFinite(pickup.body.bounds.position) ||
+            !simple_platformer::isFinite(pickup.body.bounds.size) ||
+            !simple_platformer::isFinite(pickup.body.velocity) ||
+            pickup.body.bounds.size.x <= 0.0F || pickup.body.bounds.size.y <= 0.0F)
         {
-            throw std::invalid_argument("Pickups require finite positive-sized bounds");
+            throw std::invalid_argument("Pickups require a finite body with positive-sized bounds");
         }
         if (pickup.stack.quantity <= 0)
         {
@@ -63,6 +65,15 @@ namespace simple_platformer
         }
     }
 
+    void updatePickupMovement(const TileMap& map, World& world, float deltaTime)
+    {
+        for (Pickup& pickup : world.pickups())
+        {
+            applyGravity(pickup.body, DefaultGravity, DefaultMaximumFallSpeed, deltaTime);
+            moveBody(map, pickup.body, deltaTime);
+        }
+    }
+
     void updatePickups(const World& world, WorldRequests& requests)
     {
         const Actor* player = world.findActor(world.playerId());
@@ -72,7 +83,7 @@ namespace simple_platformer
         }
         for (std::size_t index = 0; index < world.pickups().size(); ++index)
         {
-            if (overlaps(player->body.bounds, world.pickups()[index].bounds))
+            if (overlaps(player->body.bounds, world.pickups()[index].body.bounds))
             {
                 requests.collectPickup(index);
             }

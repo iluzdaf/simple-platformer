@@ -236,7 +236,8 @@ namespace simple_platformer
         scene.pickups.reserve(world.pickups().size());
         for (const Pickup& pickup : world.pickups())
         {
-            scene.pickups.push_back({pickup.bounds, world.itemDefinition(pickup.stack.item).name});
+            scene.pickups.push_back(
+                {pickup.body.bounds, world.itemDefinition(pickup.stack.item).name});
         }
 
         return scene;

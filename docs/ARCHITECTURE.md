@@ -125,13 +125,14 @@ breakpoint or stall does not cause an excessive catch-up.
 2. Update NPC sensing and target memory.
 3. Update NPC decisions, destinations, paths, and intentions.
 4. Move every actor and resolve tile collision.
-5. Advance attacks and evaluate active bite hitboxes.
-6. Move projectiles, find their earliest collision, and break the tiles they destroy.
-7. Advance existing projectile bursts and queue expired bursts for removal.
-8. Apply damage and advance actor life cycles.
-9. Detect automatic pickups.
-10. Apply queued world requests.
-11. Check the level exit.
+5. Let pickups fall and resolve their tile collision.
+6. Advance attacks and evaluate active bite hitboxes.
+7. Move projectiles, find their earliest collision, and break the tiles they destroy.
+8. Advance existing projectile bursts and queue expired bursts for removal.
+9. Apply damage and advance actor life cycles.
+10. Detect automatic pickups.
+11. Apply queued world requests.
+12. Check the level exit.
 
 The player intentions are written before this sequence. The camera and
 `updateWorldPresentation` (actor animation and cover fades) run afterward on ordinary
@@ -302,9 +303,11 @@ coyote, and jump-buffer timing. Its update performs horizontal acceleration or
 deceleration, starts a buffered jump when allowed, applies normal or jump-release
 gravity, and clamps fall speed.
 
-Movement produces velocity. The collision module moves the body and returns contacts;
-movement then observes those contacts. This direction keeps platformer rules separate
-from tile collision and avoids a general ability framework.
+Movement produces velocity. `Body` then moves by it and stops along whichever axis hit
+a tile, one step shared by platformer movement, flying movement, and pickups; movement
+observes the contacts that step returns. Gravity and its default rates live with `Body`
+too, and the platformer config only overrides them. This direction keeps platformer
+rules separate from tile collision and avoids a general ability framework.
 
 ### Flying movement
 
@@ -511,11 +514,13 @@ stack. Adding an item fills compatible stacks, then empty slots, and reports any
 that did not fit. Item effects use an explicit C++ switch rather than a hidden scripting
 system.
 
-The living player automatically collects pickups on strict body overlap. NPCs do not.
-A pickup that cannot fit completely remains with its uncollected quantity. The example
-contains coins, health potions, and a key. Pickup sprites use the shared World clock and
-a position-based phase offset to bob without moving their collection bounds. Inventory
-persists through player death.
+A pickup has a body like an actor's. It falls at the default gravity and rests on tiles,
+so a key placed on glass drops when the glass is shot out from under it. The living
+player automatically collects pickups on strict body overlap. NPCs do not. A pickup that
+cannot fit completely remains with its uncollected quantity. The example contains coins,
+health potions, and a key. Pickup sprites use the shared World clock and a position-based
+phase offset to bob without moving their collection bounds. Inventory persists through
+player death.
 
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. The simulation reports completion;

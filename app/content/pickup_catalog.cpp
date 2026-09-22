@@ -16,7 +16,7 @@ namespace simple_platformer
     void validatePickupDefinition(const PickupDefinition& definition, const ItemCatalog& items)
     {
         Pickup pickup;
-        pickup.bounds.size = definition.bodySize;
+        pickup.body.bounds.size = definition.bodySize;
         pickup.stack = composeItemStack(items, definition.stack);
         pickup.sprite = definition.sprite;
         validatePickup(pickup);
@@ -109,8 +109,8 @@ namespace simple_platformer
     {
         validatePickupDefinition(definition, items);
         Pickup result;
-        result.bounds.size = definition.bodySize;
-        placeFeetAt(result.bounds, spawnFeet);
+        result.body.bounds.size = definition.bodySize;
+        placeFeetAt(result.body.bounds, spawnFeet);
         result.stack = composeItemStack(items, definition.stack);
         result.sprite = definition.sprite;
         if (result.sprite)

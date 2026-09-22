@@ -25,6 +25,7 @@ namespace simple_platformer
         updateNpcSenses(map, world, deltaTime);
         updateNpcBehaviour(map, world, deltaTime);
         updateActorMovement(map, world, deltaTime);
+        updatePickupMovement(map, world, deltaTime);
         updateAttacks(world, requests, deltaTime);
         updateProjectiles(map, world, requests, deltaTime);
         updateProjectileBursts(world, requests, deltaTime);

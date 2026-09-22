@@ -226,7 +226,7 @@ TEST_CASE("Debug overlay data describes pickup bounds", "[app][debug]")
 {
     simple_platformer::World world({{1, "Coin", {}, 5}});
     const simple_platformer::Aabb bounds{{24.0F, 32.0F}, {8.0F, 8.0F}};
-    world.addPickup({bounds, {1, 2}});
+    world.addPickup({{bounds}, {1, 2}});
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};

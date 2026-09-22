@@ -1,6 +1,5 @@
 #include "simple_platformer/world/level_exit.hpp"
 
-#include <cmath>
 #include <optional>
 #include <stdexcept>
 
@@ -40,13 +39,8 @@ namespace simple_platformer
         {
             itemDefinition(exit.requirement->item);
         }
-        if (exit.lastLockedTouchTimeSeconds.has_value() &&
-            (!std::isfinite(*exit.lastLockedTouchTimeSeconds) ||
-             *exit.lastLockedTouchTimeSeconds < 0.0F ||
-             *exit.lastLockedTouchTimeSeconds > elapsedSimulationTimeSeconds))
-        {
-            throw std::invalid_argument("Exit touch time must be within simulation time");
-        }
+        requireWithinSimulationTime(exit.lastLockedTouchTimeSeconds, "Exit touch time");
+        requireWithinSimulationTime(exit.openedAtTimeSeconds, "Exit opening time");
         levelExit = exit;
         completed = false;
     }
@@ -78,6 +72,22 @@ namespace simple_platformer
                 actor.inventory->count(exit.requirement->item) >= exit.requirement->quantity);
     }
 
+    bool exitOpening(const World& world)
+    {
+        const auto& levelExit = world.exit();
+        return levelExit.has_value() && levelExit->openedAtTimeSeconds.has_value() &&
+               !world.levelComplete();
+    }
+
+    void holdPlayerAtOpeningExit(World& world)
+    {
+        Actor* player = world.findActor(world.playerId());
+        if (player != nullptr && exitOpening(world))
+        {
+            player->intentions = {};
+        }
+    }
+
     void updateLevelExit(World& world)
     {
         Actor* player = world.findActor(world.playerId());
@@ -88,19 +98,28 @@ namespace simple_platformer
             return;
         }
         LevelExit& exit = levelExit.value();
+        const float now = world.simulationTimeSeconds();
+        if (exit.openedAtTimeSeconds.has_value())
+        {
+            if (now - *exit.openedAtTimeSeconds >= ExitOpenSeconds)
+            {
+                world.completeLevel();
+            }
+            return;
+        }
         if (!overlaps(player->body.bounds, exit.bounds))
         {
             return;
         }
         if (!exitUnlocked(exit, *player))
         {
-            exit.lastLockedTouchTimeSeconds = world.simulationTimeSeconds();
+            exit.lastLockedTouchTimeSeconds = now;
             return;
         }
         if (exit.consumeItem && exit.requirement.has_value() && player->inventory.has_value())
         {
             player->inventory->remove(exit.requirement->item, exit.requirement->quantity);
         }
-        world.completeLevel();
+        exit.openedAtTimeSeconds = now;
     }
 }

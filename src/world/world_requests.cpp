@@ -1,9 +1,10 @@
 #include "simple_platformer/world/world_requests.hpp"
 
 #include <algorithm>
-#include <functional>
 #include <cstddef>
+#include <functional>
 #include <stdexcept>
+#include <vector>
 
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"

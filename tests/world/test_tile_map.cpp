@@ -129,7 +129,7 @@ TEST_CASE("Tile maps reject invalid definitions and tile IDs", "[world][tile-map
 
 TEST_CASE("A tile map knows its tile size and measures itself by it", "[world][tile-map]")
 {
-    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "..."}).withTileSize(32);
+    const simple_platformer::TileMap map(32, 3, 2, std::vector<int>(6, 0), {{false, false, {}}});
 
     REQUIRE(map.tileSize() == 32);
     REQUIRE(map.pixelWidth() == 96.0F);

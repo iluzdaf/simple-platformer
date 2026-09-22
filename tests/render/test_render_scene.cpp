@@ -61,7 +61,7 @@ namespace
         const glm::vec2 feet = simple_platformer::feetInCell(tests::TileSize, cell);
         const simple_platformer::ActorId player =
             world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                               .atFeet(feet)
+                               .inCell(cell)
                                .walking()
                                .withSprite(square(PlayerTexture, 12.0F)));
         world.setPlayer(player, feet);
@@ -70,7 +70,7 @@ namespace
     void addNpcIn(simple_platformer::World& world, simple_platformer::GridPosition cell)
     {
         world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                           .atFeet(simple_platformer::feetInCell(tests::TileSize, cell))
+                           .inCell(cell)
                            .flying(0.0F)
                            .withSprite(square(NpcTexture, 12.0F)));
     }

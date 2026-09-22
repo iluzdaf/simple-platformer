@@ -158,6 +158,7 @@ add_executable(
     app/graphics/sprite_renderer.cpp
     app/main.cpp
     app/ui/completion_ui.cpp
+    app/ui/exit_hint_ui.cpp
     app/ui/health_hud_ui.cpp
     app/ui/inventory_layout.cpp
     app/ui/inventory_ui.cpp

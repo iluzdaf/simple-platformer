@@ -1,5 +1,6 @@
 #include "simple_platformer/world/level_exit.hpp"
 
+#include <cmath>
 #include <optional>
 #include <stdexcept>
 
@@ -39,11 +40,23 @@ namespace simple_platformer
         {
             itemDefinition(exit.requirement->item);
         }
+        if (exit.lastLockedTouchTimeSeconds.has_value() &&
+            (!std::isfinite(*exit.lastLockedTouchTimeSeconds) ||
+             *exit.lastLockedTouchTimeSeconds < 0.0F ||
+             *exit.lastLockedTouchTimeSeconds > elapsedSimulationTimeSeconds))
+        {
+            throw std::invalid_argument("Exit touch time must be within simulation time");
+        }
         levelExit = exit;
         completed = false;
     }
 
     const std::optional<LevelExit>& World::exit() const
+    {
+        return levelExit;
+    }
+
+    std::optional<LevelExit>& World::exit()
     {
         return levelExit;
     }
@@ -68,15 +81,20 @@ namespace simple_platformer
     void updateLevelExit(World& world)
     {
         Actor* player = world.findActor(world.playerId());
-        const auto& levelExit = world.exit();
+        std::optional<LevelExit>& levelExit = world.exit();
         if (world.levelComplete() || !levelExit.has_value() || player == nullptr ||
             player->life != LifeState::Alive)
         {
             return;
         }
-        const LevelExit& exit = levelExit.value();
-        if (!overlaps(player->body.bounds, exit.bounds) || !exitUnlocked(exit, *player))
+        LevelExit& exit = levelExit.value();
+        if (!overlaps(player->body.bounds, exit.bounds))
         {
+            return;
+        }
+        if (!exitUnlocked(exit, *player))
+        {
+            exit.lastLockedTouchTimeSeconds = world.simulationTimeSeconds();
             return;
         }
         if (exit.consumeItem && exit.requirement.has_value() && player->inventory.has_value())

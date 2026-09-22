@@ -16,6 +16,9 @@ namespace simple_platformer
         // Empty means the game is complete. The game resolves a level ID to level content.
         std::optional<int> nextLevel;
         std::optional<Sprite> sprite;
+        // When the living player last stood in the exit without meeting its requirement, on
+        // the world clock. The screen hints at what is missing for a while after.
+        std::optional<float> lastLockedTouchTimeSeconds;
     };
 
     class World;

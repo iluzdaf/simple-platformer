@@ -1,0 +1,20 @@
+{
+  "map": ["............", "............", "............", "############"],
+  "playerSpawnCell": [1, 2],
+  "actors": [],
+  "pickups": [
+    {
+      "definition": "door_key",
+      "spawnCell": [8, 2]
+    }
+  ],
+  "exit": {
+    "definition": "test_door",
+    "spawnCell": [3, 2],
+    "requirement": {
+      "item": "key",
+      "quantity": 1
+    },
+    "nextLevel": 25
+  }
+}

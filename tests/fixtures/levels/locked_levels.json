@@ -1,0 +1,13 @@
+{
+  "startLevel": 10,
+  "levels": [
+    {
+      "number": 10,
+      "file": "locked_door.json"
+    },
+    {
+      "number": 25,
+      "file": "finish.json"
+    }
+  ]
+}

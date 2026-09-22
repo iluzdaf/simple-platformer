@@ -23,6 +23,7 @@
 #include "graphics/display_viewport.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "ui/completion_ui.hpp"
+#include "ui/exit_hint_ui.hpp"
 #include "ui/health_hud_ui.hpp"
 #include "ui/inventory_ui.hpp"
 #include "simple_platformer/input/input_state.hpp"
@@ -310,6 +311,10 @@ namespace simple_platformer
             if (windowViewport.has_value())
             {
                 drawHealthHud(game.playerHealth(), atlasTexture, *windowViewport);
+                if (!game.complete())
+                {
+                    drawLockedExitHint(game, atlasTexture, *windowViewport);
+                }
                 drawLevelCompletion(game, *windowViewport);
             }
             if (context.inventoryOpen && !game.complete() && windowViewport.has_value())

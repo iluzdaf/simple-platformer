@@ -10,9 +10,13 @@
 #include "content/level_catalog.hpp"
 #include "content/game_catalogs.hpp"
 #include "simple_platformer/render/camera.hpp"
+#include "simple_platformer/render/sprite.hpp"
 
 namespace simple_platformer
 {
+    // How long the screen keeps hinting after the player last stood in a locked exit.
+    constexpr float LockedExitHintSeconds = 1.0F;
+
     struct Health;
     struct InputIntentions;
     struct RenderScene;
@@ -40,6 +44,8 @@ namespace simple_platformer
         bool complete() const;
         std::optional<glm::vec2> levelExitScreenPosition() const;
         bool exitReady() const;
+        // The icon of what the exit needs, while the player has just tried it without.
+        std::optional<Sprite> lockedExitHintIcon() const;
 
     private:
         void loadLevel(int levelNumber);

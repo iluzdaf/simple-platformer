@@ -169,7 +169,7 @@ namespace simple_platformer
             number("shootDuration", config.shootDuration);
             number("recoveryDuration", config.recoveryDuration);
             readOptionalBoolean(value, "breaksTiles", config.breaksTiles, sourceName, path);
-            if (const Json* sprite = optionalJsonMember(value, "sprite"))
+            if (const Json* sprite = optionalJsonMember(value, "sprite", sourceName, path))
             {
                 config.projectileSprite =
                     jsonSprite(*sprite, sourceName, fieldPath(path, "sprite"));
@@ -202,41 +202,41 @@ namespace simple_platformer
             result.bodySize = readVector(value, "bodySize", sourceName, path);
             readOptionalText(value, "animations", result.animations, sourceName, path);
             readOptionalSpriteAnchor(value, "spriteAnchor", result.spriteAnchor, sourceName, path);
-            if (const Json* team = optionalJsonMember(value, "team"))
+            if (const Json* team = optionalJsonMember(value, "team", sourceName, path))
             {
                 result.team = jsonTeam(*team, sourceName, fieldPath(path, "team"));
             }
-            if (const Json* facing = optionalJsonMember(value, "facing"))
+            if (const Json* facing = optionalJsonMember(value, "facing", sourceName, path))
             {
                 result.facing = jsonFacing(*facing, sourceName, fieldPath(path, "facing"));
             }
-            if (const Json* health = optionalJsonMember(value, "health"))
+            if (const Json* health = optionalJsonMember(value, "health", sourceName, path))
             {
                 result.health = jsonInteger(*health, sourceName, fieldPath(path, "health"));
             }
-            if (const Json* slots = optionalJsonMember(value, "inventorySlots"))
+            if (const Json* slots = optionalJsonMember(value, "inventorySlots", sourceName, path))
             {
                 result.inventorySlots =
                     jsonInteger(*slots, sourceName, fieldPath(path, "inventorySlots"));
             }
-            if (const Json* platformer = optionalJsonMember(value, "platformer"))
+            if (const Json* platformer = optionalJsonMember(value, "platformer", sourceName, path))
             {
                 result.platformer =
                     jsonPlatformerConfig(*platformer, sourceName, fieldPath(path, "platformer"));
             }
-            if (const Json* flying = optionalJsonMember(value, "flying"))
+            if (const Json* flying = optionalJsonMember(value, "flying", sourceName, path))
             {
                 result.flying = jsonFlyingMovement(*flying, sourceName, fieldPath(path, "flying"));
             }
-            if (const Json* senses = optionalJsonMember(value, "senses"))
+            if (const Json* senses = optionalJsonMember(value, "senses", sourceName, path))
             {
                 result.senses = jsonNpcSenses(*senses, sourceName, fieldPath(path, "senses"));
             }
-            if (const Json* bite = optionalJsonMember(value, "bite"))
+            if (const Json* bite = optionalJsonMember(value, "bite", sourceName, path))
             {
                 result.bite = jsonBite(*bite, sourceName, fieldPath(path, "bite"));
             }
-            if (const Json* ranged = optionalJsonMember(value, "ranged"))
+            if (const Json* ranged = optionalJsonMember(value, "ranged", sourceName, path))
             {
                 result.ranged = jsonRangedWeapon(*ranged, sourceName, fieldPath(path, "ranged"));
             }

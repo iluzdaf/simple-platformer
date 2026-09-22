@@ -1,7 +1,9 @@
 #include "simple_platformer/world/sight.hpp"
 
+#include <algorithm>
 #include <optional>
 
+#include <glm/common.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/aabb.hpp"
@@ -16,17 +18,53 @@ namespace simple_platformer
         return !segmentCastSightBlockingTiles(map, from, to).has_value();
     }
 
-    bool standsInCover(const TileMap& map, const Aabb& bounds)
+    float fractionInCover(const TileMap& map, const Aabb& bounds)
     {
-        return map.blocksSight(worldToGrid(map.tileSize(), centerOf(bounds)));
+        const float area = bounds.size.x * bounds.size.y;
+        if (area <= 0.0F)
+        {
+            return 0.0F;
+        }
+
+        const glm::vec2 boundsEnd = bounds.position + bounds.size;
+        const GridPosition first = worldToGrid(map.tileSize(), bounds.position);
+        const GridPosition last = worldToGrid(map.tileSize(), boundsEnd);
+        float coveredArea = 0.0F;
+        for (int row = first.y; row <= last.y; ++row)
+        {
+            for (int column = first.x; column <= last.x; ++column)
+            {
+                if (!map.blocksSight({column, row}))
+                {
+                    continue;
+                }
+                const glm::vec2 cellStart = gridToWorld(map.tileSize(), {column, row});
+                const glm::vec2 cellEnd = cellStart + static_cast<float>(map.tileSize());
+                const glm::vec2 overlap = glm::max(
+                    glm::min(boundsEnd, cellEnd) - glm::max(bounds.position, cellStart),
+                    glm::vec2{0.0F, 0.0F});
+                coveredArea += overlap.x * overlap.y;
+            }
+        }
+        return std::min(coveredArea / area, 1.0F);
     }
 
-    bool hiddenByCover(const TileMap& map, std::optional<glm::vec2> viewer, const Aabb& target)
+    float visibility(
+        const TileMap& map,
+        std::optional<glm::vec2> viewer,
+        const Aabb& target,
+        CoverFade fade)
     {
-        if (!standsInCover(map, target))
+        const float covered = fractionInCover(map, target);
+        if (covered <= fade.concealsAbove)
         {
-            return false;
+            return 1.0F;
         }
-        return !viewer.has_value() || !lineOfSight(map, *viewer, centerOf(target));
+        if (viewer.has_value() && lineOfSight(map, *viewer, centerOf(target)))
+        {
+            return 1.0F;
+        }
+        return std::clamp(
+            (fade.hidesAbove - covered) / (fade.hidesAbove - fade.concealsAbove), 0.0F, 1.0F);
     }
 }

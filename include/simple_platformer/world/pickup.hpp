@@ -13,6 +13,8 @@ namespace simple_platformer
         ItemStack stack;
         // Without an override, rendering uses the item's inventory icon.
         std::optional<Sprite> sprite = std::nullopt;
+        // As Actor::screenVisibility.
+        std::optional<float> screenVisibility = std::nullopt;
     };
 
     class World;

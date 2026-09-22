@@ -109,6 +109,8 @@ add_library(
     src/physics/segment_cast.cpp
     src/render/animation.cpp
     src/render/animation_system.cpp
+    src/render/cover_fade.cpp
+    src/render/presentation.cpp
     src/render/camera.cpp
     src/render/render_scene.cpp
     src/render/sprite.cpp
@@ -377,6 +379,8 @@ if(BUILD_TESTING)
         tests/render/test_animation.cpp
         tests/render/test_animation_system.cpp
         tests/render/test_camera.cpp
+        tests/render/test_cover_fade.cpp
+        tests/render/test_presentation.cpp
         tests/render/test_render_scene.cpp
         tests/support/test_actor_builder.cpp
         tests/support/test_tile_map_builder.cpp

@@ -16,8 +16,8 @@
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/render/animation_system.hpp"
 #include "simple_platformer/render/camera.hpp"
+#include "simple_platformer/render/presentation.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/level_validation.hpp"
@@ -109,7 +109,7 @@ namespace simple_platformer
             throw std::logic_error("The game has no player after lifecycle update");
         }
         followTarget(cameraControllerValue(), level.map, player->body.bounds);
-        updateWorldAnimations(level.world, deltaTime);
+        updateWorldPresentation(level.map, level.world, deltaTime);
     }
 
     glm::vec2 Game::playerAimDirection(glm::vec2 screenPosition) const

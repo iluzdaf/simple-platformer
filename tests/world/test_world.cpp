@@ -78,62 +78,68 @@ TEST_CASE("World owns a validated simulation clock", "[world][time]")
 TEST_CASE("World rejects invalid actor composition", "[world][actor]")
 {
     simple_platformer::World world;
+    simple_platformer::Actor actor = makeActor();
 
-    simple_platformer::Actor missingMovement = makeActor();
-    missingMovement.platformerMovement.reset();
-    REQUIRE_THROWS_AS(world.addActor(missingMovement), std::invalid_argument);
-
-    simple_platformer::Actor assignedId = makeActor();
-    assignedId.id = {42};
-    REQUIRE_THROWS_AS(world.addActor(assignedId), std::invalid_argument);
-
-    simple_platformer::Actor invalidHealth = makeActor();
-    invalidHealth.health = {4, 3};
-    REQUIRE_THROWS_AS(world.addActor(invalidHealth), std::invalid_argument);
-
-    simple_platformer::Actor animatorWithoutSprite = makeActor();
-    animatorWithoutSprite.animator = simple_platformer::Animator{};
-    REQUIRE_THROWS_AS(world.addActor(animatorWithoutSprite), std::invalid_argument);
-
-    simple_platformer::Actor invalidAnimator = makeActor();
-    invalidAnimator.sprite = simple_platformer::Sprite{};
-    invalidAnimator.animator = simple_platformer::Animator{};
-    REQUIRE_THROWS_AS(world.addActor(invalidAnimator), std::invalid_argument);
-
-    tests::animator(invalidAnimator)
-        .animationSet.clips.push_back(
+    SECTION("No movement component")
+    {
+        actor.platformerMovement.reset();
+    }
+    SECTION("Two movement components")
+    {
+        actor.flyingMovement = simple_platformer::FlyingMovement{};
+    }
+    SECTION("An id the world did not assign")
+    {
+        actor.id = {42};
+    }
+    SECTION("Health above its maximum")
+    {
+        actor.health = {4, 3};
+    }
+    SECTION("An animator without a sprite")
+    {
+        actor.animator = simple_platformer::Animator{};
+    }
+    SECTION("An animator with no clips")
+    {
+        actor.sprite = simple_platformer::Sprite{};
+        actor.animator = simple_platformer::Animator{};
+    }
+    SECTION("An animator with infinite elapsed time")
+    {
+        actor.sprite = simple_platformer::Sprite{};
+        actor.animator = simple_platformer::Animator{};
+        tests::animator(actor).animationSet.clips.push_back(
             {simple_platformer::AnimationName::Idle, {{{0.0F, 0.0F}, {1.0F, 1.0F}}}});
-    tests::animator(invalidAnimator).elapsed = std::numeric_limits<float>::infinity();
-    REQUIRE_THROWS_AS(world.addActor(invalidAnimator), std::invalid_argument);
+        tests::animator(actor).elapsed = std::numeric_limits<float>::infinity();
+    }
+    SECTION("Two attacks")
+    {
+        actor.team = simple_platformer::Team::Player;
+        actor.rangedWeapon = simple_platformer::RangedWeapon{};
+        actor.bite = simple_platformer::BiteAttack{};
+    }
+    SECTION("A neutral attacker")
+    {
+        actor.rangedWeapon = simple_platformer::RangedWeapon{};
+    }
+    SECTION("A brain without senses or a path follower")
+    {
+        actor.brain = simple_platformer::NpcBrain{};
+    }
+    SECTION("An NPC biting without a bite")
+    {
+        actor.brain = simple_platformer::NpcBrain{};
+        tests::brain(actor).state = simple_platformer::NpcState::Bite;
+        actor.senses = simple_platformer::NpcSenses{};
+        actor.pathFollower = simple_platformer::PathFollower{};
+    }
+    SECTION("Damage taken in the future")
+    {
+        actor.lastDamageTimeSeconds = 1.0F;
+    }
 
-    simple_platformer::Actor twoAttacks = makeActor();
-    twoAttacks.team = simple_platformer::Team::Player;
-    twoAttacks.rangedWeapon = simple_platformer::RangedWeapon{};
-    twoAttacks.bite = simple_platformer::BiteAttack{};
-    REQUIRE_THROWS_AS(world.addActor(twoAttacks), std::invalid_argument);
-
-    simple_platformer::Actor neutralAttacker = makeActor();
-    neutralAttacker.rangedWeapon = simple_platformer::RangedWeapon{};
-    REQUIRE_THROWS_AS(world.addActor(neutralAttacker), std::invalid_argument);
-
-    simple_platformer::Actor twoMovementComponents = makeActor();
-    twoMovementComponents.flyingMovement = simple_platformer::FlyingMovement{};
-    REQUIRE_THROWS_AS(world.addActor(twoMovementComponents), std::invalid_argument);
-
-    simple_platformer::Actor incompleteNpc = makeActor();
-    incompleteNpc.brain = simple_platformer::NpcBrain{};
-    REQUIRE_THROWS_AS(world.addActor(incompleteNpc), std::invalid_argument);
-
-    simple_platformer::Actor invalidBitingNpc = makeActor();
-    invalidBitingNpc.brain = simple_platformer::NpcBrain{};
-    tests::brain(invalidBitingNpc).state = simple_platformer::NpcState::Bite;
-    invalidBitingNpc.senses = simple_platformer::NpcSenses{};
-    invalidBitingNpc.pathFollower = simple_platformer::PathFollower{};
-    REQUIRE_THROWS_AS(world.addActor(invalidBitingNpc), std::invalid_argument);
-
-    simple_platformer::Actor futureDamage = makeActor();
-    futureDamage.lastDamageTimeSeconds = 1.0F;
-    REQUIRE_THROWS_AS(world.addActor(futureDamage), std::invalid_argument);
+    REQUIRE_THROWS_AS(world.addActor(actor), std::invalid_argument);
 }
 
 TEST_CASE("NPC composition does not require a bite attack", "[world][actor]")

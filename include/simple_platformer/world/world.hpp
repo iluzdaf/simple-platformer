@@ -71,6 +71,9 @@ namespace simple_platformer
         void respawnPlayer();
 
     private:
+        // A stamp on the world clock may be unset, but never ahead of the clock.
+        void requireWithinSimulationTime(const std::optional<float>& time, const char* what) const;
+
         std::vector<ItemDefinition> itemDefinitions;
         std::vector<Pickup> pickupStorage;
         std::optional<LevelExit> levelExit;

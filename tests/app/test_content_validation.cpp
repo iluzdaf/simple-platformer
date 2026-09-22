@@ -69,7 +69,7 @@ TEST_CASE(
     "[app][content][validation]")
 {
     const simple_platformer::TileCatalog catalog{
-        {{false, false, {}}, {true, false, {{0, 0}, {16, 16}}}}, {{"empty", 0}, {"glass", 1}}};
+        16, {{false, false, {}}, {true, false, {{0, 0}, {16, 16}}}}, {{"empty", 0}, {"glass", 1}}};
     REQUIRE_NOTHROW(simple_platformer::validateTileCatalog(catalog));
     REQUIRE_NOTHROW(
         simple_platformer::validateTileLegend({{'.', "empty"}, {'X', "glass"}}, catalog));
@@ -80,7 +80,7 @@ TEST_CASE(
 TEST_CASE("Tile catalogue validation rejects invalid C++ definitions", "[app][content][validation]")
 {
     simple_platformer::TileCatalog catalog{
-        {{false, false, {}}, {true, false, {{0, 0}, {16, 16}}}}, {{"empty", 0}, {"glass", 1}}};
+        16, {{false, false, {}}, {true, false, {{0, 0}, {16, 16}}}}, {{"empty", 0}, {"glass", 1}}};
     SECTION("Missing empty")
     {
         catalog.ids.erase("empty");
@@ -124,6 +124,14 @@ TEST_CASE("Tile catalogue validation rejects invalid C++ definitions", "[app][co
     SECTION("Nonfinite sprite")
     {
         catalog.definitions[1].sprite.size.y = std::numeric_limits<float>::infinity();
+    }
+    SECTION("Zero tile size")
+    {
+        catalog.tileSize = 0;
+    }
+    SECTION("Sprite is not one tile")
+    {
+        catalog.definitions[1].sprite.size = {16, 8};
     }
     REQUIRE_THROWS_AS(simple_platformer::validateTileCatalog(catalog), std::invalid_argument);
 }

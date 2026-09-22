@@ -10,6 +10,8 @@
 #include <string_view>
 #include <vector>
 
+#include <glm/vec2.hpp>
+
 #include "simple_platformer/render/sprite.hpp"
 #include "tile_catalog.hpp"
 #include "level_data.hpp"
@@ -92,6 +94,10 @@ namespace simple_platformer
 
     void validateTileCatalog(const TileCatalog& catalog)
     {
+        if (catalog.tileSize <= 0)
+        {
+            throw std::invalid_argument("tile catalog needs a positive tileSize");
+        }
         const auto empty = catalog.ids.find("empty");
         if (empty == catalog.ids.end() || empty->second != 0 || catalog.definitions.empty())
         {
@@ -123,6 +129,16 @@ namespace simple_platformer
                 sprite.size.y <= 0)
             {
                 throw std::invalid_argument("invalid sprite region for tile '" + entry.first + "'");
+            }
+            if (sprite.size != glm::vec2{catalog.tileSize, catalog.tileSize})
+            {
+                const std::string side = std::to_string(catalog.tileSize);
+                std::string message = "tile '" + entry.first + "' sprite must be ";
+                message += side;
+                message += " by ";
+                message += side;
+                message += " atlas pixels, the catalogue's tileSize";
+                throw std::invalid_argument(message);
             }
             const auto& breaksInto =
                 catalog.definitions[static_cast<std::size_t>(id)].breaksIntoTileId;

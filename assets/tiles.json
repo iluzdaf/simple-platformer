@@ -1,18 +1,19 @@
 {
+  "tileSize": 16,
   "tiles": {
     "empty": { "blocksMovement": false, "blocksSight": false },
     "stone": {
-      "sprite": { "position": [0, 192], "size": [16, 16] },
+      "sprite": { "position": [0, 192] },
       "blocksMovement": true,
       "blocksSight": true
     },
     "grass": {
-      "sprite": { "position": [128, 192], "size": [16, 16] },
+      "sprite": { "position": [128, 192] },
       "blocksMovement": false,
       "blocksSight": true
     },
     "glass": {
-      "sprite": { "position": [144, 192], "size": [16, 16] },
+      "sprite": { "position": [144, 192] },
       "blocksMovement": true,
       "blocksSight": false,
       "breaksInto": "empty"

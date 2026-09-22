@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <stdexcept>
 #include <string>
+#include <glm/vec2.hpp>
 #include <nlohmann/json.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
@@ -10,13 +11,12 @@
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
-#include "support/tile_size.hpp"
 
 TEST_CASE("Tile catalogues reject unknown fields and identify their definitions", "[app][tiles]")
 {
-    auto root = nlohmann::json::parse(R"({"tiles":{
+    auto root = nlohmann::json::parse(R"({"tileSize":16,"tiles":{
         "empty":{"blocksMovement":false,"blocksSight":false},
-        "wall":{"blocksMovement":true,"blocksSight":true,"sprite":{"position":[0,0],"size":[16,16]}}
+        "wall":{"blocksMovement":true,"blocksSight":true,"sprite":{"position":[0,0]}}
     }})");
     SECTION("Definition typo")
     {
@@ -38,18 +38,18 @@ TEST_CASE("Tile catalogues reject unknown fields and identify their definitions"
 TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][tiles]")
 {
     const auto catalog = simple_platformer::parseTileCatalog(
-        R"({"tiles": {
+        R"({"tileSize":16,"tiles": {
         "empty": {"blocksMovement":false,"blocksSight":false},
         "glass": {"blocksMovement":true,"blocksSight":false,
-                  "sprite":{"position": [16, 0], "size": [16, 16]}},
+                  "sprite":{"position": [16, 0]}},
         "grass": {"blocksMovement":false,"blocksSight":true,
-                  "sprite":{"position": [32, 0], "size": [16, 16]}}
+                  "sprite":{"position": [32, 0]}}
     }})",
         "test tiles");
-    const auto glass = simple_platformer::composeTileMap(
-        tests::TileSize, {".X."}, {{'.', "empty"}, {'X', "glass"}}, catalog);
-    const auto grass = simple_platformer::composeTileMap(
-        tests::TileSize, {".G."}, {{'.', "empty"}, {'G', "grass"}}, catalog);
+    const auto glass =
+        simple_platformer::composeTileMap({".X."}, {{'.', "empty"}, {'X', "glass"}}, catalog);
+    const auto grass =
+        simple_platformer::composeTileMap({".G."}, {{'.', "empty"}, {'G', "grass"}}, catalog);
     REQUIRE(glass.blocksMovement({1, 0}));
     REQUIRE_FALSE(glass.blocksSight({1, 0}));
     REQUIRE_FALSE(grass.blocksMovement({1, 0}));
@@ -65,10 +65,9 @@ TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][
     REQUIRE_FALSE(
         simple_platformer::segmentCastMovementBlockingTiles(grass, {4, 4}, {38, 4}).has_value());
     REQUIRE_THROWS_AS(
-        simple_platformer::composeTileMap(tests::TileSize, {"?"}, {{'.', "empty"}}, catalog),
-        std::invalid_argument);
+        simple_platformer::composeTileMap({"?"}, {{'.', "empty"}}, catalog), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::composeTileMap(tests::TileSize, {"X"}, {{'X', "missing"}}, catalog),
+        simple_platformer::composeTileMap({"X"}, {{'X', "missing"}}, catalog),
         std::invalid_argument);
 }
 
@@ -76,14 +75,14 @@ TEST_CASE("Breakable tiles resolve breaksInto to a catalogue ID", "[app][tiles]"
 {
     // cracked is declared after glass refers to it, so resolution cannot be a single pass.
     const auto catalog = simple_platformer::parseTileCatalog(
-        R"({"tiles":{
+        R"({"tileSize":16,"tiles":{
         "empty":{"blocksMovement":false,"blocksSight":false},
         "glass":{"blocksMovement":true,"blocksSight":false,
-                 "sprite":{"position":[0,0],"size":[16,16]},"breaksInto":"cracked"},
+                 "sprite":{"position":[0,0]},"breaksInto":"cracked"},
         "cracked":{"blocksMovement":true,"blocksSight":false,
-                   "sprite":{"position":[16,0],"size":[16,16]},"breaksInto":"empty"},
+                   "sprite":{"position":[16,0]},"breaksInto":"empty"},
         "stone":{"blocksMovement":true,"blocksSight":true,
-                 "sprite":{"position":[32,0],"size":[16,16]}}}})",
+                 "sprite":{"position":[32,0]}}}})",
         "tiles.json");
 
     const auto& glass = catalog.definitions[static_cast<std::size_t>(catalog.ids.at("glass"))];
@@ -101,10 +100,10 @@ TEST_CASE("Tile catalogues reject unusable breaksInto targets", "[app][tiles]")
     const auto parse = [](const std::string& breaksInto)
     {
         return simple_platformer::parseTileCatalog(
-            R"({"tiles":{
+            R"({"tileSize":16,"tiles":{
         "empty":{"blocksMovement":false,"blocksSight":false},
         "glass":{"blocksMovement":true,"blocksSight":false,
-                 "sprite":{"position":[0,0],"size":[16,16]},"breaksInto":")" +
+                 "sprite":{"position":[0,0]},"breaksInto":")" +
                 breaksInto + R"("}}})",
             "tiles.json");
     };
@@ -121,21 +120,64 @@ TEST_CASE("Tile catalogues reject unusable breaksInto targets", "[app][tiles]")
 TEST_CASE("Tile catalogs reject missing empty tiles and malformed definitions", "[app][tiles]")
 {
     REQUIRE_THROWS_AS(
-        simple_platformer::parseTileCatalog(R"({"tiles":{}})", "test"), std::invalid_argument);
+        simple_platformer::parseTileCatalog(R"({"tileSize":16,"tiles":{}})", "test"),
+        std::invalid_argument);
     REQUIRE_THROWS_AS(
         simple_platformer::parseTileCatalog(
-            R"({"tiles":{
+            R"({"tileSize":16,"tiles":{
         "empty":{"blocksMovement":true,"blocksSight":false}}})",
             "test"),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
         simple_platformer::parseTileCatalog(
-            R"({"tiles":{
+            R"({"tileSize":16,"tiles":{
         "empty":{"blocksMovement":false,"blocksSight":false},
         "bad":{"blocksMovement":true,"blocksSight":true,
-               "sprite":{"position": [0, 0], "size": [0, 16]}}}})",
+               "sprite":{"position": [0, -16]}}}})",
             "test"),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
         simple_platformer::loadTileCatalog("missing-tiles.json"), std::invalid_argument);
+}
+
+TEST_CASE("A tile catalogue declares its tile size and maps compose at it", "[app][tiles]")
+{
+    const auto catalog = simple_platformer::parseTileCatalog(
+        R"({"tileSize":32,"tiles":{
+        "empty":{"blocksMovement":false,"blocksSight":false},
+        "wall":{"blocksMovement":true,"blocksSight":true,"sprite":{"position":[0,0]}}
+    }})",
+        "tiles.json");
+    const auto map =
+        simple_platformer::composeTileMap({".W"}, {{'.', "empty"}, {'W', "wall"}}, catalog);
+
+    REQUIRE(catalog.tileSize == 32);
+    REQUIRE(map.tileSize() == 32);
+    REQUIRE(map.pixelWidth() == 64.0F);
+    REQUIRE(map.definitionAt({1, 0}).sprite.size == glm::vec2{32.0F, 32.0F});
+}
+
+TEST_CASE("Tile catalogues require a positive tile size", "[app][tiles]")
+{
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseTileCatalog(
+            R"({"tiles":{"empty":{"blocksMovement":false,"blocksSight":false}}})", "tiles.json"),
+        Catch::Matchers::ContainsSubstring("tileSize"));
+    REQUIRE_THROWS_AS(
+        simple_platformer::parseTileCatalog(
+            R"({"tileSize":0,"tiles":{"empty":{"blocksMovement":false,"blocksSight":false}}})",
+            "tiles.json"),
+        std::invalid_argument);
+}
+
+TEST_CASE("A tile sprite gives only where it starts, since it is one tile", "[app][tiles]")
+{
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseTileCatalog(
+            R"({"tileSize":16,"tiles":{
+        "empty":{"blocksMovement":false,"blocksSight":false},
+        "wide":{"blocksMovement":true,"blocksSight":true,"sprite":{"position":[0,0],"size":[32,16]}}
+    }})",
+            "tiles.json"),
+        Catch::Matchers::ContainsSubstring("tiles.wide.sprite"));
 }

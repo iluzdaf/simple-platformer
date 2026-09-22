@@ -25,10 +25,6 @@ namespace simple_platformer
 {
     namespace
     {
-        // The tile size in world pixels. This is the only place that still states it; the
-        // next change reads it from tiles.json instead.
-        constexpr int TileSize = 16;
-
         // Where a level position lands on the map, as feet.
         glm::vec2 feetOf(const TileMap& map, const LevelPosition& position)
         {
@@ -158,7 +154,7 @@ namespace simple_platformer
                     path.string() + ": " + reference.first + ": " + error.what());
             }
         }
-        TileMap map = composeTileMap(TileSize, data.mapRows, data.tileLegend, tiles);
+        TileMap map = composeTileMap(data.mapRows, data.tileLegend, tiles);
         World world(composeItems(items, textureId));
         for (const auto& placement : data.actors)
         {

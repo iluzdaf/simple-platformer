@@ -152,9 +152,9 @@ iterators and pointers during a system update.
   world coordinates; actor and navigation placement helpers commonly use feet, the
   bottom centre of an actor body.
 - The internal resolution is 320 by 180 pixels.
-- Tiles are square. Each `TileMap` carries its tile size in world pixels, and every cell
-  calculation takes that size rather than assuming one. The game's levels use 16; level
-  composition states it in one place until the tile catalogue declares it.
+- Tiles are square. `tiles.json` declares `tileSize` in world pixels, each `TileMap`
+  carries it, and every cell calculation takes that size rather than assuming one. The
+  game uses 16.
 - Window output is an integer-scaled internal image with letterboxing when required.
 - `World` owns elapsed simulation time. It advances once per fixed simulation update and
   provides a shared clock for effects that do not need their own resettable timer.
@@ -546,6 +546,10 @@ The engine keeps visual and physical dimensions separate:
 - `SpriteRegion` is one source rectangle inside that texture;
 - `Sprite::size` is the rectangle drawn in world pixels;
 - `Body::bounds.size` is the collision rectangle in world pixels.
+
+A tile has only a `SpriteRegion` and no `Sprite::size`: it always fills one cell, so its
+region is the catalogue's `tileSize` square and `tiles.json` gives only where it starts.
+Every other sprite in the same atlas chooses its world size independently.
 
 Matching sizes are assigned explicitly; the engine does not assume a sprite and body
 are equal. Actor sprites are normally positioned from the body's feet, which lets a

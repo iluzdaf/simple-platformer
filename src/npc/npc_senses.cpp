@@ -21,12 +21,6 @@ namespace simple_platformer
 {
     namespace
     {
-        const Actor* livingTarget(const World& world, const NpcBrain& brain)
-        {
-            const Actor* target = world.findActor(brain.target.value_or(ActorId{}));
-            return target != nullptr && target->life == LifeState::Alive ? target : nullptr;
-        }
-
         bool withinNoticeDistance(const Aabb& observer, const Aabb& target, const NpcSenses& senses)
         {
             if (!std::isfinite(senses.noticeDistance) || senses.noticeDistance < 0.0F)
@@ -71,6 +65,16 @@ namespace simple_platformer
         }
 
         return lineOfSight(map, centerOf(observer), centerOf(target));
+    }
+
+    const Actor* livingTarget(const World& world, const NpcBrain& brain)
+    {
+        if (!brain.target.has_value())
+        {
+            return nullptr;
+        }
+        const Actor* target = world.findActor(*brain.target);
+        return target != nullptr && target->life == LifeState::Alive ? target : nullptr;
     }
 
     bool seenByAnyNpc(const TileMap& map, const World& world, const Actor& target)

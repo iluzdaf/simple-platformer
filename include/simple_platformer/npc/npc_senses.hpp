@@ -6,7 +6,11 @@ namespace simple_platformer
     class World;
     struct Aabb;
     struct Actor;
+    struct NpcBrain;
     struct NpcSenses;
+
+    // The actor the brain remembers, while it is still alive; otherwise nothing.
+    const Actor* livingTarget(const World& world, const NpcBrain& brain);
 
     bool canSeeTarget(
         const TileMap& map,

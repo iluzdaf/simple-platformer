@@ -61,13 +61,12 @@ namespace simple_platformer
         const TextureView& atlas,
         const WindowViewport& viewport)
     {
-        constexpr float HeartSize = 16.0F;
         constexpr float HeartTop = 192.0F;
         constexpr float FilledHeartLeft = 96.0F;
         constexpr float EmptyHeartLeft = 112.0F;
 
-        if (atlas.width < static_cast<int>(EmptyHeartLeft + HeartSize) ||
-            atlas.height < static_cast<int>(HeartTop + HeartSize))
+        if (atlas.width < static_cast<int>(EmptyHeartLeft + HudIconSize) ||
+            atlas.height < static_cast<int>(HeartTop + HudIconSize))
         {
             throw std::invalid_argument("The health HUD atlas is missing its heart regions");
         }
@@ -76,7 +75,7 @@ namespace simple_platformer
         const ImTextureID texture = static_cast<ImTextureID>(atlas.handle);
         const float atlasWidth = static_cast<float>(atlas.width);
         const float atlasHeight = static_cast<float>(atlas.height);
-        const ImVec2 size = {HeartSize * viewport.scale.x, HeartSize * viewport.scale.y};
+        const ImVec2 size = {HudIconSize * viewport.scale.x, HudIconSize * viewport.scale.y};
         ImVec2 position = {
             viewport.topLeft.x + HudMargin * viewport.scale.x,
             viewport.topLeft.y + HudMargin * viewport.scale.y};
@@ -86,14 +85,14 @@ namespace simple_platformer
             const float sourceLeft = heart < health.current ? FilledHeartLeft : EmptyHeartLeft;
             const ImVec2 minimumUv = {sourceLeft / atlasWidth, HeartTop / atlasHeight};
             const ImVec2 maximumUv = {
-                (sourceLeft + HeartSize) / atlasWidth, (HeartTop + HeartSize) / atlasHeight};
+                (sourceLeft + HudIconSize) / atlasWidth, (HeartTop + HudIconSize) / atlasHeight};
             drawList->AddImage(
                 texture,
                 position,
                 {position.x + size.x, position.y + size.y},
                 minimumUv,
                 maximumUv);
-            position.x += (HeartSize + HudGap) * viewport.scale.x;
+            position.x += (HudIconSize + HudGap) * viewport.scale.x;
         }
     }
 }

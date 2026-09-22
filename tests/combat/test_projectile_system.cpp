@@ -9,7 +9,6 @@
 #include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/combat/projectile_system.hpp"
-#include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"

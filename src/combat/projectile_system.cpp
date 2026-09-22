@@ -1,10 +1,8 @@
 #include "simple_platformer/combat/projectile_system.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <optional>
-#include <stdexcept>
 #include <vector>
 
 #include <glm/vec2.hpp>
@@ -14,6 +12,7 @@
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -110,10 +109,7 @@ namespace simple_platformer
 
     void updateProjectiles(TileMap& map, World& world, WorldRequests& requests, float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
-        {
-            throw std::invalid_argument("Projectile delta time must be finite and non-negative");
-        }
+        requireTimeStep(deltaTime, "Projectiles");
 
         // The map belongs to GameLevel, not World, so breaks are not WorldRequests. They are
         // still held back until every shot has been traced, so one shot cannot open a hole
@@ -165,11 +161,7 @@ namespace simple_platformer
 
     void updateProjectileBursts(World& world, WorldRequests& requests, float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
-        {
-            throw std::invalid_argument(
-                "Projectile burst delta time must be finite and non-negative");
-        }
+        requireTimeStep(deltaTime, "Projectile bursts");
 
         for (std::size_t index = 0; index < world.projectileBursts().size(); ++index)
         {

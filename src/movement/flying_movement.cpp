@@ -23,10 +23,12 @@ namespace simple_platformer
         Facing& facing,
         float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime <= 0.0F || !std::isfinite(movement.speed) ||
-            movement.speed < 0.0F || !isFinite(intentions.direction))
+        requireTimeStep(deltaTime, "Flying movement");
+        if (!std::isfinite(movement.speed) || movement.speed < 0.0F ||
+            !isFinite(intentions.direction))
         {
-            throw std::invalid_argument("Flying movement data must be finite and non-negative");
+            throw std::invalid_argument(
+                "Flying movement requires a finite, non-negative speed and finite intentions");
         }
 
         glm::vec2 direction = intentions.direction;

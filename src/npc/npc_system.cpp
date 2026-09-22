@@ -1,7 +1,6 @@
 #include "simple_platformer/npc/npc_system.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <optional>
 #include <stdexcept>
 
@@ -14,6 +13,7 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/flying_navigation.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
@@ -300,10 +300,7 @@ namespace simple_platformer
 
     void updateNpcBehaviour(const TileMap& map, World& world, float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
-        {
-            throw std::invalid_argument("NPC behaviour time must be finite and non-negative");
-        }
+        requireTimeStep(deltaTime, "NPC behaviour");
 
         for (Actor& actor : world.actors())
         {

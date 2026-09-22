@@ -31,12 +31,7 @@ namespace simple_platformer
             const InputIntentions& intentions,
             float deltaTime)
         {
-            if (!std::isfinite(deltaTime) || deltaTime <= 0.0F)
-            {
-                throw std::invalid_argument(
-                    "Platformer movement requires a positive finite time step");
-            }
-
+            requireTimeStep(deltaTime, "Platformer movement");
             validatePlatformerMovementConfig(config);
 
             if (!isFinite(intentions.direction))

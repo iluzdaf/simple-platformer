@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <optional>
+#include <stdexcept>
 
 #include <glm/vec2.hpp>
 
@@ -184,4 +185,12 @@ TEST_CASE("Firing exposes a hidden player for the reveal window", "[render][cove
     world.advanceSimulationTime(simple_platformer::ShotRevealSeconds);
     simple_platformer::updateCoverFades(map, world, QuarterFade);
     REQUIRE_NEAR(shown(world, player), 0.25F);
+}
+
+TEST_CASE("Cover fades reject a negative step", "[render][cover]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"..", "##"});
+    simple_platformer::World world;
+    REQUIRE_THROWS_AS(
+        simple_platformer::updateCoverFades(map, world, -0.1F), std::invalid_argument);
 }

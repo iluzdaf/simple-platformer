@@ -7,6 +7,7 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 
@@ -18,10 +19,10 @@ namespace simple_platformer
         float deltaTime,
         float deathDuration)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F || !std::isfinite(deathDuration) ||
-            deathDuration <= 0.0F)
+        requireTimeStep(deltaTime, "Life states");
+        if (!std::isfinite(deathDuration) || deathDuration <= 0.0F)
         {
-            throw std::invalid_argument("Lifecycle timing must be finite and positive");
+            throw std::invalid_argument("Life states require a finite, positive death duration");
         }
 
         std::vector<ActorId> actorsAlreadyDying;

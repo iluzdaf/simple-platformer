@@ -7,6 +7,7 @@
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 
 namespace simple_platformer
@@ -69,10 +70,7 @@ namespace simple_platformer
         AnimationName selected,
         float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
-        {
-            throw std::invalid_argument("Animation delta time must be finite and non-negative");
-        }
+        requireTimeStep(deltaTime, "Animations");
         if (animator.current != selected)
         {
             animator.current = selected;

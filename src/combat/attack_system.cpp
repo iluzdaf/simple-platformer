@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <stdexcept>
 #include <vector>
 
 #include <glm/geometric.hpp>
@@ -163,10 +162,7 @@ namespace simple_platformer
 
     void updateAttacks(World& world, WorldRequests& requests, float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
-        {
-            throw std::invalid_argument("Attack delta time must be finite and non-negative");
-        }
+        requireTimeStep(deltaTime, "Attacks");
 
         for (Actor& actor : world.actors())
         {

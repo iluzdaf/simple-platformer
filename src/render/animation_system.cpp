@@ -1,10 +1,10 @@
 #include "simple_platformer/render/animation_system.hpp"
 
-#include <cmath>
 #include <stdexcept>
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -42,10 +42,7 @@ namespace simple_platformer
 
     void updateWorldAnimations(World& world, float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
-        {
-            throw std::invalid_argument("Animation delta time must be finite and non-negative");
-        }
+        requireTimeStep(deltaTime, "Animations");
         updateActorAnimations(world, deltaTime);
     }
 }

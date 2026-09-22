@@ -13,9 +13,8 @@
 
 TEST_CASE("Pickup definitions compose bounds and optional world sprites", "[app][pickups]")
 {
-    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/levels/items.json");
-    const auto catalog =
-        simple_platformer::loadPickupCatalog("tests/fixtures/levels/pickups.json", items);
+    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/items.json");
+    const auto catalog = simple_platformer::loadPickupCatalog("tests/fixtures/pickups.json", items);
     const auto key = simple_platformer::composePickup(
         simple_platformer::pickupDefinition(catalog, "door_key"), items, 7, {40, 48});
     REQUIRE(key.stack.item == simple_platformer::itemDefinition(items, "key").id);
@@ -37,7 +36,7 @@ TEST_CASE("Pickup definitions compose bounds and optional world sprites", "[app]
 
 TEST_CASE("Pickup JSON validates every definition including unused entries", "[app][pickups][json]")
 {
-    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/levels/items.json");
+    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/items.json");
     auto root = nlohmann::json::parse(R"({"pickups":{"unused":{"item":"key","quantity":1}}})");
     auto& definition = root["pickups"]["unused"];
     SECTION("Unknown item")
@@ -75,7 +74,7 @@ TEST_CASE("Pickup JSON validates every definition including unused entries", "[a
 
 TEST_CASE("Pickup definitions reject invalid C++ data without JSON", "[app][pickups][validation]")
 {
-    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/levels/items.json");
+    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/items.json");
     simple_platformer::PickupDefinition definition;
     definition.stack = {"key", 1};
     REQUIRE_NOTHROW(simple_platformer::validatePickupDefinition(definition, items));
@@ -83,7 +82,7 @@ TEST_CASE("Pickup definitions reject invalid C++ data without JSON", "[app][pick
     REQUIRE_THROWS_AS(
         simple_platformer::validatePickupDefinition(definition, items), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::loadPickupCatalog("tests/fixtures/levels/missing-pickups.json", items),
+        simple_platformer::loadPickupCatalog("tests/fixtures/missing-pickups.json", items),
         std::invalid_argument);
 }
 
@@ -92,9 +91,9 @@ TEST_CASE("Named pickups and exit requirements resolve through level composition
     const auto catalog = simple_platformer::parseLevelCatalog(
         R"({"startLevel":1,"levels":[{"number":1,"file":"pickup_placement.json"}]})",
         "fixture",
-        "tests/fixtures/levels");
+        "tests/fixtures");
     const auto level = simple_platformer::composeGameLevel(catalog, 1, 7);
-    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/levels/items.json");
+    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/items.json");
     REQUIRE(level.world.pickups().size() == 2);
     REQUIRE(
         level.world.pickups()[0].stack.item ==
@@ -115,7 +114,7 @@ TEST_CASE("Exit item references resolve through the item catalogue", "[app][pick
     const auto catalog = simple_platformer::parseLevelCatalog(
         R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_item.json"}]})",
         "fixture",
-        "tests/fixtures/levels");
+        "tests/fixtures");
     REQUIRE_THROWS_WITH(
         simple_platformer::composeGameLevel(catalog, 1, 0),
         Catch::Matchers::ContainsSubstring("unknown_item.json:"));
@@ -129,7 +128,7 @@ TEST_CASE("Unknown unused pickup legend references identify their source", "[app
     const auto catalog = simple_platformer::parseLevelCatalog(
         R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_pickup.json"}]})",
         "fixture",
-        "tests/fixtures/levels");
+        "tests/fixtures");
     REQUIRE_THROWS_WITH(
         simple_platformer::composeGameLevel(catalog, 1, 0),
         Catch::Matchers::ContainsSubstring(
@@ -138,7 +137,7 @@ TEST_CASE("Unknown unused pickup legend references identify their source", "[app
 
 TEST_CASE("Level composition reuses the supplied session item catalogue", "[app][pickups]")
 {
-    const auto levels = simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json");
+    const auto levels = simple_platformer::loadLevelCatalog("tests/fixtures/levels.json");
     // This session has an extra item before key, so its generated IDs differ from the file.
     const auto items = simple_platformer::parseItemCatalog(
         R"({"items":{

@@ -20,7 +20,7 @@ TEST_CASE("Actor catalogue references compose through level loading", "[app][act
     const auto levels = simple_platformer::parseLevelCatalog(
         R"({"startLevel":1,"levels":[{"number":1,"file":"actor_placement.json"}]})",
         "fixture",
-        "tests/fixtures/levels");
+        "tests/fixtures");
     auto level = simple_platformer::composeGameLevel(levels, 1, 0);
     REQUIRE(level.world.actors().size() == 1);
     auto& actor = level.world.actors().front();
@@ -29,7 +29,7 @@ TEST_CASE("Actor catalogue references compose through level loading", "[app][act
     const auto invalid = simple_platformer::parseLevelCatalog(
         R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_actor.json"}]})",
         "fixture",
-        "tests/fixtures/levels");
+        "tests/fixtures");
     REQUIRE_THROWS_WITH(
         simple_platformer::composeGameLevel(invalid, 1, 0),
         Catch::Matchers::ContainsSubstring(
@@ -129,7 +129,7 @@ TEST_CASE("Actor definitions reuse engine component validation", "[app][actors]"
 TEST_CASE("Actor JSON accepts custom names and configures component choices", "[app][actors][json]")
 {
     const auto animations =
-        simple_platformer::loadAnimationCatalog("tests/fixtures/levels/animations.json");
+        simple_platformer::loadAnimationCatalog("tests/fixtures/animations.json");
     const auto catalog = simple_platformer::parseActorCatalog(
         R"({
         "player":"hero", "actors":{

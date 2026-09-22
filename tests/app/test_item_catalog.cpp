@@ -93,7 +93,7 @@ TEST_CASE("Item definitions are validated without JSON", "[app][items][validatio
     catalog.definitions.at("herb").icon.size.x = std::numeric_limits<float>::infinity();
     REQUIRE_THROWS_AS(simple_platformer::validateItemCatalog(catalog), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::loadItemCatalog("tests/fixtures/levels/missing-items.json"),
+        simple_platformer::loadItemCatalog("tests/fixtures/missing-items.json"),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
         simple_platformer::parseItemCatalog("not JSON", "broken"), std::invalid_argument);

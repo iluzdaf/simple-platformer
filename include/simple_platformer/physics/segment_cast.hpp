@@ -18,6 +18,10 @@ namespace simple_platformer
     // Touching the box counts as a hit.
     std::optional<float> segmentCast(const Aabb& box, glm::vec2 start, glm::vec2 end);
 
+    // The target grown by half the moving box on every side, so casting the moving box's
+    // centre as a line against it finds where the two boxes would first touch.
+    Aabb expandedForMovingBox(const Aabb& target, glm::vec2 movingSize);
+
     struct TileSegmentHit
     {
         float segmentTime = 0.0F;

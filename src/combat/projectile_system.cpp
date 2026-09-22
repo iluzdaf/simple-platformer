@@ -34,12 +34,6 @@ namespace simple_platformer
             }
         };
 
-        Aabb expandedForProjectile(const Aabb& target, glm::vec2 projectileSize)
-        {
-            const glm::vec2 halfSize = projectileSize * 0.5F;
-            return {target.position - halfSize, target.size + projectileSize};
-        }
-
         ProjectileBurst makeBurst(
             const Projectile& projectile,
             glm::vec2 center,
@@ -82,7 +76,7 @@ namespace simple_platformer
                 }
 
                 const std::optional<float> actorHit = segmentCast(
-                    expandedForProjectile(actor.body.bounds, projectile.bounds.size), start, end);
+                    expandedForMovingBox(actor.body.bounds, projectile.bounds.size), start, end);
                 if (actorHit.has_value() &&
                     (*actorHit < earliest.segmentTime ||
                      (!earliest.occurred() && *actorHit == earliest.segmentTime)))

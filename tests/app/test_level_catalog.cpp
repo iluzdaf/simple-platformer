@@ -91,6 +91,6 @@ TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content]
 TEST_CASE("A missing level catalog is rejected at the file boundary", "[app][content][json]")
 {
     REQUIRE_THROWS_AS(
-        simple_platformer::loadLevelCatalog("tests/fixtures/levels/does_not_exist.json"),
+        simple_platformer::loadLevelCatalog("tests/fixtures/does_not_exist.json"),
         std::invalid_argument);
 }

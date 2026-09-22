@@ -36,7 +36,7 @@ TEST_CASE("Debug overlay data supports actors without presentation components", 
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(actor);
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
-    const simple_platformer::Camera camera{{4.0F, 5.0F}, {320.0F, 180.0F}};
+    const simple_platformer::Camera camera{{4.0F, 5.0F}, simple_platformer::InternalViewportSize};
     const simple_platformer::CameraController cameraController{camera, {80.0F, 40.0F}};
 
     const simple_platformer::DebugOverlay debug =

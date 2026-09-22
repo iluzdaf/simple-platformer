@@ -24,8 +24,8 @@ TEST_CASE("An ASCII tile map is rectangular and row-major", "[world][tile-map]")
 
 TEST_CASE("Tile movement blocking comes from its definition", "[world][tile-map]")
 {
-    const simple_platformer::TileMap map(
-        tests::TileSize, 2, 1, {1, 2}, {{false, false, {}}, {true, true, {}}, {false, false, {}}});
+    // A declared tile that blocks nothing: being a tile is not what blocks.
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"#x"}).where('x', tests::Tile());
 
     REQUIRE(map.blocksMovement({0, 0}));
     REQUIRE_FALSE(map.blocksMovement({1, 0}));
@@ -72,17 +72,8 @@ TEST_CASE("ASCII tile maps reject malformed input", "[world][tile-map]")
 
 TEST_CASE("Breaking a tile replaces it with what its definition breaks into", "[world][tile-map]")
 {
-    using simple_platformer::TileDefinition;
-
-    TileDefinition empty;
-    TileDefinition solid;
-    solid.blocksMovement = true;
-    solid.blocksSight = true;
-    TileDefinition glass;
-    glass.blocksMovement = true;
-    glass.breaksIntoTileId = 0;
-
-    simple_platformer::TileMap map(tests::TileSize, 2, 1, {2, 1}, {empty, solid, glass});
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"g#"}).where('g', tests::Tile().blocksMovement().breaksInto('.'));
 
     REQUIRE(map.blocksMovement({0, 0}));
     REQUIRE(map.breakTile({0, 0}));
@@ -91,9 +82,9 @@ TEST_CASE("Breaking a tile replaces it with what its definition breaks into", "[
 
     // Breaking it again finds an empty tile, which declares nothing to break into.
     REQUIRE_FALSE(map.breakTile({0, 0}));
-    // The neighbouring solid tile has no breaksIntoTileId at all.
+    // The neighbouring solid tile declares nothing to break into either, so it stays.
     REQUIRE_FALSE(map.breakTile({1, 0}));
-    REQUIRE(map.tileAt({1, 0}) == 1);
+    REQUIRE(map.blocksMovement({1, 0}));
 }
 
 TEST_CASE("Breaking reports failure outside the map instead of throwing", "[world][tile-map]")

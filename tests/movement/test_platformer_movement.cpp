@@ -75,22 +75,19 @@ TEST_CASE("Ground movement accelerates and decelerates", "[movement][platformer]
     Body body = bodyOnFloor();
     PlatformerMovement movement = makeMovement();
     movement.grounded = true;
-    Facing facing = Facing::Left;
 
     InputIntentions intentions;
     intentions.direction.x = 1.0F;
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE_NEAR(body.velocity.x, 20.0F);
     REQUIRE_NEAR(body.bounds.position.x, 82.0F);
-    REQUIRE(facing == Facing::Right);
     REQUIRE(movement.grounded);
 
     intentions.direction.x = 0.0F;
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE_NEAR(body.velocity.x, 15.0F);
-    REQUIRE(facing == Facing::Right);
 }
 
 TEST_CASE("Air movement uses its separate acceleration", "[movement][platformer]")
@@ -98,22 +95,19 @@ TEST_CASE("Air movement uses its separate acceleration", "[movement][platformer]
     const TileMap map = makeFloorMap();
     Body body{{{80.0F, 40.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
     PlatformerMovement movement = makeMovement();
-    Facing facing = Facing::Right;
     InputIntentions intentions;
     intentions.direction.x = -1.0F;
 
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE_NEAR(body.velocity.x, -10.0F);
     REQUIRE_NEAR(body.velocity.y, 10.0F);
-    REQUIRE(facing == Facing::Left);
     REQUIRE_FALSE(movement.grounded);
 
     intentions.direction.x = 0.0F;
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE_NEAR(body.velocity.x, -10.0F);
-    REQUIRE(facing == Facing::Left);
 }
 
 TEST_CASE("Horizontal acceleration stops at maximum speed", "[movement][platformer]")
@@ -122,13 +116,12 @@ TEST_CASE("Horizontal acceleration stops at maximum speed", "[movement][platform
     Body body = bodyOnFloor();
     PlatformerMovement movement = makeMovement();
     movement.grounded = true;
-    Facing facing = Facing::Right;
     InputIntentions intentions;
     intentions.direction.x = 1.0F;
 
     for (int update = 0; update < 10; ++update)
     {
-        simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
+        simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
     }
 
     REQUIRE_NEAR(body.velocity.x, movement.config.maximumSpeed);
@@ -140,12 +133,11 @@ TEST_CASE("Grounded actors can jump", "[movement][platformer]")
     Body body = bodyOnFloor();
     PlatformerMovement movement = makeMovement();
     movement.grounded = true;
-    Facing facing = Facing::Right;
     InputIntentions intentions;
     intentions.jumpPressed = true;
     intentions.jumpHeld = true;
 
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE_NEAR(body.velocity.y, -190.0F);
     REQUIRE(body.bounds.position.y < FloorTop - body.bounds.size.y);
@@ -162,12 +154,11 @@ TEST_CASE("Grounded jumping does not require assistance timers", "[movement][pla
     movement.grounded = true;
     movement.config.coyoteDuration = 0.0F;
     movement.config.jumpBufferDuration = 0.0F;
-    Facing facing = Facing::Right;
     InputIntentions intentions;
     intentions.jumpPressed = true;
     intentions.jumpHeld = true;
 
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE(body.velocity.y < 0.0F);
     REQUIRE_FALSE(movement.grounded);
@@ -179,12 +170,11 @@ TEST_CASE("Coyote time permits a jump shortly after leaving ground", "[movement]
     Body body{{{80.0F, 40.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
     PlatformerMovement movement = makeMovement();
     movement.coyoteRemaining = 0.05F;
-    Facing facing = Facing::Right;
     InputIntentions intentions;
     intentions.jumpPressed = true;
     intentions.jumpHeld = true;
 
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.01F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.01F);
 
     REQUIRE_NEAR(body.velocity.y, -199.0F);
 }
@@ -195,12 +185,11 @@ TEST_CASE("Expired coyote time does not permit a jump", "[movement][platformer]"
     Body body{{{80.0F, 40.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
     PlatformerMovement movement = makeMovement();
     movement.coyoteRemaining = 0.005F;
-    Facing facing = Facing::Right;
     InputIntentions intentions;
     intentions.jumpPressed = true;
     intentions.jumpHeld = true;
 
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.01F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.01F);
 
     REQUIRE_NEAR(body.velocity.y, 1.0F);
     REQUIRE(movement.jumpBufferRemaining > 0.0F);
@@ -211,18 +200,17 @@ TEST_CASE("A buffered jump starts after landing", "[movement][platformer]")
     const TileMap map = makeFloorMap();
     Body body{{{80.0F, FloorTop - 13.0F}, {12.0F, 12.0F}}, {0.0F, 30.0F}};
     PlatformerMovement movement = makeMovement();
-    Facing facing = Facing::Right;
     InputIntentions intentions;
     intentions.jumpPressed = true;
     intentions.jumpHeld = true;
 
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.1F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE(movement.grounded);
     REQUIRE(movement.jumpBufferRemaining > 0.0F);
 
     intentions.jumpPressed = false;
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.01F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.01F);
 
     REQUIRE(body.velocity.y < 0.0F);
     REQUIRE_FALSE(movement.grounded);
@@ -236,16 +224,13 @@ TEST_CASE("Releasing jump early produces a shorter jump", "[movement][platformer
     Body releasedBody = heldBody;
     PlatformerMovement heldMovement = makeMovement();
     PlatformerMovement releasedMovement = heldMovement;
-    Facing heldFacing = Facing::Right;
-    Facing releasedFacing = Facing::Right;
     InputIntentions heldIntentions;
     heldIntentions.jumpHeld = true;
     InputIntentions releasedIntentions;
 
+    simple_platformer::updatePlatformerMovement(map, heldBody, heldMovement, heldIntentions, 0.1F);
     simple_platformer::updatePlatformerMovement(
-        map, heldBody, heldMovement, heldIntentions, heldFacing, 0.1F);
-    simple_platformer::updatePlatformerMovement(
-        map, releasedBody, releasedMovement, releasedIntentions, releasedFacing, 0.1F);
+        map, releasedBody, releasedMovement, releasedIntentions, 0.1F);
 
     REQUIRE_NEAR(heldBody.velocity.y, -90.0F);
     REQUIRE_NEAR(releasedBody.velocity.y, -70.0F);
@@ -257,13 +242,12 @@ TEST_CASE("Falling speed is limited by terminal velocity", "[movement][platforme
     const TileMap map = makeFloorMap();
     Body body{{{80.0F, 20.0F}, {12.0F, 12.0F}}, {0.0F, 590.0F}};
     PlatformerMovement movement = makeMovement();
-    Facing facing = Facing::Right;
 
-    simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, 0.01F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, {}, 0.01F);
 
     REQUIRE_NEAR(body.velocity.y, 591.0F);
 
-    simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, 0.1F);
+    simple_platformer::updatePlatformerMovement(map, body, movement, {}, 0.1F);
 
     REQUIRE_NEAR(body.velocity.y, 600.0F);
 }
@@ -275,12 +259,11 @@ TEST_CASE("Tile contacts stop velocity and update grounded state", "[movement][p
     Body body{{{20.0F, 60.0F}, {12.0F, 12.0F}}, {200.0F, 100.0F}};
     PlatformerMovement movement = makeMovement();
     movement.config.airAcceleration = 0.0F;
-    Facing facing = Facing::Right;
     InputIntentions intentions;
     intentions.direction.x = 1.0F;
 
     const simple_platformer::CollisionContacts contacts =
-        simple_platformer::updatePlatformerMovement(map, body, movement, intentions, facing, 0.2F);
+        simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.2F);
 
     REQUIRE(contacts.right);
     REQUIRE(contacts.ground);
@@ -294,17 +277,33 @@ TEST_CASE("Invalid movement configuration and time steps are rejected", "[moveme
     const TileMap map = makeFloorMap();
     Body body = bodyOnFloor();
     PlatformerMovement movement = makeMovement();
-    Facing facing = Facing::Right;
 
     // A zero step advances nothing and is allowed; a negative one is not.
-    REQUIRE_NOTHROW(
-        simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, 0.0F));
+    REQUIRE_NOTHROW(simple_platformer::updatePlatformerMovement(map, body, movement, {}, 0.0F));
     REQUIRE_THROWS_AS(
-        simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, -0.1F),
+        simple_platformer::updatePlatformerMovement(map, body, movement, {}, -0.1F),
         std::invalid_argument);
 
     movement.config.maximumFallSpeed = -1.0F;
     REQUIRE_THROWS_AS(
-        simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, 0.1F),
+        simple_platformer::updatePlatformerMovement(map, body, movement, {}, 0.1F),
         std::invalid_argument);
+}
+
+TEST_CASE("Facing follows aim first, then movement, then stays put", "[movement][facing]")
+{
+    InputIntentions intentions;
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Left) == Facing::Left);
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Right) == Facing::Right);
+
+    intentions.direction.x = -1.0F;
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Right) == Facing::Left);
+
+    // Aiming the other way overrides where the actor is walking.
+    intentions.aimDirection = {1.0F, -1.0F};
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Left) == Facing::Right);
+
+    // Aiming straight up or down says nothing about left or right.
+    intentions.aimDirection = {0.0F, -1.0F};
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Right) == Facing::Left);
 }

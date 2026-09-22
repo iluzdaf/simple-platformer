@@ -20,31 +20,18 @@ namespace simple_platformer
             if (actor.platformerMovement.has_value())
             {
                 updatePlatformerMovement(
-                    map,
-                    actor.body,
-                    *actor.platformerMovement,
-                    intentions,
-                    actor.facing,
-                    deltaTime);
+                    map, actor.body, *actor.platformerMovement, intentions, deltaTime);
             }
             else if (actor.flyingMovement.has_value())
             {
-                updateFlyingMovement(
-                    map, actor.body, *actor.flyingMovement, intentions, actor.facing, deltaTime);
+                updateFlyingMovement(map, actor.body, *actor.flyingMovement, intentions, deltaTime);
             }
             else
             {
                 throw std::logic_error("An actor has no movement component");
             }
 
-            if (intentions.aimDirection.x < 0.0F)
-            {
-                actor.facing = Facing::Left;
-            }
-            else if (intentions.aimDirection.x > 0.0F)
-            {
-                actor.facing = Facing::Right;
-            }
+            actor.facing = facingFor(intentions, actor.facing);
         }
     }
 }

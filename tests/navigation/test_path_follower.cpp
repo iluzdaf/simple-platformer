@@ -86,7 +86,6 @@ TEST_CASE(
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
-    simple_platformer::Facing facing = simple_platformer::Facing::Right;
 
     for (int tick = 0; tick < 180 && !simple_platformer::pathComplete(follower); ++tick)
     {
@@ -94,7 +93,7 @@ TEST_CASE(
             simple_platformer::followPlatformerPath(
                 tests::TileSize, body, movement, follower, tests::FixedStepSeconds);
         simple_platformer::updatePlatformerMovement(
-            map, body, movement, intentions, facing, tests::FixedStepSeconds);
+            map, body, movement, intentions, tests::FixedStepSeconds);
     }
 
     REQUIRE(simple_platformer::pathComplete(follower));
@@ -125,7 +124,6 @@ TEST_CASE(
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {80.0F, 0.0F}};
     body.bounds.position.x -= 6.0F;
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
-    simple_platformer::Facing facing = simple_platformer::Facing::Right;
     bool preparedForJump = false;
 
     for (int tick = 0; tick < 240 && !simple_platformer::pathComplete(follower); ++tick)
@@ -140,7 +138,7 @@ TEST_CASE(
         REQUIRE(body.bounds.position == positionBeforeFollowing);
         REQUIRE(body.velocity == velocityBeforeFollowing);
         simple_platformer::updatePlatformerMovement(
-            map, body, movement, intentions, facing, tests::FixedStepSeconds);
+            map, body, movement, intentions, tests::FixedStepSeconds);
     }
 
     REQUIRE(preparedForJump);
@@ -173,7 +171,6 @@ TEST_CASE(
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {1, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
-    simple_platformer::Facing facing = simple_platformer::Facing::Right;
     bool brakedAfterWalking = false;
 
     for (int tick = 0; tick < 360 && !simple_platformer::pathComplete(follower); ++tick)
@@ -185,7 +182,7 @@ TEST_CASE(
             brakedAfterWalking ||
             (follower.nextStep == 0 && body.velocity.x != 0.0F && intentions.direction.x == 0.0F);
         simple_platformer::updatePlatformerMovement(
-            map, body, movement, intentions, facing, tests::FixedStepSeconds);
+            map, body, movement, intentions, tests::FixedStepSeconds);
     }
 
     REQUIRE(brakedAfterWalking);

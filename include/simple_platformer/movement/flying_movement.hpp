@@ -19,6 +19,5 @@ namespace simple_platformer
         Body& body,
         const FlyingMovement& movement,
         const InputIntentions& intentions,
-        Facing& facing,
         float deltaTime);
 }

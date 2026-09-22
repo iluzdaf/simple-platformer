@@ -20,7 +20,6 @@ namespace simple_platformer
         Body& body,
         const FlyingMovement& movement,
         const InputIntentions& intentions,
-        Facing& facing,
         float deltaTime)
     {
         requireTimeStep(deltaTime, "Flying movement");
@@ -36,15 +35,6 @@ namespace simple_platformer
         if (length > 1.0F)
         {
             direction /= length;
-        }
-
-        if (direction.x < 0.0F)
-        {
-            facing = Facing::Left;
-        }
-        else if (direction.x > 0.0F)
-        {
-            facing = Facing::Right;
         }
 
         body.velocity = direction * movement.speed;

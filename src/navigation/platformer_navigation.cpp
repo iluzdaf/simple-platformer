@@ -77,7 +77,6 @@ namespace simple_platformer
         {
             Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
-            Facing facing = destinationCell.x < start.x ? Facing::Left : Facing::Right;
             PathFollower follower;
             setPath(follower, {start, {{destinationCell, Traversal::Walk, {}}}}, destinationCell);
 
@@ -89,8 +88,7 @@ namespace simple_platformer
                 {
                     return tick;
                 }
-                updatePlatformerMovement(
-                    map, body, movement, intentions, facing, SimulationStepSeconds);
+                updatePlatformerMovement(map, body, movement, intentions, SimulationStepSeconds);
             }
             return std::nullopt;
         }
@@ -147,7 +145,6 @@ namespace simple_platformer
         {
             Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
-            Facing facing = direction < 0.0F ? Facing::Left : Facing::Right;
             InputProgram program;
             bool leftGround = false;
             std::optional<GridPosition> landing;
@@ -162,8 +159,7 @@ namespace simple_platformer
                 const InputIntentions intentions = makeTraversalIntentions(
                     traversal, direction, tick, jumpHoldTicks, landing.has_value());
                 recordSimulationInput(program, intentions);
-                updatePlatformerMovement(
-                    map, body, movement, intentions, facing, SimulationStepSeconds);
+                updatePlatformerMovement(map, body, movement, intentions, SimulationStepSeconds);
 
                 leftGround = leftGround || !movement.grounded;
                 if (!leftGround || !movement.grounded)

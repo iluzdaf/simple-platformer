@@ -42,7 +42,7 @@ TEST_CASE("Lowest-cost search can use or omit the Manhattan heuristic", "[naviga
     const simple_platformer::NavigationPath route =
         withHeuristic.value_or(simple_platformer::NavigationPath{});
     REQUIRE(route.start == simple_platformer::GridPosition{0, 0});
-    REQUIRE(route.steps.back().destination == simple_platformer::GridPosition{3, 0});
+    REQUIRE(route.steps.back().destinationCell == simple_platformer::GridPosition{3, 0});
     REQUIRE(route.steps.size() == 5);
     const simple_platformer::NavigationPath routeWithoutHeuristic =
         withoutHeuristic.value_or(simple_platformer::NavigationPath{});
@@ -121,7 +121,7 @@ TEST_CASE(
     const simple_platformer::NavigationPath route =
         path.value_or(simple_platformer::NavigationPath{});
     REQUIRE(route.steps.size() == 1);
-    REQUIRE(route.steps.front().destination == simple_platformer::GridPosition{4, 0});
+    REQUIRE(route.steps.front().destinationCell == simple_platformer::GridPosition{4, 0});
 }
 
 TEST_CASE("Path search rejects invalid functions and costs", "[navigation][path-search]")

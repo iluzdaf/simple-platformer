@@ -282,7 +282,7 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
          {{4, 1}, simple_platformer::Traversal::Jump, {}},
          {{4, 3}, simple_platformer::Traversal::Fall, {}}}};
     follower.nextStep = 1;
-    follower.destination = simple_platformer::GridPosition{4, 3};
+    follower.destinationCell = simple_platformer::GridPosition{4, 3};
     follower.repathRemaining = 0.12F;
 
     simple_platformer::Actor npc =
@@ -351,10 +351,10 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
                                        .thinking({});
     npc.pathFollower = simple_platformer::PathFollower{
         simple_platformer::NavigationPath{
-            {2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},
+            {2, 2}, {{jump->destinationCell, jump->traversal, jump->inputs}}},
         0,
         0.0F,
-        jump->destination};
+        jump->destinationCell};
 
     simple_platformer::World world;
     world.addActor(npc);

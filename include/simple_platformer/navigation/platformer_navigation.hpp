@@ -24,7 +24,7 @@ namespace simple_platformer
     // Optimistic remaining travel time in fixed simulation ticks.
     int platformerTickHeuristic(
         int tileSize,
-        GridPosition position,
+        GridPosition cell,
         GridPosition goal,
         const PlatformerMovementConfig& movement);
 
@@ -37,7 +37,7 @@ namespace simple_platformer
         const PlatformerMovementConfig& movement,
         const PlatformerNavigationConfig& navigation = {});
 
-    bool canStandAt(const TileMap& map, GridPosition position, glm::vec2 bodySize);
+    bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize);
 
     // Finds the closest standable cell beneath a grounded body. The body's feet may
     // extend beyond a ledge while part of its collider is still supported.
@@ -54,7 +54,7 @@ namespace simple_platformer
     // Lower-level policy used by the generic path search.
     std::vector<NavigationNeighbor> platformerNeighbors(
         const TileMap& map,
-        GridPosition position,
+        GridPosition cell,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement);
 }

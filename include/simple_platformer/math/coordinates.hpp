@@ -28,7 +28,7 @@ namespace simple_platformer
     // or below, and points left of or above the map give negative cells.
     GridPosition worldToGrid(int tileSize, glm::vec2 worldPosition);
     // The cell's top-left corner.
-    glm::vec2 gridToWorld(int tileSize, GridPosition gridPosition);
+    glm::vec2 gridToWorld(int tileSize, GridPosition cell);
 
     // The cell something with these feet stands in. Feet exactly on a tile's top edge
     // belong to the cell above it, the one the actor occupies.

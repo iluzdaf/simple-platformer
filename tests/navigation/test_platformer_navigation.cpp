@@ -242,7 +242,7 @@ TEST_CASE("Platformer neighbors include walks and simulated falls", "[navigation
         ledge, {2, 0}, {12.0F, 12.0F}, simple_platformer::PlatformerMovementConfig{});
     const simple_platformer::NavigationNeighbor& fall =
         neighborWith(falls, simple_platformer::Traversal::Fall);
-    REQUIRE(fall.destination.y > 0);
+    REQUIRE(fall.destinationCell.y > 0);
     REQUIRE_FALSE(fall.inputs.empty());
 }
 
@@ -258,7 +258,7 @@ TEST_CASE("Platformer neighbors include continuous multi-cell walks", "[navigati
         neighbors.end(),
         [](const simple_platformer::NavigationNeighbor& neighbor)
         {
-            return neighbor.destination == simple_platformer::GridPosition{3, 0} &&
+            return neighbor.destinationCell == simple_platformer::GridPosition{3, 0} &&
                    neighbor.traversal == simple_platformer::Traversal::Walk;
         });
     REQUIRE(directWalk != neighbors.end());
@@ -268,18 +268,18 @@ TEST_CASE("Platformer neighbors include continuous multi-cell walks", "[navigati
         neighbors.end(),
         [](const simple_platformer::NavigationNeighbor& neighbor)
         {
-            return neighbor.destination == simple_platformer::GridPosition{2, 0} &&
+            return neighbor.destinationCell == simple_platformer::GridPosition{2, 0} &&
                    neighbor.traversal == simple_platformer::Traversal::Walk;
         });
     REQUIRE(firstWalk != neighbors.end());
     const auto nextNeighbors = simple_platformer::platformerNeighbors(
-        map, firstWalk->destination, {12.0F, 12.0F}, movement);
+        map, firstWalk->destinationCell, {12.0F, 12.0F}, movement);
     const auto secondWalk = std::find_if(
         nextNeighbors.begin(),
         nextNeighbors.end(),
         [](const simple_platformer::NavigationNeighbor& neighbor)
         {
-            return neighbor.destination == simple_platformer::GridPosition{3, 0} &&
+            return neighbor.destinationCell == simple_platformer::GridPosition{3, 0} &&
                    neighbor.traversal == simple_platformer::Traversal::Walk;
         });
     REQUIRE(secondWalk != nextNeighbors.end());
@@ -315,7 +315,7 @@ TEST_CASE("Generated jump inputs replay to their promised landing", "[navigation
     REQUIRE(movement.grounded);
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.destination);
+        jump.destinationCell);
 }
 
 TEST_CASE(
@@ -332,7 +332,7 @@ TEST_CASE(
         neighborWith(walkNeighbors, simple_platformer::Traversal::Walk);
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
-        follower, {{1, 0}, {{walk.destination, walk.traversal, {}}}}, walk.destination);
+        follower, {{1, 0}, {{walk.destinationCell, walk.traversal, {}}}}, walk.destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {1, 0}, {12.0F, 12.0F}), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -354,7 +354,7 @@ TEST_CASE(
     REQUIRE(walk.cost == walkTicks);
     REQUIRE(
         simple_platformer::platformerTickHeuristic(
-            tests::TileSize, {1, 0}, walk.destination, config) <= walk.cost);
+            tests::TileSize, {1, 0}, walk.destinationCell, config) <= walk.cost);
 
     const simple_platformer::TileMap jumpMap =
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
@@ -365,7 +365,7 @@ TEST_CASE(
     REQUIRE(jump.cost == std::lround(simple_platformer::durationOf(jump.inputs) / FixedDelta));
     REQUIRE(
         simple_platformer::platformerTickHeuristic(
-            tests::TileSize, {2, 2}, jump.destination, config) <= jump.cost);
+            tests::TileSize, {2, 2}, jump.destinationCell, config) <= jump.cost);
 
     const simple_platformer::TileMap fallMap =
         tests::TileMapBuilder({"........", "###.....", "........", "........", "########"});
@@ -376,7 +376,7 @@ TEST_CASE(
     REQUIRE(fall.cost == std::lround(simple_platformer::durationOf(fall.inputs) / FixedDelta));
     REQUIRE(
         simple_platformer::platformerTickHeuristic(
-            tests::TileSize, {2, 0}, fall.destination, config) <= fall.cost);
+            tests::TileSize, {2, 0}, fall.destinationCell, config) <= fall.cost);
 }
 
 TEST_CASE(
@@ -394,7 +394,7 @@ TEST_CASE(
         path.value_or(simple_platformer::NavigationPath{});
     REQUIRE(route.start == simple_platformer::GridPosition{1, 0});
     REQUIRE(route.steps.size() == 1);
-    REQUIRE(route.steps.back().destination == simple_platformer::GridPosition{3, 0});
+    REQUIRE(route.steps.back().destinationCell == simple_platformer::GridPosition{3, 0});
     REQUIRE(route.steps.back().traversal == simple_platformer::Traversal::Walk);
 
     const simple_platformer::GridNeighborFunction neighbors =
@@ -408,7 +408,9 @@ TEST_CASE(
     REQUIRE(routeWithoutHeuristic.steps.size() == route.steps.size());
     for (std::size_t index = 0; index < route.steps.size(); ++index)
     {
-        REQUIRE(routeWithoutHeuristic.steps[index].destination == route.steps[index].destination);
+        REQUIRE(
+            routeWithoutHeuristic.steps[index].destinationCell ==
+            route.steps[index].destinationCell);
         REQUIRE(routeWithoutHeuristic.steps[index].traversal == route.steps[index].traversal);
     }
 }
@@ -459,14 +461,15 @@ TEST_CASE("A jump start penalty preserves required jumps", "[navigation][platfor
     const auto upwardJump = std::find_if(
         neighbors.begin(),
         neighbors.end(),
-        [](const simple_platformer::NavigationNeighbor& neighbor) {
+        [](const simple_platformer::NavigationNeighbor& neighbor)
+        {
             return neighbor.traversal == simple_platformer::Traversal::Jump &&
-                   neighbor.destination.y < 2;
+                   neighbor.destinationCell.y < 2;
         });
     REQUIRE(upwardJump != neighbors.end());
 
     const auto path = simple_platformer::findPlatformerPath(
-        map, {2, 2}, upwardJump->destination, {12.0F, 12.0F}, movement);
+        map, {2, 2}, upwardJump->destinationCell, {12.0F, 12.0F}, movement);
 
     REQUIRE(path.has_value());
     const simple_platformer::NavigationPath route =

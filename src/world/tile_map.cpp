@@ -126,73 +126,72 @@ namespace simple_platformer
         return static_cast<float>(mapHeight * cellSize);
     }
 
-    bool TileMap::contains(GridPosition position) const
+    bool TileMap::contains(GridPosition cell) const
     {
-        return position.x >= 0 && position.x < mapWidth && position.y >= 0 &&
-               position.y < mapHeight;
+        return cell.x >= 0 && cell.x < mapWidth && cell.y >= 0 && cell.y < mapHeight;
     }
 
-    int TileMap::tileAt(GridPosition position) const
+    int TileMap::tileAt(GridPosition cell) const
     {
-        if (!contains(position))
+        if (!contains(cell))
         {
-            throw std::out_of_range("Tile position is outside the map");
+            throw std::out_of_range("Cell is outside the map");
         }
 
-        return tileIds[indexOf(position)];
+        return tileIds[indexOf(cell)];
     }
 
-    const TileDefinition& TileMap::definitionAt(GridPosition position) const
+    const TileDefinition& TileMap::definitionAt(GridPosition cell) const
     {
-        const int tileId = tileAt(position);
+        const int tileId = tileAt(cell);
         return tileDefinitions[static_cast<std::size_t>(tileId)];
     }
 
-    bool TileMap::blocksSight(GridPosition position) const
+    bool TileMap::blocksSight(GridPosition cell) const
     {
-        return contains(position) ? definitionAt(position).blocksSight : blocksMovement(position);
+        return contains(cell) ? definitionAt(cell).blocksSight : blocksMovement(cell);
     }
 
-    bool TileMap::blocksMovement(GridPosition position) const
+    bool TileMap::blocksMovement(GridPosition cell) const
     {
-        if (position.x < 0 || position.x >= mapWidth)
+        if (cell.x < 0 || cell.x >= mapWidth)
         {
             return true;
         }
 
-        if (position.y < 0)
+        if (cell.y < 0)
         {
             return false;
         }
 
-        if (position.y >= mapHeight)
+        if (cell.y >= mapHeight)
         {
             return true;
         }
 
-        return definitionAt(position).blocksMovement;
+        return definitionAt(cell).blocksMovement;
     }
 
-    bool TileMap::breakTile(GridPosition position)
+    bool TileMap::breakTile(GridPosition cell)
     {
-        if (!contains(position))
+        if (!contains(cell))
         {
             return false;
         }
 
-        const std::optional<int> broken = definitionAt(position).breaksIntoTileId;
+        const std::optional<int> broken = definitionAt(cell).breaksIntoTileId;
         if (!broken.has_value())
         {
             return false;
         }
 
-        tileIds[indexOf(position)] = *broken;
+        tileIds[indexOf(cell)] = *broken;
         return true;
     }
 
-    std::size_t TileMap::indexOf(GridPosition position) const
+    std::size_t TileMap::indexOf(GridPosition cell) const
     {
-        return static_cast<std::size_t>(position.y) * static_cast<std::size_t>(mapWidth) +
-               static_cast<std::size_t>(position.x);
+        return static_cast<std::size_t>(cell.y) * static_cast<std::size_t>(mapWidth) +
+               static_cast<std::size_t>(cell.x);
     }
 }

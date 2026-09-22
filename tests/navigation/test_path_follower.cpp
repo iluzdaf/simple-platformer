@@ -90,8 +90,8 @@ TEST_CASE(
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower,
-        {{2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},
-        jump->destination);
+        {{2, 2}, {{jump->destinationCell, jump->traversal, jump->inputs}}},
+        jump->destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -110,7 +110,7 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump->destination);
+        jump->destinationCell);
 }
 
 TEST_CASE(
@@ -136,8 +136,8 @@ TEST_CASE(
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower,
-        {{2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},
-        jump->destination);
+        {{2, 2}, {{jump->destinationCell, jump->traversal, jump->inputs}}},
+        jump->destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {80.0F, 0.0F}};
     body.bounds.position.x -= 6.0F;
@@ -165,7 +165,7 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump->destination);
+        jump->destinationCell);
 }
 
 TEST_CASE(
@@ -193,8 +193,8 @@ TEST_CASE(
         follower,
         {{1, 2},
          {{{2, 2}, simple_platformer::Traversal::Walk, {}},
-          {jump->destination, jump->traversal, jump->inputs}}},
-        jump->destination);
+          {jump->destinationCell, jump->traversal, jump->inputs}}},
+        jump->destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {1, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -218,5 +218,5 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump->destination);
+        jump->destinationCell);
 }

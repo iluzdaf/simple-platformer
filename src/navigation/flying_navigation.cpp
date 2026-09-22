@@ -16,14 +16,14 @@ namespace simple_platformer
         GridPosition start,
         GridPosition goal)
     {
-        const GridNeighborFunction neighbors = [&map](GridPosition position)
-        { return flyingNeighbors(map, position); };
+        const GridNeighborFunction neighbors = [&map](GridPosition cell)
+        { return flyingNeighbors(map, cell); };
 
         // Remove manhattanHeuristic to compare this A* search with the default Dijkstra search.
         return findLowestCostPath(start, goal, neighbors, manhattanHeuristic);
     }
 
-    std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition position)
+    std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition cell)
     {
         constexpr std::array<GridPosition, 4> Directions{
             GridPosition{-1, 0}, GridPosition{1, 0}, GridPosition{0, -1}, GridPosition{0, 1}};
@@ -31,7 +31,7 @@ namespace simple_platformer
         std::vector<NavigationNeighbor> neighbors;
         for (const GridPosition direction : Directions)
         {
-            const GridPosition candidate{position.x + direction.x, position.y + direction.y};
+            const GridPosition candidate{cell.x + direction.x, cell.y + direction.y};
             if (map.contains(candidate) && !map.blocksMovement(candidate))
             {
                 neighbors.push_back({candidate, Traversal::Fly, 1, {}});

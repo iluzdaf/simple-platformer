@@ -17,5 +17,5 @@ namespace simple_platformer
         GridPosition goal);
 
     // Lower-level policy used by the generic path search.
-    std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition position);
+    std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition cell);
 }

@@ -136,10 +136,9 @@ namespace simple_platformer
             level.map, player->sprite.value().textureId, currentCamera(), level.world);
     }
 
-    DebugOverlay Game::debugOverlay() const
+    DebugOverlay Game::debugOverlay(float atlasWidth) const
     {
-        constexpr float AtlasWidth = 160.0F;
-        return makeDebugOverlay(level.world, level.map, cameraControllerValue(), AtlasWidth);
+        return makeDebugOverlay(level.world, level.map, cameraControllerValue(), atlasWidth);
     }
 
     Health Game::playerHealth() const

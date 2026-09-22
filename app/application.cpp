@@ -328,7 +328,8 @@ namespace simple_platformer
             }
             if (context.showDebugOverlay)
             {
-                drawDebugOverlay(game.debugOverlay(), windowViewport);
+                drawDebugOverlay(
+                    game.debugOverlay(static_cast<float>(atlasTexture.width)), windowViewport);
             }
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

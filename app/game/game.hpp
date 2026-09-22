@@ -32,7 +32,8 @@ namespace simple_platformer
         void update(const InputIntentions& intentions, float deltaTime);
         glm::vec2 playerAimDirection(glm::vec2 screenPosition) const;
         RenderScene buildScene() const;
-        DebugOverlay debugOverlay() const;
+        // The atlas width comes from whoever loaded the texture; the game knows only its id.
+        DebugOverlay debugOverlay(float atlasWidth) const;
         Health playerHealth() const;
         // Use these references immediately. Changing or restarting the level replaces the World,
         // so do not store a returned reference for later.

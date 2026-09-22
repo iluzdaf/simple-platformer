@@ -1,8 +1,8 @@
 #pragma once
 #include <filesystem>
-#include <initializer_list>
 #include <string>
 #include <string_view>
+#include <vector>
 #include <nlohmann/json.hpp>
 #include <glm/vec2.hpp>
 #include "simple_platformer/render/sprite.hpp"
@@ -16,7 +16,7 @@ namespace simple_platformer
     // a key that is present but invalid is an error.
     void checkJsonFields(
         const nlohmann::json& value,
-        std::initializer_list<std::string_view> allowed,
+        const std::vector<std::string_view>& allowed,
         std::string_view sourceName = {},
         std::string_view path = {});
 

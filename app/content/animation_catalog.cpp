@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 #include <nlohmann/json.hpp>
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -18,15 +19,31 @@ namespace simple_platformer
 {
     namespace
     {
-        constexpr std::array<std::string_view, 6> ClipNames =
-            {"idle", "move", "jump", "fall", "attack", "death"};
-        constexpr std::array<AnimationName, 6> ClipTypes = {
-            AnimationName::Idle,
-            AnimationName::Move,
-            AnimationName::Jump,
-            AnimationName::Fall,
-            AnimationName::Attack,
-            AnimationName::Death};
+        struct ClipEntry
+        {
+            std::string_view name;
+            AnimationName type;
+        };
+
+        // Every clip a set must supply, under the name the catalogue file uses for it.
+        constexpr std::array<ClipEntry, 6> Clips = {
+            {{"idle", AnimationName::Idle},
+             {"move", AnimationName::Move},
+             {"jump", AnimationName::Jump},
+             {"fall", AnimationName::Fall},
+             {"attack", AnimationName::Attack},
+             {"death", AnimationName::Death}}};
+
+        std::vector<std::string_view> clipNames()
+        {
+            std::vector<std::string_view> names;
+            names.reserve(Clips.size());
+            for (const ClipEntry& entry : Clips)
+            {
+                names.push_back(entry.name);
+            }
+            return names;
+        }
     }
 
     void validateAnimationSet(const AnimationSet& set)
@@ -35,11 +52,11 @@ namespace simple_platformer
         for (const auto& clip : set.clips)
         {
             std::string name;
-            for (std::size_t index = 0; index < ClipTypes.size(); ++index)
+            for (const ClipEntry& entry : Clips)
             {
-                if (clip.name == ClipTypes[index])
+                if (clip.name == entry.type)
                 {
-                    name = ClipNames[index];
+                    name = entry.name;
                     break;
                 }
             }
@@ -80,12 +97,11 @@ namespace simple_platformer
                 }
             }
         }
-        for (std::size_t index = 0; index < ClipTypes.size(); ++index)
+        for (const ClipEntry& entry : Clips)
         {
-            if (names.count(ClipTypes[index]) == 0)
+            if (names.count(entry.type) == 0)
             {
-                throw std::invalid_argument(
-                    std::string(ClipNames[index]) + ": required clip is missing");
+                throw std::invalid_argument(std::string(entry.name) + ": required clip is missing");
             }
         }
     }
@@ -119,21 +135,17 @@ namespace simple_platformer
         for (const auto& entry : definitions.items())
         {
             const std::string setPath = fieldPath("animations", entry.key());
-            checkJsonFields(
-                entry.value(),
-                {"idle", "move", "jump", "fall", "attack", "death"},
-                sourceName,
-                setPath);
+            checkJsonFields(entry.value(), clipNames(), sourceName, setPath);
             AnimationSet set;
-            for (std::size_t index = 0; index < ClipNames.size(); ++index)
+            for (const ClipEntry& definition : Clips)
             {
-                const std::string name(ClipNames[index]);
+                const std::string name(definition.name);
                 const std::string clipPath = fieldPath(setPath, name);
                 const auto& value = requiredJsonMember(entry.value(), name, sourceName, setPath);
                 checkJsonFields(
                     value, {"frames", "frameDuration", "looping"}, sourceName, clipPath);
                 AnimationClip clip;
-                clip.name = ClipTypes[index];
+                clip.name = definition.type;
                 clip.frameDuration = readNumber(value, "frameDuration", sourceName, clipPath);
                 clip.looping = readBoolean(value, "looping", sourceName, clipPath);
                 const auto& frames = requiredJsonMember(value, "frames", sourceName, clipPath);

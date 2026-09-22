@@ -8,12 +8,14 @@
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "support/tile_size.hpp"
 
 namespace tests
 {
@@ -156,6 +158,13 @@ namespace tests
             simple_platformer::Aabb bounds{{0.0F, 0.0F}, size};
             simple_platformer::placeFeetAt(bounds, feet);
             return Placed(bounds);
+        }
+
+        // Standing in the cell, its feet on the middle of the cell's bottom edge. Every test
+        // map has tests::TileSize tiles, so the cell is unambiguous.
+        Placed inCell(simple_platformer::GridPosition cell) &&
+        {
+            return Placed(simple_platformer::boxInCell(TileSize, cell, size));
         }
 
     private:

@@ -6,6 +6,7 @@
 
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/tile_size.hpp"
 
 TEST_CASE("'.' is empty and '#' blocks movement and sight", "[support][tile-map-builder]")
 {
@@ -18,11 +19,12 @@ TEST_CASE("'.' is empty and '#' blocks movement and sight", "[support][tile-map-
     REQUIRE(map.blocksSight({1, 0}));
 }
 
-TEST_CASE("'#' has a one-tile sprite region at the map's tile size", "[support][tile-map-builder]")
+TEST_CASE("'#' has a one-tile sprite region", "[support][tile-map-builder]")
 {
-    const simple_platformer::TileMap map = tests::TileMapBuilder({"#"}).withTileSize(32);
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"#"});
+    const auto side = static_cast<float>(tests::TileSize);
 
-    REQUIRE(map.definitionAt({0, 0}).sprite.size == glm::vec2{32.0F, 32.0F});
+    REQUIRE(map.definitionAt({0, 0}).sprite.size == glm::vec2{side, side});
 }
 
 TEST_CASE("Declared tiles block only what they declare", "[support][tile-map-builder]")

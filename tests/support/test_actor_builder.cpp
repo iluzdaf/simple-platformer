@@ -33,17 +33,23 @@ static_assert(!std::is_convertible_v<tests::ActorBuilder::Sized, simple_platform
 static_assert(!std::is_convertible_v<tests::ActorBuilder::Placed, simple_platformer::Actor>);
 static_assert(std::is_convertible_v<tests::ActorBuilder, simple_platformer::Actor>);
 
-TEST_CASE("The actor builder places a body by its corner or its feet", "[support][actor-builder]")
+TEST_CASE(
+    "The actor builder places a body by its corner, its feet, or its cell",
+    "[support][actor-builder]")
 {
     const simple_platformer::Actor byCorner =
         tests::ActorBuilder::sized({12.0F, 20.0F}).at({8.0F, 4.0F}).walking();
     const simple_platformer::Actor byFeet =
         tests::ActorBuilder::sized({12.0F, 20.0F}).atFeet({24.0F, 32.0F}).walking();
+    const simple_platformer::Actor byCell =
+        tests::ActorBuilder::sized({12.0F, 20.0F}).inCell({1, 1}).walking();
 
     REQUIRE(byCorner.body.bounds.position == glm::vec2{8.0F, 4.0F});
     REQUIRE(byCorner.body.bounds.size == glm::vec2{12.0F, 20.0F});
     REQUIRE(simple_platformer::feetOf(byFeet.body.bounds) == glm::vec2{24.0F, 32.0F});
     REQUIRE(byFeet.body.bounds.size == glm::vec2{12.0F, 20.0F});
+    REQUIRE(simple_platformer::feetOf(byCell.body.bounds) == glm::vec2{24.0F, 32.0F});
+    REQUIRE(byCell.body.bounds.size == glm::vec2{12.0F, 20.0F});
 }
 
 TEST_CASE("The actor builder gives exactly one movement component", "[support][actor-builder]")

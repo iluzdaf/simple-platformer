@@ -243,12 +243,11 @@ TEST_CASE(
     const glm::vec2 firstFeet = simple_platformer::feetInCell(tests::TileSize, FirstEndpoint);
     const glm::vec2 secondFeet = simple_platformer::feetInCell(tests::TileSize, SecondEndpoint);
 
-    simple_platformer::Actor npc =
-        tests::ActorBuilder::sized({12.0F, 20.0F})
-            .atFeet(simple_platformer::feetInCell(tests::TileSize, SpawnCell))
-            .walking()
-            .patrolling(firstFeet, secondFeet)
-            .thinking({});
+    simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 20.0F})
+                                       .inCell(SpawnCell)
+                                       .walking()
+                                       .patrolling(firstFeet, secondFeet)
+                                       .thinking({});
     tests::platformerMovement(npc).config.maximumSpeed = 60.0F;
     tests::platformerMovement(npc).grounded = true;
     tests::patrol(npc).headingToSecond = false;
@@ -340,21 +339,19 @@ TEST_CASE(
     constexpr int RememberedChaseTicks = 30;
 
     simple_platformer::World world;
-    simple_platformer::Actor player =
-        tests::ActorBuilder::sized({12.0F, 20.0F})
-            .atFeet(simple_platformer::feetInCell(tests::TileSize, {2, 3}))
-            .walking()
-            .onTeam(simple_platformer::Team::Player);
+    simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 20.0F})
+                                          .inCell({2, 3})
+                                          .walking()
+                                          .onTeam(simple_platformer::Team::Player);
     tests::platformerMovement(player).grounded = true;
     const simple_platformer::ActorId playerId = world.addActor(player);
     world.setPlayer(playerId, simple_platformer::feetOf(player.body.bounds));
 
-    simple_platformer::Actor zombie =
-        tests::ActorBuilder::sized({12.0F, 20.0F})
-            .atFeet(simple_platformer::feetInCell(tests::TileSize, {7, 1}))
-            .walking()
-            .onTeam(simple_platformer::Team::Enemy)
-            .thinking({});
+    simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
+                                          .inCell({7, 1})
+                                          .walking()
+                                          .onTeam(simple_platformer::Team::Enemy)
+                                          .thinking({});
     tests::platformerMovement(zombie).grounded = true;
     const simple_platformer::ActorId zombieId = world.addActor(zombie);
 
@@ -432,13 +429,12 @@ TEST_CASE(
     const simple_platformer::ActorId playerId = world.addActor(player);
     world.setPlayer(playerId, playerFeet);
 
-    simple_platformer::Actor zombie =
-        tests::ActorBuilder::sized({12.0F, 20.0F})
-            .atFeet(simple_platformer::feetInCell(tests::TileSize, {6, 1}))
-            .walking()
-            .onTeam(simple_platformer::Team::Enemy)
-            .biting()
-            .thinking({});
+    simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
+                                          .inCell({6, 1})
+                                          .walking()
+                                          .onTeam(simple_platformer::Team::Enemy)
+                                          .biting()
+                                          .thinking({});
     tests::platformerMovement(zombie).grounded = true;
     const simple_platformer::ActorId zombieId = world.addActor(zombie);
 

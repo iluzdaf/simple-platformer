@@ -403,7 +403,8 @@ definitions independently of placement; composition resolves names to runtime va
 composition step then creates the existing `TileMap`, `World`, actors, pickups, and
 exit. Existing construction and level validation remain authoritative.
 
-Parser tests use JSON strings and independent files under `tests/fixtures/levels`.
+Parser tests use JSON strings and independent files under `tests/fixtures`, laid out
+like `assets/`.
 Transition tests use that fixture campaign, not the example game's layout or item values.
 Generic content checks load every entry in the example catalogue;
 they do not assume particular filenames, a fixed level count, or specific NPCs.

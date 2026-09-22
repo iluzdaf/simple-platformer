@@ -77,16 +77,12 @@ namespace simple_platformer
         return target != nullptr && target->life == LifeState::Alive ? target : nullptr;
     }
 
-    bool seenByAnyNpc(const TileMap& map, const World& world, const Actor& target)
+    bool playerSeenByAnyNpc(const World& world)
     {
         for (const Actor& actor : world.actors())
         {
-            if (actor.id == target.id || !actor.senses.has_value() ||
-                actor.life != LifeState::Alive)
-            {
-                continue;
-            }
-            if (canSeeTarget(map, actor.body.bounds, target.body.bounds, *actor.senses))
+            if (actor.brain.has_value() && actor.brain->targetVisible &&
+                actor.brain->target == world.playerId())
             {
                 return true;
             }

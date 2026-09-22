@@ -15,6 +15,7 @@
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/add_player.hpp"
+#include "support/fixed_step.hpp"
 
 using tests::actor;
 using tests::brain;
@@ -208,32 +209,37 @@ TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][sense
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
 }
 
-TEST_CASE("Whether any NPC sees an actor follows the NPCs' own senses", "[npc][senses]")
+TEST_CASE("Whether any NPC sees the player is what the senses update decided", "[npc][senses]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"............", "...ccccccc..", "............"})
             .where('c', tests::Tile().blocksSight());
     simple_platformer::World world;
     tests::addPlayer(world, makePlayer({56.0F, 30.0F}));
+    const auto sensed = [&]
+    {
+        simple_platformer::updateNpcSenses(map, world, tests::FixedStepSeconds);
+        return simple_platformer::playerSeenByAnyNpc(world);
+    };
 
     // Nobody looking.
-    REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+    REQUIRE_FALSE(sensed());
 
     // An NPC outside the patch cannot see in.
     world.addActor(makeNpc({8.0F, 30.0F}));
-    REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+    REQUIRE_FALSE(sensed());
 
     // One in the same patch but beyond its notice distance does not notice.
     world.addActor(makeNpc({152.0F, 30.0F}));
-    REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+    REQUIRE_FALSE(sensed());
 
     // One in the same patch within notice distance sees the player.
     const simple_platformer::ActorId nearby = world.addActor(makeNpc({88.0F, 30.0F}));
-    REQUIRE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+    REQUIRE(sensed());
 
-    // A dying NPC no longer looks.
+    // A dying NPC no longer looks, and the flag it set is cleared on the next update.
     actor(world, nearby).life = simple_platformer::LifeState::Dying;
-    REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+    REQUIRE_FALSE(sensed());
 }
 
 TEST_CASE("NPC senses reject invalid timing and sensing ranges", "[npc][validation]")

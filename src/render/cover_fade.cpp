@@ -30,7 +30,7 @@ namespace simple_platformer
 
         float playerTarget(const TileMap& map, const World& world, const Actor& player)
         {
-            if (seenByAnyNpc(map, world, player) ||
+            if (playerSeenByAnyNpc(world) ||
                 firedWithinRevealWindow(player, world.simulationTimeSeconds()))
             {
                 return 1.0F;

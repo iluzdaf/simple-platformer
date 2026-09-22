@@ -17,8 +17,8 @@ namespace simple_platformer
         const Aabb& observer,
         const Aabb& target,
         const NpcSenses& senses);
-    // Whether any other living actor with senses can see the target. Teams and brains are
-    // not considered: this asks what the world could see, not who is hunting whom.
-    bool seenByAnyNpc(const TileMap& map, const World& world, const Actor& target);
+    // Whether any NPC's senses reached the player this update. Reads what updateNpcSenses
+    // stamped on each brain, so gameplay and the screen agree on who is seen.
+    bool playerSeenByAnyNpc(const World& world);
     void updateNpcSenses(const TileMap& map, World& world, float deltaTime);
 }

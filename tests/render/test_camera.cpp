@@ -11,6 +11,7 @@
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/require_near.hpp"
+#include "support/tile_size.hpp"
 
 namespace
 {
@@ -22,6 +23,7 @@ namespace
     TileMap makeMap(int width, int height)
     {
         return {
+            tests::TileSize,
             width,
             height,
             std::vector<int>(static_cast<std::size_t>(width) * static_cast<std::size_t>(height), 0),

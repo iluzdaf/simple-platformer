@@ -7,7 +7,6 @@ namespace simple_platformer
     // World X increases right and world Y increases down.
     constexpr int InternalWidth = 320;
     constexpr int InternalHeight = 180;
-    constexpr int TileSize = 16;
 
     struct GridPosition
     {
@@ -25,15 +24,17 @@ namespace simple_platformer
         return !(left == right);
     }
 
+    // Cells are tileSize world pixels square; a TileMap knows its own.
+
     // The cell containing the point. A point on a tile edge belongs to the cell to its right
     // or below, and points left of or above the map give negative cells.
-    GridPosition worldToGrid(glm::vec2 worldPosition);
+    GridPosition worldToGrid(int tileSize, glm::vec2 worldPosition);
     // The cell's top-left corner.
-    glm::vec2 gridToWorld(GridPosition gridPosition);
+    glm::vec2 gridToWorld(int tileSize, GridPosition gridPosition);
 
     // The cell something with these feet stands in. Feet exactly on a tile's top edge
     // belong to the cell above it, the one the actor occupies.
-    GridPosition cellAtFeet(glm::vec2 feet);
+    GridPosition cellAtFeet(int tileSize, glm::vec2 feet);
     // The feet of something standing in the cell: the middle of the cell's bottom edge.
-    glm::vec2 feetInCell(GridPosition cell);
+    glm::vec2 feetInCell(int tileSize, GridPosition cell);
 }

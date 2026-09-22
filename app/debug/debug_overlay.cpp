@@ -82,7 +82,7 @@ namespace simple_platformer
 
             constexpr float SimulationStep = static_cast<float>(FixedDeltaSeconds);
             Body body;
-            body.bounds = boxInCell(start, actor.body.bounds.size);
+            body.bounds = boxInCell(map.tileSize(), start, actor.body.bounds.size);
             PlatformerMovement movement{actor.platformerMovement->config, true, 0.0F, 0.0F};
             Facing facing = step.destination.x < start.x ? Facing::Left : Facing::Right;
             std::vector<glm::vec2> sampledFeet;
@@ -107,7 +107,10 @@ namespace simple_platformer
             const PathFollower& follower)
         {
             PathFollowerDebugInfo info;
-            info.destination = follower.destination;
+            if (follower.destination.has_value())
+            {
+                info.destinationFeet = feetInCell(map.tileSize(), *follower.destination);
+            }
             info.repathRemaining = follower.repathRemaining;
             if (!follower.path.has_value())
             {
@@ -120,11 +123,11 @@ namespace simple_platformer
             info.connections.reserve(info.stepCount);
 
             GridPosition fromCell = follower.path->start;
-            glm::vec2 from = feetInCell(fromCell);
+            glm::vec2 from = feetInCell(map.tileSize(), fromCell);
             for (std::size_t index = 0; index < follower.path->steps.size(); ++index)
             {
                 const NavigationStep& step = follower.path->steps[index];
-                const glm::vec2 to = feetInCell(step.destination);
+                const glm::vec2 to = feetInCell(map.tileSize(), step.destination);
                 info.connections.push_back(
                     {from,
                      to,

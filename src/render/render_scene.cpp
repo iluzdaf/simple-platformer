@@ -57,10 +57,10 @@ namespace simple_platformer
             return -PickupBobHeight * 0.5F * (1.0F - std::cos(cycleRadians));
         }
 
-        float pickupPhaseOffset(const Aabb& bounds)
+        float pickupPhaseOffset(int tileSize, const Aabb& bounds)
         {
             // Spread level-start pickups across four phases instead of bobbing in lockstep.
-            const GridPosition cell = worldToGrid(bounds.position);
+            const GridPosition cell = worldToGrid(tileSize, bounds.position);
             int phaseIndex = (cell.x + cell.y) % PickupBobPhaseCount;
             if (phaseIndex < 0)
             {
@@ -76,7 +76,7 @@ namespace simple_platformer
             int tileTextureId,
             const Camera& camera)
         {
-            const float tileSize = static_cast<float>(TileSize);
+            const float tileSize = static_cast<float>(map.tileSize());
             const int firstColumn =
                 std::max(0, static_cast<int>(std::floor(camera.position.x / tileSize)));
             const int lastColumn = std::min(
@@ -103,7 +103,8 @@ namespace simple_platformer
                     }
 
                     const glm::vec2 worldPosition = {
-                        static_cast<float>(column * TileSize), static_cast<float>(row * TileSize)};
+                        static_cast<float>(column * map.tileSize()),
+                        static_cast<float>(row * map.tileSize())};
                     scene.sprites.push_back(
                         {tileTextureId,
                          worldToScreen(camera, worldPosition),
@@ -131,7 +132,8 @@ namespace simple_platformer
                     pickup.sprite ? *pickup.sprite : world.itemDefinition(pickup.stack.item).icon;
                 Aabb bounds = spriteBounds(pickup.bounds, sprite);
                 bounds.position.y += pickupVerticalOffset(
-                    world.simulationTimeSeconds() + pickupPhaseOffset(pickup.bounds));
+                    world.simulationTimeSeconds() +
+                    pickupPhaseOffset(map.tileSize(), pickup.bounds));
                 scene.sprites.push_back(
                     {sprite.textureId,
                      worldToScreen(camera, bounds.position),

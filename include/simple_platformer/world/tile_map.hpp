@@ -26,17 +26,21 @@ namespace simple_platformer
     class TileMap
     {
     public:
+        // tileSize is the side of one cell in world pixels.
         TileMap(
+            int tileSize,
             int width,
             int height,
             std::vector<int> tiles,
             std::vector<TileDefinition> definitions);
 
         static TileMap fromAscii(
+            int tileSize,
             const std::vector<std::string>& rows,
             std::vector<TileDefinition> definitions,
             const std::map<char, int>& legend);
 
+        int tileSize() const;
         int width() const;
         int height() const;
         float pixelWidth() const;
@@ -61,6 +65,7 @@ namespace simple_platformer
         // Row-major offset into tileIds. The position must be inside the map.
         std::size_t indexOf(GridPosition position) const;
 
+        int cellSize = 0;
         int mapWidth = 0;
         int mapHeight = 0;
         std::vector<int> tileIds;

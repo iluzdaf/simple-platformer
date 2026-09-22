@@ -10,6 +10,7 @@
 
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "support/tile_size.hpp"
 
 namespace tests
 {
@@ -65,13 +66,20 @@ namespace tests
     // own premise; the builder rejects any symbol that is used but not declared. Declared
     // tiles take IDs from 1 in order, and '#' takes the next one.
     //
-    // The builder converts to a TileMap wherever one is expected.
+    // The builder converts to a TileMap wherever one is expected. Its tiles are tests::TileSize
+    // unless the test says otherwise with withTileSize().
     class TileMapBuilder
     {
     public:
         explicit TileMapBuilder(std::vector<std::string> rows)
             : mapRows(std::move(rows))
         {
+        }
+
+        TileMapBuilder withTileSize(int tileSize) &&
+        {
+            cellSize = tileSize;
+            return std::move(*this);
         }
 
         TileMapBuilder where(char symbol, Tile tile) &&
@@ -123,10 +131,12 @@ namespace tests
                 definitions[index + 1].breaksIntoTileId = target->second;
             }
 
-            return simple_platformer::TileMap::fromAscii(mapRows, std::move(definitions), legend);
+            return simple_platformer::TileMap::fromAscii(
+                cellSize, mapRows, std::move(definitions), legend);
         }
 
     private:
+        int cellSize = TileSize;
         std::vector<std::string> mapRows;
         std::vector<std::pair<char, Tile>> tiles;
     };

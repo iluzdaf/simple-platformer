@@ -8,17 +8,39 @@
 #include "content/level_catalog.hpp"
 #include "content/level_data.hpp"
 #include "content/tile_catalog.hpp"
+#include <optional>
 #include <stdexcept>
 #include <utility>
+#include <variant>
+
+#include <glm/vec2.hpp>
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/pickup.hpp"
+#include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
 {
     namespace
     {
+        // The tile size in world pixels. This is the only place that still states it; the
+        // next change reads it from tiles.json instead.
+        constexpr int TileSize = 16;
+
+        // Where a level position lands on the map, as feet.
+        glm::vec2 feetOf(const TileMap& map, const LevelPosition& position)
+        {
+            if (const auto* cell = std::get_if<GridPosition>(&position))
+            {
+                return feetInCell(map.tileSize(), *cell);
+            }
+            return std::get<glm::vec2>(position);
+        }
+
         Pickup makePickup(
+            const TileMap& map,
             const PickupPlacement& placement,
             const PickupCatalog& pickups,
             const ItemCatalog& items,
@@ -30,21 +52,35 @@ namespace simple_platformer
                     pickupDefinition(pickups, placement.definitionName),
                     items,
                     textureId,
-                    placement.spawnFeet);
+                    feetOf(map, placement.spawn));
             }
             PickupDefinition definition;
             definition.stack = placement.stack;
-            return composePickup(definition, items, textureId, placement.spawnFeet);
+            return composePickup(definition, items, textureId, feetOf(map, placement.spawn));
+        }
+
+        std::optional<Patrol> makePatrol(
+            const TileMap& map,
+            const std::optional<PatrolPlacement>& placement)
+        {
+            if (!placement.has_value())
+            {
+                return std::nullopt;
+            }
+            return Patrol{feetOf(map, placement->first), feetOf(map, placement->second), true};
         }
 
         LevelExit makeExit(
+            const TileMap& map,
             int textureId,
             const ExitPlacement& placement,
             const ItemCatalog& items,
             const ExitCatalog& exits)
         {
             LevelExit exit = composeExit(
-                exitDefinition(exits, placement.definitionName), textureId, placement.spawnFeet);
+                exitDefinition(exits, placement.definitionName),
+                textureId,
+                feetOf(map, placement.spawn));
             if (placement.requirement)
             {
                 exit.requirement = composeItemStack(items, *placement.requirement);
@@ -122,6 +158,7 @@ namespace simple_platformer
                     path.string() + ": " + reference.first + ": " + error.what());
             }
         }
+        TileMap map = composeTileMap(TileSize, data.mapRows, data.tileLegend, tiles);
         World world(composeItems(items, textureId));
         for (const auto& placement : data.actors)
         {
@@ -131,8 +168,8 @@ namespace simple_platformer
                     actorDefinition(actors, placement.definitionName),
                     catalogs.animations,
                     textureId,
-                    placement.spawnFeet,
-                    placement.patrol));
+                    feetOf(map, placement.spawn),
+                    makePatrol(map, placement.patrol)));
             }
             catch (const std::invalid_argument& error)
             {
@@ -142,14 +179,11 @@ namespace simple_platformer
         }
         for (const auto& placement : data.pickups)
         {
-            world.addPickup(makePickup(placement, pickups, items, textureId));
+            world.addPickup(makePickup(map, placement, pickups, items, textureId));
         }
-        world.setExit(makeExit(textureId, data.exit, items, exits));
-        return {
-            levelNumber,
-            composeTileMap(data.mapRows, data.tileLegend, tiles),
-            std::move(world),
-            data.playerSpawnFeet};
+        world.setExit(makeExit(map, textureId, data.exit, items, exits));
+        const glm::vec2 playerSpawnFeet = feetOf(map, data.playerSpawn);
+        return {levelNumber, std::move(map), std::move(world), playerSpawnFeet};
     }
 
     Actor composePlayer(const GameCatalogs& catalogs, int textureId)

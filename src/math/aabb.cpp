@@ -21,10 +21,10 @@ namespace simple_platformer
         box.position = {feet.x - box.size.x * 0.5F, feet.y - box.size.y};
     }
 
-    Aabb boxInCell(GridPosition cell, glm::vec2 size)
+    Aabb boxInCell(int tileSize, GridPosition cell, glm::vec2 size)
     {
         Aabb box{{0.0F, 0.0F}, size};
-        placeFeetAt(box, feetInCell(cell));
+        placeFeetAt(box, feetInCell(tileSize, cell));
         return box;
     }
 

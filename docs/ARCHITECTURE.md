@@ -152,7 +152,9 @@ iterators and pointers during a system update.
   world coordinates; actor and navigation placement helpers commonly use feet, the
   bottom centre of an actor body.
 - The internal resolution is 320 by 180 pixels.
-- Tiles are 16 by 16 world pixels.
+- Tiles are square. Each `TileMap` carries its tile size in world pixels, and every cell
+  calculation takes that size rather than assuming one. The game's levels use 16; level
+  composition states it in one place until the tile catalogue declares it.
 - Window output is an integer-scaled internal image with letterboxing when required.
 - `World` owns elapsed simulation time. It advances once per fixed simulation update and
   provides a shared clock for effects that do not need their own resettable timer.

@@ -7,7 +7,6 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
@@ -15,14 +14,14 @@ namespace simple_platformer
 {
     namespace
     {
-        int firstOverlappingTile(float minimum)
+        int firstOverlappingTile(int tileSize, float minimum)
         {
-            return static_cast<int>(std::floor(minimum / static_cast<float>(TileSize)));
+            return static_cast<int>(std::floor(minimum / static_cast<float>(tileSize)));
         }
 
-        int lastOverlappingTile(float maximum)
+        int lastOverlappingTile(int tileSize, float maximum)
         {
-            return static_cast<int>(std::ceil(maximum / static_cast<float>(TileSize))) - 1;
+            return static_cast<int>(std::ceil(maximum / static_cast<float>(tileSize))) - 1;
         }
 
         void validateBounds(const TileMap& map, const Aabb& bounds, glm::vec2 displacement)
@@ -90,16 +89,18 @@ namespace simple_platformer
 
             const bool movingRight = requested > 0.0F;
             const float leadingEdge = bounds.position.x + (movingRight ? bounds.size.x : 0.0F);
-            const int firstRow = std::max(0, firstOverlappingTile(bounds.position.y));
-            const int lastRow =
-                std::min(map.height() - 1, lastOverlappingTile(bounds.position.y + bounds.size.y));
-            const int firstColumn =
-                movingRight ? firstOverlappingTile(leadingEdge) : lastOverlappingTile(leadingEdge);
+            const int firstRow =
+                std::max(0, firstOverlappingTile(map.tileSize(), bounds.position.y));
+            const int lastRow = std::min(
+                map.height() - 1,
+                lastOverlappingTile(map.tileSize(), bounds.position.y + bounds.size.y));
+            const int firstColumn = movingRight ? firstOverlappingTile(map.tileSize(), leadingEdge)
+                                                : lastOverlappingTile(map.tileSize(), leadingEdge);
             const float finalLeadingEdge = leadingEdge + requested;
             const int lastColumn = movingRight && finalLeadingEdge >= map.pixelWidth() ? map.width()
                                    : !movingRight && finalLeadingEdge <= 0.0F
                                        ? -1
-                                       : firstOverlappingTile(finalLeadingEdge);
+                                       : firstOverlappingTile(map.tileSize(), finalLeadingEdge);
             const int step = movingRight ? 1 : -1;
 
             for (int column = firstColumn;
@@ -112,7 +113,7 @@ namespace simple_platformer
                 }
 
                 const int tileEdge = movingRight ? column : column + 1;
-                const float candidate = static_cast<float>(tileEdge * TileSize) - leadingEdge;
+                const float candidate = static_cast<float>(tileEdge * map.tileSize()) - leadingEdge;
                 if (!stopsRequestedMovement(candidate, requested))
                 {
                     continue;
@@ -146,16 +147,18 @@ namespace simple_platformer
 
             const bool movingDown = requested > 0.0F;
             const float leadingEdge = bounds.position.y + (movingDown ? bounds.size.y : 0.0F);
-            const int firstColumn = std::max(0, firstOverlappingTile(bounds.position.x));
-            const int lastColumn =
-                std::min(map.width() - 1, lastOverlappingTile(bounds.position.x + bounds.size.x));
-            const int firstRow =
-                movingDown ? firstOverlappingTile(leadingEdge) : lastOverlappingTile(leadingEdge);
+            const int firstColumn =
+                std::max(0, firstOverlappingTile(map.tileSize(), bounds.position.x));
+            const int lastColumn = std::min(
+                map.width() - 1,
+                lastOverlappingTile(map.tileSize(), bounds.position.x + bounds.size.x));
+            const int firstRow = movingDown ? firstOverlappingTile(map.tileSize(), leadingEdge)
+                                            : lastOverlappingTile(map.tileSize(), leadingEdge);
             const float finalLeadingEdge = leadingEdge + requested;
             const int lastRow = movingDown && finalLeadingEdge >= map.pixelHeight() ? map.height()
                                 : !movingDown && finalLeadingEdge < 0.0F
                                     ? -1
-                                    : firstOverlappingTile(finalLeadingEdge);
+                                    : firstOverlappingTile(map.tileSize(), finalLeadingEdge);
             const int step = movingDown ? 1 : -1;
 
             for (int row = firstRow; movingDown ? row <= lastRow : row >= lastRow; row += step)
@@ -166,7 +169,7 @@ namespace simple_platformer
                 }
 
                 const int tileEdge = movingDown ? row : row + 1;
-                const float candidate = static_cast<float>(tileEdge * TileSize) - leadingEdge;
+                const float candidate = static_cast<float>(tileEdge * map.tileSize()) - leadingEdge;
                 if (!stopsRequestedMovement(candidate, requested))
                 {
                     continue;

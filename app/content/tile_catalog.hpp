@@ -21,6 +21,7 @@ namespace simple_platformer
     TileCatalog loadTileCatalog(const std::filesystem::path& path);
     // Resolves each map symbol through its catalogue name to a runtime tile ID.
     TileMap composeTileMap(
+        int tileSize,
         const std::vector<std::string>& rows,
         const std::map<char, std::string>& legend,
         const TileCatalog& catalog);

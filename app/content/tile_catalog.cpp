@@ -99,6 +99,7 @@ namespace simple_platformer
     }
 
     TileMap composeTileMap(
+        int tileSize,
         const std::vector<std::string>& rows,
         const std::map<char, std::string>& legend,
         const TileCatalog& catalog)
@@ -111,6 +112,6 @@ namespace simple_platformer
         {
             ids.emplace(entry.first, catalog.ids.at(entry.second));
         }
-        return TileMap::fromAscii(rows, catalog.definitions, ids);
+        return TileMap::fromAscii(tileSize, rows, catalog.definitions, ids);
     }
 }

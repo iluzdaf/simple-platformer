@@ -17,6 +17,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/tile_size.hpp"
 
 TEST_CASE("A flying path follower produces intentions for its next step", "[navigation][path]")
 {
@@ -32,20 +33,20 @@ TEST_CASE("A flying path follower produces intentions for its next step", "[navi
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
 
     const simple_platformer::InputIntentions right =
-        simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime);
+        simple_platformer::followFlyingPath(tests::TileSize, bounds, movement, follower, DeltaTime);
     REQUIRE(right.direction.x == 1.0F);
     REQUIRE(right.direction.y == 0.0F);
 
-    bounds = simple_platformer::boxInCell({1, 0}, bounds.size);
+    bounds = simple_platformer::boxInCell(tests::TileSize, {1, 0}, bounds.size);
     const simple_platformer::InputIntentions down =
-        simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime);
+        simple_platformer::followFlyingPath(tests::TileSize, bounds, movement, follower, DeltaTime);
     REQUIRE(down.direction.x == 0.0F);
     REQUIRE(down.direction.y == 1.0F);
 
-    bounds = simple_platformer::boxInCell({1, 1}, bounds.size);
+    bounds = simple_platformer::boxInCell(tests::TileSize, {1, 1}, bounds.size);
     REQUIRE(
-        simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime).direction ==
-        glm::vec2{0.0F});
+        simple_platformer::followFlyingPath(tests::TileSize, bounds, movement, follower, DeltaTime)
+            .direction == glm::vec2{0.0F});
     REQUIRE(simple_platformer::pathComplete(follower));
 }
 
@@ -59,7 +60,7 @@ TEST_CASE("A flying path follower uses the exact remaining waypoint distance", "
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
 
     const simple_platformer::InputIntentions intentions =
-        simple_platformer::followFlyingPath(bounds, movement, follower, DeltaTime);
+        simple_platformer::followFlyingPath(tests::TileSize, bounds, movement, follower, DeltaTime);
 
     REQUIRE_NEAR(intentions.direction.x, 0.25F);
     REQUIRE(intentions.direction.y == 0.0F);
@@ -91,7 +92,8 @@ TEST_CASE(
         follower,
         {{2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},
         jump->destination);
-    simple_platformer::Body body{simple_platformer::boxInCell({2, 2}, bodySize), {0.0F, 0.0F}};
+    simple_platformer::Body body{
+        simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
@@ -99,14 +101,16 @@ TEST_CASE(
     for (int tick = 0; tick < 180 && !simple_platformer::pathComplete(follower); ++tick)
     {
         const simple_platformer::InputIntentions intentions =
-            simple_platformer::followPlatformerPath(body, movement, follower, DeltaTime);
+            simple_platformer::followPlatformerPath(
+                tests::TileSize, body, movement, follower, DeltaTime);
         simple_platformer::updatePlatformerMovement(
             map, body, movement, intentions, facing, DeltaTime);
     }
 
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
-        simple_platformer::cellAtFeet(simple_platformer::feetOf(body.bounds)) == jump->destination);
+        simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
+        jump->destination);
 }
 
 TEST_CASE(
@@ -134,7 +138,8 @@ TEST_CASE(
         follower,
         {{2, 2}, {{jump->destination, jump->traversal, jump->inputs}}},
         jump->destination);
-    simple_platformer::Body body{simple_platformer::boxInCell({2, 2}, bodySize), {80.0F, 0.0F}};
+    simple_platformer::Body body{
+        simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {80.0F, 0.0F}};
     body.bounds.position.x -= 6.0F;
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
@@ -146,7 +151,8 @@ TEST_CASE(
         const glm::vec2 positionBeforeFollowing = body.bounds.position;
         const glm::vec2 velocityBeforeFollowing = body.velocity;
         const simple_platformer::InputIntentions intentions =
-            simple_platformer::followPlatformerPath(body, movement, follower, DeltaTime);
+            simple_platformer::followPlatformerPath(
+                tests::TileSize, body, movement, follower, DeltaTime);
         preparedForJump = preparedForJump || follower.programElapsed == 0.0F;
 
         REQUIRE(body.bounds.position == positionBeforeFollowing);
@@ -158,7 +164,8 @@ TEST_CASE(
     REQUIRE(preparedForJump);
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
-        simple_platformer::cellAtFeet(simple_platformer::feetOf(body.bounds)) == jump->destination);
+        simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
+        jump->destination);
 }
 
 TEST_CASE(
@@ -188,7 +195,8 @@ TEST_CASE(
          {{{2, 2}, simple_platformer::Traversal::Walk, {}},
           {jump->destination, jump->traversal, jump->inputs}}},
         jump->destination);
-    simple_platformer::Body body{simple_platformer::boxInCell({1, 2}, bodySize), {0.0F, 0.0F}};
+    simple_platformer::Body body{
+        simple_platformer::boxInCell(tests::TileSize, {1, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
@@ -197,7 +205,8 @@ TEST_CASE(
     for (int tick = 0; tick < 360 && !simple_platformer::pathComplete(follower); ++tick)
     {
         const simple_platformer::InputIntentions intentions =
-            simple_platformer::followPlatformerPath(body, movement, follower, DeltaTime);
+            simple_platformer::followPlatformerPath(
+                tests::TileSize, body, movement, follower, DeltaTime);
         brakedAfterWalking =
             brakedAfterWalking ||
             (follower.nextStep == 0 && body.velocity.x != 0.0F && intentions.direction.x == 0.0F);
@@ -208,5 +217,6 @@ TEST_CASE(
     REQUIRE(brakedAfterWalking);
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
-        simple_platformer::cellAtFeet(simple_platformer::feetOf(body.bounds)) == jump->destination);
+        simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
+        jump->destination);
 }

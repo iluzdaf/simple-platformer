@@ -30,7 +30,7 @@ namespace simple_platformer
         void changeState(NpcBrain& brain, NpcState state)
         {
             brain.state = state;
-            brain.stateTime = 0.0F;
+            brain.stateElapsed = 0.0F;
         }
 
         void faceToward(Actor& actor, glm::vec2 targetFeet)
@@ -188,7 +188,7 @@ namespace simple_platformer
             const Actor* target)
         {
             faceToward(actor, brain.lastSeenTargetFeet);
-            if (bite.phase != BitePhase::Ready || brain.stateTime <= 0.0F)
+            if (bite.phase != BitePhase::Ready || brain.stateElapsed <= 0.0F)
             {
                 return;
             }
@@ -323,7 +323,7 @@ namespace simple_platformer
             if (actor.life == LifeState::Alive)
             {
                 updateNpcState(map, world, actor, deltaTime);
-                brain.stateTime += deltaTime;
+                brain.stateElapsed += deltaTime;
             }
         }
     }

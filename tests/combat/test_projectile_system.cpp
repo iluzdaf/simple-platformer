@@ -33,7 +33,7 @@ namespace
         projectile.bounds = {{0.0F, 4.0F}, {2.0F, 2.0F}};
         projectile.velocity = {100.0F, 0.0F};
         projectile.damage = 1;
-        projectile.remainingLifetime = 2.0F;
+        projectile.lifetimeRemaining = 2.0F;
         projectile.team = simple_platformer::Team::Player;
         projectile.sprite.size = projectile.bounds.size;
         return projectile;
@@ -129,7 +129,7 @@ TEST_CASE("A projectile is removed when its lifetime expires", "[combat][project
 {
     simple_platformer::World world;
     simple_platformer::Projectile projectile = makeProjectile();
-    projectile.remainingLifetime = 0.1F;
+    projectile.lifetimeRemaining = 0.1F;
     world.addProjectile(projectile);
     simple_platformer::WorldRequests requests;
 

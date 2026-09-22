@@ -224,7 +224,7 @@ TEST_CASE("An entered exit completes only once it has had time to open", "[exit]
     world.setExit(exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, 2));
     world.advanceSimulationTime(0.5F);
     simple_platformer::updateLevelExit(world);
-    REQUIRE(exitOf(world).openedAtTimeSeconds == 0.5F);
+    REQUIRE(exitOf(world).openedTimeSeconds == 0.5F);
 
     // Leaving the doorway afterwards changes nothing; the door is already opening.
     tests::player(world).body.bounds.position.x = 80.0F;
@@ -507,7 +507,7 @@ TEST_CASE("World rejects an exit touched or opened outside simulation time", "[e
     exit.lastLockedTouchTimeSeconds = -1.0F;
     REQUIRE_THROWS_AS(world.setExit(exit), std::invalid_argument);
     exit.lastLockedTouchTimeSeconds.reset();
-    exit.openedAtTimeSeconds = 1.0F;
+    exit.openedTimeSeconds = 1.0F;
     REQUIRE_THROWS_AS(world.setExit(exit), std::invalid_argument);
 
     world.advanceSimulationTime(1.0F);

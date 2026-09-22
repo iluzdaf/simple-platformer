@@ -76,7 +76,7 @@ namespace simple_platformer
         Aabb bounds;
         glm::vec2 velocity = {0.0F, 0.0F};
         int damage = 1;
-        float remainingLifetime = 1.0F;
+        float lifetimeRemaining = 1.0F;
         std::optional<ActorId> owner;
         Team team = Team::Neutral;
         Sprite sprite;
@@ -98,6 +98,6 @@ namespace simple_platformer
         glm::vec2 direction = {1.0F, 0.0F};
         Sprite sprite;
         float duration = 0.1F;
-        float remainingLifetime = 0.1F;
+        float lifetimeRemaining = 0.1F;
     };
 }

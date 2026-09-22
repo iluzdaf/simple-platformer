@@ -25,7 +25,7 @@ namespace simple_platformer
         std::optional<float> lastLockedTouchTimeSeconds;
         // When the living player entered the exit with its requirement, on the world clock.
         // The requirement is consumed then, and the level completes ExitOpenSeconds later.
-        std::optional<float> openedAtTimeSeconds;
+        std::optional<float> openedTimeSeconds;
     };
 
     class World;

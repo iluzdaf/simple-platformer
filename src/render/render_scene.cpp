@@ -22,8 +22,8 @@ namespace simple_platformer
 {
     namespace
     {
-        constexpr float DeathFadeDurationSeconds = 0.2F;
-        constexpr float HitFlashDurationSeconds = 0.1F;
+        constexpr float DeathFadeSeconds = 0.2F;
+        constexpr float HitFlashSeconds = 0.1F;
         constexpr float HitFlashAmount = 0.1F;
         // The door flashes white as it opens and the player fades into it; both follow
         // how far through ExitOpenSeconds the opening is.
@@ -40,15 +40,14 @@ namespace simple_platformer
             {
                 return 1.0F;
             }
-            return std::clamp(actor.deathTimeRemaining / DeathFadeDurationSeconds, 0.0F, 1.0F);
+            return std::clamp(actor.deathTimeRemaining / DeathFadeSeconds, 0.0F, 1.0F);
         }
 
         float actorWhiteFlashAmount(const Actor& actor, float simulationTimeSeconds)
         {
             const bool wasRecentlyDamaged =
                 actor.lastDamageTimeSeconds.has_value() &&
-                simulationTimeSeconds - actor.lastDamageTimeSeconds.value() <
-                    HitFlashDurationSeconds;
+                simulationTimeSeconds - actor.lastDamageTimeSeconds.value() < HitFlashSeconds;
             return wasRecentlyDamaged ? HitFlashAmount : 0.0F;
         }
 
@@ -56,11 +55,11 @@ namespace simple_platformer
         float exitOpenProgress(const World& world)
         {
             const auto& exit = world.exit();
-            if (!exit.has_value() || !exit->openedAtTimeSeconds.has_value())
+            if (!exit.has_value() || !exit->openedTimeSeconds.has_value())
             {
                 return 0.0F;
             }
-            const float sinceOpened = world.simulationTimeSeconds() - *exit->openedAtTimeSeconds;
+            const float sinceOpened = world.simulationTimeSeconds() - *exit->openedTimeSeconds;
             return std::clamp(sinceOpened / ExitOpenSeconds, 0.0F, 1.0F);
         }
 
@@ -174,7 +173,7 @@ namespace simple_platformer
 
             const Sprite& sprite = levelExit.sprite.value();
             const Aabb bounds = spriteBounds(levelExit.bounds, sprite);
-            const float flash = levelExit.openedAtTimeSeconds.has_value()
+            const float flash = levelExit.openedTimeSeconds.has_value()
                                     ? (1.0F - exitOpenProgress(world)) * ExitOpenFlashAmount
                                     : 0.0F;
             scene.sprites.push_back(
@@ -241,7 +240,7 @@ namespace simple_platformer
             for (const ProjectileBurst& burst : world.projectileBursts())
             {
                 const float remainingFraction =
-                    std::clamp(burst.remainingLifetime / burst.duration, 0.0F, 1.0F);
+                    std::clamp(burst.lifetimeRemaining / burst.duration, 0.0F, 1.0F);
                 const float progress = 1.0F - remainingFraction;
                 const float scale = 1.0F + progress * (ProjectileBurstFinalScale - 1.0F);
                 const glm::vec2 size = burst.sprite.size * scale;

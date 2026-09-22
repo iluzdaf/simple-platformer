@@ -40,7 +40,7 @@ namespace simple_platformer
             itemDefinition(exit.requirement->item);
         }
         requireWithinSimulationTime(exit.lastLockedTouchTimeSeconds, "Exit touch time");
-        requireWithinSimulationTime(exit.openedAtTimeSeconds, "Exit opening time");
+        requireWithinSimulationTime(exit.openedTimeSeconds, "Exit opening time");
         levelExit = exit;
         completed = false;
     }
@@ -75,7 +75,7 @@ namespace simple_platformer
     bool exitOpening(const World& world)
     {
         const auto& levelExit = world.exit();
-        return levelExit.has_value() && levelExit->openedAtTimeSeconds.has_value() &&
+        return levelExit.has_value() && levelExit->openedTimeSeconds.has_value() &&
                !world.levelComplete();
     }
 
@@ -99,9 +99,9 @@ namespace simple_platformer
         }
         LevelExit& exit = levelExit.value();
         const float now = world.simulationTimeSeconds();
-        if (exit.openedAtTimeSeconds.has_value())
+        if (exit.openedTimeSeconds.has_value())
         {
-            if (now - *exit.openedAtTimeSeconds >= ExitOpenSeconds)
+            if (now - *exit.openedTimeSeconds >= ExitOpenSeconds)
             {
                 world.completeLevel();
             }
@@ -120,6 +120,6 @@ namespace simple_platformer
         {
             player->inventory->remove(exit.requirement->item, exit.requirement->quantity);
         }
-        exit.openedAtTimeSeconds = now;
+        exit.openedTimeSeconds = now;
     }
 }

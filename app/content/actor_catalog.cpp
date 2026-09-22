@@ -97,8 +97,8 @@ namespace simple_platformer
                      "gravity",
                      "jumpReleaseGravity",
                      "maximumFallSpeed",
-                     "coyoteTime",
-                     "jumpBufferTime"},
+                     "coyoteDuration",
+                     "jumpBufferDuration"},
                     sourceName,
                     platformerPath);
                 PlatformerMovementConfig config;
@@ -138,9 +138,13 @@ namespace simple_platformer
                     sourceName,
                     platformerPath);
                 readOptionalNumber(
-                    movement, "coyoteTime", config.coyoteTime, sourceName, platformerPath);
+                    movement, "coyoteDuration", config.coyoteDuration, sourceName, platformerPath);
                 readOptionalNumber(
-                    movement, "jumpBufferTime", config.jumpBufferTime, sourceName, platformerPath);
+                    movement,
+                    "jumpBufferDuration",
+                    config.jumpBufferDuration,
+                    sourceName,
+                    platformerPath);
                 result.platformer = config;
             }
             if (value.contains("flying"))
@@ -156,12 +160,17 @@ namespace simple_platformer
             {
                 const auto& senses = requiredJsonMember(value, "senses", sourceName, path);
                 const std::string sensesPath = fieldPath(path, "senses");
-                checkJsonFields(senses, {"noticeDistance", "forgetAfter"}, sourceName, sensesPath);
+                checkJsonFields(
+                    senses, {"noticeDistance", "targetMemoryDuration"}, sourceName, sensesPath);
                 NpcSenses config;
                 readOptionalNumber(
                     senses, "noticeDistance", config.noticeDistance, sourceName, sensesPath);
                 readOptionalNumber(
-                    senses, "forgetAfter", config.forgetAfter, sourceName, sensesPath);
+                    senses,
+                    "targetMemoryDuration",
+                    config.targetMemoryDuration,
+                    sourceName,
+                    sensesPath);
                 result.senses = config;
             }
             if (value.contains("bite"))

@@ -14,6 +14,7 @@
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/add_player.hpp"
 
 using tests::actor;
 using tests::brain;
@@ -118,8 +119,7 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"............", "............", "............", "############"});
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({38.0F, 28.0F}));
-    world.setPlayer(playerId, {38.0F, 28.0F});
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({38.0F, 28.0F}));
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({22.0F, 28.0F}));
 
     simple_platformer::updateNpcSenses(map, world, 0.1F);
@@ -151,8 +151,7 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
             .where('c', tests::Tile().blocksSight());
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
-        world.addActor(makePlayer({40.0F, 30.0F}).shooting());
-    world.setPlayer(playerId, {40.0F, 30.0F});
+        tests::addPlayer(world, makePlayer({40.0F, 30.0F}).shooting());
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
     const glm::vec2 shotFeet{40.0F, 30.0F};
 
@@ -183,8 +182,7 @@ TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
         tests::TileMapBuilder({".....", "..x..", "....."}).where('x', tests::Tile().blocksSight());
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
-        world.addActor(makePlayer({56.0F, 30.0F}).shooting());
-    world.setPlayer(playerId, {56.0F, 30.0F});
+        tests::addPlayer(world, makePlayer({56.0F, 30.0F}).shooting());
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 
     rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
@@ -201,8 +199,7 @@ TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][sense
         tests::TileMapBuilder({"..........", "..........", ".........."});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId =
-        world.addActor(makePlayer({104.0F, 30.0F}).shooting());
-    world.setPlayer(playerId, {104.0F, 30.0F});
+        tests::addPlayer(world, makePlayer({104.0F, 30.0F}).shooting());
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 
     rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
@@ -217,29 +214,26 @@ TEST_CASE("Whether any NPC sees an actor follows the NPCs' own senses", "[npc][s
         tests::TileMapBuilder({"............", "...ccccccc..", "............"})
             .where('c', tests::Tile().blocksSight());
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(makePlayer({56.0F, 30.0F}));
-    world.setPlayer(playerId, {56.0F, 30.0F});
+    tests::addPlayer(world, makePlayer({56.0F, 30.0F}));
 
     // Nobody looking.
     REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
 
     // An NPC outside the patch cannot see in.
-    const simple_platformer::ActorId outside = world.addActor(makeNpc({8.0F, 30.0F}));
+    world.addActor(makeNpc({8.0F, 30.0F}));
     REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
 
     // One in the same patch but beyond its notice distance does not notice.
-    const simple_platformer::ActorId far = world.addActor(makeNpc({152.0F, 30.0F}));
+    world.addActor(makeNpc({152.0F, 30.0F}));
     REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
 
     // One in the same patch within notice distance sees the player.
-    const simple_platformer::ActorId near = world.addActor(makeNpc({88.0F, 30.0F}));
+    const simple_platformer::ActorId nearby = world.addActor(makeNpc({88.0F, 30.0F}));
     REQUIRE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
 
     // A dying NPC no longer looks.
-    actor(world, near).life = simple_platformer::LifeState::Dying;
+    actor(world, nearby).life = simple_platformer::LifeState::Dying;
     REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
-    (void)outside;
-    (void)far;
 }
 
 TEST_CASE("NPC senses reject invalid timing and sensing ranges", "[npc][validation]")

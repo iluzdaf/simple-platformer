@@ -11,6 +11,7 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "support/fixed_step.hpp"
 
 namespace
 {
@@ -53,7 +54,7 @@ namespace
 
 TEST_CASE(
     "The game carries progress across levels and restarts after the final exit",
-    "[level-transition]")
+    "[app][level-transition]")
 {
     simple_platformer::Game game(
         0, simple_platformer::loadLevelCatalog("tests/fixtures/levels.json"));
@@ -69,7 +70,7 @@ TEST_CASE(
         const int previousLevel = game.levelNumber();
         const auto previousHealth = game.playerHealth();
         const auto previousInventory = game.playerInventory();
-        game.update(intentions, 1.0F / 60.0F);
+        game.update(intentions, tests::FixedStepSeconds);
         if (game.levelNumber() != previousLevel)
         {
             changedLevel = true;
@@ -81,7 +82,7 @@ TEST_CASE(
     REQUIRE(changedLevel);
     REQUIRE(game.complete());
     const auto health = game.playerHealth();
-    game.update(intentions, 1.0F / 60.0F);
+    game.update(intentions, tests::FixedStepSeconds);
     REQUIRE(game.complete());
     REQUIRE(sameHealth(game.playerHealth(), health));
     REQUIRE(game.levelExitScreenPosition().has_value());
@@ -95,7 +96,7 @@ TEST_CASE(
 
 TEST_CASE(
     "The game hints the missing item while the player stands in a locked exit",
-    "[level-transition][exit]")
+    "[app][level-transition][exit]")
 {
     simple_platformer::Game game(
         0, simple_platformer::loadLevelCatalog("tests/fixtures/locked_levels.json"));
@@ -106,7 +107,7 @@ TEST_CASE(
     int ticks = 0;
     while (!game.lockedExitHintIcon().has_value() && ticks < MaximumSimulationTicks)
     {
-        game.update(walkRight, 1.0F / 60.0F);
+        game.update(walkRight, tests::FixedStepSeconds);
         ++ticks;
     }
     const simple_platformer::Sprite icon =
@@ -118,14 +119,14 @@ TEST_CASE(
     // Standing still in the door keeps the hint up well past its linger.
     for (int tick = 0; tick < 120; ++tick)
     {
-        game.update({}, 1.0F / 60.0F);
+        game.update({}, tests::FixedStepSeconds);
     }
     REQUIRE(game.lockedExitHintIcon().has_value());
 
     // Walking on to the key leaves the door behind, and the hint lapses.
     for (int tick = 0; tick < 120; ++tick)
     {
-        game.update(walkRight, 1.0F / 60.0F);
+        game.update(walkRight, tests::FixedStepSeconds);
     }
     REQUIRE_FALSE(game.lockedExitHintIcon().has_value());
     REQUIRE(game.playerInventory().count(1) == 1);
@@ -135,7 +136,7 @@ TEST_CASE(
     const int lockedLevel = game.levelNumber();
     for (ticks = 0; ticks < MaximumSimulationTicks && game.levelNumber() == lockedLevel; ++ticks)
     {
-        game.update(walkLeft, 1.0F / 60.0F);
+        game.update(walkLeft, tests::FixedStepSeconds);
     }
     REQUIRE(game.levelNumber() == 25);
 }

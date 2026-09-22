@@ -28,6 +28,8 @@
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
+#include "support/add_player.hpp"
+#include "support/neighbor_with.hpp"
 
 TEST_CASE("Debug overlay data supports actors without presentation components", "[app][debug]")
 {
@@ -105,9 +107,8 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     tests::brain(npc).state = simple_platformer::NpcState::Chase;
 
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId = world.addActor(player);
+    tests::addPlayer(world, player);
     const simple_platformer::ActorId npcId = world.addActor(npc);
-    world.setPlayer(playerId, {38.0F, 208.0F});
     const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "######"});
 
     const simple_platformer::CameraController cameraController{
@@ -145,12 +146,12 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
 TEST_CASE("Debug overlay data describes visible and remembered targets", "[app][debug]")
 {
     simple_platformer::World world;
-    const simple_platformer::ActorId playerId =
-        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                           .atFeet({54.0F, 32.0F})
-                           .walking()
-                           .onTeam(simple_platformer::Team::Player));
-    world.setPlayer(playerId, {54.0F, 32.0F});
+    const simple_platformer::ActorId playerId = tests::addPlayer(
+        world,
+        tests::ActorBuilder::sized({12.0F, 12.0F})
+            .atFeet({54.0F, 32.0F})
+            .walking()
+            .onTeam(simple_platformer::Team::Player));
 
     simple_platformer::Actor visibleNpc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                               .at({16.0F, 20.0F})
@@ -335,15 +336,8 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
     const simple_platformer::PlatformerMovementConfig movementConfig;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
         simple_platformer::platformerNeighbors(map, {2, 2}, {12.0F, 12.0F}, movementConfig);
-    const auto jump = std::find_if(
-        neighbors.begin(),
-        neighbors.end(),
-        [](const simple_platformer::NavigationNeighbor& neighbor)
-        { return neighbor.traversal == simple_platformer::Traversal::Jump; });
-    if (jump == neighbors.end())
-    {
-        throw std::logic_error("The test map did not produce a jump connection");
-    }
+    const simple_platformer::NavigationNeighbor& jump =
+        tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .at({0.0F, 0.0F})
@@ -351,10 +345,10 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
                                        .thinking({});
     npc.pathFollower = simple_platformer::PathFollower{
         simple_platformer::NavigationPath{
-            {2, 2}, {{jump->destinationCell, jump->traversal, jump->inputs}}},
+            {2, 2}, {{jump.destinationCell, jump.traversal, jump.inputs}}},
         0,
         0.0F,
-        jump->destinationCell};
+        jump.destinationCell};
 
     simple_platformer::World world;
     world.addActor(npc);

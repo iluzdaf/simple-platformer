@@ -12,30 +12,7 @@
 #include "support/actor_components.hpp"
 #include "support/add_player.hpp"
 #include "support/tile_map_builder.hpp"
-
-namespace
-{
-    simple_platformer::AnimationClip clip(simple_platformer::AnimationName name, float left)
-    {
-        return {name, {{{left, 0.0F}, {1.0F, 1.0F}}}, 0.1F, true};
-    }
-
-    simple_platformer::Animator idleAndMoveAnimator()
-    {
-        using simple_platformer::AnimationName;
-
-        simple_platformer::Animator animator;
-        animator.animationSet = {{
-            clip(AnimationName::Idle, 0.0F),
-            clip(AnimationName::Move, 1.0F),
-            clip(AnimationName::Jump, 2.0F),
-            clip(AnimationName::Fall, 3.0F),
-            clip(AnimationName::Attack, 4.0F),
-            clip(AnimationName::Death, 5.0F),
-        }};
-        return animator;
-    }
-}
+#include "support/animator.hpp"
 
 TEST_CASE(
     "Presenting the world animates actors and fades cover in one call",
@@ -49,7 +26,7 @@ TEST_CASE(
                                                               .inCell({4, 1})
                                                               .flying(0.0F)
                                                               .withSprite({0, {}, {1.0F, 1.0F}})
-                                                              .withAnimator(idleAndMoveAnimator()));
+                                                              .withAnimator(tests::fullAnimator()));
 
     simple_platformer::updateWorldPresentation(map, world, 0.0F);
 

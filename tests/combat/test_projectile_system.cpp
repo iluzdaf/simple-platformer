@@ -54,9 +54,9 @@ namespace
 TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[combat][projectile]")
 {
     simple_platformer::World world;
-    const simple_platformer::ActorId near =
+    const simple_platformer::ActorId nearTarget =
         world.addActor(makeActor({30.0F, 0.0F}, simple_platformer::Team::Enemy));
-    const simple_platformer::ActorId far =
+    const simple_platformer::ActorId farTarget =
         world.addActor(makeActor({45.0F, 0.0F}, simple_platformer::Team::Enemy));
     world.addProjectile(makeProjectile());
     simple_platformer::WorldRequests requests;
@@ -64,13 +64,13 @@ TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[c
     simple_platformer::TileMap map = emptyMap();
     simple_platformer::updateProjectiles(map, world, requests, 0.5F);
 
-    REQUIRE(tests::health(world, near).current == 3);
+    REQUIRE(tests::health(world, nearTarget).current == 3);
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectileBursts().empty());
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
-    REQUIRE(tests::health(world, near).current == 2);
-    REQUIRE(tests::health(world, far).current == 3);
+    REQUIRE(tests::health(world, nearTarget).current == 2);
+    REQUIRE(tests::health(world, farTarget).current == 3);
     REQUIRE(world.projectiles().empty());
     REQUIRE(world.projectileBursts().size() == 1);
     REQUIRE(

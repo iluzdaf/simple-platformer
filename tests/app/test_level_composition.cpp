@@ -14,6 +14,7 @@
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/add_player.hpp"
 
 TEST_CASE("Every catalog level can be composed", "[app][content]")
 {
@@ -47,8 +48,7 @@ TEST_CASE("Every catalog level has valid actor placement", "[app][content]")
         auto content = simple_platformer::composeGameLevel(catalog, entry.number, 0, catalogs);
         simple_platformer::Actor player = simple_platformer::composePlayer(catalogs, 0);
         simple_platformer::placeFeetAt(player.body.bounds, content.playerSpawnFeet);
-        const auto playerId = content.world.addActor(player);
-        content.world.setPlayer(playerId, content.playerSpawnFeet);
+        tests::addPlayer(content.world, player);
 
         REQUIRE_NOTHROW(
             simple_platformer::validateLevelActors(content.map, content.world, content.number));

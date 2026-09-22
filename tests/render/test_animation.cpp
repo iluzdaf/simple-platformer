@@ -4,6 +4,7 @@
 
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "support/require_near.hpp"
 
 namespace
 {
@@ -57,9 +58,9 @@ TEST_CASE("Each animator keeps independent playback state", "[render][animation]
     simple_platformer::updateAnimation(first, firstSprite, AnimationName::Move, 0.1F);
     simple_platformer::updateAnimation(second, secondSprite, AnimationName::Move, 0.1F);
 
-    REQUIRE(first.elapsed == 0.1F);
+    REQUIRE_NEAR(first.elapsed, 0.1F);
     REQUIRE(firstSprite.region.position.x == 2.0F);
-    REQUIRE(second.elapsed == 0.0F);
+    REQUIRE_NEAR(second.elapsed, 0.0F);
     REQUIRE(secondSprite.region.position.x == 1.0F);
 }
 
@@ -75,7 +76,7 @@ TEST_CASE("Changing animation resets its playback time", "[render][animation]")
     simple_platformer::updateAnimation(animator, sprite, AnimationName::Death, 0.1F);
 
     REQUIRE(animator.current == AnimationName::Death);
-    REQUIRE(animator.elapsed == 0.0F);
+    REQUIRE_NEAR(animator.elapsed, 0.0F);
     REQUIRE(sprite.region.position == glm::vec2{5.0F, 0.0F});
 }
 

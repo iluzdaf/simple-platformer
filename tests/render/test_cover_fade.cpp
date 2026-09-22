@@ -70,8 +70,8 @@ TEST_CASE("A newly placed NPC is shown at its target at once", "[render][cover-f
 
     simple_platformer::updateCoverFades(map, world, QuarterFade);
 
-    REQUIRE(shown(world, inCover) == 0.0F);
-    REQUIRE(shown(world, inOpen) == 1.0F);
+    REQUIRE_NEAR(shown(world, inCover), 0.0F);
+    REQUIRE_NEAR(shown(world, inOpen), 1.0F);
 }
 
 TEST_CASE(
@@ -94,7 +94,7 @@ TEST_CASE(
     REQUIRE_NEAR(shown(world, npc), 1.0F);
 
     simple_platformer::updateCoverFades(map, world, QuarterFade);
-    REQUIRE(shown(world, npc) == 1.0F);
+    REQUIRE_NEAR(shown(world, npc), 1.0F);
 }
 
 TEST_CASE("An NPC fades out again when the player leaves its patch", "[render][cover-fade]")
@@ -104,7 +104,7 @@ TEST_CASE("An NPC fades out again when the player leaves its patch", "[render][c
     addPlayerIn(world, {3, 1});
     const simple_platformer::ActorId npc = addNpcIn(world, {4, 1});
     simple_platformer::updateCoverFades(map, world, QuarterFade);
-    REQUIRE(shown(world, npc) == 1.0F);
+    REQUIRE_NEAR(shown(world, npc), 1.0F);
 
     movePlayerTo(world, {0, 1});
     simple_platformer::updateCoverFades(map, world, QuarterFade);
@@ -137,7 +137,7 @@ TEST_CASE("A player alone in cover is shown concealed", "[render][cover-fade]")
     const simple_platformer::ActorId player = addPlayerIn(world, {3, 1});
 
     simple_platformer::updateCoverFades(map, world, QuarterFade);
-    REQUIRE(shown(world, player) == 0.0F);
+    REQUIRE_NEAR(shown(world, player), 0.0F);
 
     movePlayerTo(world, {0, 1});
     simple_platformer::updateCoverFades(map, world, QuarterFade);
@@ -156,7 +156,7 @@ TEST_CASE("An NPC that can see the player exposes them", "[render][cover-fade]")
 
     simple_platformer::updateCoverFades(map, world, QuarterFade);
 
-    REQUIRE(shown(world, player) == 1.0F);
+    REQUIRE_NEAR(shown(world, player), 1.0F);
 }
 
 TEST_CASE("Firing exposes a hidden player for the reveal window", "[render][cover-fade]")
@@ -171,7 +171,7 @@ TEST_CASE("Firing exposes a hidden player for the reveal window", "[render][cove
             .onTeam(simple_platformer::Team::Player)
             .shooting());
     simple_platformer::updateCoverFades(map, world, QuarterFade);
-    REQUIRE(shown(world, player) == 0.0F);
+    REQUIRE_NEAR(shown(world, player), 0.0F);
 
     tests::rangedWeapon(world, player).lastFiredTimeSeconds = world.simulationTimeSeconds();
     simple_platformer::updateCoverFades(map, world, QuarterFade);

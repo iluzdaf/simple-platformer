@@ -31,7 +31,7 @@ namespace simple_platformer
             const InputIntentions& intentions,
             float deltaTime)
         {
-            requireTimeStep(deltaTime, "Platformer movement");
+            requireSeconds(deltaTime, "Platformer movement time step");
             validatePlatformerMovementConfig(config);
 
             if (!isFinite(intentions.direction))

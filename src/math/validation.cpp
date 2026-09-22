@@ -26,9 +26,4 @@ namespace simple_platformer
                 std::string(what) + " must be a finite, non-negative number of seconds");
         }
     }
-
-    void requireTimeStep(float deltaTime, const char* what)
-    {
-        requireSeconds(deltaTime, (std::string(what) + " time step").c_str());
-    }
 }

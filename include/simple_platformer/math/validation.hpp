@@ -7,11 +7,8 @@ namespace simple_platformer
     bool isFinite(glm::vec2 value);
     bool isFinitePositive(float value);
 
-    // A length of time is finite and not negative; zero is allowed. The message starts with
-    // what was measured, as in "Frame time".
+    // A length of time is finite and not negative; zero is allowed, and for an update's
+    // time step it advances nothing. The message starts with what the seconds are, as in
+    // "Frame time" or "Attacks time step".
     void requireSeconds(float seconds, const char* what);
-
-    // The same rule for an update's time step; a zero step advances nothing. The message
-    // starts with what was being updated, as in "Attacks".
-    void requireTimeStep(float deltaTime, const char* what);
 }

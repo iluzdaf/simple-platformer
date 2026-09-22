@@ -285,7 +285,7 @@ namespace simple_platformer
 
     void updateNpcBehaviour(const TileMap& map, World& world, float deltaTime)
     {
-        requireTimeStep(deltaTime, "NPC behaviour");
+        requireSeconds(deltaTime, "NPC behaviour time step");
 
         for (Actor& actor : world.actors())
         {

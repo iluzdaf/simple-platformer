@@ -19,16 +19,18 @@ TEST_CASE("Vector finiteness checks both components", "[math][validation]")
 
 TEST_CASE("A time step must be finite and not negative", "[math][validation]")
 {
-    REQUIRE_NOTHROW(simple_platformer::requireTimeStep(0.0F, "Attacks"));
-    REQUIRE_NOTHROW(simple_platformer::requireTimeStep(0.25F, "Attacks"));
+    REQUIRE_NOTHROW(simple_platformer::requireSeconds(0.0F, "Attacks time step"));
+    REQUIRE_NOTHROW(simple_platformer::requireSeconds(0.25F, "Attacks time step"));
     REQUIRE_THROWS_WITH(
-        simple_platformer::requireTimeStep(-0.1F, "Attacks"),
+        simple_platformer::requireSeconds(-0.1F, "Attacks time step"),
         "Attacks time step must be a finite, non-negative number of seconds");
     REQUIRE_THROWS_AS(
-        simple_platformer::requireTimeStep(std::numeric_limits<float>::infinity(), "Attacks"),
+        simple_platformer::requireSeconds(
+            std::numeric_limits<float>::infinity(), "Attacks time step"),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::requireTimeStep(std::numeric_limits<float>::quiet_NaN(), "Attacks"),
+        simple_platformer::requireSeconds(
+            std::numeric_limits<float>::quiet_NaN(), "Attacks time step"),
         std::invalid_argument);
 }
 

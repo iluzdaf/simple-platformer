@@ -67,7 +67,7 @@ namespace simple_platformer
 
     void updatePickupMovement(const TileMap& map, World& world, float deltaTime)
     {
-        requireTimeStep(deltaTime, "Pickup movement");
+        requireSeconds(deltaTime, "Pickup movement time step");
         for (Pickup& pickup : world.pickups())
         {
             applyGravity(pickup.body, DefaultGravity, DefaultMaximumFallSpeed, deltaTime);

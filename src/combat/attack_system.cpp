@@ -162,7 +162,7 @@ namespace simple_platformer
 
     void updateAttacks(World& world, WorldRequests& requests, float deltaTime)
     {
-        requireTimeStep(deltaTime, "Attacks");
+        requireSeconds(deltaTime, "Attacks time step");
 
         for (Actor& actor : world.actors())
         {

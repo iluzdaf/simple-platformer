@@ -52,7 +52,7 @@ namespace simple_platformer
 
     void updateCoverFades(const TileMap& map, World& world, float deltaTime)
     {
-        requireTimeStep(deltaTime, "Cover fades");
+        requireSeconds(deltaTime, "Cover fades time step");
         const Actor* player = world.findActor(world.playerId());
         const std::optional<glm::vec2> viewer =
             player != nullptr ? std::optional(centerOf(player->body.bounds)) : std::nullopt;

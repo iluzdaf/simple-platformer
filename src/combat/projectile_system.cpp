@@ -123,7 +123,7 @@ namespace simple_platformer
         {
             Projectile& projectile = world.projectiles()[index];
             const glm::vec2 start = centerOf(projectile.bounds);
-            const float travelTime = std::min(deltaTime, projectile.remainingLifetime);
+            const float travelTime = std::min(deltaTime, projectile.lifetimeRemaining);
             const glm::vec2 end = start + projectile.velocity * travelTime;
             const ProjectileHit hit = findEarliestHit(map, world, projectile, start, end);
             const glm::vec2 finalCenter = start + (end - start) * hit.segmentTime;
@@ -144,8 +144,8 @@ namespace simple_platformer
             }
             else
             {
-                projectile.remainingLifetime -= deltaTime;
-                if (projectile.remainingLifetime <= 0.0F)
+                projectile.lifetimeRemaining -= deltaTime;
+                if (projectile.lifetimeRemaining <= 0.0F)
                 {
                     endProjectile(
                         requests,
@@ -174,8 +174,8 @@ namespace simple_platformer
         for (std::size_t index = 0; index < world.projectileBursts().size(); ++index)
         {
             ProjectileBurst& burst = world.projectileBursts()[index];
-            burst.remainingLifetime -= deltaTime;
-            if (burst.remainingLifetime <= 0.0F)
+            burst.lifetimeRemaining -= deltaTime;
+            if (burst.lifetimeRemaining <= 0.0F)
             {
                 requests.removeProjectileBurst(index);
             }

@@ -28,7 +28,7 @@ namespace simple_platformer
 {
     namespace
     {
-        constexpr float SimulationStep = static_cast<float>(FixedDeltaSeconds);
+        constexpr float SimulationStepSeconds = static_cast<float>(FixedDeltaSeconds);
         constexpr int MaximumConnectionSimulationTicks = 120;
 
         bool sameIntentions(const InputIntentions& first, const InputIntentions& second)
@@ -43,10 +43,10 @@ namespace simple_platformer
         {
             if (!program.empty() && sameIntentions(program.back().intentions, intentions))
             {
-                program.back().duration += SimulationStep;
+                program.back().duration += SimulationStepSeconds;
                 return;
             }
-            program.push_back({SimulationStep, intentions});
+            program.push_back({SimulationStepSeconds, intentions});
         }
 
         bool bodyFits(const TileMap& map, const Aabb& bounds)
@@ -93,13 +93,14 @@ namespace simple_platformer
 
             for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
             {
-                const InputIntentions intentions =
-                    followPlatformerPath(map.tileSize(), body, movement, follower, SimulationStep);
+                const InputIntentions intentions = followPlatformerPath(
+                    map.tileSize(), body, movement, follower, SimulationStepSeconds);
                 if (pathComplete(follower))
                 {
                     return tick;
                 }
-                updatePlatformerMovement(map, body, movement, intentions, facing, SimulationStep);
+                updatePlatformerMovement(
+                    map, body, movement, intentions, facing, SimulationStepSeconds);
             }
             return std::nullopt;
         }
@@ -172,7 +173,8 @@ namespace simple_platformer
                 const InputIntentions intentions = makeTraversalIntentions(
                     traversal, direction, tick, jumpHoldTicks, landing.has_value());
                 recordSimulationInput(program, intentions);
-                updatePlatformerMovement(map, body, movement, intentions, facing, SimulationStep);
+                updatePlatformerMovement(
+                    map, body, movement, intentions, facing, SimulationStepSeconds);
 
                 leftGround = leftGround || !movement.grounded;
                 if (!leftGround || !movement.grounded)
@@ -246,7 +248,7 @@ namespace simple_platformer
         // braking, obstacles, and vertical travel keeps this estimate optimistic.
         const float minimumDistance =
             (static_cast<float>(columnDistance) - 0.5F) * static_cast<float>(tileSize);
-        const float maximumDistancePerTick = movement.maximumSpeed * SimulationStep;
+        const float maximumDistancePerTick = movement.maximumSpeed * SimulationStepSeconds;
         return static_cast<int>(std::ceil(minimumDistance / maximumDistancePerTick));
     }
 

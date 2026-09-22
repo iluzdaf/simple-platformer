@@ -43,7 +43,7 @@ namespace simple_platformer
                 projectileCenter - weapon.projectileSize * 0.5F, weapon.projectileSize};
             projectile.velocity = direction * weapon.projectileSpeed;
             projectile.damage = weapon.damage;
-            projectile.remainingLifetime = weapon.projectileLifetime;
+            projectile.lifetimeRemaining = weapon.projectileLifetime;
             projectile.owner = actor.id;
             projectile.team = actor.team;
             projectile.sprite = weapon.projectileSprite;

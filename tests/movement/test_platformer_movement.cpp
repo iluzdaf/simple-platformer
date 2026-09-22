@@ -57,8 +57,8 @@ namespace
         movement.config.gravity = 100.0F;
         movement.config.jumpReleaseGravity = 300.0F;
         movement.config.maximumFallSpeed = 600.0F;
-        movement.config.coyoteTime = 0.1F;
-        movement.config.jumpBufferTime = 0.1F;
+        movement.config.coyoteDuration = 0.1F;
+        movement.config.jumpBufferDuration = 0.1F;
         return movement;
     }
 
@@ -160,8 +160,8 @@ TEST_CASE("Grounded jumping does not require assistance timers", "[movement][pla
     Body body = bodyOnFloor();
     PlatformerMovement movement = makeMovement();
     movement.grounded = true;
-    movement.config.coyoteTime = 0.0F;
-    movement.config.jumpBufferTime = 0.0F;
+    movement.config.coyoteDuration = 0.0F;
+    movement.config.jumpBufferDuration = 0.0F;
     Facing facing = Facing::Right;
     InputIntentions intentions;
     intentions.jumpPressed = true;

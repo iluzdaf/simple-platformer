@@ -32,7 +32,7 @@
       "spriteAnchor": "center",
       "health": 1,
       "flying": {},
-      "senses": { "noticeDistance": 56, "forgetAfter": 0.5 },
+      "senses": { "noticeDistance": 56, "targetMemoryDuration": 0.5 },
       "bite": {}
     },
     "zombie_soldier": {

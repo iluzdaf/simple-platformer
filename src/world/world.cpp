@@ -38,7 +38,7 @@ namespace simple_platformer
             if (!isFinite(projectile.bounds.position) || !isFinite(projectile.bounds.size) ||
                 projectile.bounds.size.x <= 0.0F || projectile.bounds.size.y <= 0.0F ||
                 !isFinite(projectile.velocity) || projectile.damage <= 0 ||
-                !isFinitePositive(projectile.remainingLifetime) ||
+                !isFinitePositive(projectile.lifetimeRemaining) ||
                 !isFinite(projectile.sprite.size) || projectile.sprite.size.x <= 0.0F ||
                 projectile.sprite.size.y <= 0.0F ||
                 (projectile.owner.has_value() && !simple_platformer::isValid(*projectile.owner)))
@@ -56,8 +56,8 @@ namespace simple_platformer
                 (burst.direction.x == 0.0F && burst.direction.y == 0.0F) ||
                 !isFinite(burst.sprite.size) || burst.sprite.size.x <= 0.0F ||
                 burst.sprite.size.y <= 0.0F || !isFinitePositive(burst.duration) ||
-                !isFinitePositive(burst.remainingLifetime) ||
-                burst.remainingLifetime > burst.duration)
+                !isFinitePositive(burst.lifetimeRemaining) ||
+                burst.lifetimeRemaining > burst.duration)
             {
                 throw std::invalid_argument("Projectile burst data is invalid");
             }

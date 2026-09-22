@@ -24,8 +24,8 @@ namespace simple_platformer
         float gravity = DefaultGravity;
         float jumpReleaseGravity = 2.0F * DefaultGravity;
         float maximumFallSpeed = DefaultMaximumFallSpeed;
-        float coyoteTime = 0.1F;
-        float jumpBufferTime = 0.1F;
+        float coyoteDuration = 0.1F;
+        float jumpBufferDuration = 0.1F;
     };
 
     void validatePlatformerMovementConfig(const PlatformerMovementConfig& config);

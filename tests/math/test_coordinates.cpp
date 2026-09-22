@@ -90,3 +90,23 @@ TEST_CASE("Cells and feet convert on tile boundaries", "[math][coordinates]")
         simple_platformer::cellAtFeet(16, {24.0F, 32.0F}) == simple_platformer::GridPosition{1, 1});
     REQUIRE(simple_platformer::feetInCell(16, {1, 1}) == glm::vec2{24.0F, 32.0F});
 }
+
+TEST_CASE("A box covers the cells inside its edges, not the ones it only touches", "[math][aabb]")
+{
+    using simple_platformer::GridPosition;
+
+    // Every edge on a boundary: exactly the one cell.
+    const auto onBoundaries = simple_platformer::cellsCovered(16, {{16.0F, 16.0F}, {16.0F, 16.0F}});
+    REQUIRE(onBoundaries.first == GridPosition{1, 1});
+    REQUIRE(onBoundaries.last == GridPosition{1, 1});
+
+    const auto straddling = simple_platformer::cellsCovered(16, {{8.0F, 8.0F}, {16.0F, 16.0F}});
+    REQUIRE(straddling.first == GridPosition{0, 0});
+    REQUIRE(straddling.last == GridPosition{1, 1});
+
+    // A 12 by 20 body standing in a cell reaches into the cell above, and no further sideways.
+    const auto standing = simple_platformer::cellsCovered(
+        16, simple_platformer::boxInCell(16, {1, 1}, {12.0F, 20.0F}));
+    REQUIRE(standing.first == GridPosition{1, 0});
+    REQUIRE(standing.last == GridPosition{1, 1});
+}

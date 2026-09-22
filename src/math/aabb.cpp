@@ -28,6 +28,14 @@ namespace simple_platformer
         return box;
     }
 
+    CellRange cellsCovered(int tileSize, const Aabb& box)
+    {
+        const glm::vec2 inset{EdgeTolerance, EdgeTolerance};
+        return {
+            worldToGrid(tileSize, box.position + inset),
+            worldToGrid(tileSize, box.position + box.size - inset)};
+    }
+
     bool overlaps(const Aabb& first, const Aabb& second)
     {
         return first.position.x < second.position.x + second.size.x &&

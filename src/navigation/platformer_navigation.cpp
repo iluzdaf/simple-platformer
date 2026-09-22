@@ -51,20 +51,10 @@ namespace simple_platformer
 
         bool bodyFits(const TileMap& map, const Aabb& bounds)
         {
-            constexpr float Inside = 0.001F;
-            const float tileSize = static_cast<float>(map.tileSize());
-            const int firstColumn =
-                static_cast<int>(std::floor((bounds.position.x + Inside) / tileSize));
-            const int lastColumn = static_cast<int>(
-                std::floor((bounds.position.x + bounds.size.x - Inside) / tileSize));
-            const int firstRow =
-                static_cast<int>(std::floor((bounds.position.y + Inside) / tileSize));
-            const int lastRow = static_cast<int>(
-                std::floor((bounds.position.y + bounds.size.y - Inside) / tileSize));
-
-            for (int row = firstRow; row <= lastRow; ++row)
+            const CellRange cells = cellsCovered(map.tileSize(), bounds);
+            for (int row = cells.first.y; row <= cells.last.y; ++row)
             {
-                for (int column = firstColumn; column <= lastColumn; ++column)
+                for (int column = cells.first.x; column <= cells.last.x; ++column)
                 {
                     if (map.blocksMovement({column, row}))
                     {
@@ -107,10 +97,9 @@ namespace simple_platformer
 
         bool touchesHorizontalMapEdge(const TileMap& map, const Aabb& bounds, float direction)
         {
-            constexpr float WallTolerance = 0.001F;
-            return (direction < 0.0F && bounds.position.x <= WallTolerance) ||
+            return (direction < 0.0F && bounds.position.x <= EdgeTolerance) ||
                    (direction > 0.0F &&
-                    bounds.position.x + bounds.size.x >= map.pixelWidth() - WallTolerance);
+                    bounds.position.x + bounds.size.x >= map.pixelWidth() - EdgeTolerance);
         }
 
         InputIntentions makeTraversalIntentions(
@@ -319,15 +308,10 @@ namespace simple_platformer
             return feetCell;
         }
 
-        constexpr float Inside = 0.001F;
-        const float tileSize = static_cast<float>(map.tileSize());
-        const int firstColumn =
-            static_cast<int>(std::floor((bounds.position.x + Inside) / tileSize));
-        const int lastColumn =
-            static_cast<int>(std::floor((bounds.position.x + bounds.size.x - Inside) / tileSize));
+        const CellRange cells = cellsCovered(map.tileSize(), bounds);
         std::optional<GridPosition> closest;
         float closestDistance = 0.0F;
-        for (int column = firstColumn; column <= lastColumn; ++column)
+        for (int column = cells.first.x; column <= cells.last.x; ++column)
         {
             const GridPosition candidate{column, feetCell.y};
             if (!canStandAt(map, candidate, bounds.size))

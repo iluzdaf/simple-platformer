@@ -265,7 +265,7 @@ TEST_CASE("Projectile bursts expand and fade around their world position", "[ren
     burst.center = {20.0F, 10.0F};
     burst.direction = {0.0F, -1.0F};
     burst.sprite = {3, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {6.0F, 4.0F}};
-    burst.remainingLifetime = 0.05F;
+    burst.lifetimeRemaining = 0.05F;
     simple_platformer::World world;
     world.addProjectileBurst(burst);
 
@@ -388,7 +388,7 @@ TEST_CASE("The player fades into the exit and the door flashes while it opens", 
     REQUIRE(onlySpriteFrom(closed, PlayerTexture).opacity == 1.0F);
     REQUIRE(onlySpriteFrom(closed, DoorTexture).whiteFlashAmount == 0.0F);
 
-    exit.openedAtTimeSeconds = 0.0F;
+    exit.openedTimeSeconds = 0.0F;
     world.setExit(exit);
     world.advanceSimulationTime(simple_platformer::ExitOpenSeconds * 0.5F);
     const auto halfOpen = simple_platformer::buildRenderScene(map, TileTexture, camera, world);

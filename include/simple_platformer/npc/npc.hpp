@@ -19,7 +19,7 @@ namespace simple_platformer
     struct NpcBrain
     {
         NpcState state = NpcState::Idle;
-        float stateTime = 0.0F;
+        float stateElapsed = 0.0F;
         std::optional<ActorId> target;
         glm::vec2 lastSeenTargetFeet = {0.0F, 0.0F};
         float targetMemoryRemaining = 0.0F;
@@ -29,7 +29,7 @@ namespace simple_platformer
     struct NpcSenses
     {
         float noticeDistance = 96.0F;
-        float forgetAfter = 1.5F;
+        float targetMemoryDuration = 1.5F;
     };
 
     struct Patrol

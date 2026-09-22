@@ -52,7 +52,7 @@ namespace simple_platformer
         {
             if (intentions.jumpPressed)
             {
-                movement.jumpBufferRemaining = movement.config.jumpBufferTime;
+                movement.jumpBufferRemaining = movement.config.jumpBufferDuration;
             }
             else
             {
@@ -62,7 +62,7 @@ namespace simple_platformer
 
             if (movement.grounded)
             {
-                movement.coyoteRemaining = movement.config.coyoteTime;
+                movement.coyoteRemaining = movement.config.coyoteDuration;
             }
             else
             {
@@ -139,8 +139,8 @@ namespace simple_platformer
             !std::isfinite(config.gravity) || config.gravity < 0.0F ||
             !std::isfinite(config.jumpReleaseGravity) || config.jumpReleaseGravity < 0.0F ||
             !std::isfinite(config.maximumFallSpeed) || config.maximumFallSpeed < 0.0F ||
-            !std::isfinite(config.coyoteTime) || config.coyoteTime < 0.0F ||
-            !std::isfinite(config.jumpBufferTime) || config.jumpBufferTime < 0.0F;
+            !std::isfinite(config.coyoteDuration) || config.coyoteDuration < 0.0F ||
+            !std::isfinite(config.jumpBufferDuration) || config.jumpBufferDuration < 0.0F;
         if (invalidConfig)
         {
             throw std::invalid_argument("Platformer movement configuration cannot be negative");

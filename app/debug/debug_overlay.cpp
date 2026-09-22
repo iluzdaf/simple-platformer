@@ -80,7 +80,7 @@ namespace simple_platformer
                 return {};
             }
 
-            constexpr float SimulationStep = static_cast<float>(FixedDeltaSeconds);
+            constexpr float SimulationStepSeconds = static_cast<float>(FixedDeltaSeconds);
             Body body;
             body.bounds = boxInCell(map.tileSize(), start, actor.body.bounds.size);
             PlatformerMovement movement{actor.platformerMovement->config, true, 0.0F, 0.0F};
@@ -90,11 +90,11 @@ namespace simple_platformer
 
             for (const InputStep& input : step.inputs)
             {
-                const long ticks = std::lround(input.duration / SimulationStep);
+                const long ticks = std::lround(input.duration / SimulationStepSeconds);
                 for (long tick = 0; tick < ticks; ++tick)
                 {
                     updatePlatformerMovement(
-                        map, body, movement, input.intentions, facing, SimulationStep);
+                        map, body, movement, input.intentions, facing, SimulationStepSeconds);
                     sampledFeet.push_back(feetOf(body.bounds));
                 }
             }
@@ -230,7 +230,7 @@ namespace simple_platformer
         for (const Projectile& projectile : world.projectiles())
         {
             scene.projectiles.push_back(
-                {projectile.bounds, projectile.remainingLifetime, projectile.owner});
+                {projectile.bounds, projectile.lifetimeRemaining, projectile.owner});
         }
 
         scene.pickups.reserve(world.pickups().size());

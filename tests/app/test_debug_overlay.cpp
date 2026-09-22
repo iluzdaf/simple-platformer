@@ -196,14 +196,14 @@ TEST_CASE("Debug overlay data describes projectiles", "[app][debug]")
 
     simple_platformer::Projectile owned;
     owned.bounds = {{24.0F, 32.0F}, {4.0F, 2.0F}};
-    owned.remainingLifetime = 1.25F;
+    owned.lifetimeRemaining = 1.25F;
     owned.owner = simple_platformer::ActorId{7};
     owned.sprite.size = {4.0F, 2.0F};
     world.addProjectile(owned);
 
     simple_platformer::Projectile unowned = owned;
     unowned.bounds.position = {48.0F, 32.0F};
-    unowned.remainingLifetime = 0.5F;
+    unowned.lifetimeRemaining = 0.5F;
     unowned.owner = std::nullopt;
     world.addProjectile(unowned);
 
@@ -216,9 +216,9 @@ TEST_CASE("Debug overlay data describes projectiles", "[app][debug]")
     REQUIRE(debug.projectiles.size() == 2);
     REQUIRE(debug.projectiles[0].bounds.position == owned.bounds.position);
     REQUIRE(debug.projectiles[0].bounds.size == owned.bounds.size);
-    REQUIRE(debug.projectiles[0].remainingLifetime == 1.25F);
+    REQUIRE(debug.projectiles[0].lifetimeRemaining == 1.25F);
     REQUIRE(debug.projectiles[0].owner == simple_platformer::ActorId{7});
-    REQUIRE(debug.projectiles[1].remainingLifetime == 0.5F);
+    REQUIRE(debug.projectiles[1].lifetimeRemaining == 0.5F);
     REQUIRE_FALSE(debug.projectiles[1].owner.has_value());
 }
 

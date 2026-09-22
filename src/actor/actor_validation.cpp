@@ -132,17 +132,17 @@ namespace simple_platformer
                 throw std::invalid_argument("An NPC in the Bite state requires a bite attack");
             }
             if (actor.brain.has_value() &&
-                (!std::isfinite(actor.brain->stateTime) || actor.brain->stateTime < 0.0F ||
+                (!std::isfinite(actor.brain->stateElapsed) || actor.brain->stateElapsed < 0.0F ||
                  !isFinite(actor.brain->lastSeenTargetFeet) ||
                  !std::isfinite(actor.brain->targetMemoryRemaining) ||
                  actor.brain->targetMemoryRemaining < 0.0F))
             {
                 throw std::invalid_argument("NPC brain runtime data is invalid");
             }
-            if (actor.senses.has_value() &&
-                (!std::isfinite(actor.senses->noticeDistance) ||
-                 actor.senses->noticeDistance < 0.0F || !std::isfinite(actor.senses->forgetAfter) ||
-                 actor.senses->forgetAfter < 0.0F))
+            if (actor.senses.has_value() && (!std::isfinite(actor.senses->noticeDistance) ||
+                                             actor.senses->noticeDistance < 0.0F ||
+                                             !std::isfinite(actor.senses->targetMemoryDuration) ||
+                                             actor.senses->targetMemoryDuration < 0.0F))
             {
                 throw std::invalid_argument("NPC senses data is invalid");
             }

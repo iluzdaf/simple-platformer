@@ -7,10 +7,10 @@ on:
   pull_request:
 
 jobs:
-  quality:
-    name: Formatting and static analysis
-    # Strict branch protection runs these checks before a pull request can merge.
-    # Do not repeat the uncached analysis on the resulting push to main.
+  formatting:
+    name: Formatting
+    # Strict branch protection runs this job, the header check, and static analysis before
+    # a pull request can merge. Do not repeat them on the resulting push to main.
     if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     env:
@@ -23,9 +23,7 @@ jobs:
         run: |
           clang-$LLVM --version
           clang-format-$LLVM --version
-          clang-tidy-$LLVM --version
           echo "CLANG_FORMAT=$(command -v clang-format-$LLVM)" >> "$GITHUB_ENV"
-          echo "CLANG_TIDY=$(command -v clang-tidy-$LLVM)" >> "$GITHUB_ENV"
       - name: Install the pinned Prettier
         run: |
           npm install --global --no-fund --no-audit prettier@$PRETTIER
@@ -38,7 +36,6 @@ jobs:
           -DCMAKE_C_COMPILER=clang-$LLVM
           -DCMAKE_CXX_COMPILER=clang++-$LLVM
           -DCLANG_FORMAT_EXECUTABLE=$CLANG_FORMAT
-          -DCLANG_TIDY_EXECUTABLE=$CLANG_TIDY
           -DPRETTIER_EXECUTABLE=$PRETTIER_BIN
           -DGLFW_BUILD_X11=OFF
           -DGLFW_BUILD_WAYLAND=OFF
@@ -46,19 +43,81 @@ jobs:
         run: cmake --build build/quality --target format-check
       - name: Check JSON formatting
         run: cmake --build build/quality --target format-json-check
+
+  headers:
+    name: Headers stand alone
+    if: github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    env:
+      LLVM: 18
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Select preinstalled LLVM tools
+        run: clang-$LLVM --version
+      - name: Configure
+        run: >
+          cmake -S . -B build/quality
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_COMPILER=clang-$LLVM
+          -DCMAKE_CXX_COMPILER=clang++-$LLVM
+          -DGLFW_BUILD_X11=OFF
+          -DGLFW_BUILD_WAYLAND=OFF
       - name: Check headers stand alone
         run: cmake --build build/quality --target header_self_containment
+
+  static-analysis:
+    name: Static analysis (${{ matrix.shard }}/3)
+    # Analysing every file takes several minutes on one runner, so each shard takes
+    # every third file of the sorted list.
+    if: github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      LLVM: 18
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Select preinstalled LLVM tools
+        run: |
+          clang-$LLVM --version
+          clang-tidy-$LLVM --version
+          echo "CLANG_TIDY=$(command -v clang-tidy-$LLVM)" >> "$GITHUB_ENV"
+      - name: Configure
+        run: >
+          cmake -S . -B build/quality
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_COMPILER=clang-$LLVM
+          -DCMAKE_CXX_COMPILER=clang++-$LLVM
+          -DCLANG_TIDY_EXECUTABLE=$CLANG_TIDY
+          -DGLFW_BUILD_X11=OFF
+          -DGLFW_BUILD_WAYLAND=OFF
       - name: Run static analysis
         shell: bash
         run: |
           {
-            find app src tests -type f -name '*.cpp' -print0
-            find app include tests -type f -name '*.hpp' -print0
-          } | xargs -0 -P"$(nproc)" -n1 \
-            "$CLANG_TIDY" \
-            -p build/quality \
-            --warnings-as-errors='*' \
-            --quiet
+            find app src tests -type f -name '*.cpp'
+            find app include tests -type f -name '*.hpp'
+          } | sort | split -n r/${{ matrix.shard }}/3 \
+            | xargs -P"$(nproc)" -n1 \
+              "$CLANG_TIDY" \
+              -p build/quality \
+              --warnings-as-errors='*' \
+              --quiet
+
+  static-analysis-result:
+    name: Static analysis
+    # The check branch protection requires, so it doesn't name each shard. A skipped job
+    # would count as passing, so this one always runs and fails unless every shard succeeded.
+    if: always() && github.event_name != 'push'
+    needs: static-analysis
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every static analysis shard
+        run: test "${{ needs.static-analysis.result }}" = success
 
   macos:
     name: macOS / Apple Clang

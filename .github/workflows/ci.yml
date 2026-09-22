@@ -9,8 +9,8 @@ on:
 jobs:
   formatting:
     name: Formatting
-    # Strict branch protection runs these checks before a pull request can merge.
-    # Do not repeat them on the resulting push to main.
+    # Strict branch protection runs this job, the header check, and static analysis before
+    # a pull request can merge. Do not repeat them on the resulting push to main.
     if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     env:
@@ -43,6 +43,26 @@ jobs:
         run: cmake --build build/quality --target format-check
       - name: Check JSON formatting
         run: cmake --build build/quality --target format-json-check
+
+  headers:
+    name: Headers stand alone
+    if: github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    env:
+      LLVM: 18
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Select preinstalled LLVM tools
+        run: clang-$LLVM --version
+      - name: Configure
+        run: >
+          cmake -S . -B build/quality
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_COMPILER=clang-$LLVM
+          -DCMAKE_CXX_COMPILER=clang++-$LLVM
+          -DGLFW_BUILD_X11=OFF
+          -DGLFW_BUILD_WAYLAND=OFF
       - name: Check headers stand alone
         run: cmake --build build/quality --target header_self_containment
 
@@ -88,18 +108,16 @@ jobs:
               --warnings-as-errors='*' \
               --quiet
 
-  quality:
-    name: Formatting and static analysis
-    # The check branch protection requires. A skipped job would count as passing, so
-    # this one always runs and fails unless formatting and every shard succeeded.
+  static-analysis-result:
+    name: Static analysis
+    # The check branch protection requires, so it doesn't name each shard. A skipped job
+    # would count as passing, so this one always runs and fails unless every shard succeeded.
     if: always() && github.event_name != 'push'
-    needs: [formatting, static-analysis]
+    needs: static-analysis
     runs-on: ubuntu-24.04
     steps:
-      - name: Require formatting and every static analysis shard
-        run: |
-          test "${{ needs.formatting.result }}" = success
-          test "${{ needs.static-analysis.result }}" = success
+      - name: Require every static analysis shard
+        run: test "${{ needs.static-analysis.result }}" = success
 
   macos:
     name: macOS / Apple Clang

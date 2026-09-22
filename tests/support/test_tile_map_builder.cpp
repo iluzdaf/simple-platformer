@@ -18,6 +18,13 @@ TEST_CASE("'.' is empty and '#' blocks movement and sight", "[support][tile-map-
     REQUIRE(map.blocksSight({1, 0}));
 }
 
+TEST_CASE("'#' has a one-tile sprite region at the map's tile size", "[support][tile-map-builder]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"#"}).withTileSize(32);
+
+    REQUIRE(map.definitionAt({0, 0}).sprite.size == glm::vec2{32.0F, 32.0F});
+}
+
 TEST_CASE("Declared tiles block only what they declare", "[support][tile-map-builder]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"gw"})

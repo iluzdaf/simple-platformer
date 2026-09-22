@@ -58,8 +58,8 @@ namespace tests
     //   '#' is solid, blocking movement and sight together. It stands in for an obstacle
     //       rather than for any tile in the game, for tests whose tiles are scenery: they
     //       need somewhere to stand and something to bump into, and don't care which
-    //       property provides it. Its sprite region is a placeholder large enough to pass
-    //       validation, and no test asserts on it.
+    //       property provides it. Its sprite region is one tile at the atlas origin, as a
+    //       catalogue would give it, and no test asserts on it.
     //
     // Neither can be redefined. When a tile's properties are what a test is about, give it
     // another symbol and declare exactly what it blocks with where(), so the test states its
@@ -112,7 +112,8 @@ namespace tests
             simple_platformer::TileDefinition solid;
             solid.blocksMovement = true;
             solid.blocksSight = true;
-            solid.sprite = {{0.0F, 0.0F}, {1.0F, 1.0F}};
+            const auto side = static_cast<float>(cellSize);
+            solid.sprite = {{0.0F, 0.0F}, {side, side}};
             legend.emplace('#', static_cast<int>(definitions.size()));
             definitions.push_back(solid);
 

@@ -271,15 +271,7 @@ namespace simple_platformer
                 entry.key(),
                 jsonActorDefinition(entry.value(), sourceName, fieldPath("actors", entry.key())));
         }
-        // Validation is shared with C++ built catalogues, so it names the actor but not the file.
-        try
-        {
-            validateActorCatalog(result, animations);
-        }
-        catch (const std::invalid_argument& error)
-        {
-            failJson(sourceName, {}, error.what());
-        }
+        validateInFile(sourceName, [&] { validateActorCatalog(result, animations); });
         return result;
     }
 

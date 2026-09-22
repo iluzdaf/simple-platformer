@@ -53,7 +53,7 @@ jobs:
         run: |
           {
             find app src tests -type f -name '*.cpp' -print0
-            find app include -type f -name '*.hpp' -print0
+            find app include tests -type f -name '*.hpp' -print0
           } | xargs -0 -P"$(nproc)" -n1 \
             "$CLANG_TIDY" \
             -p build/quality \

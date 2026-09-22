@@ -345,9 +345,10 @@ and `buildRenderScene` draws it. NPCs still see the
 player by line of sight alone. The debug overlay shows everything.
 
 The player's own sprite shows whether the world can see them. Their `screenVisibility`
-eases towards their own cover fade, raised to fully exposed while any NPC's senses reach
-them (`seenByAnyNpc`, the same rule NPCs use to notice the player) or for
-`ShotRevealSeconds` after they fire. The renderer draws the player shaded by
+eases towards their own cover fade, raised to fully exposed while any NPC saw them this
+update or for `ShotRevealSeconds` after they fire. "Saw them" is read straight from the
+`targetVisible` flag that `updateNpcSenses` stamps on each brain, so there is one rule
+for who sees the player, decided once per tick by gameplay, and the screen only reports it. The renderer draws the player shaded by
 `PlayerConcealedShade` rather than faded, so a hidden player darkens instead of
 disappearing.
 

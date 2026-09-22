@@ -11,6 +11,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/render/cover_fade.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -18,6 +19,7 @@
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/add_player.hpp"
+#include "support/fixed_step.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
@@ -145,19 +147,28 @@ TEST_CASE("A player alone in cover is shown concealed", "[render][cover-fade]")
     REQUIRE_NEAR(shown(world, player), 0.25F);
 }
 
-TEST_CASE("An NPC that can see the player exposes them", "[render][cover-fade]")
+TEST_CASE("An NPC that saw the player this update exposes them", "[render][cover-fade]")
 {
     const simple_platformer::TileMap map = patchMap();
     simple_platformer::World world;
     const simple_platformer::ActorId player = addPlayerIn(world, {3, 1});
+    tests::player(world).team = simple_platformer::Team::Player;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .inCell({4, 1})
                        .flying(0.0F)
+                       .onTeam(simple_platformer::Team::Enemy)
                        .thinking({64.0F, 1.0F}));
 
+    // The screen reads what the senses update decided, in the order the simulation runs.
+    simple_platformer::updateNpcSenses(map, world, tests::FixedStepSeconds);
     simple_platformer::updateCoverFades(map, world, QuarterFade);
-
     REQUIRE_NEAR(shown(world, player), 1.0F);
+
+    // Move the NPC out of sight: the next senses update withdraws the exposure.
+    world.actors().back().body.bounds.position.x = 0.0F;
+    simple_platformer::updateNpcSenses(map, world, tests::FixedStepSeconds);
+    simple_platformer::updateCoverFades(map, world, QuarterFade);
+    REQUIRE(shown(world, player) < 1.0F);
 }
 
 TEST_CASE("Firing exposes a hidden player for the reveal window", "[render][cover-fade]")

@@ -20,29 +20,11 @@
 #include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/physics/body.hpp"
-#include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
-
-namespace
-{
-    const simple_platformer::NavigationNeighbor& neighborWith(
-        const std::vector<simple_platformer::NavigationNeighbor>& neighbors,
-        simple_platformer::Traversal traversal)
-    {
-        const auto neighbor = std::find_if(
-            neighbors.begin(),
-            neighbors.end(),
-            [traversal](const simple_platformer::NavigationNeighbor& candidate)
-            { return candidate.traversal == traversal; });
-        if (neighbor == neighbors.end())
-        {
-            throw std::logic_error("The expected navigation neighbor was not generated");
-        }
-        return *neighbor;
-    }
-}
+#include "support/fixed_step.hpp"
+#include "support/neighbor_with.hpp"
 
 TEST_CASE("Standable cells require support and body clearance", "[navigation][platformer]")
 {
@@ -241,7 +223,7 @@ TEST_CASE("Platformer neighbors include walks and simulated falls", "[navigation
     const auto falls = simple_platformer::platformerNeighbors(
         ledge, {2, 0}, {12.0F, 12.0F}, simple_platformer::PlatformerMovementConfig{});
     const simple_platformer::NavigationNeighbor& fall =
-        neighborWith(falls, simple_platformer::Traversal::Fall);
+        tests::neighborWith(falls, simple_platformer::Traversal::Fall);
     REQUIRE(fall.destinationCell.y > 0);
     REQUIRE_FALSE(fall.inputs.empty());
 }
@@ -294,22 +276,21 @@ TEST_CASE("Generated jump inputs replay to their promised landing", "[navigation
     const auto neighbors =
         simple_platformer::platformerNeighbors(map, {2, 2}, {12.0F, 12.0F}, config);
     const simple_platformer::NavigationNeighbor& jump =
-        neighborWith(neighbors, simple_platformer::Traversal::Jump);
+        tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
 
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, {12.0F, 12.0F}), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
-    const float fixedDelta = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     const float duration = simple_platformer::durationOf(jump.inputs);
-    const long tickCount = std::lround(duration / fixedDelta);
+    const long tickCount = std::lround(duration / tests::FixedStepSeconds);
     for (int tick = 0; tick < tickCount; ++tick)
     {
-        const float elapsed = static_cast<float>(tick) * fixedDelta;
+        const float elapsed = static_cast<float>(tick) * tests::FixedStepSeconds;
         const simple_platformer::InputIntentions intentions =
             simple_platformer::replayInput(jump.inputs, elapsed);
         simple_platformer::updatePlatformerMovement(
-            map, body, movement, intentions, facing, fixedDelta);
+            map, body, movement, intentions, facing, tests::FixedStepSeconds);
     }
 
     REQUIRE(movement.grounded);
@@ -323,13 +304,12 @@ TEST_CASE(
     "[navigation][platformer]")
 {
     const simple_platformer::PlatformerMovementConfig config;
-    constexpr float FixedDelta = static_cast<float>(simple_platformer::FixedDeltaSeconds);
 
     const simple_platformer::TileMap walkMap = tests::TileMapBuilder({"....", "####"});
     const auto walkNeighbors =
         simple_platformer::platformerNeighbors(walkMap, {1, 0}, {12.0F, 12.0F}, config);
     const simple_platformer::NavigationNeighbor& walk =
-        neighborWith(walkNeighbors, simple_platformer::Traversal::Walk);
+        tests::neighborWith(walkNeighbors, simple_platformer::Traversal::Walk);
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower, {{1, 0}, {{walk.destinationCell, walk.traversal, {}}}}, walk.destinationCell);
@@ -342,11 +322,11 @@ TEST_CASE(
     {
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
-                tests::TileSize, body, movement, follower, FixedDelta);
+                tests::TileSize, body, movement, follower, tests::FixedStepSeconds);
         if (!simple_platformer::pathComplete(follower))
         {
             simple_platformer::updatePlatformerMovement(
-                walkMap, body, movement, intentions, facing, FixedDelta);
+                walkMap, body, movement, intentions, facing, tests::FixedStepSeconds);
             ++walkTicks;
         }
     }
@@ -361,8 +341,10 @@ TEST_CASE(
     const auto jumpNeighbors =
         simple_platformer::platformerNeighbors(jumpMap, {2, 2}, {12.0F, 12.0F}, config);
     const simple_platformer::NavigationNeighbor& jump =
-        neighborWith(jumpNeighbors, simple_platformer::Traversal::Jump);
-    REQUIRE(jump.cost == std::lround(simple_platformer::durationOf(jump.inputs) / FixedDelta));
+        tests::neighborWith(jumpNeighbors, simple_platformer::Traversal::Jump);
+    REQUIRE(
+        jump.cost ==
+        std::lround(simple_platformer::durationOf(jump.inputs) / tests::FixedStepSeconds));
     REQUIRE(
         simple_platformer::platformerTickHeuristic(
             tests::TileSize, {2, 2}, jump.destinationCell, config) <= jump.cost);
@@ -372,8 +354,10 @@ TEST_CASE(
     const auto fallNeighbors =
         simple_platformer::platformerNeighbors(fallMap, {2, 0}, {12.0F, 12.0F}, config);
     const simple_platformer::NavigationNeighbor& fall =
-        neighborWith(fallNeighbors, simple_platformer::Traversal::Fall);
-    REQUIRE(fall.cost == std::lround(simple_platformer::durationOf(fall.inputs) / FixedDelta));
+        tests::neighborWith(fallNeighbors, simple_platformer::Traversal::Fall);
+    REQUIRE(
+        fall.cost ==
+        std::lround(simple_platformer::durationOf(fall.inputs) / tests::FixedStepSeconds));
     REQUIRE(
         simple_platformer::platformerTickHeuristic(
             tests::TileSize, {2, 0}, fall.destinationCell, config) <= fall.cost);

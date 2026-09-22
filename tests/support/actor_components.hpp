@@ -225,4 +225,14 @@ namespace tests
     {
         return platformerMovement(actor(world, id));
     }
+
+    inline simple_platformer::NpcSenses& senses(simple_platformer::Actor& actor)
+    {
+        std::optional<simple_platformer::NpcSenses>& component = actor.senses;
+        if (!component.has_value())
+        {
+            throw std::logic_error("The test actor has no senses");
+        }
+        return *component;
+    }
 }

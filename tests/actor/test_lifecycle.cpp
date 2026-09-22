@@ -111,11 +111,9 @@ TEST_CASE("The player respawns with restored runtime state", "[actor][lifecycle]
     simple_platformer::Actor actor = makeActor(1);
     actor.health = simple_platformer::Health{1, 3};
     actor.body.velocity = {20.0F, 30.0F};
-    simple_platformer::PlatformerMovement movement;
-    movement.grounded = true;
-    movement.coyoteRemaining = 0.1F;
-    movement.jumpBufferRemaining = 0.1F;
-    actor.platformerMovement = movement;
+    tests::platformerMovement(actor).grounded = true;
+    tests::platformerMovement(actor).coyoteRemaining = 0.1F;
+    tests::platformerMovement(actor).jumpBufferRemaining = 0.1F;
     const simple_platformer::ActorId player = world.addActor(actor);
     world.setPlayer(player, {40.0F, 48.0F});
     simple_platformer::WorldRequests requests;

@@ -27,6 +27,8 @@
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/add_player.hpp"
+#include "support/fixed_step.hpp"
 
 namespace
 {
@@ -52,12 +54,13 @@ namespace
     simple_platformer::World makeWorld()
     {
         simple_platformer::World world(items());
-        const auto id = world.addActor(tests::ActorBuilder::sized({12.0F, 16.0F})
-                                           .atFeet({22.0F, 32.0F})
-                                           .walking()
-                                           .withHealth(1, 3)
-                                           .withInventory(simple_platformer::Inventory(2)));
-        world.setPlayer(id, {22.0F, 32.0F});
+        tests::addPlayer(
+            world,
+            tests::ActorBuilder::sized({12.0F, 16.0F})
+                .atFeet({22.0F, 32.0F})
+                .walking()
+                .withHealth(1, 3)
+                .withInventory(simple_platformer::Inventory(2)));
         return world;
     }
 
@@ -96,7 +99,7 @@ namespace
 
 TEST_CASE(
     "Automatic pickups collect overlapping items only after requests are applied",
-    "[pickups]")
+    "[world][pickups]")
 {
     auto world = makeWorld();
     world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {1, 3}));
@@ -112,7 +115,9 @@ TEST_CASE(
     REQUIRE(requests.empty());
 }
 
-TEST_CASE("Partial pickups stay in the world and can be collected after freeing space", "[pickups]")
+TEST_CASE(
+    "Partial pickups stay in the world and can be collected after freeing space",
+    "[world][pickups]")
 {
     auto world = makeWorld();
     tests::player(world).inventory = simple_platformer::Inventory(1);
@@ -131,7 +136,7 @@ TEST_CASE("Partial pickups stay in the world and can be collected after freeing 
 
 TEST_CASE(
     "Multiple overlapping pickups and duplicate requests do not skip or duplicate items",
-    "[pickups]")
+    "[world][pickups]")
 {
     auto world = makeWorld();
     world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {1, 2}));
@@ -145,7 +150,7 @@ TEST_CASE(
     REQUIRE(tests::inventory(tests::player(world)).count(2) == 1);
 }
 
-TEST_CASE("Dead players and players without inventory do not collect pickups", "[pickups]")
+TEST_CASE("Dead players and players without inventory do not collect pickups", "[world][pickups]")
 {
     auto world = makeWorld();
     world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {1, 2}));
@@ -160,7 +165,7 @@ TEST_CASE("Dead players and players without inventory do not collect pickups", "
 
 TEST_CASE(
     "Potion use consumes one only when healing succeeds and clamps to maximum",
-    "[inventory][use]")
+    "[world][inventory][use]")
 {
     auto world = makeWorld();
     tests::inventory(tests::player(world)).add(world.itemDefinition(2), 3);
@@ -179,7 +184,7 @@ TEST_CASE(
     REQUIRE(tests::inventory(tests::player(world)).count(2) == 1);
 }
 
-TEST_CASE("Unusable or stale item requests are harmless", "[inventory][use]")
+TEST_CASE("Unusable or stale item requests are harmless", "[world][inventory][use]")
 {
     auto world = makeWorld();
     tests::inventory(tests::player(world)).add(world.itemDefinition(1), 1);
@@ -195,7 +200,7 @@ TEST_CASE("Unusable or stale item requests are harmless", "[inventory][use]")
     REQUIRE(tests::inventory(tests::player(world)).count(2) == 1);
 }
 
-TEST_CASE("An exit checks overlap and its required quantity", "[exit]")
+TEST_CASE("An exit checks overlap and its required quantity", "[world][exit]")
 {
     auto world = makeWorld();
     world.setExit(
@@ -219,7 +224,7 @@ TEST_CASE("An exit checks overlap and its required quantity", "[exit]")
     REQUIRE(exitOf(world).nextLevel == 2);
 }
 
-TEST_CASE("An entered exit completes only once it has had time to open", "[exit]")
+TEST_CASE("An entered exit completes only once it has had time to open", "[world][exit]")
 {
     auto world = makeWorld();
     world.setExit(exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, 2));
@@ -238,7 +243,7 @@ TEST_CASE("An entered exit completes only once it has had time to open", "[exit]
     REQUIRE(world.levelComplete());
 }
 
-TEST_CASE("An exit consumes its requirement once and supports final levels", "[exit]")
+TEST_CASE("An exit consumes its requirement once and supports final levels", "[world][exit]")
 {
     auto world = makeWorld();
     world.setExit(
@@ -257,7 +262,7 @@ TEST_CASE("An exit consumes its requirement once and supports final levels", "[e
     REQUIRE_FALSE(exitOf(world).nextLevel.has_value());
 }
 
-TEST_CASE("Unrestricted exits need no inventory but cannot be used while dying", "[exit]")
+TEST_CASE("Unrestricted exits need no inventory but cannot be used while dying", "[world][exit]")
 {
     auto world = makeWorld();
     world.setExit(exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, {}));
@@ -275,14 +280,14 @@ TEST_CASE("Unrestricted exits need no inventory but cannot be used while dying",
 
 TEST_CASE(
     "A simulation tick can collect the key and unlock an overlapping exit",
-    "[simulation][exit]")
+    "[world][simulation][exit]")
 {
     auto world = makeWorld();
     simple_platformer::TileMap map = tests::TileMapBuilder({"......", "......", "######"});
     world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {3, 1}));
     world.setExit(
         exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2));
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
     REQUIRE(world.pickups().empty());
     REQUIRE(simple_platformer::exitOpening(world));
     REQUIRE_FALSE(world.levelComplete());
@@ -290,19 +295,19 @@ TEST_CASE(
     // The player holds still in the doorway while it opens, whatever they intend.
     const auto position = tests::player(world).body.bounds.position;
     tests::player(world).intentions.direction.x = 1.0F;
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
     REQUIRE(tests::player(world).body.bounds.position == position);
 
     for (int tick = 0; tick < 60 && !world.levelComplete(); ++tick)
     {
         tests::player(world).intentions.direction.x = 1.0F;
-        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
     }
     REQUIRE(world.levelComplete());
     REQUIRE(tests::player(world).body.bounds.position == position);
 }
 
-TEST_CASE("Respawning preserves the collected inventory", "[inventory][lifecycle]")
+TEST_CASE("Respawning preserves the collected inventory", "[world][inventory][lifecycle]")
 {
     auto world = makeWorld();
     tests::inventory(tests::player(world)).add(world.itemDefinition(3), 1);
@@ -314,7 +319,7 @@ TEST_CASE("Respawning preserves the collected inventory", "[inventory][lifecycle
 
 TEST_CASE(
     "Fatal damage prevents collection and exit completion in the same tick",
-    "[simulation][pickups]")
+    "[world][simulation][pickups]")
 {
     auto world = makeWorld();
     tests::player(world).team = simple_platformer::Team::Player;
@@ -326,14 +331,14 @@ TEST_CASE(
     projectile.sprite.size = {2.0F, 2.0F};
     world.addProjectile(projectile);
     simple_platformer::TileMap map = tests::TileMapBuilder({"......", "......", "######"});
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
     REQUIRE(tests::player(world).life == simple_platformer::LifeState::Dying);
     REQUIRE(tests::inventory(tests::player(world)).count(3) == 0);
     REQUIRE(world.pickups().size() == 1);
     REQUIRE_FALSE(world.levelComplete());
 }
 
-TEST_CASE("Pickups and exits produce camera-relative sprite commands", "[render][pickups]")
+TEST_CASE("Pickups and exits produce camera-relative sprite commands", "[world][render][pickups]")
 {
     auto definitions = items();
     definitions[0].icon = {7, {{4.0F, 8.0F}, {6.0F, 10.0F}}, {6.0F, 10.0F}};
@@ -358,7 +363,7 @@ TEST_CASE("Pickups and exits produce camera-relative sprite commands", "[render]
 
 TEST_CASE(
     "Pickup sprites use position-based bobbing without moving their bounds",
-    "[render][pickups]")
+    "[world][render][pickups]")
 {
     auto definitions = items();
     definitions[0].icon = {7, {{4.0F, 8.0F}, {6.0F, 10.0F}}, {6.0F, 10.0F}};
@@ -380,7 +385,7 @@ TEST_CASE(
     REQUIRE(world.pickups()[1].body.bounds.position == glm::vec2{16.0F, 0.0F});
 }
 
-TEST_CASE("Pickup sprite overrides leave inventory icons unchanged", "[render][pickups]")
+TEST_CASE("Pickup sprite overrides leave inventory icons unchanged", "[world][render][pickups]")
 {
     simple_platformer::World world(items());
     const simple_platformer::Sprite sprite{
@@ -399,7 +404,7 @@ TEST_CASE("Pickup sprite overrides leave inventory icons unchanged", "[render][p
     REQUIRE(world.pickups()[0].body.bounds.size == glm::vec2{8, 8});
 }
 
-TEST_CASE("World rejects invalid level object data", "[pickups][exit]")
+TEST_CASE("World rejects invalid level object data", "[world][pickups][exit]")
 {
     auto world = makeWorld();
     REQUIRE_THROWS_AS(
@@ -420,7 +425,7 @@ TEST_CASE("World rejects invalid level object data", "[pickups][exit]")
     REQUIRE_THROWS_AS(simple_platformer::World(definitions), std::invalid_argument);
 }
 
-TEST_CASE("A pickup falls until it rests on a tile", "[pickups]")
+TEST_CASE("A pickup falls until it rests on a tile", "[world][pickups]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "####"});
     simple_platformer::World world(items());
@@ -443,7 +448,7 @@ TEST_CASE("A pickup falls until it rests on a tile", "[pickups]")
     REQUIRE_NEAR(pickup.body.bounds.position.x, 4.0F);
 }
 
-TEST_CASE("A pickup falls through the tile that breaks beneath it", "[pickups]")
+TEST_CASE("A pickup falls through the tile that breaks beneath it", "[world][pickups]")
 {
     simple_platformer::TileMap map =
         tests::TileMapBuilder({"....", "XXXX", "....", "####"})
@@ -465,7 +470,7 @@ TEST_CASE("A pickup falls through the tile that breaks beneath it", "[pickups]")
     REQUIRE_NEAR(pickup.body.velocity.y, 0.0F);
 }
 
-TEST_CASE("A locked exit records when the living player last stood in it", "[exit]")
+TEST_CASE("A locked exit records when the living player last stood in it", "[world][exit]")
 {
     auto world = makeWorld();
     world.setExit(
@@ -498,7 +503,7 @@ TEST_CASE("A locked exit records when the living player last stood in it", "[exi
     REQUIRE(exitOf(world).lastLockedTouchTimeSeconds == 0.75F);
 }
 
-TEST_CASE("World rejects an exit touched or opened outside simulation time", "[exit]")
+TEST_CASE("World rejects an exit touched or opened outside simulation time", "[world][exit]")
 {
     auto world = makeWorld();
     simple_platformer::LevelExit exit =

@@ -14,7 +14,8 @@ namespace simple_platformer
     struct PickupDefinition
     {
         NamedItemStack stack;
-        glm::vec2 bodySize = {16, 16};
+        // Content declares it; composition rejects a size left at zero.
+        glm::vec2 bodySize = {0.0F, 0.0F};
         // Absent means use the inventory item's icon in the world too.
         std::optional<Sprite> sprite;
     };

@@ -37,8 +37,13 @@ TEST_CASE("Pickup definitions compose bounds and optional world sprites", "[app]
 TEST_CASE("Pickup JSON validates every definition including unused entries", "[app][pickups][json]")
 {
     const auto items = simple_platformer::loadItemCatalog("tests/fixtures/items.json");
-    auto root = nlohmann::json::parse(R"({"pickups":{"unused":{"item":"key","quantity":1}}})");
+    auto root = nlohmann::json::parse(
+        R"({"pickups":{"unused":{"item":"key","quantity":1,"bodySize":[10,12]}}})");
     auto& definition = root["pickups"]["unused"];
+    SECTION("Missing body size")
+    {
+        definition.erase("bodySize");
+    }
     SECTION("Unknown item")
     {
         definition["item"] = "missing";
@@ -77,6 +82,7 @@ TEST_CASE("Pickup definitions reject invalid C++ data without JSON", "[app][pick
     const auto items = simple_platformer::loadItemCatalog("tests/fixtures/items.json");
     simple_platformer::PickupDefinition definition;
     definition.stack = {"key", 1};
+    definition.bodySize = {10.0F, 12.0F};
     REQUIRE_NOTHROW(simple_platformer::validatePickupDefinition(definition, items));
     definition.bodySize.x = std::numeric_limits<float>::quiet_NaN();
     REQUIRE_THROWS_AS(

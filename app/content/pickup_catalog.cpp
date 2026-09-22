@@ -64,7 +64,7 @@ namespace simple_platformer
             definition.stack = {
                 readText(value, "item", sourceName, path),
                 readInteger(value, "quantity", sourceName, path)};
-            readOptionalVector(value, "bodySize", definition.bodySize, sourceName, path);
+            definition.bodySize = readVector(value, "bodySize", sourceName, path);
             if (value.contains("sprite"))
             {
                 definition.sprite = jsonSprite(

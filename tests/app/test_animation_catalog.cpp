@@ -142,7 +142,7 @@ TEST_CASE("Actors have independent playback of shared animation definitions", "[
     const auto animations =
         simple_platformer::loadAnimationCatalog("tests/fixtures/animations.json");
     const auto actors = simple_platformer::parseActorCatalog(
-        R"({"player":"hero","actors":{"hero":{"platformer":{},"health":3,"inventorySlots":2,"animations":"test_actor"}}})",
+        R"({"player":"hero","actors":{"hero":{"bodySize":[12,20],"platformer":{},"health":3,"inventorySlots":2,"animations":"test_actor"}}})",
         "actors.json",
         animations);
     const auto& definition = simple_platformer::actorDefinition(actors, "hero");

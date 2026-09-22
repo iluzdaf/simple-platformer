@@ -102,8 +102,8 @@ the game.
 
 ## Maps and positions
 
-Map rows have the same non-zero length. The default symbols are `.` for empty
-and `#` for stone. To use more tile types, supply a level legend:
+Map rows have the same non-zero length. Every symbol a map uses is declared in its
+`tileLegend`, which maps it to a tile name from `tiles.json`:
 
 ```json
 "tileLegend": { ".": "empty", "#": "stone", "G": "grass", "X": "glass" }
@@ -126,8 +126,9 @@ Each occurrence creates a placement using the cell's bottom-centre feet anchor, 
 like `spawnCell`, with empty terrain underneath. Symbols must be one character and
 cannot appear in both legends. There must be exactly one player and one exit placement,
 whether supplied by a marker or explicitly. Repeated NPC and pickup markers create
-separate objects. Named pickups obtain their positive quantity from `pickups.json`;
-inline item stacks supply it in the placement or legend entry. A pickup falls from
+separate objects. Named pickups take their quantity and body size from `pickups.json`;
+an inline pickup states `item`, `quantity` and `bodySize` itself, in the placement or
+legend entry, and is drawn with the item's inventory icon. A pickup falls from
 where it is placed until it rests on a tile, and falls again if that tile breaks.
 
 Object entries use the same settings as explicit placements: NPCs can specify a
@@ -327,7 +328,7 @@ configures these behaviours; it does not implement them.
 }
 ```
 
-`bodySize` defaults to `[16, 16]`. An optional `sprite` overrides the inventory icon
+`item`, `quantity` and `bodySize` are required. An optional `sprite` overrides the inventory icon
 in the world. Both `icon` and `sprite` use `position` and `size` for their atlas
 rectangle, optional `displaySize` (defaults to source size), and optional `anchor`
 (`feet` or `center`, default `feet`). The collider remains independent of the sprite.

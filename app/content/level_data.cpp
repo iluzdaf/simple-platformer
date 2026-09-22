@@ -101,31 +101,29 @@ namespace simple_platformer
         {
             checkJsonFields(
                 value,
-                {"definition", "item", "quantity", "spawnCell", "spawnFeet"},
+                {"definition", "item", "quantity", "bodySize", "spawnCell", "spawnFeet"},
                 sourceName,
                 path);
+            PickupPlacement result;
+            result.spawn = readPosition(value, "spawnCell", "spawnFeet", sourceName, path);
             if (value.contains("definition"))
             {
-                if (value.contains("item") || value.contains("quantity"))
+                if (value.contains("item") || value.contains("quantity") ||
+                    value.contains("bodySize"))
                 {
                     failJson(
                         sourceName,
                         path,
-                        "use either a pickup definition or an inline item and quantity");
+                        "use either a pickup definition or an inline item, quantity and bodySize");
                 }
-                PickupPlacement result;
-                result.spawn = readPosition(value, "spawnCell", "spawnFeet", sourceName, path);
                 result.definitionName =
                     readName(value, "definition", "pickup definition name", sourceName, path);
                 return result;
             }
-            const int quantity = jsonInteger(
-                requiredJsonMember(value, "quantity", sourceName, path),
-                sourceName,
-                fieldPath(path, "quantity"));
-            const PickupPlacement result{
-                readPosition(value, "spawnCell", "spawnFeet", sourceName, path),
-                {readName(value, "item", "item name", sourceName, path), quantity}};
+            result.stack = {
+                readName(value, "item", "item name", sourceName, path),
+                readInteger(value, "quantity", sourceName, path)};
+            result.bodySize = readVector(value, "bodySize", sourceName, path);
             validatePickupSettings(result, path, sourceName);
             return result;
         }

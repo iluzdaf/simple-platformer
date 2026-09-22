@@ -51,6 +51,7 @@ namespace simple_platformer
             }
             PickupDefinition definition;
             definition.stack = placement.stack;
+            definition.bodySize = placement.bodySize;
             return composePickup(definition, items, textureId, feetOf(map, placement.spawn));
         }
 

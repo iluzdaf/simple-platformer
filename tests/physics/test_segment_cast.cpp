@@ -122,3 +122,12 @@ TEST_CASE("Solid tile casts reject an invalid moving size", "[physics][segment][
             map, {0.0F, 0.0F}, {16.0F, 0.0F}, {-1.0F, 0.0F}),
         std::invalid_argument);
 }
+
+TEST_CASE("Expanding a target by a moving box grows it half the box each side", "[physics][cast]")
+{
+    const simple_platformer::Aabb expanded =
+        simple_platformer::expandedForMovingBox({{10.0F, 10.0F}, {4.0F, 4.0F}}, {2.0F, 6.0F});
+
+    REQUIRE(expanded.position == glm::vec2{9.0F, 7.0F});
+    REQUIRE(expanded.size == glm::vec2{6.0F, 10.0F});
+}

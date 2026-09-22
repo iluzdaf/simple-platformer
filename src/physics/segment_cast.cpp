@@ -43,14 +43,6 @@ namespace simple_platformer
             return first <= last;
         }
 
-        Aabb expandedForMovingBox(const Aabb& target, glm::vec2 movingSize)
-        {
-            // Expand the target by half the moving box's size so we can cast
-            // the box's centre as a line.
-            const glm::vec2 halfSize = movingSize * 0.5F;
-            return {target.position - halfSize, target.size + movingSize};
-        }
-
         // The part of the segment inside the box, as fractions along it.
         struct SegmentSpan
         {
@@ -123,6 +115,12 @@ namespace simple_platformer
                 }
             }
         }
+    }
+
+    Aabb expandedForMovingBox(const Aabb& target, glm::vec2 movingSize)
+    {
+        const glm::vec2 halfSize = movingSize * 0.5F;
+        return {target.position - halfSize, target.size + movingSize};
     }
 
     std::optional<float> segmentCast(const Aabb& box, glm::vec2 start, glm::vec2 end)

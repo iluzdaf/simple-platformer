@@ -385,11 +385,11 @@ namespace simple_platformer
                     sizeof(label),
                     "%u\n%.2f",
                     projectile.owner->value,
-                    projectile.remainingLifetime);
+                    projectile.lifetimeRemaining);
             }
             else
             {
-                std::snprintf(label, sizeof(label), "none\n%.2f", projectile.remainingLifetime);
+                std::snprintf(label, sizeof(label), "none\n%.2f", projectile.lifetimeRemaining);
             }
             drawList.AddText(labelPosition, ProjectileColour, label);
         }

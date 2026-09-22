@@ -185,7 +185,7 @@ TEST_CASE("World validates and owns projectile bursts", "[world][projectile]")
     burst.direction = {0.0F, 0.0F};
     REQUIRE_THROWS_AS(world.addProjectileBurst(burst), std::invalid_argument);
     burst.direction = {1.0F, 0.0F};
-    burst.remainingLifetime = burst.duration + 0.1F;
+    burst.lifetimeRemaining = burst.duration + 0.1F;
     REQUIRE_THROWS_AS(world.addProjectileBurst(burst), std::invalid_argument);
 }
 

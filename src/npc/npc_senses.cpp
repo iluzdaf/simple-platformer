@@ -54,7 +54,7 @@ namespace simple_platformer
         {
             brain.target = target.id;
             brain.lastSeenTargetFeet = feetOf(target.body.bounds);
-            brain.targetMemoryRemaining = senses.forgetAfter;
+            brain.targetMemoryRemaining = senses.targetMemoryDuration;
         }
     }
 

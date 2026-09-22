@@ -87,7 +87,7 @@ namespace simple_platformer
     struct ProjectileDebugInfo
     {
         Aabb bounds;
-        float remainingLifetime = 0.0F;
+        float lifetimeRemaining = 0.0F;
         std::optional<ActorId> owner;
     };
 

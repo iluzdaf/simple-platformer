@@ -20,9 +20,7 @@
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/validation.hpp"
-#include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/path_follower.hpp"
 
 namespace simple_platformer
 {

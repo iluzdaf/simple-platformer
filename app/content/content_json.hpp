@@ -137,8 +137,8 @@ namespace simple_platformer
         std::string_view sourceName = {},
         std::string_view path = {});
 
-    // Reads the {"position", "size"} source rectangle shared by sprites, tiles and
-    // animation frames. Callers check the surrounding fields, which differ between them.
+    // Reads the {"position", "size"} source rectangle shared by sprites and animation
+    // frames. Callers check the surrounding fields, which differ between them.
     SpriteRegion jsonSpriteRegion(
         const nlohmann::json& value,
         std::string_view sourceName = {},

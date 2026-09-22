@@ -1,26 +1,14 @@
 #include "simple_platformer/timing/frame_profile.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <stdexcept>
-#include <string>
 #include <vector>
+
+#include "simple_platformer/math/validation.hpp"
 
 namespace simple_platformer
 {
-    namespace
-    {
-        void requireSeconds(float seconds, const char* what)
-        {
-            if (!std::isfinite(seconds) || seconds < 0.0F)
-            {
-                throw std::invalid_argument(
-                    std::string(what) + " must be a finite, non-negative number of seconds");
-            }
-        }
-    }
-
     FrameHistory::FrameHistory(std::size_t capacity)
         : frames(capacity)
     {

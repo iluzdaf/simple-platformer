@@ -53,11 +53,6 @@ namespace simple_platformer
             return std::round(std::clamp(cameraPosition, 0.0F, mapSize - viewportSize));
         }
 
-        float cameraAxis(float targetCenter, float mapSize, float viewportSize)
-        {
-            return settleAxis(targetCenter - viewportSize * 0.5F, mapSize, viewportSize);
-        }
-
         float followAxis(
             float cameraPosition,
             float targetCenter,
@@ -91,12 +86,12 @@ namespace simple_platformer
     {
         validateViewport(viewportSize);
 
-        const glm::vec2 targetCenter = centerOf(target);
+        const glm::vec2 centredOnTarget = centerOf(target) - viewportSize * 0.5F;
         Camera camera;
         camera.viewportSize = viewportSize;
         camera.position = {
-            cameraAxis(targetCenter.x, map.pixelWidth(), viewportSize.x),
-            cameraAxis(targetCenter.y, map.pixelHeight(), viewportSize.y)};
+            settleAxis(centredOnTarget.x, map.pixelWidth(), viewportSize.x),
+            settleAxis(centredOnTarget.y, map.pixelHeight(), viewportSize.y)};
         return camera;
     }
 

@@ -12,7 +12,6 @@
 
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 

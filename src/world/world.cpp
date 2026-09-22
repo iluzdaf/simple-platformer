@@ -122,6 +122,14 @@ namespace simple_platformer
         {
             throw std::invalid_argument("Actor damage time must be within simulation time");
         }
+        if (actor.rangedWeapon.has_value() &&
+            actor.rangedWeapon->lastFiredTimeSeconds.has_value() &&
+            (!std::isfinite(*actor.rangedWeapon->lastFiredTimeSeconds) ||
+             *actor.rangedWeapon->lastFiredTimeSeconds < 0.0F ||
+             *actor.rangedWeapon->lastFiredTimeSeconds > elapsedSimulationTimeSeconds))
+        {
+            throw std::invalid_argument("Actor shot time must be within simulation time");
+        }
         if (nextActorId == std::numeric_limits<std::uint32_t>::max())
         {
             throw std::overflow_error("Actor IDs have been exhausted");

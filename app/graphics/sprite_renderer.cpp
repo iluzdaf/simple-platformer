@@ -98,12 +98,14 @@ namespace simple_platformer
             uniform sampler2D spriteTexture;
             uniform float spriteOpacity;
             uniform float spriteWhiteFlashAmount;
+            uniform float spriteShadeAmount;
             out vec4 colour;
 
             void main()
             {
                 colour = texture(spriteTexture, textureUv);
                 colour.rgb = mix(colour.rgb, vec3(1.0), spriteWhiteFlashAmount);
+                colour.rgb = mix(colour.rgb, vec3(0.0), spriteShadeAmount);
                 colour.a *= spriteOpacity;
             }
         )";
@@ -162,6 +164,7 @@ namespace simple_platformer
         viewportLocation = glGetUniformLocation(shader, "viewportSize");
         opacityLocation = glGetUniformLocation(shader, "spriteOpacity");
         whiteFlashLocation = glGetUniformLocation(shader, "spriteWhiteFlashAmount");
+        shadeLocation = glGetUniformLocation(shader, "spriteShadeAmount");
         glUseProgram(shader);
         glUniform1i(glGetUniformLocation(shader, "spriteTexture"), 0);
 
@@ -300,6 +303,7 @@ namespace simple_platformer
             glBindTexture(GL_TEXTURE_2D, texture.handle);
             glUniform1f(opacityLocation, command.opacity);
             glUniform1f(whiteFlashLocation, command.whiteFlashAmount);
+            glUniform1f(shadeLocation, command.shadeAmount);
             glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
             glBufferSubData(
                 GL_ARRAY_BUFFER,

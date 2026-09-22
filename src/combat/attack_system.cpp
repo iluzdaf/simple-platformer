@@ -51,11 +51,15 @@ namespace simple_platformer
             return projectile;
         }
 
-        void beginShot(const Actor& actor, RangedWeapon& weapon, WorldRequests& requests)
+        void beginShot(
+            const Actor& actor,
+            RangedWeapon& weapon,
+            WorldRequests& requests,
+            float simulationTimeSeconds)
         {
             weapon.phase = RangedPhase::Shoot;
             weapon.phaseTimeRemaining = weapon.shootDuration;
-            weapon.firedThisUpdate = true;
+            weapon.lastFiredTimeSeconds = simulationTimeSeconds;
             requests.spawnProjectile(makeProjectile(actor, weapon));
         }
 
@@ -169,7 +173,6 @@ namespace simple_platformer
             if (actor.rangedWeapon.has_value())
             {
                 RangedWeapon& weapon = *actor.rangedWeapon;
-                weapon.firedThisUpdate = false;
                 if (actor.life != LifeState::Alive)
                 {
                     weapon.phase = RangedPhase::Ready;
@@ -179,7 +182,7 @@ namespace simple_platformer
                     weapon.phase == RangedPhase::Ready && actor.intentions.primaryAttackPressed &&
                     hasAimDirection(actor))
                 {
-                    beginShot(actor, weapon, requests);
+                    beginShot(actor, weapon, requests, world.simulationTimeSeconds());
                 }
                 else
                 {

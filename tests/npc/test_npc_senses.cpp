@@ -160,16 +160,18 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
 
-    rangedWeapon(world, playerId).firedThisUpdate = true;
+    // The attack system stamps the shot after senses ran; the next update hears it.
+    rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
+    world.advanceSimulationTime(0.1F);
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE_FALSE(brain(world, npcId).targetVisible);
     REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
     REQUIRE_NEAR(brain(world, npcId).targetMemoryRemaining, 1.0F);
 
-    // Moving away afterwards doesn't update the remembered spot.
-    rangedWeapon(world, playerId).firedThisUpdate = false;
+    // An older shot is not heard again, so moving away doesn't update the remembered spot.
     simple_platformer::placeFeetAt(actor(world, playerId).body.bounds, {118.0F, 30.0F});
+    world.advanceSimulationTime(0.4F);
     simple_platformer::updateNpcSenses(map, world, 0.4F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
@@ -186,7 +188,8 @@ TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
     world.setPlayer(playerId, {56.0F, 30.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 
-    rangedWeapon(world, playerId).firedThisUpdate = true;
+    rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
+    world.advanceSimulationTime(0.1F);
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE(brain(world, npcId).target == playerId);
     REQUIRE_FALSE(brain(world, npcId).targetVisible);
@@ -203,9 +206,41 @@ TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][sense
     world.setPlayer(playerId, {104.0F, 30.0F});
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 
-    rangedWeapon(world, playerId).firedThisUpdate = true;
+    rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
+    world.advanceSimulationTime(0.1F);
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
+}
+
+TEST_CASE("Whether any NPC sees an actor follows the NPCs' own senses", "[npc][senses]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"............", "...ccccccc..", "............"})
+            .where('c', tests::Tile().blocksSight());
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = world.addActor(makePlayer({56.0F, 30.0F}));
+    world.setPlayer(playerId, {56.0F, 30.0F});
+
+    // Nobody looking.
+    REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+
+    // An NPC outside the patch cannot see in.
+    const simple_platformer::ActorId outside = world.addActor(makeNpc({8.0F, 30.0F}));
+    REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+
+    // One in the same patch but beyond its notice distance does not notice.
+    const simple_platformer::ActorId far = world.addActor(makeNpc({152.0F, 30.0F}));
+    REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+
+    // One in the same patch within notice distance sees the player.
+    const simple_platformer::ActorId near = world.addActor(makeNpc({88.0F, 30.0F}));
+    REQUIRE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+
+    // A dying NPC no longer looks.
+    actor(world, near).life = simple_platformer::LifeState::Dying;
+    REQUIRE_FALSE(simple_platformer::seenByAnyNpc(map, world, tests::player(world)));
+    (void)outside;
+    (void)far;
 }
 
 TEST_CASE("NPC senses reject invalid timing and sensing ranges", "[npc][validation]")

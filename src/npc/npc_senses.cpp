@@ -37,11 +37,17 @@ namespace simple_platformer
             return glm::dot(offset, offset) <= senses.noticeDistance * senses.noticeDistance;
         }
 
-        // The attack system sets the flag after senses run and clears it on its next update,
-        // so senses see a shot on the update after it was fired.
-        bool firedLastUpdate(const Actor& actor)
+        // Senses run before attacks in an update, so a shot fired since senses last ran is
+        // stamped one step ago. A tenth of a step of slack covers the clock's rounding.
+        bool firedSinceLastSensing(const Actor& actor, float now, float deltaTime)
         {
-            return actor.rangedWeapon.has_value() && actor.rangedWeapon->firedThisUpdate;
+            if (!actor.rangedWeapon.has_value() ||
+                !actor.rangedWeapon->lastFiredTimeSeconds.has_value())
+            {
+                return false;
+            }
+            const float age = now - *actor.rangedWeapon->lastFiredTimeSeconds;
+            return age >= 0.0F && age <= deltaTime * 1.1F;
         }
 
         void rememberTarget(NpcBrain& brain, const Actor& target, const NpcSenses& senses)
@@ -64,6 +70,23 @@ namespace simple_platformer
         }
 
         return lineOfSight(map, centerOf(observer), centerOf(target));
+    }
+
+    bool seenByAnyNpc(const TileMap& map, const World& world, const Actor& target)
+    {
+        for (const Actor& actor : world.actors())
+        {
+            if (actor.id == target.id || !actor.senses.has_value() ||
+                actor.life != LifeState::Alive)
+            {
+                continue;
+            }
+            if (canSeeTarget(map, actor.body.bounds, target.body.bounds, *actor.senses))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     void updateNpcSenses(const TileMap& map, World& world, float deltaTime)
@@ -99,7 +122,8 @@ namespace simple_platformer
             }
             // A shot is heard through anything within notice distance, and remembers where
             // the player fired from without making them visible.
-            if (sensesPlayer && firedLastUpdate(*player) &&
+            if (sensesPlayer &&
+                firedSinceLastSensing(*player, world.simulationTimeSeconds(), deltaTime) &&
                 withinNoticeDistance(actor.body.bounds, player->body.bounds, *actor.senses))
             {
                 rememberTarget(brain, *player, *actor.senses);

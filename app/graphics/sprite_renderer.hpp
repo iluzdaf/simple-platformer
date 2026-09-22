@@ -44,6 +44,7 @@ namespace simple_platformer
         int viewportLocation = -1;
         int opacityLocation = -1;
         int whiteFlashLocation = -1;
+        int shadeLocation = -1;
         std::vector<Texture> textures;
     };
 }

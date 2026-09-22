@@ -116,6 +116,7 @@ add_library(
     src/render/render_scene.cpp
     src/render/sprite.cpp
     src/timing/fixed_step.cpp
+    src/timing/frame_profile.cpp
     src/world/tile_map.cpp
     src/world/world.cpp
     src/world/level_exit.cpp
@@ -389,6 +390,7 @@ if(BUILD_TESTING)
         tests/support/test_actor_builder.cpp
         tests/support/test_tile_map_builder.cpp
         tests/timing/test_fixed_step.cpp
+        tests/timing/test_frame_history.cpp
         tests/world/test_level_objects.cpp
         tests/world/test_level_validation.cpp
         tests/world/test_sight.cpp

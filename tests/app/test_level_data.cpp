@@ -12,6 +12,7 @@
 TEST_CASE("Level placements reject overflowing integers and unknown fields", "[app][content][json]")
 {
     auto root = nlohmann::json::parse(R"({
+        "tileLegend": {".": "empty", "#": "stone"},
         "map":["....","####"],"playerSpawnCell":[0,0],
         "actors":[{"definition":"guard","spawnCell":[1,0]}],
         "pickups":[{"item":"key","quantity":1,"spawnCell":[2,0]}],
@@ -82,6 +83,7 @@ TEST_CASE("Level placements reject overflowing integers and unknown fields", "[a
 TEST_CASE("Level diagnostics identify authored fields and map cells", "[app][content][json]")
 {
     auto level = nlohmann::json::parse(R"({
+        "tileLegend": {".": "empty", "#": "stone"},
         "objectLegend":{"P":{"type":"player"},"E":{"type": "exit", "definition": "test_door"}},
         "map":["PE"]
     })");
@@ -215,6 +217,7 @@ TEST_CASE(
 TEST_CASE("Object legends reject ambiguous or invalid placements", "[app][content][json]")
 {
     auto level = nlohmann::json::parse(R"({
+        "tileLegend": {".": "empty", "#": "stone"},
         "objectLegend":{"P":{"type":"player"},"E":{"type": "exit", "definition": "test_door"}},
         "map":["PE"]
     })");
@@ -278,6 +281,7 @@ TEST_CASE("Object-only levels may omit explicit placement arrays", "[app][conten
 {
     const auto data = simple_platformer::parseLevelData(
         R"({
+        "tileLegend": {".": "empty", "#": "stone"},
         "objectLegend":{"P":{"type":"player"},"E":{"type": "exit", "definition": "test_door"}},
         "map":["PE"]
     })",
@@ -321,6 +325,7 @@ TEST_CASE(
 {
     const auto data = simple_platformer::parseLevelData(
         R"({
+            "tileLegend": {".": "empty", "#": "stone"},
             "map": ["....", "####"],
             "playerSpawnCell": [1, 0],
             "actors": [
@@ -387,6 +392,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
     REQUIRE_THROWS_AS(
         simple_platformer::parseLevelData(
             R"({
+                "tileLegend": {".": "empty", "#": "stone"},
                 "map": ["....", "###"],
                 "playerSpawnFeet": [8, 8],
                 "actors": [],
@@ -399,6 +405,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
     REQUIRE_THROWS_AS(
         simple_platformer::parseLevelData(
             R"({
+                "tileLegend": {".": "empty", "#": "stone"},
                 "map": ["....", "####"],
                 "playerSpawnFeet": [8, 8],
                 "actors": [{"definition": "", "spawnFeet": [8, 8]}],
@@ -411,6 +418,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
     REQUIRE_THROWS_AS(
         simple_platformer::parseLevelData(
             R"({
+                "tileLegend": {".": "empty", "#": "stone"},
                 "map": ["....", "####"],
                 "playerSpawnCell": [1, 0],
                 "actors": [{
@@ -428,6 +436,7 @@ TEST_CASE("Level JSON rejects malformed or unknown content", "[app][content][jso
 TEST_CASE("Pickup placements choose a definition or an inline stack", "[app][content][json]")
 {
     auto root = nlohmann::json::parse(R"({
+        "tileLegend": {".": "empty", "#": "stone"},
         "map":["....","####"],"playerSpawnCell":[0,0],"actors":[],
         "pickups":[{"definition":"treasure","spawnCell":[1,0]}],
         "exit": {"definition": "test_door","spawnCell":[3,0]}
@@ -456,4 +465,19 @@ TEST_CASE("Missing level JSON is rejected at the file boundary", "[app][content]
     REQUIRE_THROWS_AS(
         simple_platformer::loadLevelData(std::filesystem::path("assets/does_not_exist.json")),
         std::invalid_argument);
+}
+
+TEST_CASE("Level JSON requires a tile legend", "[app][content][json]")
+{
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseLevelData(
+            R"({
+                "map": ["....", "####"],
+                "playerSpawnCell": [1, 0],
+                "actors": [],
+                "pickups": [],
+                "exit": {"definition": "test_door", "spawnCell": [3, 0]}
+            })",
+            "no legend"),
+        Catch::Matchers::ContainsSubstring("tileLegend"));
 }

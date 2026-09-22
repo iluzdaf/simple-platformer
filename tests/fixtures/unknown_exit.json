@@ -1,4 +1,5 @@
 {
+  "tileLegend": { ".": "empty", "#": "stone" },
   "objectLegend": {
     "P": { "type": "player" },
     "E": { "type": "exit", "definition": "missing" }

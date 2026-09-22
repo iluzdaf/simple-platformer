@@ -1,4 +1,5 @@
 {
+  "tileLegend": { ".": "empty", "#": "stone" },
   "objectLegend": {
     "P": { "type": "player" },
     "Z": { "type": "actor", "definition": "test_guard" }

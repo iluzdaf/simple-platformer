@@ -12,6 +12,7 @@
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/inventory/item_use.hpp"
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/render/animation_system.hpp"
@@ -69,6 +70,20 @@ namespace
             throw std::logic_error("Expected level exit");
         }
         return *value;
+    }
+
+    simple_platformer::LevelExit exitWith(
+        simple_platformer::Aabb bounds,
+        std::optional<simple_platformer::ItemStack> requirement,
+        bool consumeItem,
+        std::optional<int> nextLevel)
+    {
+        simple_platformer::LevelExit exit;
+        exit.bounds = bounds;
+        exit.requirement = requirement;
+        exit.consumeItem = consumeItem;
+        exit.nextLevel = nextLevel;
+        return exit;
     }
 
     void collect(simple_platformer::World& world)
@@ -185,7 +200,7 @@ TEST_CASE("An exit checks overlap and its required quantity", "[exit]")
 {
     auto world = makeWorld();
     world.setExit(
-        {{{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{1, 2}, false, 2, {}, {}});
+        exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{1, 2}, false, 2));
     tests::inventory(tests::player(world)).add(world.itemDefinition(1), 1);
     simple_platformer::updateLevelExit(world);
     REQUIRE_FALSE(world.levelComplete());
@@ -195,18 +210,48 @@ TEST_CASE("An exit checks overlap and its required quantity", "[exit]")
     REQUIRE_FALSE(world.levelComplete());
     tests::player(world).body.bounds.position.x = 16.0F;
     simple_platformer::updateLevelExit(world);
+    REQUIRE(simple_platformer::exitOpening(world));
+    REQUIRE_FALSE(world.levelComplete());
+    world.advanceSimulationTime(simple_platformer::ExitOpenSeconds);
+    simple_platformer::updateLevelExit(world);
     REQUIRE(world.levelComplete());
+    REQUIRE_FALSE(simple_platformer::exitOpening(world));
     REQUIRE(tests::inventory(tests::player(world)).count(1) == 2);
     REQUIRE(exitOf(world).nextLevel == 2);
+}
+
+TEST_CASE("An entered exit completes only once it has had time to open", "[exit]")
+{
+    auto world = makeWorld();
+    world.setExit(exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, 2));
+    world.advanceSimulationTime(0.5F);
+    simple_platformer::updateLevelExit(world);
+    REQUIRE(exitOf(world).openedAtTimeSeconds == 0.5F);
+
+    // Leaving the doorway afterwards changes nothing; the door is already opening.
+    tests::player(world).body.bounds.position.x = 80.0F;
+    world.advanceSimulationTime(simple_platformer::ExitOpenSeconds * 0.5F);
+    simple_platformer::updateLevelExit(world);
+    REQUIRE_FALSE(world.levelComplete());
+
+    world.advanceSimulationTime(simple_platformer::ExitOpenSeconds * 0.5F);
+    simple_platformer::updateLevelExit(world);
+    REQUIRE(world.levelComplete());
 }
 
 TEST_CASE("An exit consumes its requirement once and supports final levels", "[exit]")
 {
     auto world = makeWorld();
     world.setExit(
-        {{{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{1, 2}, true, {}, {}, {}});
+        exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{1, 2}, true, {}));
     tests::inventory(tests::player(world)).add(world.itemDefinition(1), 4);
     simple_platformer::updateLevelExit(world);
+    // The requirement goes as the door starts opening, and is not asked for again.
+    REQUIRE(tests::inventory(tests::player(world)).count(1) == 2);
+    simple_platformer::updateLevelExit(world);
+    REQUIRE(tests::inventory(tests::player(world)).count(1) == 2);
+    REQUIRE_FALSE(world.levelComplete());
+    world.advanceSimulationTime(simple_platformer::ExitOpenSeconds);
     simple_platformer::updateLevelExit(world);
     REQUIRE(world.levelComplete());
     REQUIRE(tests::inventory(tests::player(world)).count(1) == 2);
@@ -216,12 +261,15 @@ TEST_CASE("An exit consumes its requirement once and supports final levels", "[e
 TEST_CASE("Unrestricted exits need no inventory but cannot be used while dying", "[exit]")
 {
     auto world = makeWorld();
-    world.setExit({{{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, {}, {}, {}});
+    world.setExit(exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, {}));
     tests::player(world).inventory.reset();
     tests::player(world).life = simple_platformer::LifeState::Dying;
     simple_platformer::updateLevelExit(world);
-    REQUIRE_FALSE(world.levelComplete());
+    REQUIRE_FALSE(simple_platformer::exitOpening(world));
     tests::player(world).life = simple_platformer::LifeState::Alive;
+    simple_platformer::updateLevelExit(world);
+    REQUIRE(simple_platformer::exitOpening(world));
+    world.advanceSimulationTime(simple_platformer::ExitOpenSeconds);
     simple_platformer::updateLevelExit(world);
     REQUIRE(world.levelComplete());
 }
@@ -234,13 +282,24 @@ TEST_CASE(
     simple_platformer::TileMap map = tests::TileMapBuilder({"......", "......", "######"});
     world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {3, 1}));
     world.setExit(
-        {{{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2, {}, {}});
+        exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2));
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
     REQUIRE(world.pickups().empty());
-    REQUIRE(world.levelComplete());
+    REQUIRE(simple_platformer::exitOpening(world));
+    REQUIRE_FALSE(world.levelComplete());
+
+    // The player holds still in the doorway while it opens, whatever they intend.
     const auto position = tests::player(world).body.bounds.position;
     tests::player(world).intentions.direction.x = 1.0F;
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    REQUIRE(tests::player(world).body.bounds.position == position);
+
+    for (int tick = 0; tick < 60 && !world.levelComplete(); ++tick)
+    {
+        tests::player(world).intentions.direction.x = 1.0F;
+        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    }
+    REQUIRE(world.levelComplete());
     REQUIRE(tests::player(world).body.bounds.position == position);
 }
 
@@ -261,7 +320,7 @@ TEST_CASE(
     auto world = makeWorld();
     tests::player(world).team = simple_platformer::Team::Player;
     world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {3, 1}));
-    world.setExit({{{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, {}, {}, {}});
+    world.setExit(exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, {}));
     simple_platformer::Projectile projectile;
     projectile.team = simple_platformer::Team::Enemy;
     projectile.bounds = {{20.0F, 20.0F}, {2.0F, 2.0F}};
@@ -352,10 +411,10 @@ TEST_CASE("World rejects invalid level object data", "[pickups][exit]")
         world.addPickup(pickupAt({0.0F, 0.0F}, {1.0F, 1.0F}, {1, 0})), std::invalid_argument);
     REQUIRE_THROWS_AS(
         world.setExit(
-            {{{0.0F, 0.0F}, {1.0F, 1.0F}}, simple_platformer::ItemStack{3, 0}, false, {}, {}, {}}),
+            exitWith({{0.0F, 0.0F}, {1.0F, 1.0F}}, simple_platformer::ItemStack{3, 0}, false, {})),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
-        world.setExit({{{0.0F, 0.0F}, {1.0F, 1.0F}}, {}, false, -1, {}, {}}),
+        world.setExit(exitWith({{0.0F, 0.0F}, {1.0F, 1.0F}}, {}, false, -1)),
         std::invalid_argument);
     auto definitions = items();
     definitions.push_back(definitions.front());
@@ -411,7 +470,7 @@ TEST_CASE("A locked exit records when the living player last stood in it", "[exi
 {
     auto world = makeWorld();
     world.setExit(
-        {{{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2, {}, {}});
+        exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2));
     world.advanceSimulationTime(0.5F);
 
     tests::player(world).body.bounds.position.x = 80.0F;
@@ -432,22 +491,25 @@ TEST_CASE("A locked exit records when the living player last stood in it", "[exi
     simple_platformer::updateLevelExit(world);
     REQUIRE(exitOf(world).lastLockedTouchTimeSeconds == 0.75F);
 
-    // Meeting the requirement completes the level and is not a locked touch.
+    // Meeting the requirement opens the exit and is not a locked touch.
     tests::inventory(tests::player(world)).add(world.itemDefinition(3), 1);
     world.advanceSimulationTime(0.25F);
     simple_platformer::updateLevelExit(world);
-    REQUIRE(world.levelComplete());
+    REQUIRE(simple_platformer::exitOpening(world));
     REQUIRE(exitOf(world).lastLockedTouchTimeSeconds == 0.75F);
 }
 
-TEST_CASE("World rejects an exit touched outside simulation time", "[exit]")
+TEST_CASE("World rejects an exit touched or opened outside simulation time", "[exit]")
 {
     auto world = makeWorld();
-    simple_platformer::LevelExit exit{
-        {{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2, {}, {}};
+    simple_platformer::LevelExit exit =
+        exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2);
     exit.lastLockedTouchTimeSeconds = 1.0F;
     REQUIRE_THROWS_AS(world.setExit(exit), std::invalid_argument);
     exit.lastLockedTouchTimeSeconds = -1.0F;
+    REQUIRE_THROWS_AS(world.setExit(exit), std::invalid_argument);
+    exit.lastLockedTouchTimeSeconds.reset();
+    exit.openedAtTimeSeconds = 1.0F;
     REQUIRE_THROWS_AS(world.setExit(exit), std::invalid_argument);
 
     world.advanceSimulationTime(1.0F);

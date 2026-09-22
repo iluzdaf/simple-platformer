@@ -12,6 +12,15 @@
 
 namespace simple_platformer
 {
+    namespace
+    {
+        bool withinSimulationTime(const std::optional<float>& time, float simulationTimeSeconds)
+        {
+            return !time.has_value() ||
+                   (std::isfinite(*time) && *time >= 0.0F && *time <= simulationTimeSeconds);
+        }
+    }
+
     void validateLevelExit(const LevelExit& exit)
     {
         if (!simple_platformer::isFinite(exit.bounds.position) ||
@@ -40,12 +49,10 @@ namespace simple_platformer
         {
             itemDefinition(exit.requirement->item);
         }
-        if (exit.lastLockedTouchTimeSeconds.has_value() &&
-            (!std::isfinite(*exit.lastLockedTouchTimeSeconds) ||
-             *exit.lastLockedTouchTimeSeconds < 0.0F ||
-             *exit.lastLockedTouchTimeSeconds > elapsedSimulationTimeSeconds))
+        if (!withinSimulationTime(exit.lastLockedTouchTimeSeconds, elapsedSimulationTimeSeconds) ||
+            !withinSimulationTime(exit.openedAtTimeSeconds, elapsedSimulationTimeSeconds))
         {
-            throw std::invalid_argument("Exit touch time must be within simulation time");
+            throw std::invalid_argument("Exit times must be within simulation time");
         }
         levelExit = exit;
         completed = false;
@@ -78,6 +85,22 @@ namespace simple_platformer
                 actor.inventory->count(exit.requirement->item) >= exit.requirement->quantity);
     }
 
+    bool exitOpening(const World& world)
+    {
+        const auto& levelExit = world.exit();
+        return levelExit.has_value() && levelExit->openedAtTimeSeconds.has_value() &&
+               !world.levelComplete();
+    }
+
+    void holdPlayerAtOpeningExit(World& world)
+    {
+        Actor* player = world.findActor(world.playerId());
+        if (player != nullptr && exitOpening(world))
+        {
+            player->intentions = {};
+        }
+    }
+
     void updateLevelExit(World& world)
     {
         Actor* player = world.findActor(world.playerId());
@@ -88,19 +111,28 @@ namespace simple_platformer
             return;
         }
         LevelExit& exit = levelExit.value();
+        const float now = world.simulationTimeSeconds();
+        if (exit.openedAtTimeSeconds.has_value())
+        {
+            if (now - *exit.openedAtTimeSeconds >= ExitOpenSeconds)
+            {
+                world.completeLevel();
+            }
+            return;
+        }
         if (!overlaps(player->body.bounds, exit.bounds))
         {
             return;
         }
         if (!exitUnlocked(exit, *player))
         {
-            exit.lastLockedTouchTimeSeconds = world.simulationTimeSeconds();
+            exit.lastLockedTouchTimeSeconds = now;
             return;
         }
         if (exit.consumeItem && exit.requirement.has_value() && player->inventory.has_value())
         {
             player->inventory->remove(exit.requirement->item, exit.requirement->quantity);
         }
-        world.completeLevel();
+        exit.openedAtTimeSeconds = now;
     }
 }

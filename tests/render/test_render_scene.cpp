@@ -17,6 +17,7 @@
 #include "simple_platformer/render/cover_fade.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/require_near.hpp"
@@ -371,4 +372,33 @@ TEST_CASE("The player is shaded by how concealed they are, never faded", "[rende
     const simple_platformer::RenderScene exposed =
         simple_platformer::buildRenderScene(map, TileTexture, camera, world);
     REQUIRE(onlySpriteFrom(exposed, PlayerTexture).shadeAmount == 0.0F);
+}
+
+TEST_CASE("The player fades into the exit and the door flashes while it opens", "[render][scene]")
+{
+    constexpr int DoorTexture = 4;
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "...."});
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, {64.0F, 48.0F}};
+    simple_platformer::World world;
+    addPlayerIn(world, {1, 1});
+    simple_platformer::LevelExit exit;
+    exit.bounds = simple_platformer::boxInCell(tests::TileSize, {1, 1}, {16.0F, 32.0F});
+    exit.sprite = square(DoorTexture, 16.0F);
+    world.setExit(exit);
+
+    const auto closed = simple_platformer::buildRenderScene(map, TileTexture, camera, world);
+    REQUIRE(onlySpriteFrom(closed, PlayerTexture).opacity == 1.0F);
+    REQUIRE(onlySpriteFrom(closed, DoorTexture).whiteFlashAmount == 0.0F);
+
+    exit.openedAtTimeSeconds = 0.0F;
+    world.setExit(exit);
+    world.advanceSimulationTime(simple_platformer::ExitOpenSeconds * 0.5F);
+    const auto halfOpen = simple_platformer::buildRenderScene(map, TileTexture, camera, world);
+    REQUIRE_NEAR(onlySpriteFrom(halfOpen, PlayerTexture).opacity, 0.5F);
+    REQUIRE_NEAR(onlySpriteFrom(halfOpen, DoorTexture).whiteFlashAmount, 0.25F);
+
+    world.advanceSimulationTime(simple_platformer::ExitOpenSeconds * 0.5F);
+    const auto open = simple_platformer::buildRenderScene(map, TileTexture, camera, world);
+    REQUIRE(onlySpriteFrom(open, PlayerTexture).opacity == 0.0F);
+    REQUIRE(onlySpriteFrom(open, DoorTexture).whiteFlashAmount == 0.0F);
 }

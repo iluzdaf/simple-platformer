@@ -1,11 +1,24 @@
 #include "content_diagnostics.hpp"
 #include <cstddef>
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 
 namespace simple_platformer
 {
+    void validateInFile(std::string_view sourceName, const std::function<void()>& validate)
+    {
+        try
+        {
+            validate();
+        }
+        catch (const std::invalid_argument& error)
+        {
+            failJson(sourceName, {}, error.what());
+        }
+    }
+
     std::string fieldPath(std::string_view path, std::string_view key)
     {
         if (path.empty())

@@ -1,6 +1,6 @@
 #pragma once
 #include <cstddef>
-#include <stdexcept>
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -19,15 +19,5 @@ namespace simple_platformer
 
     // Runs a validator that C++ built content shares, so it names the thing but not the
     // file, and puts the file name in front of whatever it rejects.
-    template <typename Validate> void validateInFile(std::string_view sourceName, Validate validate)
-    {
-        try
-        {
-            validate();
-        }
-        catch (const std::invalid_argument& error)
-        {
-            failJson(sourceName, {}, error.what());
-        }
-    }
+    void validateInFile(std::string_view sourceName, const std::function<void()>& validate);
 }

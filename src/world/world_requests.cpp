@@ -1,6 +1,7 @@
 #include "simple_platformer/world/world_requests.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <cstddef>
 #include <stdexcept>
 
@@ -70,64 +71,56 @@ namespace simple_platformer
         itemUses.push_back({actor, slot});
     }
 
+    namespace
+    {
+        // Removing by index shifts everything after it down, so the indexes go highest first
+        // and each one is removed only once however many times it was requested.
+        void removeEachHighestFirst(
+            std::vector<std::size_t>& indexes,
+            const std::function<void(std::size_t)>& remove)
+        {
+            std::sort(indexes.begin(), indexes.end());
+            indexes.erase(std::unique(indexes.begin(), indexes.end()), indexes.end());
+            for (auto index = indexes.rbegin(); index != indexes.rend(); ++index)
+            {
+                remove(*index);
+            }
+        }
+    }
+
     void applyWorldRequests(World& world, WorldRequests& requests)
     {
         for (const auto& use : requests.itemUses)
         {
             useItem(world, use.actor, use.slot);
         }
-
-        std::sort(requests.pickupCollections.begin(), requests.pickupCollections.end());
-        requests.pickupCollections.erase(
-            std::unique(requests.pickupCollections.begin(), requests.pickupCollections.end()),
-            requests.pickupCollections.end());
-        for (auto pickup = requests.pickupCollections.rbegin();
-             pickup != requests.pickupCollections.rend();
-             ++pickup)
-        {
-            world.collectPickup(*pickup);
-        }
-        requests.itemUses.clear();
-        requests.pickupCollections.clear();
+        removeEachHighestFirst(
+            requests.pickupCollections,
+            [&world](std::size_t index) { world.collectPickup(index); });
 
         for (const ActorId id : requests.removalRequests)
         {
             world.removeActor(id);
         }
 
-        std::sort(requests.projectileRemovals.begin(), requests.projectileRemovals.end());
-        requests.projectileRemovals.erase(
-            std::unique(requests.projectileRemovals.begin(), requests.projectileRemovals.end()),
-            requests.projectileRemovals.end());
-        for (auto removal = requests.projectileRemovals.rbegin();
-             removal != requests.projectileRemovals.rend();
-             ++removal)
-        {
-            world.removeProjectile(*removal);
-        }
-
+        removeEachHighestFirst(
+            requests.projectileRemovals,
+            [&world](std::size_t index) { world.removeProjectile(index); });
         for (const Projectile& projectile : requests.projectileSpawns)
         {
             world.addProjectile(projectile);
         }
 
-        std::sort(requests.projectileBurstRemovals.begin(), requests.projectileBurstRemovals.end());
-        requests.projectileBurstRemovals.erase(
-            std::unique(
-                requests.projectileBurstRemovals.begin(), requests.projectileBurstRemovals.end()),
-            requests.projectileBurstRemovals.end());
-        for (auto removal = requests.projectileBurstRemovals.rbegin();
-             removal != requests.projectileBurstRemovals.rend();
-             ++removal)
-        {
-            world.removeProjectileBurst(*removal);
-        }
-
+        removeEachHighestFirst(
+            requests.projectileBurstRemovals,
+            [&world](std::size_t index) { world.removeProjectileBurst(index); });
         for (const ProjectileBurst& burst : requests.projectileBurstSpawns)
         {
             world.addProjectileBurst(burst);
         }
 
+        requests.itemUses.clear();
+        requests.pickupCollections.clear();
         requests.removalRequests.clear();
         requests.projectileSpawns.clear();
         requests.projectileRemovals.clear();

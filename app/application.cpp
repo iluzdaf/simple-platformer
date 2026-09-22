@@ -18,6 +18,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+#include "content/level_catalog.hpp"
 #include "debug/debug_overlay_ui.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
@@ -210,7 +211,7 @@ namespace simple_platformer
         SpriteRenderer renderer;
         const int atlas = renderer.loadTexture("assets/sprites.png");
         const TextureView atlasTexture = renderer.textureView(atlas);
-        Game game(atlas);
+        Game game(atlas, loadLevelCatalog("assets/levels.json"));
         FixedStep fixedStep;
         double previousTime = glfwGetTime();
 

@@ -26,7 +26,6 @@ namespace simple_platformer
     class Game
     {
     public:
-        explicit Game(int textureId);
         Game(int textureId, LevelCatalog catalog);
 
         void update(const InputIntentions& intentions, float deltaTime);

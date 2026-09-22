@@ -136,11 +136,6 @@ namespace simple_platformer
         return parseLevelCatalog(loadContentText(path), path.string(), path.parent_path());
     }
 
-    LevelCatalog loadLevelCatalog()
-    {
-        return loadLevelCatalog(std::filesystem::path("assets/levels.json"));
-    }
-
     std::filesystem::path levelPath(const LevelCatalog& catalog, int levelNumber)
     {
         const auto found = std::find_if(

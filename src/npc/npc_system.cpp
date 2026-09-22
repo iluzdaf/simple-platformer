@@ -33,16 +33,11 @@ namespace simple_platformer
             brain.stateElapsed = 0.0F;
         }
 
-        void faceToward(Actor& actor, glm::vec2 targetFeet)
+        // Looking at the target is an aim, like everything else an actor intends; the
+        // movement update turns it into a facing.
+        void aimToward(Actor& actor, glm::vec2 targetFeet)
         {
-            if (targetFeet.x < feetOf(actor.body.bounds).x)
-            {
-                actor.facing = Facing::Left;
-            }
-            else if (targetFeet.x > feetOf(actor.body.bounds).x)
-            {
-                actor.facing = Facing::Right;
-            }
+            actor.intentions.aimDirection = targetFeet - feetOf(actor.body.bounds);
         }
 
         bool targetIsInBiteRange(const Actor& actor, const Actor& target)
@@ -177,7 +172,7 @@ namespace simple_platformer
             const BiteAttack& bite,
             const Actor* target)
         {
-            faceToward(actor, brain.lastSeenTargetFeet);
+            aimToward(actor, brain.lastSeenTargetFeet);
             if (bite.phase != BitePhase::Ready || brain.stateElapsed <= 0.0F)
             {
                 return;
@@ -225,7 +220,7 @@ namespace simple_platformer
                 return;
             }
 
-            faceToward(actor, brain.lastSeenTargetFeet);
+            aimToward(actor, brain.lastSeenTargetFeet);
             if (brain.targetVisible && targetIsInBiteRange(actor, *target))
             {
                 clearPath(follower);

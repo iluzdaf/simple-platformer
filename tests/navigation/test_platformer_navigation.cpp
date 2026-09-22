@@ -281,7 +281,6 @@ TEST_CASE("Generated jump inputs replay to their promised landing", "[navigation
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, {12.0F, 12.0F}), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
-    simple_platformer::Facing facing = simple_platformer::Facing::Right;
     const float duration = simple_platformer::durationOf(jump.inputs);
     const long tickCount = std::lround(duration / tests::FixedStepSeconds);
     for (int tick = 0; tick < tickCount; ++tick)
@@ -290,7 +289,7 @@ TEST_CASE("Generated jump inputs replay to their promised landing", "[navigation
         const simple_platformer::InputIntentions intentions =
             simple_platformer::replayInput(jump.inputs, elapsed);
         simple_platformer::updatePlatformerMovement(
-            map, body, movement, intentions, facing, tests::FixedStepSeconds);
+            map, body, movement, intentions, tests::FixedStepSeconds);
     }
 
     REQUIRE(movement.grounded);
@@ -316,7 +315,6 @@ TEST_CASE(
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {1, 0}, {12.0F, 12.0F}), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
-    simple_platformer::Facing facing = simple_platformer::Facing::Right;
     int walkTicks = 0;
     while (walkTicks < 120 && !simple_platformer::pathComplete(follower))
     {
@@ -326,7 +324,7 @@ TEST_CASE(
         if (!simple_platformer::pathComplete(follower))
         {
             simple_platformer::updatePlatformerMovement(
-                walkMap, body, movement, intentions, facing, tests::FixedStepSeconds);
+                walkMap, body, movement, intentions, tests::FixedStepSeconds);
             ++walkTicks;
         }
     }

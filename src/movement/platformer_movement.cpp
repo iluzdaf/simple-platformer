@@ -69,19 +69,9 @@ namespace simple_platformer
             Body& body,
             const PlatformerMovement& movement,
             const InputIntentions& intentions,
-            Facing& facing,
             float deltaTime)
         {
             const float direction = std::clamp(intentions.direction.x, -1.0F, 1.0F);
-            if (direction < 0.0F)
-            {
-                facing = Facing::Left;
-            }
-            else if (direction > 0.0F)
-            {
-                facing = Facing::Right;
-            }
-
             if (direction == 0.0F && !movement.grounded)
             {
                 return;
@@ -142,17 +132,27 @@ namespace simple_platformer
         }
     }
 
+    Facing facingFor(const InputIntentions& intentions, Facing current)
+    {
+        const float decisive =
+            intentions.aimDirection.x != 0.0F ? intentions.aimDirection.x : intentions.direction.x;
+        if (decisive < 0.0F)
+        {
+            return Facing::Left;
+        }
+        return decisive > 0.0F ? Facing::Right : current;
+    }
+
     CollisionContacts updatePlatformerMovement(
         const TileMap& map,
         Body& body,
         PlatformerMovement& movement,
         const InputIntentions& intentions,
-        Facing& facing,
         float deltaTime)
     {
         validate(movement.config, intentions, deltaTime);
         updateTimers(movement, intentions, deltaTime);
-        updateHorizontalVelocity(body, movement, intentions, facing, deltaTime);
+        updateHorizontalVelocity(body, movement, intentions, deltaTime);
         startBufferedJump(body, movement, intentions.jumpPressed);
         applyJumpAwareGravity(body, movement, intentions, deltaTime);
 

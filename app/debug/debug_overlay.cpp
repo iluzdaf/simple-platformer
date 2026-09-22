@@ -84,7 +84,6 @@ namespace simple_platformer
             Body body;
             body.bounds = boxInCell(map.tileSize(), start, actor.body.bounds.size);
             PlatformerMovement movement{actor.platformerMovement->config, true, 0.0F, 0.0F};
-            Facing facing = step.destinationCell.x < start.x ? Facing::Left : Facing::Right;
             std::vector<glm::vec2> sampledFeet;
             sampledFeet.push_back(feetOf(body.bounds));
 
@@ -94,7 +93,7 @@ namespace simple_platformer
                 for (long tick = 0; tick < ticks; ++tick)
                 {
                     updatePlatformerMovement(
-                        map, body, movement, input.intentions, facing, SimulationStepSeconds);
+                        map, body, movement, input.intentions, SimulationStepSeconds);
                     sampledFeet.push_back(feetOf(body.bounds));
                 }
             }

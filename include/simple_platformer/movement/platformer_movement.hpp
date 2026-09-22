@@ -30,6 +30,10 @@ namespace simple_platformer
 
     void validatePlatformerMovementConfig(const PlatformerMovementConfig& config);
 
+    // The one rule for which way an actor faces: aim decides when it points left or right,
+    // otherwise the way the actor is trying to move, otherwise it stays as it was.
+    Facing facingFor(const InputIntentions& intentions, Facing current);
+
     struct PlatformerMovement
     {
         PlatformerMovementConfig config;
@@ -43,6 +47,5 @@ namespace simple_platformer
         Body& body,
         PlatformerMovement& movement,
         const InputIntentions& intentions,
-        Facing& facing,
         float deltaTime);
 }

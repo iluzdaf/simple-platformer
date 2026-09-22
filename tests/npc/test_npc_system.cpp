@@ -171,6 +171,8 @@ TEST_CASE("A ranged NPC stops and requests an attack while its target is visible
     brain(world, npcId).targetVisible = true;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    // Facing is decided by the movement update from what the NPC intends.
+    simple_platformer::updateActorMovement(map, world, 0.1F);
 
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
     REQUIRE(actor(world, npcId).facing == simple_platformer::Facing::Right);

@@ -286,8 +286,10 @@ struct InputIntentions
 ```
 
 Platformer movement reads the horizontal direction; flying movement reads both axes.
-Aim is independent of travel direction. Facing is still left or right for sprite
-flipping and follows horizontal aim when appropriate.
+Aim is independent of travel direction. Facing is left or right, for sprite flipping and
+for which side a bite reaches, and one rule decides it after each movement update: aim
+wins when it points left or right, otherwise the way the actor is trying to move,
+otherwise it stays as it was. NPCs that look at a target express that as an aim.
 
 The application maps keyboard and mouse state to the player's intentions. NPC systems
 write the same structure from their decisions. Movement and attack systems therefore

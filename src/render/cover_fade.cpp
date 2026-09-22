@@ -8,6 +8,7 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/sight.hpp"
@@ -51,6 +52,7 @@ namespace simple_platformer
 
     void updateCoverFades(const TileMap& map, World& world, float deltaTime)
     {
+        requireTimeStep(deltaTime, "Cover fades");
         const Actor* player = world.findActor(world.playerId());
         const std::optional<glm::vec2> viewer =
             player != nullptr ? std::optional(centerOf(player->body.bounds)) : std::nullopt;

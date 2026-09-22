@@ -11,6 +11,7 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/input_program.hpp"
@@ -126,11 +127,11 @@ namespace simple_platformer
         PathFollower& follower,
         float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime <= 0.0F || !std::isfinite(movement.speed) ||
-            movement.speed < 0.0F)
+        requireTimeStep(deltaTime, "Flying path following");
+        if (!std::isfinite(movement.speed) || movement.speed < 0.0F)
         {
             throw std::invalid_argument(
-                "Flying path following requires positive finite timing and speed");
+                "Flying path following requires a finite, non-negative speed");
         }
         if (!follower.path.has_value())
         {
@@ -171,11 +172,7 @@ namespace simple_platformer
         PathFollower& follower,
         float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime <= 0.0F)
-        {
-            throw std::invalid_argument(
-                "Platformer path following requires a positive finite time step");
-        }
+        requireTimeStep(deltaTime, "Platformer path following");
         if (!follower.path.has_value())
         {
             return {};

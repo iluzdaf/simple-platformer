@@ -11,6 +11,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -91,10 +92,7 @@ namespace simple_platformer
 
     void updateNpcSenses(const TileMap& map, World& world, float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
-        {
-            throw std::invalid_argument("NPC sensing time must be finite and non-negative");
-        }
+        requireTimeStep(deltaTime, "NPC senses");
 
         const Actor* player = world.findActor(world.playerId());
         for (Actor& actor : world.actors())

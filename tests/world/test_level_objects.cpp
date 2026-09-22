@@ -520,3 +520,11 @@ TEST_CASE("World rejects an exit touched or opened outside simulation time", "[w
     exit.lastLockedTouchTimeSeconds = 1.0F;
     REQUIRE_NOTHROW(world.setExit(exit));
 }
+
+TEST_CASE("Pickup movement rejects a negative step", "[world][pickups]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"..", "##"});
+    simple_platformer::World world(items());
+    REQUIRE_THROWS_AS(
+        simple_platformer::updatePickupMovement(map, world, -0.1F), std::invalid_argument);
+}

@@ -296,8 +296,11 @@ TEST_CASE("Invalid movement configuration and time steps are rejected", "[moveme
     PlatformerMovement movement = makeMovement();
     Facing facing = Facing::Right;
 
+    // A zero step advances nothing and is allowed; a negative one is not.
+    REQUIRE_NOTHROW(
+        simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, 0.0F));
     REQUIRE_THROWS_AS(
-        simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, 0.0F),
+        simple_platformer::updatePlatformerMovement(map, body, movement, {}, facing, -0.1F),
         std::invalid_argument);
 
     movement.config.maximumFallSpeed = -1.0F;

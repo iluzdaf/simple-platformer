@@ -98,10 +98,7 @@ namespace simple_platformer
 
     void World::advanceSimulationTime(float deltaTime)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
-        {
-            throw std::invalid_argument("Simulation delta time must be finite and non-negative");
-        }
+        requireTimeStep(deltaTime, "Simulation steps");
         const float advancedTime = elapsedSimulationTimeSeconds + deltaTime;
         if (!std::isfinite(advancedTime))
         {

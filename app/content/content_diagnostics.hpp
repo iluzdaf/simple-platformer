@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -15,4 +16,8 @@ namespace simple_platformer
         std::string_view sourceName,
         std::string_view path,
         std::string_view message);
+
+    // Runs a validator that C++ built content shares, so it names the thing but not the
+    // file, and puts the file name in front of whatever it rejects.
+    void validateInFile(std::string_view sourceName, const std::function<void()>& validate);
 }

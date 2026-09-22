@@ -85,15 +85,7 @@ namespace simple_platformer
             readOptionalInteger(value, "effectAmount", item.effectAmount, sourceName, path);
             catalog.definitions.emplace(entry.key(), item);
         }
-        // Validation is shared with C++ built catalogues, so it names the item but not the file.
-        try
-        {
-            validateItemCatalog(catalog);
-        }
-        catch (const std::invalid_argument& error)
-        {
-            failJson(sourceName, {}, error.what());
-        }
+        validateInFile(sourceName, [&] { validateItemCatalog(catalog); });
         return catalog;
     }
 

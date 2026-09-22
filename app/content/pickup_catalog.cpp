@@ -74,15 +74,7 @@ namespace simple_platformer
             }
             catalog.emplace(entry.key(), definition);
         }
-        // Validation is shared with C++ built catalogues, so it names the pickup but not the file.
-        try
-        {
-            validatePickupCatalog(catalog, items);
-        }
-        catch (const std::invalid_argument& error)
-        {
-            failJson(sourceName, {}, error.what());
-        }
+        validateInFile(sourceName, [&] { validatePickupCatalog(catalog, items); });
         return catalog;
     }
 

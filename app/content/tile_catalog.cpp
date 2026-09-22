@@ -7,7 +7,6 @@
 #include <filesystem>
 #include <initializer_list>
 #include <map>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -89,15 +88,7 @@ namespace simple_platformer
             const auto broken = static_cast<std::size_t>(result.ids.at(entry.first));
             result.definitions[broken].breaksIntoTileId = target->second;
         }
-        // Validation is shared with C++ built catalogues, so it names the tile but not the file.
-        try
-        {
-            validateTileCatalog(result);
-        }
-        catch (const std::invalid_argument& error)
-        {
-            failJson(sourceName, {}, error.what());
-        }
+        validateInFile(sourceName, [&] { validateTileCatalog(result); });
         return result;
     }
 

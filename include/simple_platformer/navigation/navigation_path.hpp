@@ -17,7 +17,7 @@ namespace simple_platformer
 
     struct NavigationNeighbor
     {
-        GridPosition destination;
+        GridPosition destinationCell;
         Traversal traversal = Traversal::Fly;
         // Cost must be greater than zero. All connections in one search must
         // measure cost in the same unit, such as grid steps or simulation ticks.
@@ -27,7 +27,7 @@ namespace simple_platformer
 
     struct NavigationStep
     {
-        GridPosition destination;
+        GridPosition destinationCell;
         Traversal traversal = Traversal::Fly;
         InputProgram inputs;
     };

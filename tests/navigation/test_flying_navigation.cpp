@@ -17,13 +17,13 @@ TEST_CASE("Flying neighbors stay inside the map and avoid solid cells", "[naviga
         simple_platformer::flyingNeighbors(map, {0, 0});
 
     REQUIRE(neighbors.size() == 2);
-    const auto hasDestination = [&neighbors](simple_platformer::GridPosition destination)
+    const auto hasDestination = [&neighbors](simple_platformer::GridPosition destinationCell)
     {
         return std::find_if(
                    neighbors.begin(),
                    neighbors.end(),
-                   [destination](const simple_platformer::NavigationNeighbor& neighbor)
-                   { return neighbor.destination == destination; }) != neighbors.end();
+                   [destinationCell](const simple_platformer::NavigationNeighbor& neighbor)
+                   { return neighbor.destinationCell == destinationCell; }) != neighbors.end();
     };
     REQUIRE(hasDestination({1, 0}));
     REQUIRE(hasDestination({0, 1}));
@@ -41,5 +41,5 @@ TEST_CASE("Flying path search uses the flying navigation policy", "[navigation][
     const simple_platformer::NavigationPath route =
         path.value_or(simple_platformer::NavigationPath{});
     REQUIRE(route.start == simple_platformer::GridPosition{0, 1});
-    REQUIRE(route.steps.back().destination == simple_platformer::GridPosition{3, 1});
+    REQUIRE(route.steps.back().destinationCell == simple_platformer::GridPosition{3, 1});
 }

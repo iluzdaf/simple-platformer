@@ -46,24 +46,24 @@ namespace simple_platformer
         float pixelWidth() const;
         float pixelHeight() const;
 
-        bool contains(GridPosition position) const;
-        int tileAt(GridPosition position) const;
-        const TileDefinition& definitionAt(GridPosition position) const;
+        bool contains(GridPosition cell) const;
+        int tileAt(GridPosition cell) const;
+        const TileDefinition& definitionAt(GridPosition cell) const;
 
         // Outside the map, both queries block at the left, right, and bottom.
         // Above the map is open.
-        bool blocksMovement(GridPosition position) const;
-        bool blocksSight(GridPosition position) const;
+        bool blocksMovement(GridPosition cell) const;
+        bool blocksSight(GridPosition cell) const;
 
         // Replaces the cell with whatever its definition breaks into, and reports
         // whether that happened. A cell outside the map, or one whose definition has no
         // breaksIntoTileId, is left alone: callers pass in cells that came from a cast,
         // and map boundaries report as blocking cells that lie outside the map.
-        bool breakTile(GridPosition position);
+        bool breakTile(GridPosition cell);
 
     private:
-        // Row-major offset into tileIds. The position must be inside the map.
-        std::size_t indexOf(GridPosition position) const;
+        // Row-major offset into tileIds. The cell must be inside the map.
+        std::size_t indexOf(GridPosition cell) const;
 
         int cellSize = 0;
         int mapWidth = 0;

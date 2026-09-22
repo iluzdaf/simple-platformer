@@ -13,6 +13,7 @@
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "ui/hud_draw.hpp"
 #include "ui/hud_layout.hpp"
 #include "ui/inventory_layout.hpp"
 
@@ -67,28 +68,15 @@ namespace simple_platformer
                 if (slot.has_value())
                 {
                     const ItemDefinition& item = game.itemDefinition(slot->item);
-                    const SpriteRegion& region = item.icon.region;
-                    const float width = static_cast<float>(atlas.width);
-                    const float height = static_cast<float>(atlas.height);
                     const ImVec2 iconMinimum = {
                         slotMinimum.x + iconPadding, slotMinimum.y + iconPadding};
                     const ImVec2 iconMaximum = {
                         slotMaximum.x - iconPadding, slotMaximum.y - iconPadding};
-                    drawList->AddImage(
-                        static_cast<ImTextureID>(atlas.handle),
-                        iconMinimum,
-                        iconMaximum,
-                        {region.position.x / width, region.position.y / height},
-                        {(region.position.x + region.size.x) / width,
-                         (region.position.y + region.size.y) / height});
+                    drawAtlasRegion(*drawList, atlas, item.icon.region, iconMinimum, iconMaximum);
 
                     char count[16];
                     std::snprintf(count, sizeof(count), "%d", slot->quantity);
-                    drawList->AddText(
-                        {iconMinimum.x + 1.0F, iconMinimum.y + 1.0F},
-                        IM_COL32(0, 0, 0, 220),
-                        count);
-                    drawList->AddText(iconMinimum, IM_COL32(255, 255, 255, 255), count);
+                    drawShadowedText(*drawList, iconMinimum, IM_COL32(255, 255, 255, 255), count);
                     if (clicked && item.effect != ItemEffect::None)
                     {
                         slotToUse = index;

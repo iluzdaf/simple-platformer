@@ -9,6 +9,7 @@
 #include "graphics/display_viewport.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "ui/hud_draw.hpp"
 
 namespace simple_platformer
 {
@@ -32,15 +33,6 @@ namespace simple_platformer
         const ImVec2 bottomRight = {
             topLeft.x + icon->size.x * viewport.scale.x,
             topLeft.y + icon->size.y * viewport.scale.y};
-        const float atlasWidth = static_cast<float>(atlas.width);
-        const float atlasHeight = static_cast<float>(atlas.height);
-        const SpriteRegion& region = icon->region;
-        ImGui::GetBackgroundDrawList()->AddImage(
-            static_cast<ImTextureID>(atlas.handle),
-            topLeft,
-            bottomRight,
-            {region.position.x / atlasWidth, region.position.y / atlasHeight},
-            {(region.position.x + region.size.x) / atlasWidth,
-             (region.position.y + region.size.y) / atlasHeight});
+        drawAtlasRegion(*ImGui::GetBackgroundDrawList(), atlas, icon->region, topLeft, bottomRight);
     }
 }

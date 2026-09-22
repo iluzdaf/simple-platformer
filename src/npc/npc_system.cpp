@@ -82,8 +82,8 @@ namespace simple_platformer
                 start = supportedStart.value_or(start);
             }
             const GridPosition goal = cellAtFeet(map.tileSize(), goalFeet);
-            const bool destinationChanged =
-                !follower.destination.has_value() || follower.destination.value_or(goal) != goal;
+            const bool destinationChanged = !follower.destinationCell.has_value() ||
+                                            follower.destinationCell.value_or(goal) != goal;
             const bool displacedAfterCompletion = pathComplete(follower) && start != goal;
             if (!destinationChanged && follower.path.has_value() && !displacedAfterCompletion)
             {
@@ -104,7 +104,7 @@ namespace simple_platformer
                 path = findPlatformerPath(
                     map, start, goal, actor.body.bounds.size, actor.platformerMovement->config);
             }
-            follower.destination = goal;
+            follower.destinationCell = goal;
             follower.repathRemaining = follower.repathCooldown;
             if (path.has_value())
             {
@@ -122,10 +122,10 @@ namespace simple_platformer
             const TileMap& map,
             Actor& actor,
             PathFollower& follower,
-            glm::vec2 destination,
+            glm::vec2 destinationFeet,
             float deltaTime)
         {
-            requestPath(map, actor, follower, destination);
+            requestPath(map, actor, follower, destinationFeet);
             if (actor.flyingMovement.has_value())
             {
                 actor.intentions = followFlyingPath(
@@ -251,7 +251,7 @@ namespace simple_platformer
                 actor.intentions.primaryAttackPressed = true;
                 return;
             }
-            glm::vec2 destination = brain.lastSeenTargetFeet;
+            glm::vec2 destinationFeet = brain.lastSeenTargetFeet;
             if (actor.platformerMovement.has_value())
             {
                 const std::optional<GridPosition> chaseCell =
@@ -261,9 +261,9 @@ namespace simple_platformer
                     clearPath(follower);
                     return;
                 }
-                destination = feetInCell(map.tileSize(), chaseCell.value());
+                destinationFeet = feetInCell(map.tileSize(), chaseCell.value());
             }
-            followDestination(map, actor, follower, destination, deltaTime);
+            followDestination(map, actor, follower, destinationFeet, deltaTime);
         }
 
         void updateNpcState(const TileMap& map, World& world, Actor& actor, float deltaTime)

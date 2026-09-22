@@ -84,7 +84,7 @@ namespace simple_platformer
             Body body;
             body.bounds = boxInCell(map.tileSize(), start, actor.body.bounds.size);
             PlatformerMovement movement{actor.platformerMovement->config, true, 0.0F, 0.0F};
-            Facing facing = step.destination.x < start.x ? Facing::Left : Facing::Right;
+            Facing facing = step.destinationCell.x < start.x ? Facing::Left : Facing::Right;
             std::vector<glm::vec2> sampledFeet;
             sampledFeet.push_back(feetOf(body.bounds));
 
@@ -107,9 +107,9 @@ namespace simple_platformer
             const PathFollower& follower)
         {
             PathFollowerDebugInfo info;
-            if (follower.destination.has_value())
+            if (follower.destinationCell.has_value())
             {
-                info.destinationFeet = feetInCell(map.tileSize(), *follower.destination);
+                info.destinationFeet = feetInCell(map.tileSize(), *follower.destinationCell);
             }
             info.repathRemaining = follower.repathRemaining;
             if (!follower.path.has_value())
@@ -127,7 +127,7 @@ namespace simple_platformer
             for (std::size_t index = 0; index < follower.path->steps.size(); ++index)
             {
                 const NavigationStep& step = follower.path->steps[index];
-                const glm::vec2 to = feetInCell(map.tileSize(), step.destination);
+                const glm::vec2 to = feetInCell(map.tileSize(), step.destinationCell);
                 info.connections.push_back(
                     {from,
                      to,
@@ -135,7 +135,7 @@ namespace simple_platformer
                      index < follower.nextStep,
                      index == follower.nextStep,
                      sampleAirborneTraversal(actor, map, fromCell, step)});
-                fromCell = step.destination;
+                fromCell = step.destinationCell;
                 from = to;
             }
             return info;

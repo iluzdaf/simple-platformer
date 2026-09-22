@@ -15,6 +15,7 @@ namespace simple_platformer
     struct SpriteDrawCommand
     {
         int textureId = 0;
+        // Top-left on screen, in internal pixels.
         glm::vec2 position = {0.0F, 0.0F};
         glm::vec2 size = {0.0F, 0.0F};
         SpriteRegion source;

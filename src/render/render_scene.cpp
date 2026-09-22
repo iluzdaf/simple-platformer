@@ -108,8 +108,8 @@ namespace simple_platformer
             {
                 for (int column = firstColumn; column <= lastColumn; ++column)
                 {
-                    const GridPosition tilePosition{column, row};
-                    if (map.tileAt(tilePosition) == 0)
+                    const GridPosition cell{column, row};
+                    if (map.tileAt(cell) == 0)
                     {
                         continue;
                     }
@@ -121,7 +121,7 @@ namespace simple_platformer
                         {tileTextureId,
                          worldToScreen(camera, worldPosition),
                          {tileSize, tileSize},
-                         map.definitionAt(tilePosition).sprite,
+                         map.definitionAt(cell).sprite,
                          false});
                 }
             }

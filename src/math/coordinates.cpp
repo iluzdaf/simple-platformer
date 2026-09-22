@@ -12,11 +12,11 @@ namespace simple_platformer
         };
     }
 
-    glm::vec2 gridToWorld(int tileSize, GridPosition gridPosition)
+    glm::vec2 gridToWorld(int tileSize, GridPosition cell)
     {
         return {
-            static_cast<float>(gridPosition.x * tileSize),
-            static_cast<float>(gridPosition.y * tileSize),
+            static_cast<float>(cell.x * tileSize),
+            static_cast<float>(cell.y * tileSize),
         };
     }
 

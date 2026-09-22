@@ -38,9 +38,9 @@ namespace simple_platformer
             int tileSize,
             const Body& body,
             const PlatformerMovement& movement,
-            GridPosition destination)
+            GridPosition destinationCell)
         {
-            const glm::vec2 target = feetInCell(tileSize, destination);
+            const glm::vec2 target = feetInCell(tileSize, destinationCell);
             const glm::vec2 feet = feetOf(body.bounds);
             return movement.grounded && std::abs(target.x - feet.x) <= ArrivalDistance &&
                    std::abs(target.y - feet.y) <= ArrivalDistance;
@@ -93,17 +93,17 @@ namespace simple_platformer
         }
     }
 
-    void setPath(PathFollower& follower, NavigationPath path, GridPosition destination)
+    void setPath(PathFollower& follower, NavigationPath path, GridPosition destinationCell)
     {
-        if ((!path.steps.empty() && path.steps.back().destination != destination) ||
-            (path.steps.empty() && path.start != destination))
+        if ((!path.steps.empty() && path.steps.back().destinationCell != destinationCell) ||
+            (path.steps.empty() && path.start != destinationCell))
         {
             throw std::invalid_argument("A navigation path does not reach its destination");
         }
         follower.path = std::move(path);
         follower.nextStep = 0;
         follower.programElapsed = 0.0F;
-        follower.destination = destination;
+        follower.destinationCell = destinationCell;
     }
 
     void clearPath(PathFollower& follower)
@@ -111,7 +111,7 @@ namespace simple_platformer
         follower.path.reset();
         follower.nextStep = 0;
         follower.programElapsed = 0.0F;
-        follower.destination.reset();
+        follower.destinationCell.reset();
     }
 
     bool pathComplete(const PathFollower& follower)
@@ -149,7 +149,7 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("A flying actor requires flying path steps");
             }
-            const glm::vec2 offset = feetInCell(tileSize, step.destination) - feet;
+            const glm::vec2 offset = feetInCell(tileSize, step.destinationCell) - feet;
             const float distance = glm::length(offset);
             if (distance > FlyingArrivalDistance)
             {
@@ -191,12 +191,12 @@ namespace simple_platformer
 
             if (step.traversal == Traversal::Walk)
             {
-                if (readyForInputProgram(tileSize, body, movement, step.destination))
+                if (readyForInputProgram(tileSize, body, movement, step.destinationCell))
                 {
                     ++follower.nextStep;
                     continue;
                 }
-                return approachAndBrake(tileSize, body, movement, step.destination);
+                return approachAndBrake(tileSize, body, movement, step.destinationCell);
             }
 
             if (step.inputs.empty())
@@ -208,7 +208,7 @@ namespace simple_platformer
                 const GridPosition takeoff =
                     follower.nextStep == 0
                         ? follower.path->start
-                        : follower.path->steps[follower.nextStep - 1].destination;
+                        : follower.path->steps[follower.nextStep - 1].destinationCell;
                 if (!readyForInputProgram(tileSize, body, movement, takeoff))
                 {
                     return approachAndBrake(tileSize, body, movement, takeoff);
@@ -224,7 +224,8 @@ namespace simple_platformer
                     std::min(programDuration, follower.programElapsed + deltaTime);
                 return intentions;
             }
-            if (movement.grounded && cellAtFeet(tileSize, feetOf(body.bounds)) == step.destination)
+            if (movement.grounded &&
+                cellAtFeet(tileSize, feetOf(body.bounds)) == step.destinationCell)
             {
                 ++follower.nextStep;
                 follower.programElapsed = 0.0F;

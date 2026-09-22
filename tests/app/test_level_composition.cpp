@@ -63,14 +63,14 @@ TEST_CASE("A catalog entry must reference an existing level file", "[app][conten
             "levels": [{"number": 1, "file": "missing.json"}]
         })",
         "test catalog",
-        "tests/fixtures/levels");
+        "tests/fixtures");
 
     REQUIRE_THROWS_AS(simple_platformer::composeGameLevel(catalog, 1, 0), std::invalid_argument);
 }
 
 TEST_CASE("Session composition does not reload shared catalogue files", "[app][content]")
 {
-    auto levels = simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json");
+    auto levels = simple_platformer::loadLevelCatalog("tests/fixtures/levels.json");
     const auto catalogs = simple_platformer::loadGameCatalogs(levels.levelDirectory);
     // Keep level files reachable, but give shared catalogue reads nowhere to succeed.
     // Absolute paths here deliberately bypass the JSON loader's relative-path requirement.
@@ -88,8 +88,8 @@ TEST_CASE("Session composition does not reload shared catalogue files", "[app][c
 
 TEST_CASE("A level's cells become the feet of those cells on its map", "[app][content]")
 {
-    const auto catalog = simple_platformer::loadLevelCatalog(
-        std::filesystem::path("tests/fixtures/levels/levels.json"));
+    const auto catalog =
+        simple_platformer::loadLevelCatalog(std::filesystem::path("tests/fixtures/levels.json"));
     const auto content = simple_platformer::composeGameLevel(catalog, 10, 0);
     const int tileSize = content.map.tileSize();
 

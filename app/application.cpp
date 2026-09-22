@@ -1,5 +1,6 @@
 #include "application.hpp"
 
+#include <chrono>
 #include <cstdlib>
 #include <cstddef>
 #include <iostream>
@@ -31,6 +32,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 
 namespace simple_platformer
 {
@@ -161,6 +163,12 @@ namespace simple_platformer
             context->input.setButton(*button, action == GLFW_PRESS);
         }
 
+        // Wall-clock seconds since an earlier reading, for the frame profile.
+        float secondsSince(std::chrono::steady_clock::time_point start)
+        {
+            return std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count();
+        }
+
         void handleMouseButton(GLFWwindow* window, int button, int action, int)
         {
             if (button != GLFW_MOUSE_BUTTON_LEFT ||
@@ -213,6 +221,7 @@ namespace simple_platformer
         const TextureView atlasTexture = renderer.textureView(atlas);
         Game game(atlas, loadLevelCatalog("assets/levels.json"));
         FixedStep fixedStep;
+        FrameHistory frameHistory;
         double previousTime = glfwGetTime();
 
         while (glfwWindowShouldClose(window.get()) == GLFW_FALSE)
@@ -271,6 +280,8 @@ namespace simple_platformer
                 context.input.clearButton(InputButton::PrimaryAttack);
             }
 
+            FrameProfile profile;
+            profile.frameSeconds = static_cast<float>(frameTime);
             const bool paused = context.inventoryOpen || game.complete();
             if (paused || context.inventoryToggled || gameRestarted)
             {
@@ -285,7 +296,8 @@ namespace simple_platformer
                 {
                     context.input = {};
                 }
-                fixedStep.advance(
+                const auto simulationStart = std::chrono::steady_clock::now();
+                const FixedStepResult stepped = fixedStep.advance(
                     frameTime,
                     [&](float deltaTime)
                     {
@@ -305,10 +317,18 @@ namespace simple_platformer
                         intentions.aimDirection = context.aimDirection;
                         game.update(intentions, deltaTime);
                     });
+                profile.simulationTicks = static_cast<int>(stepped.updates);
+                profile.simulationSeconds = secondsSince(simulationStart);
             }
 
+            const auto sceneStart = std::chrono::steady_clock::now();
             const RenderScene scene = game.buildScene();
+            profile.sceneSeconds = secondsSince(sceneStart);
+            const auto renderStart = std::chrono::steady_clock::now();
             renderer.render(scene, framebufferWidth, framebufferHeight);
+            profile.renderSeconds = secondsSince(renderStart);
+
+            const auto interfaceStart = std::chrono::steady_clock::now();
             if (windowViewport.has_value())
             {
                 drawHealthHud(game.playerHealth(), atlasTexture, *windowViewport);
@@ -327,10 +347,14 @@ namespace simple_platformer
                     game.useInventoryItem(*slotToUse);
                 }
             }
+            profile.interfaceSeconds = secondsSince(interfaceStart);
+            frameHistory.push(profile);
+
             if (context.showDebugOverlay)
             {
                 drawDebugOverlay(
                     game.debugOverlay(static_cast<float>(atlasTexture.width)), windowViewport);
+                drawFrameProfile(frameHistory);
             }
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

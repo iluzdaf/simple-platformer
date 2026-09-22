@@ -27,6 +27,12 @@ namespace simple_platformer
         return !(left == right);
     }
 
+    // Points within this of a tile edge count as on the side they visually belong to: feet
+    // resting on a tile's top edge stand in the cell above it, a box whose edge lies on a
+    // boundary covers only the cells inside it, and a body this close to the map's edge is
+    // touching it.
+    constexpr float EdgeTolerance = 0.001F;
+
     // The cell containing the point. A point on a tile edge belongs to the cell to its right
     // or below, and points left of or above the map give negative cells.
     GridPosition worldToGrid(int tileSize, glm::vec2 worldPosition);

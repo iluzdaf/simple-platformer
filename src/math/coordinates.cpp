@@ -22,8 +22,7 @@ namespace simple_platformer
 
     GridPosition cellAtFeet(int tileSize, glm::vec2 feet)
     {
-        constexpr float BoundaryOffset = 0.001F;
-        return worldToGrid(tileSize, {feet.x, feet.y - BoundaryOffset});
+        return worldToGrid(tileSize, {feet.x, feet.y - EdgeTolerance});
     }
 
     glm::vec2 feetInCell(int tileSize, GridPosition cell)

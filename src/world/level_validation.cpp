@@ -1,6 +1,5 @@
 #include "simple_platformer/world/level_validation.hpp"
 
-#include <cmath>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -10,6 +9,7 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -18,25 +18,12 @@ namespace simple_platformer
 {
     namespace
     {
-        constexpr float InsideBody = 0.001F;
-
-        int tileContaining(int tileSize, float position)
-        {
-            return static_cast<int>(std::floor(position / static_cast<float>(tileSize)));
-        }
-
         bool hasClearance(const TileMap& map, const Aabb& bounds)
         {
-            const int firstColumn = tileContaining(map.tileSize(), bounds.position.x + InsideBody);
-            const int lastColumn =
-                tileContaining(map.tileSize(), bounds.position.x + bounds.size.x - InsideBody);
-            const int firstRow = tileContaining(map.tileSize(), bounds.position.y + InsideBody);
-            const int lastRow =
-                tileContaining(map.tileSize(), bounds.position.y + bounds.size.y - InsideBody);
-
-            for (int row = firstRow; row <= lastRow; ++row)
+            const CellRange cells = cellsCovered(map.tileSize(), bounds);
+            for (int row = cells.first.y; row <= cells.last.y; ++row)
             {
-                for (int column = firstColumn; column <= lastColumn; ++column)
+                for (int column = cells.first.x; column <= cells.last.x; ++column)
                 {
                     if (map.blocksMovement({column, row}))
                     {
@@ -49,13 +36,14 @@ namespace simple_platformer
 
         bool hasGroundSupport(const TileMap& map, const Aabb& bounds)
         {
-            const int firstColumn = tileContaining(map.tileSize(), bounds.position.x + InsideBody);
-            const int lastColumn =
-                tileContaining(map.tileSize(), bounds.position.x + bounds.size.x - InsideBody);
+            const CellRange cells = cellsCovered(map.tileSize(), bounds);
             const int rowBelow =
-                tileContaining(map.tileSize(), bounds.position.y + bounds.size.y + InsideBody);
+                worldToGrid(
+                    map.tileSize(),
+                    {bounds.position.x, bounds.position.y + bounds.size.y + EdgeTolerance})
+                    .y;
 
-            for (int column = firstColumn; column <= lastColumn; ++column)
+            for (int column = cells.first.x; column <= cells.last.x; ++column)
             {
                 if (map.blocksMovement({column, rowBelow}))
                 {

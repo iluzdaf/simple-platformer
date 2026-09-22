@@ -14,6 +14,7 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
+#include "ui/hud_draw.hpp"
 
 namespace simple_platformer
 {
@@ -26,7 +27,6 @@ namespace simple_platformer
         constexpr ImU32 FallingPathColour = IM_COL32(255, 160, 64, 255);
         constexpr ImU32 JumpingPathColour = IM_COL32(224, 80, 255, 255);
         constexpr ImU32 UnknownPathColour = IM_COL32(255, 255, 255, 255);
-        constexpr ImU32 PathLabelShadowColour = IM_COL32(0, 0, 0, 220);
         constexpr ImU32 PathDestinationColour = IM_COL32(255, 255, 255, 230);
         constexpr ImU32 NextPathGuideColour = IM_COL32(255, 255, 255, 220);
         constexpr ImU32 SensorRangeColour = IM_COL32(160, 96, 255, 110);
@@ -221,11 +221,7 @@ namespace simple_platformer
                     const ImVec2 labelPosition =
                         screenPosition(labelWorldPosition, scene, viewport);
                     const char* traversalName = nameOf(connection.traversal);
-                    drawList.AddText(
-                        {labelPosition.x + 1.0F, labelPosition.y + 1.0F},
-                        PathLabelShadowColour,
-                        traversalName);
-                    drawList.AddText(labelPosition, colour, traversalName);
+                    drawShadowedText(drawList, labelPosition, colour, traversalName);
                     drawList.AddLine(
                         screenPosition(feetOf(actor.collider), scene, viewport),
                         to,

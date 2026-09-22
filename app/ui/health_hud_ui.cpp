@@ -8,6 +8,7 @@
 #include "graphics/sprite_renderer.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "ui/hud_draw.hpp"
 #include "ui/hud_layout.hpp"
 
 namespace simple_platformer
@@ -42,14 +43,12 @@ namespace simple_platformer
             const bool hovered = ImGui::IsItemHovered();
             // Act on press, before gameplay consumes the same mouse-button edge.
             clicked = hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-            const float width = static_cast<float>(atlas.width);
-            const float height = static_cast<float>(atlas.height);
-            ImGui::GetWindowDrawList()->AddImage(
-                static_cast<ImTextureID>(atlas.handle),
+            drawAtlasRegion(
+                *ImGui::GetWindowDrawList(),
+                atlas,
+                {{BagLeft, BagTop}, {HudIconSize, HudIconSize}},
                 position,
-                {position.x + size.x, position.y + size.y},
-                {BagLeft / width, BagTop / height},
-                {(BagLeft + HudIconSize) / width, (BagTop + HudIconSize) / height});
+                {position.x + size.x, position.y + size.y});
         }
         ImGui::End();
         ImGui::PopStyleVar(2);
@@ -72,9 +71,6 @@ namespace simple_platformer
         }
 
         ImDrawList* drawList = ImGui::GetBackgroundDrawList();
-        const ImTextureID texture = static_cast<ImTextureID>(atlas.handle);
-        const float atlasWidth = static_cast<float>(atlas.width);
-        const float atlasHeight = static_cast<float>(atlas.height);
         const ImVec2 size = {HudIconSize * viewport.scale.x, HudIconSize * viewport.scale.y};
         ImVec2 position = {
             viewport.topLeft.x + HudMargin * viewport.scale.x,
@@ -83,15 +79,12 @@ namespace simple_platformer
         for (int heart = 0; heart < health.maximum; ++heart)
         {
             const float sourceLeft = heart < health.current ? FilledHeartLeft : EmptyHeartLeft;
-            const ImVec2 minimumUv = {sourceLeft / atlasWidth, HeartTop / atlasHeight};
-            const ImVec2 maximumUv = {
-                (sourceLeft + HudIconSize) / atlasWidth, (HeartTop + HudIconSize) / atlasHeight};
-            drawList->AddImage(
-                texture,
+            drawAtlasRegion(
+                *drawList,
+                atlas,
+                {{sourceLeft, HeartTop}, {HudIconSize, HudIconSize}},
                 position,
-                {position.x + size.x, position.y + size.y},
-                minimumUv,
-                maximumUv);
+                {position.x + size.x, position.y + size.y});
             position.x += (HudIconSize + HudGap) * viewport.scale.x;
         }
     }

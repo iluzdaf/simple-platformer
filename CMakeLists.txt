@@ -160,6 +160,7 @@ add_executable(
     app/ui/completion_ui.cpp
     app/ui/exit_hint_ui.cpp
     app/ui/health_hud_ui.cpp
+    app/ui/hud_draw.cpp
     app/ui/inventory_layout.cpp
     app/ui/inventory_ui.cpp
 )

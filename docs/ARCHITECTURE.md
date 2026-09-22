@@ -523,7 +523,9 @@ phase offset to bob without moving their collection bounds. Inventory persists t
 player death.
 
 An exit can require an item and optionally consume it. Exit completion is latched so a
-requirement cannot be consumed twice. The simulation reports completion;
+requirement cannot be consumed twice. When the living player stands in an exit without
+its requirement, the exit records the time on the World clock, and the HUD draws the
+required item's icon above the door for a moment after. The simulation reports completion;
 `GameLevel` groups a level's data so callers cannot accidentally combine parts of
 different levels. `Game` replaces that value at a transition, carries over the player's current health and inventory,
 and resets the camera.

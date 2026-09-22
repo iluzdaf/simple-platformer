@@ -19,6 +19,7 @@
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/presentation.hpp"
 #include "simple_platformer/render/render_scene.hpp"
+#include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/level_validation.hpp"
 #include "simple_platformer/world/world_requests.hpp"
@@ -218,6 +219,23 @@ namespace simple_platformer
         const auto& levelExit = level.world.exit();
         return player != nullptr && levelExit.has_value() &&
                exitUnlocked(levelExit.value(), *player);
+    }
+
+    std::optional<Sprite> Game::lockedExitHintIcon() const
+    {
+        const auto& levelExit = level.world.exit();
+        if (!levelExit.has_value() || !levelExit->requirement.has_value() ||
+            !levelExit->lastLockedTouchTimeSeconds.has_value())
+        {
+            return std::nullopt;
+        }
+        const float sinceTouch =
+            level.world.simulationTimeSeconds() - *levelExit->lastLockedTouchTimeSeconds;
+        if (sinceTouch > LockedExitHintSeconds)
+        {
+            return std::nullopt;
+        }
+        return level.world.itemDefinition(levelExit->requirement->item).icon;
     }
 
     CameraController& Game::cameraControllerValue()

@@ -30,6 +30,7 @@ namespace simple_platformer
         void collectPickup(std::size_t index);
         void setExit(LevelExit exit);
         const std::optional<LevelExit>& exit() const;
+        std::optional<LevelExit>& exit();
         bool levelComplete() const;
         void completeLevel();
 

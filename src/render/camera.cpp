@@ -41,15 +41,16 @@ namespace simple_platformer
             }
         }
 
-        float cameraAxis(float targetCenter, float mapSize, float viewportSize)
+        // Where the camera's edge settles on one axis: a map smaller than the viewport sits
+        // centred in it, otherwise the camera stops at the map's edges. Whole pixels keep the
+        // tiles crisp.
+        float settleAxis(float cameraPosition, float mapSize, float viewportSize)
         {
             if (mapSize <= viewportSize)
             {
                 return std::round((mapSize - viewportSize) * 0.5F);
             }
-
-            return std::round(
-                std::clamp(targetCenter - viewportSize * 0.5F, 0.0F, mapSize - viewportSize));
+            return std::round(std::clamp(cameraPosition, 0.0F, mapSize - viewportSize));
         }
 
         float followAxis(
@@ -59,11 +60,6 @@ namespace simple_platformer
             float viewportSize,
             float deadZoneSize)
         {
-            if (mapSize <= viewportSize)
-            {
-                return std::round((mapSize - viewportSize) * 0.5F);
-            }
-
             const float deadZoneStart = cameraPosition + (viewportSize - deadZoneSize) * 0.5F;
             const float deadZoneEnd = deadZoneStart + deadZoneSize;
             if (targetCenter < deadZoneStart)
@@ -74,8 +70,7 @@ namespace simple_platformer
             {
                 cameraPosition += targetCenter - deadZoneEnd;
             }
-
-            return std::round(std::clamp(cameraPosition, 0.0F, mapSize - viewportSize));
+            return settleAxis(cameraPosition, mapSize, viewportSize);
         }
     }
 
@@ -91,12 +86,12 @@ namespace simple_platformer
     {
         validateViewport(viewportSize);
 
-        const glm::vec2 targetCenter = centerOf(target);
+        const glm::vec2 centredOnTarget = centerOf(target) - viewportSize * 0.5F;
         Camera camera;
         camera.viewportSize = viewportSize;
         camera.position = {
-            cameraAxis(targetCenter.x, map.pixelWidth(), viewportSize.x),
-            cameraAxis(targetCenter.y, map.pixelHeight(), viewportSize.y)};
+            settleAxis(centredOnTarget.x, map.pixelWidth(), viewportSize.x),
+            settleAxis(centredOnTarget.y, map.pixelHeight(), viewportSize.y)};
         return camera;
     }
 

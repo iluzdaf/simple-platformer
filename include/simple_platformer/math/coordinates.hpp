@@ -7,6 +7,9 @@ namespace simple_platformer
     // World X increases right and world Y increases down.
     constexpr int InternalWidth = 320;
     constexpr int InternalHeight = 180;
+    constexpr glm::vec2 InternalViewportSize = {
+        static_cast<float>(InternalWidth),
+        static_cast<float>(InternalHeight)};
 
     struct GridPosition
     {

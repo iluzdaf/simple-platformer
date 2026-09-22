@@ -80,6 +80,7 @@ A minimal level looks like this:
 
 ```json
 {
+  "tileLegend": { ".": "empty", "#": "stone" },
   "map": [
     "........",
     "........",
@@ -95,8 +96,9 @@ A minimal level looks like this:
 }
 ```
 
-Every level requires `map`, one player spawn, `actors`, `pickups`, and `exit`. The actor
-and pickup arrays may be empty. An exit without `nextLevel` completes the game.
+Every level requires `tileLegend`, `map`, one player spawn, `actors`, `pickups`, and
+`exit`. The actor and pickup arrays may be empty. An exit without `nextLevel` completes
+the game.
 
 ## Maps and positions
 

@@ -359,8 +359,8 @@ weapons do not. `updateProjectiles` takes a mutable map; every other system take
 Tests construct maps from ASCII strings with a helper in `tests/support` that supplies
 its own definitions and symbols, so the engine carries no fixture of its own. The example
 loads shared definitions from `tiles.json` beside
-`levels.json`. An optional `tileLegend` in each level maps one-character symbols to
-catalogue names; without it, `.` means `empty` and `#` means `stone`.
+`levels.json`. Each level's `tileLegend` maps its one-character map symbols to catalogue
+names; there is no default, so a level says what every symbol it uses means.
 The loader resolves names to runtime IDs, reserving zero for `empty`.
 Actors, pickups, spawns, and exits are separate level data, not special tile IDs.
 Object legend markers expand into these placements during loading; their terrain is empty.

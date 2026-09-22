@@ -52,7 +52,7 @@ namespace simple_platformer
     // Parsed authoring data; level composition turns this into a runtime GameLevel.
     struct LevelData
     {
-        std::map<char, std::string> tileLegend = {{'.', "empty"}, {'#', "stone"}};
+        std::map<char, std::string> tileLegend;
         std::vector<std::string> mapRows;
         LevelPosition playerSpawn;
         std::vector<ActorPlacement> actors;

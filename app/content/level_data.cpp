@@ -394,10 +394,6 @@ namespace simple_platformer
             {
                 failJson(sourceName, "objectLegend", "expected an object");
             }
-            if (!root.contains("tileLegend"))
-            {
-                root["tileLegend"] = {{".", "empty"}, {"#", "stone"}};
-            }
             const Json& tileLegend = requiredJsonMember(root, "tileLegend", sourceName, "root");
             if (!tileLegend.is_object() || tileLegend.empty())
             {
@@ -420,20 +416,16 @@ namespace simple_platformer
             const LegendReferences& references)
         {
             LevelData result;
-            if (root.contains("tileLegend"))
+            const Json& legend = requiredJsonMember(root, "tileLegend", sourceName, "root");
+            if (!legend.is_object() || legend.empty())
             {
-                const auto& legend = root.at("tileLegend");
-                if (!legend.is_object() || legend.empty())
-                {
-                    failJson(sourceName, "tileLegend", "expected a nonempty object");
-                }
-                result.tileLegend.clear();
-                checkLegendSymbols(legend, Json::object(), sourceName);
-                for (const auto& entry : legend.items())
-                {
-                    result.tileLegend.emplace(
-                        entry.key().front(), jsonText(entry.value(), sourceName, "tileLegend"));
-                }
+                failJson(sourceName, "tileLegend", "expected a nonempty object");
+            }
+            checkLegendSymbols(legend, Json::object(), sourceName);
+            for (const auto& entry : legend.items())
+            {
+                result.tileLegend.emplace(
+                    entry.key().front(), jsonText(entry.value(), sourceName, "tileLegend"));
             }
             result.mapRows = jsonMapRows(
                 requiredJsonMember(root, "map", sourceName, "root"), sourceName, result.tileLegend);

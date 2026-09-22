@@ -5,7 +5,9 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -81,6 +83,16 @@ namespace simple_platformer
         }
     }
 
+    void World::requireWithinSimulationTime(const std::optional<float>& time, const char* what)
+        const
+    {
+        if (time.has_value() &&
+            (!std::isfinite(*time) || *time < 0.0F || *time > elapsedSimulationTimeSeconds))
+        {
+            throw std::invalid_argument(std::string(what) + " must be within simulation time");
+        }
+    }
+
     float World::simulationTimeSeconds() const
     {
         return elapsedSimulationTimeSeconds;
@@ -115,20 +127,11 @@ namespace simple_platformer
     ActorId World::addActor(Actor actor)
     {
         validateActor(actor);
-        if (actor.lastDamageTimeSeconds.has_value() &&
-            (!std::isfinite(actor.lastDamageTimeSeconds.value()) ||
-             actor.lastDamageTimeSeconds.value() < 0.0F ||
-             actor.lastDamageTimeSeconds.value() > elapsedSimulationTimeSeconds))
+        requireWithinSimulationTime(actor.lastDamageTimeSeconds, "Actor damage time");
+        if (actor.rangedWeapon.has_value())
         {
-            throw std::invalid_argument("Actor damage time must be within simulation time");
-        }
-        if (actor.rangedWeapon.has_value() &&
-            actor.rangedWeapon->lastFiredTimeSeconds.has_value() &&
-            (!std::isfinite(*actor.rangedWeapon->lastFiredTimeSeconds) ||
-             *actor.rangedWeapon->lastFiredTimeSeconds < 0.0F ||
-             *actor.rangedWeapon->lastFiredTimeSeconds > elapsedSimulationTimeSeconds))
-        {
-            throw std::invalid_argument("Actor shot time must be within simulation time");
+            requireWithinSimulationTime(
+                actor.rangedWeapon->lastFiredTimeSeconds, "Actor shot time");
         }
         if (nextActorId == std::numeric_limits<std::uint32_t>::max())
         {

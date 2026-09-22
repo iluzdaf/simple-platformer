@@ -1,6 +1,5 @@
 #include "simple_platformer/world/level_exit.hpp"
 
-#include <cmath>
 #include <optional>
 #include <stdexcept>
 
@@ -12,15 +11,6 @@
 
 namespace simple_platformer
 {
-    namespace
-    {
-        bool withinSimulationTime(const std::optional<float>& time, float simulationTimeSeconds)
-        {
-            return !time.has_value() ||
-                   (std::isfinite(*time) && *time >= 0.0F && *time <= simulationTimeSeconds);
-        }
-    }
-
     void validateLevelExit(const LevelExit& exit)
     {
         if (!simple_platformer::isFinite(exit.bounds.position) ||
@@ -49,11 +39,8 @@ namespace simple_platformer
         {
             itemDefinition(exit.requirement->item);
         }
-        if (!withinSimulationTime(exit.lastLockedTouchTimeSeconds, elapsedSimulationTimeSeconds) ||
-            !withinSimulationTime(exit.openedAtTimeSeconds, elapsedSimulationTimeSeconds))
-        {
-            throw std::invalid_argument("Exit times must be within simulation time");
-        }
+        requireWithinSimulationTime(exit.lastLockedTouchTimeSeconds, "Exit touch time");
+        requireWithinSimulationTime(exit.openedAtTimeSeconds, "Exit opening time");
         levelExit = exit;
         completed = false;
     }

@@ -21,6 +21,7 @@ namespace simple_platformer
             return;
         }
         world.advanceSimulationTime(deltaTime);
+        holdPlayerAtOpeningExit(world);
         WorldRequests requests;
         updateNpcSenses(map, world, deltaTime);
         updateNpcBehaviour(map, world, deltaTime);

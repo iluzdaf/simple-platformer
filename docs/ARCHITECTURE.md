@@ -122,17 +122,19 @@ breakpoint or stall does not cause an excessive catch-up.
 `updateWorldSimulation` is the authoritative gameplay order:
 
 1. Advance the World's shared simulation clock.
-2. Update NPC sensing and target memory.
-3. Update NPC decisions, destinations, paths, and intentions.
-4. Move every actor and resolve tile collision.
-5. Let pickups fall and resolve their tile collision.
-6. Advance attacks and evaluate active bite hitboxes.
-7. Move projectiles, find their earliest collision, and break the tiles they destroy.
-8. Advance existing projectile bursts and queue expired bursts for removal.
-9. Apply damage and advance actor life cycles.
-10. Detect automatic pickups.
-11. Apply queued world requests.
-12. Check the level exit.
+2. Hold the player still if they have entered the exit and it is still opening.
+3. Update NPC sensing and target memory.
+4. Update NPC decisions, destinations, paths, and intentions.
+5. Move every actor and resolve tile collision.
+6. Let pickups fall and resolve their tile collision.
+7. Advance attacks and evaluate active bite hitboxes.
+8. Move projectiles, find their earliest collision, and break the tiles they destroy.
+9. Advance existing projectile bursts and queue expired bursts for removal.
+10. Apply damage and advance actor life cycles.
+11. Detect automatic pickups.
+12. Apply queued world requests.
+13. Open the exit when the player enters it with what it needs, and complete the level
+    once it has had time to open.
 
 The player intentions are written before this sequence. The camera and
 `updateWorldPresentation` (actor animation and cover fades) run afterward on ordinary
@@ -525,7 +527,10 @@ player death.
 An exit can require an item and optionally consume it. Exit completion is latched so a
 requirement cannot be consumed twice. When the living player stands in an exit without
 its requirement, the exit records the time on the World clock, and the HUD draws the
-required item's icon above the door for a moment after. The simulation reports completion;
+required item's icon above the door for a moment after. Entering the exit with the
+requirement consumes it and stamps when the door started opening; the player holds still
+for `ExitOpenSeconds` while the screen fades them into the flashing door, and then the
+level completes. The simulation reports completion;
 `GameLevel` groups a level's data so callers cannot accidentally combine parts of
 different levels. `Game` replaces that value at a transition, carries over the player's current health and inventory,
 and resets the camera.

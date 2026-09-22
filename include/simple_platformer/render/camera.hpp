@@ -10,6 +10,7 @@ namespace simple_platformer
 
     struct Camera
     {
+        // Top-left of the viewport in world pixels.
         glm::vec2 position = {0.0F, 0.0F};
         glm::vec2 viewportSize = {320.0F, 180.0F};
     };

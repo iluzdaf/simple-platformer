@@ -109,7 +109,7 @@ TEST_CASE(
     simple_platformer::updateNpcBehaviour(map, world, 1.0F / 60.0F);
 
     REQUIRE(actor(world, npcId).intentions.direction.x < 0.0F);
-    REQUIRE(pathFollower(world, npcId).destination == simple_platformer::GridPosition{0, 1});
+    REQUIRE(pathFollower(world, npcId).destinationCell == simple_platformer::GridPosition{0, 1});
     REQUIRE(brain(world, npcId).lastSeenTargetFeet == lastSeenFeet);
 }
 
@@ -229,7 +229,7 @@ TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
-    REQUIRE(pathFollower(world, npcId).destination == simple_platformer::GridPosition{7, 1});
+    REQUIRE(pathFollower(world, npcId).destinationCell == simple_platformer::GridPosition{7, 1});
     REQUIRE_NEAR(pathFollower(world, npcId).repathRemaining, 0.25F);
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);

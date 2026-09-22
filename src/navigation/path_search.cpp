@@ -23,7 +23,7 @@ namespace simple_platformer
 
         struct SearchNode
         {
-            GridPosition position;
+            GridPosition cell;
             int costFromStart = 0;
             int estimatedTotalCost = 0;
             std::optional<IncomingConnection> incoming;
@@ -32,10 +32,10 @@ namespace simple_platformer
 
         int estimateRemainingCost(
             const GridHeuristicFunction& heuristic,
-            GridPosition position,
+            GridPosition cell,
             GridPosition goal)
         {
-            const int estimate = heuristic(position, goal);
+            const int estimate = heuristic(cell, goal);
             if (estimate < 0)
             {
                 throw std::invalid_argument("A path heuristic cannot return a negative cost");
@@ -43,14 +43,12 @@ namespace simple_platformer
             return estimate;
         }
 
-        std::optional<std::size_t> findNode(
-            const std::vector<SearchNode>& nodes,
-            GridPosition position)
+        std::optional<std::size_t> findNode(const std::vector<SearchNode>& nodes, GridPosition cell)
         {
             const auto node = std::find_if(
                 nodes.begin(),
                 nodes.end(),
-                [position](const SearchNode& candidate) { return candidate.position == position; });
+                [cell](const SearchNode& candidate) { return candidate.cell == cell; });
             if (node == nodes.end())
             {
                 return std::nullopt;
@@ -94,19 +92,19 @@ namespace simple_platformer
 
                 const IncomingConnection& incoming = currentNode.incoming.value();
                 steps.push_back(
-                    {incoming.neighbor.destination,
+                    {incoming.neighbor.destinationCell,
                      incoming.neighbor.traversal,
                      incoming.neighbor.inputs});
                 current = incoming.parentIndex;
             }
             std::reverse(steps.begin(), steps.end());
-            return {nodes[current].position, std::move(steps)};
+            return {nodes[current].cell, std::move(steps)};
         }
     }
 
-    int manhattanHeuristic(GridPosition position, GridPosition goal)
+    int manhattanHeuristic(GridPosition cell, GridPosition goal)
     {
-        return std::abs(position.x - goal.x) + std::abs(position.y - goal.y);
+        return std::abs(cell.x - goal.x) + std::abs(cell.y - goal.y);
     }
 
     std::optional<NavigationPath> findLowestCostPath(
@@ -144,16 +142,16 @@ namespace simple_platformer
             }
 
             SearchNode& currentNode = nodes[currentIndex.value()];
-            if (currentNode.position == goal)
+            if (currentNode.cell == goal)
             {
                 return reconstructPath(nodes, currentIndex.value());
             }
 
-            const GridPosition currentPosition = currentNode.position;
+            const GridPosition currentCell = currentNode.cell;
             const int costFromStart = currentNode.costFromStart;
             currentNode.closed = true;
 
-            for (const NavigationNeighbor& neighbor : neighbors(currentPosition))
+            for (const NavigationNeighbor& neighbor : neighbors(currentCell))
             {
                 if (neighbor.cost <= 0)
                 {
@@ -161,13 +159,14 @@ namespace simple_platformer
                 }
                 const int nextCost = costFromStart + neighbor.cost;
                 const std::optional<std::size_t> existingIndex =
-                    findNode(nodes, neighbor.destination);
+                    findNode(nodes, neighbor.destinationCell);
                 if (!existingIndex.has_value())
                 {
                     nodes.push_back(
-                        {neighbor.destination,
+                        {neighbor.destinationCell,
                          nextCost,
-                         nextCost + estimateRemainingCost(heuristic, neighbor.destination, goal),
+                         nextCost +
+                             estimateRemainingCost(heuristic, neighbor.destinationCell, goal),
                          IncomingConnection{currentIndex.value(), neighbor},
                          false});
                     continue;
@@ -178,7 +177,7 @@ namespace simple_platformer
                 {
                     existing.costFromStart = nextCost;
                     existing.estimatedTotalCost =
-                        nextCost + estimateRemainingCost(heuristic, neighbor.destination, goal);
+                        nextCost + estimateRemainingCost(heuristic, neighbor.destinationCell, goal);
                     existing.incoming = IncomingConnection{currentIndex.value(), neighbor};
                     existing.closed = false;
                 }

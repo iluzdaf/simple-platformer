@@ -21,12 +21,12 @@ namespace simple_platformer
         std::optional<NavigationPath> path;
         std::size_t nextStep = 0;
         float programElapsed = 0.0F;
-        std::optional<GridPosition> destination;
+        std::optional<GridPosition> destinationCell;
         float repathCooldown = 0.25F;
         float repathRemaining = 0.0F;
     };
 
-    void setPath(PathFollower& follower, NavigationPath path, GridPosition destination);
+    void setPath(PathFollower& follower, NavigationPath path, GridPosition destinationCell);
     void clearPath(PathFollower& follower);
     bool pathComplete(const PathFollower& follower);
     InputIntentions followFlyingPath(

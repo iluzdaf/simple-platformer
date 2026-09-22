@@ -11,27 +11,13 @@
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
+#include "support/animator.hpp"
 
 namespace
 {
-    simple_platformer::AnimationClip clip(simple_platformer::AnimationName name, float left)
-    {
-        return {name, {{{left, 0.0F}, {1.0F, 1.0F}}}, 0.1F, true};
-    }
-
     simple_platformer::Actor makeAnimatedActor()
     {
-        using simple_platformer::AnimationName;
-
-        simple_platformer::Animator animator;
-        animator.animationSet = {{
-            clip(AnimationName::Idle, 0.0F),
-            clip(AnimationName::Move, 1.0F),
-            clip(AnimationName::Jump, 2.0F),
-            clip(AnimationName::Fall, 3.0F),
-            clip(AnimationName::Attack, 4.0F),
-            clip(AnimationName::Death, 5.0F),
-        }};
+        const simple_platformer::Animator animator = tests::fullAnimator();
         simple_platformer::Actor actor = tests::ActorBuilder::sized({12.0F, 12.0F})
                                              .at({0.0F, 0.0F})
                                              .walking()

@@ -16,7 +16,6 @@
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/inventory/item.hpp"
-#include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -25,6 +24,8 @@
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
+#include "support/add_player.hpp"
+#include "support/fixed_step.hpp"
 
 TEST_CASE("World simulation advances its shared clock once per update", "[world][simulation][time]")
 {
@@ -55,14 +56,14 @@ TEST_CASE("World simulation spawns a projectile after projectile movement", "[wo
     player.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId playerId = world.addActor(player);
 
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     REQUIRE(world.projectiles().size() == 1);
     const float spawnPosition = world.projectiles().front().bounds.position.x;
 
     simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
     storedPlayer.intentions.primaryAttackPressed = false;
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectiles().front().bounds.position.x > spawnPosition);
@@ -78,8 +79,7 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
                                           .walking()
                                           .withHealth(3, 3)
                                           .onTeam(simple_platformer::Team::Player);
-    const simple_platformer::ActorId playerId = world.addActor(player);
-    world.setPlayer(playerId, {70.0F, 28.0F});
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .atFeet({22.0F, 28.0F})
@@ -90,7 +90,7 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
                                        .thinking({96.0F, 1.0F});
     const simple_platformer::ActorId npcId = world.addActor(npc);
 
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
     const simple_platformer::NpcBrain& brain = tests::brain(storedNpc);
@@ -109,8 +109,7 @@ TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][
                                           .walking()
                                           .withHealth(3, 3)
                                           .onTeam(simple_platformer::Team::Player);
-    const simple_platformer::ActorId playerId = world.addActor(player);
-    world.setPlayer(playerId, {54.0F, 28.0F});
+    tests::addPlayer(world, player);
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .atFeet({22.0F, 28.0F})
@@ -121,7 +120,7 @@ TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][
                                        .thinking({96.0F, 1.0F});
     const simple_platformer::ActorId npcId = world.addActor(npc);
 
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectiles().front().owner == npcId);
@@ -145,8 +144,7 @@ TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world
                                           .shooting();
     player.intentions.aimDirection = {1.0F, 0.0F};
     player.intentions.primaryAttackPressed = true;
-    const simple_platformer::ActorId playerId = world.addActor(player);
-    world.setPlayer(playerId, {86.0F, 48.0F});
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .atFeet({22.0F, 48.0F})
@@ -157,14 +155,14 @@ TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world
     const simple_platformer::ActorId npcId = world.addActor(npc);
 
     // Senses run before attacks, so the update that fires is not yet heard.
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
     REQUIRE(world.projectiles().size() == 1);
     simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
     REQUIRE_FALSE(tests::brain(storedNpc).target.has_value());
 
     simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
     storedPlayer.intentions.primaryAttackPressed = false;
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     REQUIRE(tests::brain(world, npcId).target == playerId);
     REQUIRE_FALSE(tests::brain(world, npcId).targetVisible);
@@ -198,7 +196,7 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
     bool previousHeadingToSecond = true;
     for (int tick = 0; tick < 1200 && completedPatrolLegs < 4; ++tick)
     {
-        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
         const simple_platformer::PlatformerMovement& movement =
             tests::platformerMovement(storedNpc);
@@ -258,7 +256,7 @@ TEST_CASE(
     bool completedPatrolLeg = false;
     for (int tick = 0; tick < 900 && !completedPatrolLeg; ++tick)
     {
-        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
         becameAirborne = becameAirborne || !tests::platformerMovement(storedNpc).grounded;
         completedPatrolLeg = tests::patrol(storedNpc).headingToSecond;
@@ -281,8 +279,7 @@ TEST_CASE(
                                           .walking()
                                           .withHealth(3, 3)
                                           .onTeam(simple_platformer::Team::Player);
-    const simple_platformer::ActorId playerId = world.addActor(player);
-    world.setPlayer(playerId, simple_platformer::feetOf(player.body.bounds));
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
 
     constexpr simple_platformer::GridPosition LeftPatrolCell{2, 1};
     constexpr simple_platformer::GridPosition RightPatrolCell{4, 1};
@@ -310,7 +307,7 @@ TEST_CASE(
     tests::patrol(zombie).headingToSecond = false;
     const simple_platformer::ActorId zombieId = world.addActor(zombie);
 
-    simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
     REQUIRE(tests::brain(storedZombie).state == simple_platformer::NpcState::Patrol);
@@ -318,7 +315,7 @@ TEST_CASE(
 
     for (int tick = 0; tick < 180; ++tick)
     {
-        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
     }
 
     const glm::vec2 finalFeet =
@@ -335,7 +332,6 @@ TEST_CASE(
     // edge hides the player before the jump and again after landing.
     simple_platformer::TileMap map = tests::TileMapBuilder(
         {"..........", "..........", "...#######", "..........", "##########"});
-    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     constexpr int JumpAndLandingTicks = 40;
     constexpr int RememberedChaseTicks = 30;
 
@@ -345,8 +341,7 @@ TEST_CASE(
                                           .walking()
                                           .onTeam(simple_platformer::Team::Player);
     tests::platformerMovement(player).grounded = true;
-    const simple_platformer::ActorId playerId = world.addActor(player);
-    world.setPlayer(playerId, simple_platformer::feetOf(player.body.bounds));
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
 
     simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
                                           .inCell({7, 1})
@@ -364,7 +359,7 @@ TEST_CASE(
         simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
         storedPlayer.intentions.jumpPressed = tick == 0;
         storedPlayer.intentions.jumpHeld = tick < 25;
-        simple_platformer::updateWorldSimulation(map, world, DeltaTime);
+        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
         seenDuringJump = seenDuringJump ||
                          (tests::brain(storedZombie).targetVisible &&
@@ -389,7 +384,7 @@ TEST_CASE(
     float distanceToRememberedPosition = startingDistance;
     for (int tick = 0; tick < RememberedChaseTicks; ++tick)
     {
-        simple_platformer::updateWorldSimulation(map, world, DeltaTime);
+        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
         REQUIRE_FALSE(tests::brain(storedZombie).targetVisible);
         REQUIRE(tests::brain(storedZombie).target == playerId);
@@ -410,7 +405,6 @@ TEST_CASE(
 {
     simple_platformer::TileMap map = tests::TileMapBuilder(
         {"..........", "..........", "..#######.", "..........", "##########"});
-    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     constexpr int MaximumChaseTicks = 180;
     const glm::vec2 upperPlatformFeet = simple_platformer::feetInCell(tests::TileSize, {2, 1});
     const float platformLeftEdge = simple_platformer::gridToWorld(tests::TileSize, {2, 2}).x;
@@ -427,8 +421,7 @@ TEST_CASE(
                                           .walking()
                                           .onTeam(simple_platformer::Team::Player);
     tests::platformerMovement(player).grounded = true;
-    const simple_platformer::ActorId playerId = world.addActor(player);
-    world.setPlayer(playerId, playerFeet);
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
 
     simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
                                           .inCell({6, 1})
@@ -439,7 +432,7 @@ TEST_CASE(
     tests::platformerMovement(zombie).grounded = true;
     const simple_platformer::ActorId zombieId = world.addActor(zombie);
 
-    simple_platformer::updateWorldSimulation(map, world, DeltaTime);
+    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     simple_platformer::Actor& chasingZombie = tests::actor(world, zombieId);
     REQUIRE(tests::brain(chasingZombie).targetVisible);
@@ -452,7 +445,7 @@ TEST_CASE(
     float distanceToPlayer = startingDistance;
     for (int tick = 0; tick < MaximumChaseTicks && distanceToPlayer > CloseDistance; ++tick)
     {
-        simple_platformer::updateWorldSimulation(map, world, DeltaTime);
+        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
         simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
         REQUIRE(tests::brain(storedZombie).targetVisible);
@@ -488,7 +481,7 @@ TEST_CASE(
     bool headingToSecond = true;
     for (int tick = 0; tick < 1200 && completedPatrolLegs < 4; ++tick)
     {
-        simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
+        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         simple_platformer::Actor& storedBat = tests::actor(world, batId);
         if (tests::patrol(storedBat).headingToSecond != headingToSecond)
         {

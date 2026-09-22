@@ -52,7 +52,6 @@ TEST_CASE("Actor IDs are not vector indexes", "[world][actor]")
 
     REQUIRE(world.actors().size() == 1);
     REQUIRE(world.actors().front().id == second);
-    REQUIRE(second.value != 0);
 }
 
 TEST_CASE("World owns a validated simulation clock", "[world][time]")

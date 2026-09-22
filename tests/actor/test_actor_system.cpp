@@ -25,9 +25,7 @@ TEST_CASE("Actor movement consumes its intentions", "[actor][movement]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"..........", "##########"});
     simple_platformer::Actor actor = makeActor({22.0F, 16.0F});
-    simple_platformer::PlatformerMovement movement;
-    movement.grounded = true;
-    actor.platformerMovement = movement;
+    tests::platformerMovement(actor).grounded = true;
     actor.intentions.direction.x = 1.0F;
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(actor);
@@ -65,9 +63,7 @@ TEST_CASE("Aim direction controls horizontal facing independently of movement", 
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"..........", "##########"});
     simple_platformer::Actor actor = makeActor({22.0F, 16.0F});
-    simple_platformer::PlatformerMovement movement;
-    movement.grounded = true;
-    actor.platformerMovement = movement;
+    tests::platformerMovement(actor).grounded = true;
     actor.intentions.direction.x = 1.0F;
     actor.intentions.aimDirection = {-1.0F, -1.0F};
     simple_platformer::World world;

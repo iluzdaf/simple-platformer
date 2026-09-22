@@ -1,7 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <algorithm>
-#include <stdexcept>
 #include <vector>
 
 #include "simple_platformer/input/input_state.hpp"
@@ -13,11 +11,12 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/physics/body.hpp"
-#include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
+#include "support/fixed_step.hpp"
+#include "support/neighbor_with.hpp"
 
 TEST_CASE("A flying path follower produces intentions for its next step", "[navigation][path]")
 {
@@ -30,22 +29,22 @@ TEST_CASE("A flying path follower produces intentions for its next step", "[navi
         {1, 1});
     simple_platformer::Aabb bounds{{4.0F, 4.0F}, {8.0F, 12.0F}};
     const simple_platformer::FlyingMovement movement;
-    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
 
-    const simple_platformer::InputIntentions right =
-        simple_platformer::followFlyingPath(tests::TileSize, bounds, movement, follower, DeltaTime);
+    const simple_platformer::InputIntentions right = simple_platformer::followFlyingPath(
+        tests::TileSize, bounds, movement, follower, tests::FixedStepSeconds);
     REQUIRE(right.direction.x == 1.0F);
     REQUIRE(right.direction.y == 0.0F);
 
     bounds = simple_platformer::boxInCell(tests::TileSize, {1, 0}, bounds.size);
-    const simple_platformer::InputIntentions down =
-        simple_platformer::followFlyingPath(tests::TileSize, bounds, movement, follower, DeltaTime);
+    const simple_platformer::InputIntentions down = simple_platformer::followFlyingPath(
+        tests::TileSize, bounds, movement, follower, tests::FixedStepSeconds);
     REQUIRE(down.direction.x == 0.0F);
     REQUIRE(down.direction.y == 1.0F);
 
     bounds = simple_platformer::boxInCell(tests::TileSize, {1, 1}, bounds.size);
     REQUIRE(
-        simple_platformer::followFlyingPath(tests::TileSize, bounds, movement, follower, DeltaTime)
+        simple_platformer::followFlyingPath(
+            tests::TileSize, bounds, movement, follower, tests::FixedStepSeconds)
             .direction == glm::vec2{0.0F});
     REQUIRE(simple_platformer::pathComplete(follower));
 }
@@ -57,10 +56,9 @@ TEST_CASE("A flying path follower uses the exact remaining waypoint distance", "
         follower, {{0, 0}, {{{1, 0}, simple_platformer::Traversal::Fly, {}}}}, {1, 0});
     simple_platformer::Aabb bounds{{19.75F, 4.0F}, {8.0F, 12.0F}};
     const simple_platformer::FlyingMovement movement{60.0F};
-    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
 
-    const simple_platformer::InputIntentions intentions =
-        simple_platformer::followFlyingPath(tests::TileSize, bounds, movement, follower, DeltaTime);
+    const simple_platformer::InputIntentions intentions = simple_platformer::followFlyingPath(
+        tests::TileSize, bounds, movement, follower, tests::FixedStepSeconds);
 
     REQUIRE_NEAR(intentions.direction.x, 0.25F);
     REQUIRE(intentions.direction.y == 0.0F);
@@ -77,40 +75,32 @@ TEST_CASE(
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
         simple_platformer::platformerNeighbors(map, {2, 2}, bodySize, config);
-    const auto jump = std::find_if(
-        neighbors.begin(),
-        neighbors.end(),
-        [](const simple_platformer::NavigationNeighbor& neighbor)
-        { return neighbor.traversal == simple_platformer::Traversal::Jump; });
-    if (jump == neighbors.end())
-    {
-        throw std::logic_error("The test level did not produce a jump");
-    }
+    const simple_platformer::NavigationNeighbor& jump =
+        tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
 
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower,
-        {{2, 2}, {{jump->destinationCell, jump->traversal, jump->inputs}}},
-        jump->destinationCell);
+        {{2, 2}, {{jump.destinationCell, jump.traversal, jump.inputs}}},
+        jump.destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
-    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
 
     for (int tick = 0; tick < 180 && !simple_platformer::pathComplete(follower); ++tick)
     {
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
-                tests::TileSize, body, movement, follower, DeltaTime);
+                tests::TileSize, body, movement, follower, tests::FixedStepSeconds);
         simple_platformer::updatePlatformerMovement(
-            map, body, movement, intentions, facing, DeltaTime);
+            map, body, movement, intentions, facing, tests::FixedStepSeconds);
     }
 
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump->destinationCell);
+        jump.destinationCell);
 }
 
 TEST_CASE(
@@ -123,27 +113,19 @@ TEST_CASE(
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
         simple_platformer::platformerNeighbors(map, {2, 2}, bodySize, config);
-    const auto jump = std::find_if(
-        neighbors.begin(),
-        neighbors.end(),
-        [](const simple_platformer::NavigationNeighbor& neighbor)
-        { return neighbor.traversal == simple_platformer::Traversal::Jump; });
-    if (jump == neighbors.end())
-    {
-        throw std::logic_error("The test level did not produce a jump");
-    }
+    const simple_platformer::NavigationNeighbor& jump =
+        tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
 
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower,
-        {{2, 2}, {{jump->destinationCell, jump->traversal, jump->inputs}}},
-        jump->destinationCell);
+        {{2, 2}, {{jump.destinationCell, jump.traversal, jump.inputs}}},
+        jump.destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {80.0F, 0.0F}};
     body.bounds.position.x -= 6.0F;
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
-    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     bool preparedForJump = false;
 
     for (int tick = 0; tick < 240 && !simple_platformer::pathComplete(follower); ++tick)
@@ -152,20 +134,20 @@ TEST_CASE(
         const glm::vec2 velocityBeforeFollowing = body.velocity;
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
-                tests::TileSize, body, movement, follower, DeltaTime);
+                tests::TileSize, body, movement, follower, tests::FixedStepSeconds);
         preparedForJump = preparedForJump || follower.programElapsed == 0.0F;
 
         REQUIRE(body.bounds.position == positionBeforeFollowing);
         REQUIRE(body.velocity == velocityBeforeFollowing);
         simple_platformer::updatePlatformerMovement(
-            map, body, movement, intentions, facing, DeltaTime);
+            map, body, movement, intentions, facing, tests::FixedStepSeconds);
     }
 
     REQUIRE(preparedForJump);
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump->destinationCell);
+        jump.destinationCell);
 }
 
 TEST_CASE(
@@ -178,45 +160,37 @@ TEST_CASE(
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
         simple_platformer::platformerNeighbors(map, {2, 2}, bodySize, config);
-    const auto jump = std::find_if(
-        neighbors.begin(),
-        neighbors.end(),
-        [](const simple_platformer::NavigationNeighbor& neighbor)
-        { return neighbor.traversal == simple_platformer::Traversal::Jump; });
-    if (jump == neighbors.end())
-    {
-        throw std::logic_error("The test level did not produce a jump");
-    }
+    const simple_platformer::NavigationNeighbor& jump =
+        tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
 
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower,
         {{1, 2},
          {{{2, 2}, simple_platformer::Traversal::Walk, {}},
-          {jump->destinationCell, jump->traversal, jump->inputs}}},
-        jump->destinationCell);
+          {jump.destinationCell, jump.traversal, jump.inputs}}},
+        jump.destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {1, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     simple_platformer::Facing facing = simple_platformer::Facing::Right;
-    constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     bool brakedAfterWalking = false;
 
     for (int tick = 0; tick < 360 && !simple_platformer::pathComplete(follower); ++tick)
     {
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
-                tests::TileSize, body, movement, follower, DeltaTime);
+                tests::TileSize, body, movement, follower, tests::FixedStepSeconds);
         brakedAfterWalking =
             brakedAfterWalking ||
             (follower.nextStep == 0 && body.velocity.x != 0.0F && intentions.direction.x == 0.0F);
         simple_platformer::updatePlatformerMovement(
-            map, body, movement, intentions, facing, DeltaTime);
+            map, body, movement, intentions, facing, tests::FixedStepSeconds);
     }
 
     REQUIRE(brakedAfterWalking);
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump->destinationCell);
+        jump.destinationCell);
 }

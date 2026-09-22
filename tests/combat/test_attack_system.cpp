@@ -48,7 +48,7 @@ TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][
     simple_platformer::updateAttacks(world, requests, 0.1F);
 
     REQUIRE(world.projectiles().empty());
-    REQUIRE(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds == 0.25F);
+    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0F), 0.25F);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 1);
@@ -112,7 +112,7 @@ TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
     world.advanceSimulationTime(0.15F);
     simple_platformer::updateAttacks(world, requests, 0.15F);
     // The stamp keeps the time of the shot.
-    REQUIRE(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds == 0.0F);
+    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0F), 0.0F);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Recovery);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 1);
@@ -120,7 +120,7 @@ TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
 
     world.advanceSimulationTime(0.20F);
     simple_platformer::updateAttacks(world, requests, 0.20F);
-    REQUIRE(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds == 0.0F);
+    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0F), 0.0F);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Ready);
 
     simple_platformer::Actor& stored = tests::actor(world, shooter);

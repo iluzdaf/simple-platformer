@@ -106,11 +106,11 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
     tests::addPlayer(world, actor);
 
     const simple_platformer::RenderScene scene =
-        simple_platformer::buildRenderScene(map, 7, camera, world);
+        simple_platformer::buildRenderScene(map, TileTexture, camera, world);
 
     REQUIRE(scene.sprites.size() == 3);
 
-    REQUIRE(scene.sprites[0].textureId == 7);
+    REQUIRE(scene.sprites[0].textureId == TileTexture);
     REQUIRE(scene.sprites[0].position.x == 0.0F);
     REQUIRE(scene.sprites[0].source.position.x == 5.0F);
     REQUIRE_FALSE(scene.sprites[0].flipHorizontal);
@@ -131,8 +131,8 @@ TEST_CASE("Tile rendering includes non-solid tiles and preserves each region", "
             .where('a', tests::Tile().withSprite({{16, 0}, {16, 16}}))
             .where(
                 'b', tests::Tile().blocksMovement().blocksSight().withSprite({{32, 0}, {16, 16}}));
-    const auto scene =
-        simple_platformer::buildRenderScene(map, 7, {{0, 0}, {48, 16}}, simple_platformer::World{});
+    const auto scene = simple_platformer::buildRenderScene(
+        map, TileTexture, {{0, 0}, {48, 16}}, simple_platformer::World{});
     REQUIRE(scene.sprites.size() == 2);
     REQUIRE(scene.sprites[0].source.position.x == 16);
     REQUIRE(scene.sprites[1].source.position.x == 32);

@@ -17,7 +17,6 @@
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/add_player.hpp"
-#include "support/add_player.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"

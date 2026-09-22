@@ -23,6 +23,7 @@ namespace simple_platformer
 
     // Optimistic remaining travel time in fixed simulation ticks.
     int platformerTickHeuristic(
+        int tileSize,
         GridPosition position,
         GridPosition goal,
         const PlatformerMovementConfig& movement);

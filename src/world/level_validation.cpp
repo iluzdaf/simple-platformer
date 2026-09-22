@@ -10,7 +10,6 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -21,17 +20,19 @@ namespace simple_platformer
     {
         constexpr float InsideBody = 0.001F;
 
-        int tileContaining(float position)
+        int tileContaining(int tileSize, float position)
         {
-            return static_cast<int>(std::floor(position / static_cast<float>(TileSize)));
+            return static_cast<int>(std::floor(position / static_cast<float>(tileSize)));
         }
 
         bool hasClearance(const TileMap& map, const Aabb& bounds)
         {
-            const int firstColumn = tileContaining(bounds.position.x + InsideBody);
-            const int lastColumn = tileContaining(bounds.position.x + bounds.size.x - InsideBody);
-            const int firstRow = tileContaining(bounds.position.y + InsideBody);
-            const int lastRow = tileContaining(bounds.position.y + bounds.size.y - InsideBody);
+            const int firstColumn = tileContaining(map.tileSize(), bounds.position.x + InsideBody);
+            const int lastColumn =
+                tileContaining(map.tileSize(), bounds.position.x + bounds.size.x - InsideBody);
+            const int firstRow = tileContaining(map.tileSize(), bounds.position.y + InsideBody);
+            const int lastRow =
+                tileContaining(map.tileSize(), bounds.position.y + bounds.size.y - InsideBody);
 
             for (int row = firstRow; row <= lastRow; ++row)
             {
@@ -48,9 +49,11 @@ namespace simple_platformer
 
         bool hasGroundSupport(const TileMap& map, const Aabb& bounds)
         {
-            const int firstColumn = tileContaining(bounds.position.x + InsideBody);
-            const int lastColumn = tileContaining(bounds.position.x + bounds.size.x - InsideBody);
-            const int rowBelow = tileContaining(bounds.position.y + bounds.size.y + InsideBody);
+            const int firstColumn = tileContaining(map.tileSize(), bounds.position.x + InsideBody);
+            const int lastColumn =
+                tileContaining(map.tileSize(), bounds.position.x + bounds.size.x - InsideBody);
+            const int rowBelow =
+                tileContaining(map.tileSize(), bounds.position.y + bounds.size.y + InsideBody);
 
             for (int column = firstColumn; column <= lastColumn; ++column)
             {

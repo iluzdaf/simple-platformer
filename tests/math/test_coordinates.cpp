@@ -63,16 +63,30 @@ TEST_CASE("World and grid coordinates convert at tile boundaries", "[math][coord
 {
     using simple_platformer::GridPosition;
 
-    REQUIRE(simple_platformer::worldToGrid({0.0F, 0.0F}) == GridPosition{0, 0});
-    REQUIRE(simple_platformer::worldToGrid({15.9F, 31.9F}) == GridPosition{0, 1});
-    REQUIRE(simple_platformer::worldToGrid({16.0F, 32.0F}) == GridPosition{1, 2});
-    REQUIRE(simple_platformer::worldToGrid({-0.1F, -16.1F}) == GridPosition{-1, -2});
-    REQUIRE_NEAR(simple_platformer::gridToWorld({2, 3}).x, 32.0F);
-    REQUIRE_NEAR(simple_platformer::gridToWorld({2, 3}).y, 48.0F);
+    REQUIRE(simple_platformer::worldToGrid(16, {0.0F, 0.0F}) == GridPosition{0, 0});
+    REQUIRE(simple_platformer::worldToGrid(16, {15.9F, 31.9F}) == GridPosition{0, 1});
+    REQUIRE(simple_platformer::worldToGrid(16, {16.0F, 32.0F}) == GridPosition{1, 2});
+    REQUIRE(simple_platformer::worldToGrid(16, {-0.1F, -16.1F}) == GridPosition{-1, -2});
+    REQUIRE_NEAR(simple_platformer::gridToWorld(16, {2, 3}).x, 32.0F);
+    REQUIRE_NEAR(simple_platformer::gridToWorld(16, {2, 3}).y, 48.0F);
+}
+
+TEST_CASE("The tile size scales every cell conversion", "[math][coordinates]")
+{
+    using simple_platformer::GridPosition;
+
+    REQUIRE(simple_platformer::worldToGrid(32, {31.9F, 32.0F}) == GridPosition{0, 1});
+    REQUIRE(simple_platformer::gridToWorld(32, {2, 3}) == glm::vec2{64.0F, 96.0F});
+    REQUIRE(simple_platformer::cellAtFeet(32, {48.0F, 64.0F}) == GridPosition{1, 1});
+    REQUIRE(simple_platformer::feetInCell(32, {1, 1}) == glm::vec2{48.0F, 64.0F});
+    REQUIRE(
+        simple_platformer::boxInCell(32, {1, 1}, {12.0F, 20.0F}).position ==
+        glm::vec2{42.0F, 44.0F});
 }
 
 TEST_CASE("Cells and feet convert on tile boundaries", "[math][coordinates]")
 {
-    REQUIRE(simple_platformer::cellAtFeet({24.0F, 32.0F}) == simple_platformer::GridPosition{1, 1});
-    REQUIRE(simple_platformer::feetInCell({1, 1}) == glm::vec2{24.0F, 32.0F});
+    REQUIRE(
+        simple_platformer::cellAtFeet(16, {24.0F, 32.0F}) == simple_platformer::GridPosition{1, 1});
+    REQUIRE(simple_platformer::feetInCell(16, {1, 1}) == glm::vec2{24.0F, 32.0F});
 }

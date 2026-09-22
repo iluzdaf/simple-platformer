@@ -27,6 +27,7 @@
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/tile_size.hpp"
 
 TEST_CASE("Debug overlay data supports actors without presentation components", "[app][debug]")
 {
@@ -304,24 +305,24 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
     REQUIRE(path.hasPath);
     REQUIRE(path.nextStep == 1);
     REQUIRE(path.stepCount == 3);
-    REQUIRE(path.destination == simple_platformer::GridPosition{4, 3});
+    REQUIRE(path.destinationFeet == simple_platformer::feetInCell(tests::TileSize, {4, 3}));
     REQUIRE(path.repathRemaining == 0.12F);
     REQUIRE(path.connections.size() == 3);
 
-    REQUIRE(path.connections[0].fromFeet == simple_platformer::feetInCell({1, 2}));
-    REQUIRE(path.connections[0].toFeet == simple_platformer::feetInCell({3, 2}));
+    REQUIRE(path.connections[0].fromFeet == simple_platformer::feetInCell(tests::TileSize, {1, 2}));
+    REQUIRE(path.connections[0].toFeet == simple_platformer::feetInCell(tests::TileSize, {3, 2}));
     REQUIRE(path.connections[0].traversal == simple_platformer::Traversal::Walk);
     REQUIRE(path.connections[0].completed);
     REQUIRE_FALSE(path.connections[0].next);
 
-    REQUIRE(path.connections[1].fromFeet == simple_platformer::feetInCell({3, 2}));
-    REQUIRE(path.connections[1].toFeet == simple_platformer::feetInCell({4, 1}));
+    REQUIRE(path.connections[1].fromFeet == simple_platformer::feetInCell(tests::TileSize, {3, 2}));
+    REQUIRE(path.connections[1].toFeet == simple_platformer::feetInCell(tests::TileSize, {4, 1}));
     REQUIRE(path.connections[1].traversal == simple_platformer::Traversal::Jump);
     REQUIRE_FALSE(path.connections[1].completed);
     REQUIRE(path.connections[1].next);
 
-    REQUIRE(path.connections[2].fromFeet == simple_platformer::feetInCell({4, 1}));
-    REQUIRE(path.connections[2].toFeet == simple_platformer::feetInCell({4, 3}));
+    REQUIRE(path.connections[2].fromFeet == simple_platformer::feetInCell(tests::TileSize, {4, 1}));
+    REQUIRE(path.connections[2].toFeet == simple_platformer::feetInCell(tests::TileSize, {4, 3}));
     REQUIRE(path.connections[2].traversal == simple_platformer::Traversal::Fall);
     REQUIRE_FALSE(path.connections[2].completed);
     REQUIRE_FALSE(path.connections[2].next);
@@ -367,7 +368,7 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
 
     REQUIRE(path.connections.size() == 1);
     REQUIRE(path.connections.front().sampledFeet.size() > 2);
-    const float takeoffY = simple_platformer::feetInCell({2, 2}).y;
+    const float takeoffY = simple_platformer::feetInCell(tests::TileSize, {2, 2}).y;
     const bool risesAboveTakeoff = std::any_of(
         path.connections.front().sampledFeet.begin(),
         path.connections.front().sampledFeet.end(),

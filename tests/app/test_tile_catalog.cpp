@@ -10,6 +10,7 @@
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
+#include "support/tile_size.hpp"
 
 TEST_CASE("Tile catalogues reject unknown fields and identify their definitions", "[app][tiles]")
 {
@@ -45,10 +46,10 @@ TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][
                   "sprite":{"position": [32, 0], "size": [16, 16]}}
     }})",
         "test tiles");
-    const auto glass =
-        simple_platformer::composeTileMap({".X."}, {{'.', "empty"}, {'X', "glass"}}, catalog);
-    const auto grass =
-        simple_platformer::composeTileMap({".G."}, {{'.', "empty"}, {'G', "grass"}}, catalog);
+    const auto glass = simple_platformer::composeTileMap(
+        tests::TileSize, {".X."}, {{'.', "empty"}, {'X', "glass"}}, catalog);
+    const auto grass = simple_platformer::composeTileMap(
+        tests::TileSize, {".G."}, {{'.', "empty"}, {'G', "grass"}}, catalog);
     REQUIRE(glass.blocksMovement({1, 0}));
     REQUIRE_FALSE(glass.blocksSight({1, 0}));
     REQUIRE_FALSE(grass.blocksMovement({1, 0}));
@@ -64,9 +65,10 @@ TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][
     REQUIRE_FALSE(
         simple_platformer::segmentCastMovementBlockingTiles(grass, {4, 4}, {38, 4}).has_value());
     REQUIRE_THROWS_AS(
-        simple_platformer::composeTileMap({"?"}, {{'.', "empty"}}, catalog), std::invalid_argument);
+        simple_platformer::composeTileMap(tests::TileSize, {"?"}, {{'.', "empty"}}, catalog),
+        std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::composeTileMap({"X"}, {{'X', "missing"}}, catalog),
+        simple_platformer::composeTileMap(tests::TileSize, {"X"}, {{'X', "missing"}}, catalog),
         std::invalid_argument);
 }
 

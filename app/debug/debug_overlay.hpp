@@ -9,7 +9,6 @@
 
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 
 namespace simple_platformer
@@ -49,7 +48,8 @@ namespace simple_platformer
         bool hasPath = false;
         std::size_t nextStep = 0;
         std::size_t stepCount = 0;
-        std::optional<GridPosition> destination;
+        // Resolved to feet here, like the connections, so the UI draws without cell maths.
+        std::optional<glm::vec2> destinationFeet;
         float repathRemaining = 0.0F;
         std::vector<PathConnectionDebugInfo> connections;
     };

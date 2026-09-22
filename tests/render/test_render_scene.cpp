@@ -22,6 +22,7 @@
 #include "support/require_near.hpp"
 #include "support/actor_builder.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/tile_size.hpp"
 
 namespace
 {
@@ -57,7 +58,7 @@ namespace
 
     void addPlayerIn(simple_platformer::World& world, simple_platformer::GridPosition cell)
     {
-        const glm::vec2 feet = simple_platformer::feetInCell(cell);
+        const glm::vec2 feet = simple_platformer::feetInCell(tests::TileSize, cell);
         const simple_platformer::ActorId player =
             world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                .atFeet(feet)
@@ -69,7 +70,7 @@ namespace
     void addNpcIn(simple_platformer::World& world, simple_platformer::GridPosition cell)
     {
         world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                           .atFeet(simple_platformer::feetInCell(cell))
+                           .atFeet(simple_platformer::feetInCell(tests::TileSize, cell))
                            .flying(0.0F)
                            .withSprite(square(NpcTexture, 12.0F)));
     }
@@ -278,7 +279,7 @@ TEST_CASE("NPCs and pickups the player cannot see are not drawn", "[render][scen
     simple_platformer::World world = worldWithPickupItem();
     addPlayerIn(world, {0, 1});
     addNpcIn(world, {4, 1});
-    world.addPickup({simple_platformer::boxInCell({3, 1}, {8.0F, 8.0F}), {1, 1}});
+    world.addPickup({simple_platformer::boxInCell(tests::TileSize, {3, 1}, {8.0F, 8.0F}), {1, 1}});
     addNpcIn(world, {7, 1});
 
     const simple_platformer::RenderScene scene =

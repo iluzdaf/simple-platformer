@@ -23,6 +23,7 @@
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/tile_size.hpp"
 
 TEST_CASE("World simulation advances its shared clock once per update", "[world][simulation][time]")
 {
@@ -176,8 +177,8 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
     simple_platformer::World world;
     constexpr simple_platformer::GridPosition LowerEndpoint{2, 4};
     constexpr simple_platformer::GridPosition UpperEndpoint{4, 2};
-    const glm::vec2 lowerFeet = simple_platformer::feetInCell(LowerEndpoint);
-    const glm::vec2 upperFeet = simple_platformer::feetInCell(UpperEndpoint);
+    const glm::vec2 lowerFeet = simple_platformer::feetInCell(tests::TileSize, LowerEndpoint);
+    const glm::vec2 upperFeet = simple_platformer::feetInCell(tests::TileSize, UpperEndpoint);
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .atFeet(lowerFeet)
@@ -201,8 +202,8 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
         const simple_platformer::PlatformerMovement& movement =
             tests::platformerMovement(storedNpc);
         const simple_platformer::Patrol& patrol = tests::patrol(storedNpc);
-        const simple_platformer::GridPosition cell =
-            simple_platformer::cellAtFeet(simple_platformer::feetOf(storedNpc.body.bounds));
+        const simple_platformer::GridPosition cell = simple_platformer::cellAtFeet(
+            tests::TileSize, simple_platformer::feetOf(storedNpc.body.bounds));
 
         enteredPatrol =
             enteredPatrol || tests::brain(storedNpc).state == simple_platformer::NpcState::Patrol;
@@ -239,14 +240,15 @@ TEST_CASE(
     constexpr simple_platformer::GridPosition FirstEndpoint{4, 2};
     constexpr simple_platformer::GridPosition SpawnCell{12, 2};
     constexpr simple_platformer::GridPosition SecondEndpoint{12, 2};
-    const glm::vec2 firstFeet = simple_platformer::feetInCell(FirstEndpoint);
-    const glm::vec2 secondFeet = simple_platformer::feetInCell(SecondEndpoint);
+    const glm::vec2 firstFeet = simple_platformer::feetInCell(tests::TileSize, FirstEndpoint);
+    const glm::vec2 secondFeet = simple_platformer::feetInCell(tests::TileSize, SecondEndpoint);
 
-    simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 20.0F})
-                                       .atFeet(simple_platformer::feetInCell(SpawnCell))
-                                       .walking()
-                                       .patrolling(firstFeet, secondFeet)
-                                       .thinking({});
+    simple_platformer::Actor npc =
+        tests::ActorBuilder::sized({12.0F, 20.0F})
+            .atFeet(simple_platformer::feetInCell(tests::TileSize, SpawnCell))
+            .walking()
+            .patrolling(firstFeet, secondFeet)
+            .thinking({});
     tests::platformerMovement(npc).config.maximumSpeed = 60.0F;
     tests::platformerMovement(npc).grounded = true;
     tests::patrol(npc).headingToSecond = false;
@@ -284,8 +286,9 @@ TEST_CASE(
 
     constexpr simple_platformer::GridPosition LeftPatrolCell{2, 1};
     constexpr simple_platformer::GridPosition RightPatrolCell{4, 1};
-    const glm::vec2 leftPatrolFeet = simple_platformer::feetInCell(LeftPatrolCell);
-    const glm::vec2 rightPatrolFeet = simple_platformer::feetInCell(RightPatrolCell);
+    const glm::vec2 leftPatrolFeet = simple_platformer::feetInCell(tests::TileSize, LeftPatrolCell);
+    const glm::vec2 rightPatrolFeet =
+        simple_platformer::feetInCell(tests::TileSize, RightPatrolCell);
 
     constexpr float PlatformRightEdge = 80.0F;
     // Its feet have crossed into the unsupported cell, but the left side of its
@@ -337,19 +340,21 @@ TEST_CASE(
     constexpr int RememberedChaseTicks = 30;
 
     simple_platformer::World world;
-    simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 20.0F})
-                                          .atFeet(simple_platformer::feetInCell({2, 3}))
-                                          .walking()
-                                          .onTeam(simple_platformer::Team::Player);
+    simple_platformer::Actor player =
+        tests::ActorBuilder::sized({12.0F, 20.0F})
+            .atFeet(simple_platformer::feetInCell(tests::TileSize, {2, 3}))
+            .walking()
+            .onTeam(simple_platformer::Team::Player);
     tests::platformerMovement(player).grounded = true;
     const simple_platformer::ActorId playerId = world.addActor(player);
     world.setPlayer(playerId, simple_platformer::feetOf(player.body.bounds));
 
-    simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
-                                          .atFeet(simple_platformer::feetInCell({7, 1}))
-                                          .walking()
-                                          .onTeam(simple_platformer::Team::Enemy)
-                                          .thinking({});
+    simple_platformer::Actor zombie =
+        tests::ActorBuilder::sized({12.0F, 20.0F})
+            .atFeet(simple_platformer::feetInCell(tests::TileSize, {7, 1}))
+            .walking()
+            .onTeam(simple_platformer::Team::Enemy)
+            .thinking({});
     tests::platformerMovement(zombie).grounded = true;
     const simple_platformer::ActorId zombieId = world.addActor(zombie);
 
@@ -375,7 +380,9 @@ TEST_CASE(
     REQUIRE(tests::brain(rememberedZombie).state == simple_platformer::NpcState::Chase);
     const glm::vec2 lastSeenFeet = tests::brain(rememberedZombie).lastSeenTargetFeet;
     REQUIRE_FALSE(simple_platformer::canStandAt(
-        map, simple_platformer::cellAtFeet(lastSeenFeet), rememberedZombie.body.bounds.size));
+        map,
+        simple_platformer::cellAtFeet(tests::TileSize, lastSeenFeet),
+        rememberedZombie.body.bounds.size));
     const float startingDistance =
         glm::distance(simple_platformer::feetOf(rememberedZombie.body.bounds), lastSeenFeet);
 
@@ -395,7 +402,7 @@ TEST_CASE(
             glm::distance(simple_platformer::feetOf(storedZombie.body.bounds), lastSeenFeet);
     }
     CAPTURE(startingDistance, distanceToRememberedPosition);
-    constexpr float MinimumPursuitProgress = 0.5F * simple_platformer::TileSize;
+    constexpr float MinimumPursuitProgress = 0.5F * tests::TileSize;
     REQUIRE(distanceToRememberedPosition < startingDistance - MinimumPursuitProgress);
 }
 
@@ -407,8 +414,8 @@ TEST_CASE(
         {"..........", "..........", "..#######.", "..........", "##########"});
     constexpr float DeltaTime = static_cast<float>(simple_platformer::FixedDeltaSeconds);
     constexpr int MaximumChaseTicks = 180;
-    const glm::vec2 upperPlatformFeet = simple_platformer::feetInCell({2, 1});
-    const float platformLeftEdge = simple_platformer::gridToWorld({2, 2}).x;
+    const glm::vec2 upperPlatformFeet = simple_platformer::feetInCell(tests::TileSize, {2, 1});
+    const float platformLeftEdge = simple_platformer::gridToWorld(tests::TileSize, {2, 2}).x;
     // Control: feet at the first cell's centre. Regression: feet just outside
     // the platform, while part of the player's collider is still supported.
     const bool feetOutsidePlatform = GENERATE(false, true);
@@ -425,12 +432,13 @@ TEST_CASE(
     const simple_platformer::ActorId playerId = world.addActor(player);
     world.setPlayer(playerId, playerFeet);
 
-    simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
-                                          .atFeet(simple_platformer::feetInCell({6, 1}))
-                                          .walking()
-                                          .onTeam(simple_platformer::Team::Enemy)
-                                          .biting()
-                                          .thinking({});
+    simple_platformer::Actor zombie =
+        tests::ActorBuilder::sized({12.0F, 20.0F})
+            .atFeet(simple_platformer::feetInCell(tests::TileSize, {6, 1}))
+            .walking()
+            .onTeam(simple_platformer::Team::Enemy)
+            .biting()
+            .thinking({});
     tests::platformerMovement(zombie).grounded = true;
     const simple_platformer::ActorId zombieId = world.addActor(zombie);
 
@@ -441,7 +449,7 @@ TEST_CASE(
     REQUIRE(tests::brain(chasingZombie).state == simple_platformer::NpcState::Chase);
     const float startingDistance =
         glm::distance(simple_platformer::feetOf(chasingZombie.body.bounds), playerFeet);
-    constexpr float CloseDistance = 2.0F * simple_platformer::TileSize;
+    constexpr float CloseDistance = 2.0F * tests::TileSize;
     REQUIRE(startingDistance > CloseDistance);
 
     float distanceToPlayer = startingDistance;

@@ -35,25 +35,29 @@ namespace simple_platformer
         }
 
         bool arrivedAt(
+            int tileSize,
             const Body& body,
             const PlatformerMovement& movement,
             GridPosition destination)
         {
-            const glm::vec2 target = feetInCell(destination);
+            const glm::vec2 target = feetInCell(tileSize, destination);
             const glm::vec2 feet = feetOf(body.bounds);
             return movement.grounded && std::abs(target.x - feet.x) <= ArrivalDistance &&
                    std::abs(target.y - feet.y) <= ArrivalDistance;
         }
 
         bool readyForInputProgram(
+            int tileSize,
             const Body& body,
             const PlatformerMovement& movement,
             GridPosition takeoff)
         {
-            return arrivedAt(body, movement, takeoff) && std::abs(body.velocity.x) <= StoppedSpeed;
+            return arrivedAt(tileSize, body, movement, takeoff) &&
+                   std::abs(body.velocity.x) <= StoppedSpeed;
         }
 
         InputIntentions approachAndBrake(
+            int tileSize,
             const Body& body,
             const PlatformerMovement& movement,
             GridPosition takeoff)
@@ -64,7 +68,7 @@ namespace simple_platformer
                 return intentions;
             }
 
-            const glm::vec2 target = feetInCell(takeoff);
+            const glm::vec2 target = feetInCell(tileSize, takeoff);
             const glm::vec2 feet = feetOf(body.bounds);
             const float horizontalOffset = target.x - feet.x;
             const float verticalOffset = target.y - feet.y;
@@ -116,6 +120,7 @@ namespace simple_platformer
     }
 
     InputIntentions followFlyingPath(
+        int tileSize,
         const Aabb& bounds,
         const FlyingMovement& movement,
         PathFollower& follower,
@@ -144,7 +149,7 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("A flying actor requires flying path steps");
             }
-            const glm::vec2 offset = feetInCell(step.destination) - feet;
+            const glm::vec2 offset = feetInCell(tileSize, step.destination) - feet;
             const float distance = glm::length(offset);
             if (distance > FlyingArrivalDistance)
             {
@@ -160,6 +165,7 @@ namespace simple_platformer
     }
 
     InputIntentions followPlatformerPath(
+        int tileSize,
         const Body& body,
         const PlatformerMovement& movement,
         PathFollower& follower,
@@ -185,12 +191,12 @@ namespace simple_platformer
 
             if (step.traversal == Traversal::Walk)
             {
-                if (readyForInputProgram(body, movement, step.destination))
+                if (readyForInputProgram(tileSize, body, movement, step.destination))
                 {
                     ++follower.nextStep;
                     continue;
                 }
-                return approachAndBrake(body, movement, step.destination);
+                return approachAndBrake(tileSize, body, movement, step.destination);
             }
 
             if (step.inputs.empty())
@@ -203,9 +209,9 @@ namespace simple_platformer
                     follower.nextStep == 0
                         ? follower.path->start
                         : follower.path->steps[follower.nextStep - 1].destination;
-                if (!readyForInputProgram(body, movement, takeoff))
+                if (!readyForInputProgram(tileSize, body, movement, takeoff))
                 {
-                    return approachAndBrake(body, movement, takeoff);
+                    return approachAndBrake(tileSize, body, movement, takeoff);
                 }
             }
 
@@ -218,7 +224,7 @@ namespace simple_platformer
                     std::min(programDuration, follower.programElapsed + deltaTime);
                 return intentions;
             }
-            if (movement.grounded && cellAtFeet(feetOf(body.bounds)) == step.destination)
+            if (movement.grounded && cellAtFeet(tileSize, feetOf(body.bounds)) == step.destination)
             {
                 ++follower.nextStep;
                 follower.programElapsed = 0.0F;

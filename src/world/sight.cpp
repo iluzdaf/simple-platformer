@@ -18,7 +18,7 @@ namespace simple_platformer
 
     bool standsInCover(const TileMap& map, const Aabb& bounds)
     {
-        return map.blocksSight(worldToGrid(centerOf(bounds)));
+        return map.blocksSight(worldToGrid(map.tileSize(), centerOf(bounds)));
     }
 
     bool hiddenByCover(const TileMap& map, std::optional<glm::vec2> viewer, const Aabb& target)

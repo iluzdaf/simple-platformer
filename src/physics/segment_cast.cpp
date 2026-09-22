@@ -84,6 +84,7 @@ namespace simple_platformer
         // Visits every blocking tile the segment's bounds overlap, expanded for the moving
         // box, in no particular order.
         void forEachBlockingTile(
+            int tileSize,
             glm::vec2 start,
             glm::vec2 end,
             glm::vec2 movingSize,
@@ -100,11 +101,11 @@ namespace simple_platformer
             const glm::vec2 halfSize = movingSize * 0.5F;
             const glm::vec2 minimum = glm::min(start, end) - halfSize;
             const glm::vec2 maximum = glm::max(start, end) + halfSize;
-            const float tileSize = static_cast<float>(TileSize);
-            const int firstColumn = static_cast<int>(std::floor(minimum.x / tileSize));
-            const int lastColumn = static_cast<int>(std::floor(maximum.x / tileSize));
-            const int firstRow = static_cast<int>(std::floor(minimum.y / tileSize));
-            const int lastRow = static_cast<int>(std::floor(maximum.y / tileSize));
+            const float cellSize = static_cast<float>(tileSize);
+            const int firstColumn = static_cast<int>(std::floor(minimum.x / cellSize));
+            const int lastColumn = static_cast<int>(std::floor(maximum.x / cellSize));
+            const int firstRow = static_cast<int>(std::floor(minimum.y / cellSize));
+            const int lastRow = static_cast<int>(std::floor(maximum.y / cellSize));
 
             for (int row = firstRow; row <= lastRow; ++row)
             {
@@ -116,8 +117,8 @@ namespace simple_platformer
                     }
 
                     const Aabb tile{
-                        {static_cast<float>(column * TileSize), static_cast<float>(row * TileSize)},
-                        {tileSize, tileSize}};
+                        {static_cast<float>(column * tileSize), static_cast<float>(row * tileSize)},
+                        {cellSize, cellSize}};
                     visit({column, row}, expandedForMovingBox(tile, movingSize));
                 }
             }
@@ -148,6 +149,7 @@ namespace simple_platformer
     {
         std::optional<TileSegmentHit> earliest;
         forEachBlockingTile(
+            map.tileSize(),
             start,
             end,
             movingSize,
@@ -170,6 +172,7 @@ namespace simple_platformer
     {
         std::vector<SegmentSpan> spans;
         forEachBlockingTile(
+            map.tileSize(),
             start,
             end,
             {0.0F, 0.0F},

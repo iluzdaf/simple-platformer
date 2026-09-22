@@ -3,10 +3,11 @@
 
 #include <filesystem>
 #include <stdexcept>
+#include <glm/vec2.hpp>
 #include <nlohmann/json.hpp>
 
 #include "content/level_data.hpp"
-#include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 
 TEST_CASE("Level placements reject overflowing integers and unknown fields", "[app][content][json]")
 {
@@ -179,20 +180,31 @@ TEST_CASE(
         "pickups":[{"item":"coin","quantity":3,"spawnFeet":[136,8]}]
     })",
         "markers");
-    REQUIRE(data.playerSpawnFeet.x == 8);
-    REQUIRE(data.playerSpawnFeet.y == 16);
+    REQUIRE(
+        data.playerSpawn ==
+        simple_platformer::LevelPosition{simple_platformer::GridPosition{0, 0}});
     REQUIRE(data.actors.size() == 5);
-    REQUIRE(data.actors[0].spawnFeet.x == 136);
-    REQUIRE(data.actors[1].spawnFeet.x == 24);
-    REQUIRE(data.actors[2].spawnFeet.x == 40);
+    REQUIRE(
+        data.actors[0].spawn ==
+        simple_platformer::LevelPosition{simple_platformer::GridPosition{8, 0}});
+    REQUIRE(
+        data.actors[1].spawn ==
+        simple_platformer::LevelPosition{simple_platformer::GridPosition{1, 0}});
+    REQUIRE(
+        data.actors[2].spawn ==
+        simple_platformer::LevelPosition{simple_platformer::GridPosition{2, 0}});
     REQUIRE(data.actors[1].patrol.has_value());
     REQUIRE(data.actors[3].definitionName == "bat");
     REQUIRE(data.actors[4].definitionName == "zombie_soldier");
     REQUIRE(data.pickups.size() == 3);
     REQUIRE(data.pickups[1].stack.item == "key");
     REQUIRE(data.pickups[1].stack.quantity == 2);
-    REQUIRE(data.pickups[2].spawnFeet.x == 104);
-    REQUIRE(data.exit.spawnFeet.x == 120);
+    REQUIRE(data.pickups[0].spawn == simple_platformer::LevelPosition{glm::vec2{136.0F, 8.0F}});
+    REQUIRE(
+        data.pickups[2].spawn ==
+        simple_platformer::LevelPosition{simple_platformer::GridPosition{6, 0}});
+    REQUIRE(
+        data.exit.spawn == simple_platformer::LevelPosition{simple_platformer::GridPosition{7, 0}});
     REQUIRE(data.exit.requirement.has_value());
     REQUIRE(data.exit.consumeItem);
     REQUIRE(data.exit.nextLevel == 2);
@@ -272,7 +284,8 @@ TEST_CASE("Object-only levels may omit explicit placement arrays", "[app][conten
         "markers");
     REQUIRE(data.actors.empty());
     REQUIRE(data.pickups.empty());
-    REQUIRE(data.exit.spawnFeet.x == 24);
+    REQUIRE(
+        data.exit.spawn == simple_platformer::LevelPosition{simple_platformer::GridPosition{1, 0}});
 }
 
 TEST_CASE("Level JSON accepts a custom tile legend", "[app][content][json]")
@@ -341,20 +354,27 @@ TEST_CASE(
         "test level");
 
     REQUIRE(data.mapRows.size() == 2);
-    REQUIRE(data.playerSpawnFeet.x == 24.0F);
+    REQUIRE(
+        data.playerSpawn ==
+        simple_platformer::LevelPosition{simple_platformer::GridPosition{1, 0}});
     REQUIRE(data.actors.size() == 2);
     REQUIRE(data.actors.front().definitionName == "zombie");
-    REQUIRE(data.actors.front().spawnFeet.x == 40.0F);
+    REQUIRE(
+        data.actors.front().spawn ==
+        simple_platformer::LevelPosition{simple_platformer::GridPosition{2, 0}});
     REQUIRE(data.actors.front().patrol.has_value());
-    const simple_platformer::Patrol patrol =
-        data.actors.front().patrol.value_or(simple_platformer::Patrol{});
-    REQUIRE(patrol.secondFeet.x == 56.0F);
+    REQUIRE(
+        data.actors.front().patrol.value_or(simple_platformer::PatrolPlacement{}).second ==
+        simple_platformer::LevelPosition{simple_platformer::GridPosition{3, 0}});
     REQUIRE(data.actors[1].definitionName == "bat");
-    REQUIRE(data.actors[1].spawnFeet.x == 17.0F);
+    REQUIRE(data.actors[1].spawn == simple_platformer::LevelPosition{glm::vec2{17.0F, 9.0F}});
     REQUIRE(data.pickups.size() == 1);
     REQUIRE(data.pickups.front().stack.item == "key");
-    REQUIRE(data.pickups.front().spawnFeet.x == 24.0F);
-    REQUIRE(data.exit.spawnFeet.x == 40.0F);
+    REQUIRE(
+        data.pickups.front().spawn ==
+        simple_platformer::LevelPosition{simple_platformer::GridPosition{1, 0}});
+    REQUIRE(
+        data.exit.spawn == simple_platformer::LevelPosition{simple_platformer::GridPosition{2, 0}});
     REQUIRE(data.exit.requirement.has_value());
     REQUIRE_FALSE(data.exit.nextLevel.has_value());
 }

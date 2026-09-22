@@ -13,15 +13,21 @@
 namespace simple_platformer
 {
     TileMap::TileMap(
+        int tileSize,
         int width,
         int height,
         std::vector<int> tiles,
         std::vector<TileDefinition> definitions)
-        : mapWidth(width),
+        : cellSize(tileSize),
+          mapWidth(width),
           mapHeight(height),
           tileIds(std::move(tiles)),
           tileDefinitions(std::move(definitions))
     {
+        if (cellSize <= 0)
+        {
+            throw std::invalid_argument("A tile map must have a positive tile size");
+        }
         if (mapWidth <= 0 || mapHeight <= 0)
         {
             throw std::invalid_argument("A tile map must have positive dimensions");
@@ -50,6 +56,7 @@ namespace simple_platformer
     }
 
     TileMap TileMap::fromAscii(
+        int tileSize,
         const std::vector<std::string>& rows,
         std::vector<TileDefinition> definitions,
         const std::map<char, int>& legend)
@@ -87,7 +94,11 @@ namespace simple_platformer
         }
 
         return TileMap(
-            mapWidth, static_cast<int>(rows.size()), std::move(tiles), std::move(definitions));
+            tileSize,
+            mapWidth,
+            static_cast<int>(rows.size()),
+            std::move(tiles),
+            std::move(definitions));
     }
 
     int TileMap::width() const
@@ -100,14 +111,19 @@ namespace simple_platformer
         return mapHeight;
     }
 
+    int TileMap::tileSize() const
+    {
+        return cellSize;
+    }
+
     float TileMap::pixelWidth() const
     {
-        return static_cast<float>(mapWidth * TileSize);
+        return static_cast<float>(mapWidth * cellSize);
     }
 
     float TileMap::pixelHeight() const
     {
-        return static_cast<float>(mapHeight * TileSize);
+        return static_cast<float>(mapHeight * cellSize);
     }
 
     bool TileMap::contains(GridPosition position) const

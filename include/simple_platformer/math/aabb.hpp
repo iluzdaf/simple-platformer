@@ -17,7 +17,7 @@ namespace simple_platformer
     glm::vec2 feetOf(const Aabb& box);
     void placeFeetAt(Aabb& box, glm::vec2 feet);
     // A box of this size standing in the cell, its feet at the middle of the cell's bottom edge.
-    Aabb boxInCell(GridPosition cell, glm::vec2 size);
+    Aabb boxInCell(int tileSize, GridPosition cell, glm::vec2 size);
     // Edge contact alone is not an overlap.
     bool overlaps(const Aabb& first, const Aabb& second);
 }

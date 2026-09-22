@@ -8,8 +8,12 @@
 #include "content/level_catalog.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/level_validation.hpp"
+#include "simple_platformer/world/pickup.hpp"
+#include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/world/world.hpp"
 
 TEST_CASE("Every catalog level can be composed", "[app][content]")
 {
@@ -80,4 +84,26 @@ TEST_CASE("Session composition does not reload shared catalogue files", "[app][c
     {
         REQUIRE_NOTHROW(simple_platformer::composeGameLevel(levels, entry.number, 0, catalogs));
     }
+}
+
+TEST_CASE("A level's cells become the feet of those cells on its map", "[app][content]")
+{
+    const auto catalog = simple_platformer::loadLevelCatalog(
+        std::filesystem::path("tests/fixtures/levels/levels.json"));
+    const auto content = simple_platformer::composeGameLevel(catalog, 10, 0);
+    const int tileSize = content.map.tileSize();
+
+    REQUIRE(content.playerSpawnFeet == simple_platformer::feetInCell(tileSize, {1, 2}));
+    REQUIRE(content.world.pickups().size() == 1);
+    REQUIRE(
+        simple_platformer::feetOf(content.world.pickups().front().bounds) ==
+        simple_platformer::feetInCell(tileSize, {2, 2}));
+    const auto& levelExit = content.world.exit();
+    if (!levelExit.has_value())
+    {
+        throw std::logic_error("The opening level must have an exit");
+    }
+    REQUIRE(
+        simple_platformer::feetOf(levelExit->bounds) ==
+        simple_platformer::feetInCell(tileSize, {5, 2}));
 }

@@ -13,6 +13,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/tile_size.hpp"
 
 namespace
 {
@@ -37,7 +38,12 @@ namespace
             tiles[floorStart + static_cast<std::size_t>(column)] = 1;
         }
 
-        return {MapWidth, MapHeight, std::move(tiles), {{false, false, {}}, {true, true, {}}}};
+        return {
+            tests::TileSize,
+            MapWidth,
+            MapHeight,
+            std::move(tiles),
+            {{false, false, {}}, {true, true, {}}}};
     }
 
     PlatformerMovement makeMovement()

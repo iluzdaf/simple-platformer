@@ -66,7 +66,7 @@ namespace simple_platformer
             PathFollower& follower,
             glm::vec2 goalFeet)
         {
-            GridPosition start = cellAtFeet(feetOf(actor.body.bounds));
+            GridPosition start = cellAtFeet(map.tileSize(), feetOf(actor.body.bounds));
             if (actor.platformerMovement.has_value())
             {
                 if (!actor.platformerMovement->grounded)
@@ -81,7 +81,7 @@ namespace simple_platformer
                 }
                 start = supportedStart.value_or(start);
             }
-            const GridPosition goal = cellAtFeet(goalFeet);
+            const GridPosition goal = cellAtFeet(map.tileSize(), goalFeet);
             const bool destinationChanged =
                 !follower.destination.has_value() || follower.destination.value_or(goal) != goal;
             const bool displacedAfterCompletion = pathComplete(follower) && start != goal;
@@ -128,13 +128,13 @@ namespace simple_platformer
             requestPath(map, actor, follower, destination);
             if (actor.flyingMovement.has_value())
             {
-                actor.intentions =
-                    followFlyingPath(actor.body.bounds, *actor.flyingMovement, follower, deltaTime);
+                actor.intentions = followFlyingPath(
+                    map.tileSize(), actor.body.bounds, *actor.flyingMovement, follower, deltaTime);
             }
             else if (actor.platformerMovement.has_value())
             {
                 actor.intentions = followPlatformerPath(
-                    actor.body, *actor.platformerMovement, follower, deltaTime);
+                    map.tileSize(), actor.body, *actor.platformerMovement, follower, deltaTime);
             }
         }
 
@@ -261,7 +261,7 @@ namespace simple_platformer
                     clearPath(follower);
                     return;
                 }
-                destination = feetInCell(chaseCell.value());
+                destination = feetInCell(map.tileSize(), chaseCell.value());
             }
             followDestination(map, actor, follower, destination, deltaTime);
         }

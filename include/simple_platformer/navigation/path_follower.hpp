@@ -30,11 +30,13 @@ namespace simple_platformer
     void clearPath(PathFollower& follower);
     bool pathComplete(const PathFollower& follower);
     InputIntentions followFlyingPath(
+        int tileSize,
         const Aabb& bounds,
         const FlyingMovement& movement,
         PathFollower& follower,
         float deltaTime);
     InputIntentions followPlatformerPath(
+        int tileSize,
         const Body& body,
         const PlatformerMovement& movement,
         PathFollower& follower,

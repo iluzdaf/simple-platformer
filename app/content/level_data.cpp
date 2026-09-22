@@ -17,7 +17,6 @@
 
 #include "content/item_catalog.hpp"
 #include "simple_platformer/math/coordinates.hpp"
-#include "simple_platformer/npc/npc.hpp"
 
 namespace simple_platformer
 {
@@ -36,7 +35,7 @@ namespace simple_platformer
                 jsonInteger(value[1], sourceName, indexPath(path, 1))};
         }
 
-        glm::vec2 readFeetPosition(
+        LevelPosition readPosition(
             const Json& object,
             std::string_view cellKey,
             std::string_view feetKey,
@@ -59,19 +58,21 @@ namespace simple_platformer
             }
             if (cell != object.end())
             {
-                return feetInCell(jsonGridPosition(*cell, sourceName, fieldPath(path, cellKey)));
+                return jsonGridPosition(*cell, sourceName, fieldPath(path, cellKey));
             }
             return jsonVector(*feet, sourceName, fieldPath(path, feetKey));
         }
 
-        Patrol jsonPatrol(const Json& value, std::string_view sourceName, std::string_view path)
+        PatrolPlacement jsonPatrol(
+            const Json& value,
+            std::string_view sourceName,
+            std::string_view path)
         {
             checkJsonFields(
                 value, {"firstCell", "firstFeet", "secondCell", "secondFeet"}, sourceName, path);
             return {
-                readFeetPosition(value, "firstCell", "firstFeet", sourceName, path),
-                readFeetPosition(value, "secondCell", "secondFeet", sourceName, path),
-                true};
+                readPosition(value, "firstCell", "firstFeet", sourceName, path),
+                readPosition(value, "secondCell", "secondFeet", sourceName, path)};
         }
 
         ActorPlacement jsonActorPlacement(
@@ -84,7 +85,7 @@ namespace simple_platformer
             ActorPlacement result;
             result.definitionName =
                 readName(value, "definition", "actor definition name", sourceName, path);
-            result.spawnFeet = readFeetPosition(value, "spawnCell", "spawnFeet", sourceName, path);
+            result.spawn = readPosition(value, "spawnCell", "spawnFeet", sourceName, path);
             const auto found = value.find("patrol");
             if (found != value.end())
             {
@@ -113,8 +114,7 @@ namespace simple_platformer
                         "use either a pickup definition or an inline item and quantity");
                 }
                 PickupPlacement result;
-                result.spawnFeet =
-                    readFeetPosition(value, "spawnCell", "spawnFeet", sourceName, path);
+                result.spawn = readPosition(value, "spawnCell", "spawnFeet", sourceName, path);
                 result.definitionName =
                     readName(value, "definition", "pickup definition name", sourceName, path);
                 return result;
@@ -124,7 +124,7 @@ namespace simple_platformer
                 sourceName,
                 fieldPath(path, "quantity"));
             const PickupPlacement result{
-                readFeetPosition(value, "spawnCell", "spawnFeet", sourceName, path),
+                readPosition(value, "spawnCell", "spawnFeet", sourceName, path),
                 {readName(value, "item", "item name", sourceName, path), quantity}};
             validatePickupSettings(result, path, sourceName);
             return result;
@@ -145,7 +145,7 @@ namespace simple_platformer
                 requiredJsonMember(value, "definition", sourceName, path),
                 sourceName,
                 fieldPath(path, "definition"));
-            result.spawnFeet = readFeetPosition(value, "spawnCell", "spawnFeet", sourceName, path);
+            result.spawn = readPosition(value, "spawnCell", "spawnFeet", sourceName, path);
 
             if (const auto found = value.find("requirement"); found != value.end())
             {
@@ -442,8 +442,8 @@ namespace simple_platformer
                 root.contains("exit") ? std::vector<PlacementOrigin>{{"exit", std::nullopt}}
                                       : std::vector<PlacementOrigin>{};
             validateSinglePlacement(exits, "exit", sourceName);
-            result.playerSpawnFeet =
-                readFeetPosition(root, "playerSpawnCell", "playerSpawnFeet", sourceName, "root");
+            result.playerSpawn =
+                readPosition(root, "playerSpawnCell", "playerSpawnFeet", sourceName, "root");
 
             const Json& actors = requiredJsonMember(root, "actors", sourceName, "root");
             if (!actors.is_array())

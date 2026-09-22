@@ -52,7 +52,7 @@ namespace simple_platformer
         bool bodyFits(const TileMap& map, const Aabb& bounds)
         {
             constexpr float Inside = 0.001F;
-            const float tileSize = static_cast<float>(TileSize);
+            const float tileSize = static_cast<float>(map.tileSize());
             const int firstColumn =
                 static_cast<int>(std::floor((bounds.position.x + Inside) / tileSize));
             const int lastColumn = static_cast<int>(
@@ -85,7 +85,7 @@ namespace simple_platformer
             glm::vec2 bodySize,
             const PlatformerMovementConfig& config)
         {
-            Body body{boxInCell(start, bodySize), {0.0F, 0.0F}};
+            Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
             Facing facing = destination.x < start.x ? Facing::Left : Facing::Right;
             PathFollower follower;
@@ -94,7 +94,7 @@ namespace simple_platformer
             for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
             {
                 const InputIntentions intentions =
-                    followPlatformerPath(body, movement, follower, SimulationStep);
+                    followPlatformerPath(map.tileSize(), body, movement, follower, SimulationStep);
                 if (pathComplete(follower))
                 {
                     return tick;
@@ -135,7 +135,7 @@ namespace simple_platformer
             const Aabb& bounds,
             glm::vec2 bodySize)
         {
-            const GridPosition destination = cellAtFeet(feetOf(bounds));
+            const GridPosition destination = cellAtFeet(map.tileSize(), feetOf(bounds));
             if (destination == start || !canStandAt(map, destination, bodySize))
             {
                 return std::nullopt;
@@ -155,7 +155,7 @@ namespace simple_platformer
             float direction,
             int jumpHoldTicks)
         {
-            Body body{boxInCell(start, bodySize), {0.0F, 0.0F}};
+            Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
             Facing facing = direction < 0.0F ? Facing::Left : Facing::Right;
             InputProgram program;
@@ -192,7 +192,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                const GridPosition stoppedCell = cellAtFeet(feetOf(body.bounds));
+                const GridPosition stoppedCell = cellAtFeet(map.tileSize(), feetOf(body.bounds));
                 if (stoppedCell != landing.value())
                 {
                     return std::nullopt;
@@ -225,6 +225,7 @@ namespace simple_platformer
     }
 
     int platformerTickHeuristic(
+        int tileSize,
         GridPosition position,
         GridPosition goal,
         const PlatformerMovementConfig& movement)
@@ -244,7 +245,7 @@ namespace simple_platformer
         // Reaching any point inside the goal column is sufficient. Ignoring acceleration,
         // braking, obstacles, and vertical travel keeps this estimate optimistic.
         const float minimumDistance =
-            (static_cast<float>(columnDistance) - 0.5F) * static_cast<float>(TileSize);
+            (static_cast<float>(columnDistance) - 0.5F) * static_cast<float>(tileSize);
         const float maximumDistancePerTick = movement.maximumSpeed * SimulationStep;
         return static_cast<int>(std::ceil(minimumDistance / maximumDistancePerTick));
     }
@@ -282,8 +283,8 @@ namespace simple_platformer
             return result;
         };
         const GridHeuristicFunction heuristic =
-            [&movement](GridPosition position, GridPosition goal)
-        { return platformerTickHeuristic(position, goal, movement); };
+            [&map, &movement](GridPosition position, GridPosition goal)
+        { return platformerTickHeuristic(map.tileSize(), position, goal, movement); };
 
         // Remove the final argument to compare A* with the default Dijkstra search.
         return findLowestCostPath(start, goal, neighbors, heuristic);
@@ -297,7 +298,7 @@ namespace simple_platformer
         }
         return map.contains(position) && !map.blocksMovement(position) &&
                map.blocksMovement({position.x, position.y + 1}) &&
-               bodyFits(map, boxInCell(position, bodySize));
+               bodyFits(map, boxInCell(map.tileSize(), position, bodySize));
     }
 
     std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds)
@@ -310,14 +311,14 @@ namespace simple_platformer
         }
 
         const glm::vec2 feet = feetOf(bounds);
-        const GridPosition feetCell = cellAtFeet(feet);
+        const GridPosition feetCell = cellAtFeet(map.tileSize(), feet);
         if (canStandAt(map, feetCell, bounds.size))
         {
             return feetCell;
         }
 
         constexpr float Inside = 0.001F;
-        const float tileSize = static_cast<float>(TileSize);
+        const float tileSize = static_cast<float>(map.tileSize());
         const int firstColumn =
             static_cast<int>(std::floor((bounds.position.x + Inside) / tileSize));
         const int lastColumn =
@@ -332,7 +333,7 @@ namespace simple_platformer
                 continue;
             }
 
-            const float distance = std::abs(feetInCell(candidate).x - feet.x);
+            const float distance = std::abs(feetInCell(map.tileSize(), candidate).x - feet.x);
             if (!closest.has_value() || distance < closestDistance)
             {
                 closest = candidate;
@@ -358,7 +359,7 @@ namespace simple_platformer
         if (lastSeenFeet.x >= 0.0F && lastSeenFeet.x < map.pixelWidth() && lastSeenFeet.y >= 0.0F &&
             lastSeenFeet.y <= map.pixelHeight())
         {
-            const GridPosition targetCell = cellAtFeet(lastSeenFeet);
+            const GridPosition targetCell = cellAtFeet(map.tileSize(), lastSeenFeet);
             if (canStandAt(map, targetCell, bodySize))
             {
                 return targetCell;
@@ -377,7 +378,7 @@ namespace simple_platformer
                     continue;
                 }
 
-                const glm::vec2 candidateFeet = feetInCell(candidate);
+                const glm::vec2 candidateFeet = feetInCell(map.tileSize(), candidate);
                 const double dx = static_cast<double>(candidateFeet.x) - lastSeenFeet.x;
                 const double dy = static_cast<double>(candidateFeet.y) - lastSeenFeet.y;
                 const double distanceSquared = dx * dx + dy * dy;

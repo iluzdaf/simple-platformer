@@ -6,6 +6,7 @@
 
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/tile_size.hpp"
 
 TEST_CASE("An ASCII tile map is rectangular and row-major", "[world][tile-map]")
 {
@@ -24,7 +25,7 @@ TEST_CASE("An ASCII tile map is rectangular and row-major", "[world][tile-map]")
 TEST_CASE("Tile movement blocking comes from its definition", "[world][tile-map]")
 {
     const simple_platformer::TileMap map(
-        2, 1, {1, 2}, {{false, false, {}}, {true, true, {}}, {false, false, {}}});
+        tests::TileSize, 2, 1, {1, 2}, {{false, false, {}}, {true, true, {}}, {false, false, {}}});
 
     REQUIRE(map.blocksMovement({0, 0}));
     REQUIRE_FALSE(map.blocksMovement({1, 0}));
@@ -58,10 +59,15 @@ TEST_CASE("ASCII tile maps reject malformed input", "[world][tile-map]")
     const std::vector<simple_platformer::TileDefinition> definitions{{}};
     const std::map<char, int> legend{{'.', 0}};
 
-    REQUIRE_THROWS_AS(TileMap::fromAscii({}, definitions, legend), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap::fromAscii({""}, definitions, legend), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap::fromAscii({"..", "."}, definitions, legend), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap::fromAscii({".x"}, definitions, legend), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        TileMap::fromAscii(tests::TileSize, {}, definitions, legend), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        TileMap::fromAscii(tests::TileSize, {""}, definitions, legend), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        TileMap::fromAscii(tests::TileSize, {"..", "."}, definitions, legend),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        TileMap::fromAscii(tests::TileSize, {".x"}, definitions, legend), std::invalid_argument);
 }
 
 TEST_CASE("Breaking a tile replaces it with what its definition breaks into", "[world][tile-map]")
@@ -76,7 +82,7 @@ TEST_CASE("Breaking a tile replaces it with what its definition breaks into", "[
     glass.blocksMovement = true;
     glass.breaksIntoTileId = 0;
 
-    simple_platformer::TileMap map(2, 1, {2, 1}, {empty, solid, glass});
+    simple_platformer::TileMap map(tests::TileSize, 2, 1, {2, 1}, {empty, solid, glass});
 
     REQUIRE(map.blocksMovement({0, 0}));
     REQUIRE(map.breakTile({0, 0}));
@@ -105,10 +111,29 @@ TEST_CASE("Tile maps reject invalid definitions and tile IDs", "[world][tile-map
     using simple_platformer::TileDefinition;
     using simple_platformer::TileMap;
 
-    REQUIRE_THROWS_AS(TileMap(0, 1, {}, {{false, false, {}}}), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap(2, 1, {0}, {{false, false, {}}}), std::invalid_argument);
-    REQUIRE_THROWS_AS(TileMap(1, 1, {0}, {{true, true, {}}}), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        TileMap(1, 1, {2}, std::vector<TileDefinition>{{false, false, {}}, {true, true, {}}}),
+        TileMap(tests::TileSize, 0, 1, {}, {{false, false, {}}}), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        TileMap(tests::TileSize, 2, 1, {0}, {{false, false, {}}}), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        TileMap(tests::TileSize, 1, 1, {0}, {{true, true, {}}}), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        TileMap(
+            tests::TileSize,
+            1,
+            1,
+            {2},
+            std::vector<TileDefinition>{{false, false, {}}, {true, true, {}}}),
         std::invalid_argument);
+}
+
+TEST_CASE("A tile map knows its tile size and measures itself by it", "[world][tile-map]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "..."}).withTileSize(32);
+
+    REQUIRE(map.tileSize() == 32);
+    REQUIRE(map.pixelWidth() == 96.0F);
+    REQUIRE(map.pixelHeight() == 64.0F);
+    REQUIRE_THROWS_AS(
+        simple_platformer::TileMap(0, 1, 1, {0}, {{false, false, {}}}), std::invalid_argument);
 }

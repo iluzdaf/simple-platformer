@@ -3,6 +3,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 
 namespace simple_platformer
 {
@@ -12,7 +13,7 @@ namespace simple_platformer
     {
         // Top-left of the viewport in world pixels.
         glm::vec2 position = {0.0F, 0.0F};
-        glm::vec2 viewportSize = {320.0F, 180.0F};
+        glm::vec2 viewportSize = InternalViewportSize;
     };
 
     struct CameraController
@@ -26,13 +27,13 @@ namespace simple_platformer
     Camera makeLockedCamera(
         const TileMap& map,
         const Aabb& target,
-        glm::vec2 viewportSize = {320.0F, 180.0F});
+        glm::vec2 viewportSize = InternalViewportSize);
 
     CameraController makeCameraController(
         const TileMap& map,
         const Aabb& target,
         glm::vec2 deadZoneSize,
-        glm::vec2 viewportSize = {320.0F, 180.0F});
+        glm::vec2 viewportSize = InternalViewportSize);
 
     void followTarget(CameraController& controller, const TileMap& map, const Aabb& target);
 

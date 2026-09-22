@@ -150,18 +150,23 @@ and legend settings are reported by their authored paths, such as `objectLegend.
 
 ## Tile definitions
 
-Shared definitions live in `assets/tiles.json`. Each definition requires
-boolean `blocksMovement` and `blocksSight` fields. Nonempty tiles also require
-a `sprite` rectangle with `position: [x, y]` and `size: [width, height]` in atlas pixels.
-Tile artwork is drawn into one 16-by-16 world cell. The `empty` definition must
-allow movement and sight and is not rendered. Unknown names and map symbols
-are rejected during loading. Fixture catalogues supply their own `tiles.json`.
+Shared definitions live in `assets/tiles.json`. `tileSize` is the side of one tile in
+world pixels, shared by every level that uses the catalogue; the game uses 16. Each
+definition requires boolean `blocksMovement` and `blocksSight`. Nonempty tiles also need a
+`sprite` with its atlas `position: [x, y]` and no `size`: a tile always fills one cell, so
+its region is `tileSize` square. Other sprites in the same atlas carry their own world
+size. The `empty` definition must allow movement and sight and is not rendered. Unknown
+names and map symbols are rejected during loading. Fixture catalogues supply their own
+`tiles.json`.
+
+Changing `tileSize` changes the geometry, not the tuning: jump heights, speeds, and the
+navigation reach are pixel values chosen for 16-pixel tiles.
 
 A nonempty tile may add `breaksInto` naming the tile it becomes when broken:
 
 ```json
 "glass": {
-  "sprite": { "position": [144, 192], "size": [16, 16] },
+  "sprite": { "position": [144, 192] },
   "blocksMovement": true, "blocksSight": false,
   "breaksInto": "empty"
 }

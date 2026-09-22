@@ -20,7 +20,7 @@ namespace simple_platformer
     TileCatalog parseTileCatalog(std::string_view text, std::string_view sourceName)
     {
         const auto root = parseContentRoot(text, sourceName);
-        checkJsonFields(root, {"tiles"}, sourceName, "root");
+        checkJsonFields(root, {"tileSize", "tiles"}, sourceName, "root");
         const auto& tiles = requiredJsonMember(root, "tiles", sourceName, "root");
         checkJsonObject(tiles, sourceName, "tiles");
         if (!tiles.contains("empty"))
@@ -28,6 +28,8 @@ namespace simple_platformer
             failJson(sourceName, "tiles", "missing 'empty'");
         }
         TileCatalog result;
+        result.tileSize = jsonInteger(
+            requiredJsonMember(root, "tileSize", sourceName, "root"), sourceName, "tileSize");
         // Collected on the way past because a tile may break into one defined further down.
         std::map<std::string, std::string> breaksIntoNames;
         const auto add = [&result, &breaksIntoNames, sourceName](
@@ -50,8 +52,14 @@ namespace simple_platformer
             {
                 const auto& sprite = requiredJsonMember(value, "sprite", sourceName, path);
                 const std::string spritePath = fieldPath(path, "sprite");
-                checkJsonFields(sprite, {"position", "size"}, sourceName, spritePath);
-                definition.sprite = jsonSpriteRegion(sprite, sourceName, spritePath);
+                checkJsonFields(sprite, {"position"}, sourceName, spritePath);
+                const auto side = static_cast<float>(result.tileSize);
+                definition.sprite = {
+                    jsonVector(
+                        requiredJsonMember(sprite, "position", sourceName, spritePath),
+                        sourceName,
+                        fieldPath(spritePath, "position")),
+                    {side, side}};
                 std::string breaksInto;
                 readOptionalText(value, "breaksInto", breaksInto, sourceName, path);
                 if (!breaksInto.empty())
@@ -99,7 +107,6 @@ namespace simple_platformer
     }
 
     TileMap composeTileMap(
-        int tileSize,
         const std::vector<std::string>& rows,
         const std::map<char, std::string>& legend,
         const TileCatalog& catalog)
@@ -112,6 +119,6 @@ namespace simple_platformer
         {
             ids.emplace(entry.first, catalog.ids.at(entry.second));
         }
-        return TileMap::fromAscii(tileSize, rows, catalog.definitions, ids);
+        return TileMap::fromAscii(catalog.tileSize, rows, catalog.definitions, ids);
     }
 }

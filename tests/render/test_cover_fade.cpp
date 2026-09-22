@@ -120,7 +120,8 @@ TEST_CASE("Pickups fade the same way as NPCs", "[render][cover-fade]")
     coin.name = "coin";
     simple_platformer::World world({coin});
     addPlayerIn(world, {0, 1});
-    world.addPickup({simple_platformer::boxInCell(tests::TileSize, {3, 1}, {8.0F, 8.0F}), {1, 1}});
+    world.addPickup(
+        {{simple_platformer::boxInCell(tests::TileSize, {3, 1}, {8.0F, 8.0F})}, {1, 1}});
     simple_platformer::updateCoverFades(map, world, QuarterFade);
     REQUIRE(world.pickups().front().screenVisibility == 0.0F);
 

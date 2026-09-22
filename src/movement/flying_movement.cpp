@@ -46,16 +46,6 @@ namespace simple_platformer
         }
 
         body.velocity = direction * movement.speed;
-        const CollisionContacts contacts =
-            moveAndCollide(map, body.bounds, body.velocity * deltaTime);
-        if (contacts.left || contacts.right)
-        {
-            body.velocity.x = 0.0F;
-        }
-        if (contacts.ground || contacts.ceiling)
-        {
-            body.velocity.y = 0.0F;
-        }
-        return contacts;
+        return moveBody(map, body, deltaTime);
     }
 }

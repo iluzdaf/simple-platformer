@@ -1,12 +1,12 @@
 #pragma once
 
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/physics/collision.hpp"
 
 namespace simple_platformer
 {
     class TileMap;
-    struct Body;
 
     enum class Facing
     {
@@ -21,9 +21,9 @@ namespace simple_platformer
         float airAcceleration = 400.0F;
         float groundDeceleration = 1000.0F;
         float jumpSpeed = 240.0F;
-        float gravity = 800.0F;
-        float jumpReleaseGravity = 1600.0F;
-        float maximumFallSpeed = 600.0F;
+        float gravity = DefaultGravity;
+        float jumpReleaseGravity = 2.0F * DefaultGravity;
+        float maximumFallSpeed = DefaultMaximumFallSpeed;
         float coyoteTime = 0.1F;
         float jumpBufferTime = 0.1F;
     };

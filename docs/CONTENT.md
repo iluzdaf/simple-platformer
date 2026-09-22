@@ -125,7 +125,8 @@ like `spawnCell`, with empty terrain underneath. Symbols must be one character a
 cannot appear in both legends. There must be exactly one player and one exit placement,
 whether supplied by a marker or explicitly. Repeated NPC and pickup markers create
 separate objects. Named pickups obtain their positive quantity from `pickups.json`;
-inline item stacks supply it in the placement or legend entry.
+inline item stacks supply it in the placement or legend entry. A pickup falls from
+where it is placed until it rests on a tile, and falls again if that tile breaks.
 
 Object entries use the same settings as explicit placements: NPCs can specify a
 `patrol`, and exits can specify `requirement`, `consumeItem`, and `nextLevel`.

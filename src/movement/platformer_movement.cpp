@@ -114,7 +114,8 @@ namespace simple_platformer
             movement.jumpBufferRemaining = 0.0F;
         }
 
-        void applyGravity(
+        // Letting go of jump while rising pulls the actor down harder, for a short hop.
+        void applyJumpAwareGravity(
             Body& body,
             const PlatformerMovement& movement,
             const InputIntentions& intentions,
@@ -123,8 +124,7 @@ namespace simple_platformer
             const bool cuttingJump = body.velocity.y < 0.0F && !intentions.jumpHeld;
             const float gravity =
                 cuttingJump ? movement.config.jumpReleaseGravity : movement.config.gravity;
-            body.velocity.y =
-                std::min(body.velocity.y + gravity * deltaTime, movement.config.maximumFallSpeed);
+            applyGravity(body, gravity, movement.config.maximumFallSpeed, deltaTime);
         }
     }
 
@@ -159,19 +159,9 @@ namespace simple_platformer
         updateTimers(movement, intentions, deltaTime);
         updateHorizontalVelocity(body, movement, intentions, facing, deltaTime);
         startBufferedJump(body, movement, intentions.jumpPressed);
-        applyGravity(body, movement, intentions, deltaTime);
+        applyJumpAwareGravity(body, movement, intentions, deltaTime);
 
-        const CollisionContacts contacts =
-            moveAndCollide(map, body.bounds, body.velocity * deltaTime);
-        if (contacts.left || contacts.right)
-        {
-            body.velocity.x = 0.0F;
-        }
-        if (contacts.ground || contacts.ceiling)
-        {
-            body.velocity.y = 0.0F;
-        }
-
+        const CollisionContacts contacts = moveBody(map, body, deltaTime);
         movement.grounded = contacts.ground;
         return contacts;
     }

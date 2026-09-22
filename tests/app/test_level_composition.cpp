@@ -96,7 +96,7 @@ TEST_CASE("A level's cells become the feet of those cells on its map", "[app][co
     REQUIRE(content.playerSpawnFeet == simple_platformer::feetInCell(tileSize, {1, 2}));
     REQUIRE(content.world.pickups().size() == 1);
     REQUIRE(
-        simple_platformer::feetOf(content.world.pickups().front().bounds) ==
+        simple_platformer::feetOf(content.world.pickups().front().body.bounds) ==
         simple_platformer::feetInCell(tileSize, {2, 2}));
     const auto& levelExit = content.world.exit();
     if (!levelExit.has_value())

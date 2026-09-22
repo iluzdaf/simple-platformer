@@ -291,7 +291,8 @@ TEST_CASE("NPCs and pickups the player cannot see are not drawn", "[render][scen
     simple_platformer::World world = worldWithPickupItem();
     addPlayerIn(world, {0, 1});
     addNpcIn(world, {4, 1});
-    world.addPickup({simple_platformer::boxInCell(tests::TileSize, {3, 1}, {8.0F, 8.0F}), {1, 1}});
+    world.addPickup(
+        {{simple_platformer::boxInCell(tests::TileSize, {3, 1}, {8.0F, 8.0F})}, {1, 1}});
     addNpcIn(world, {7, 1});
     simple_platformer::updateCoverFades(map, world, 0.0F);
 
@@ -328,7 +329,8 @@ TEST_CASE("NPCs and pickups are drawn at their screen visibility", "[render][sce
     simple_platformer::World world = worldWithPickupItem();
     addPlayerIn(world, {0, 1});
     addNpcIn(world, {2, 1});
-    world.addPickup({simple_platformer::boxInCell(tests::TileSize, {3, 1}, {8.0F, 8.0F}), {1, 1}});
+    world.addPickup(
+        {{simple_platformer::boxInCell(tests::TileSize, {3, 1}, {8.0F, 8.0F})}, {1, 1}});
     world.actors().back().screenVisibility = 0.4F;
     world.pickups().front().screenVisibility = 0.4F;
 

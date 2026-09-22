@@ -68,7 +68,7 @@ namespace simple_platformer
         {
             fadeTowards(
                 pickup.screenVisibility,
-                visibility(map, viewer, pickup.bounds, ScreenCoverFade),
+                visibility(map, viewer, pickup.body.bounds, ScreenCoverFade),
                 deltaTime);
         }
     }

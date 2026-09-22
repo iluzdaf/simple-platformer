@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <glm/vec2.hpp>
+
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -11,6 +13,7 @@
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/inventory/item_use.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/render/animation_system.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/render_scene.hpp"
@@ -33,6 +36,17 @@ namespace
             {1, "Coin", {}, 5},
             {2, "Potion", {}, 5, simple_platformer::ItemEffect::Heal, 2},
             {3, "Key", {}, 1}};
+    }
+
+    simple_platformer::Pickup pickupAt(
+        glm::vec2 position,
+        glm::vec2 size,
+        simple_platformer::ItemStack stack)
+    {
+        simple_platformer::Pickup pickup;
+        pickup.body.bounds = {position, size};
+        pickup.stack = stack;
+        return pickup;
     }
 
     simple_platformer::World makeWorld()
@@ -71,8 +85,8 @@ TEST_CASE(
     "[pickups]")
 {
     auto world = makeWorld();
-    world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {1, 3}});
-    world.addPickup({{{80.0F, 20.0F}, {8.0F, 8.0F}}, {1, 2}});
+    world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {1, 3}));
+    world.addPickup(pickupAt({80.0F, 20.0F}, {8.0F, 8.0F}, {1, 2}));
     simple_platformer::WorldRequests requests;
     simple_platformer::updatePickups(world, requests);
     REQUIRE(tests::inventory(tests::player(world)).count(1) == 0);
@@ -80,7 +94,7 @@ TEST_CASE(
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::inventory(tests::player(world)).count(1) == 3);
     REQUIRE(world.pickups().size() == 1);
-    REQUIRE(world.pickups().front().bounds.position.x == 80.0F);
+    REQUIRE(world.pickups().front().body.bounds.position.x == 80.0F);
     REQUIRE(requests.empty());
 }
 
@@ -89,7 +103,7 @@ TEST_CASE("Partial pickups stay in the world and can be collected after freeing 
     auto world = makeWorld();
     tests::player(world).inventory = simple_platformer::Inventory(1);
     tests::inventory(tests::player(world)).add(world.itemDefinition(1), 4);
-    world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {1, 4}});
+    world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {1, 4}));
     collect(world);
     REQUIRE(tests::inventory(tests::player(world)).count(1) == 5);
     REQUIRE(world.pickups().front().stack.quantity == 3);
@@ -106,8 +120,8 @@ TEST_CASE(
     "[pickups]")
 {
     auto world = makeWorld();
-    world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {1, 2}});
-    world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {2, 1}});
+    world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {1, 2}));
+    world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {2, 1}));
     simple_platformer::WorldRequests requests;
     simple_platformer::updatePickups(world, requests);
     simple_platformer::updatePickups(world, requests);
@@ -120,7 +134,7 @@ TEST_CASE(
 TEST_CASE("Dead players and players without inventory do not collect pickups", "[pickups]")
 {
     auto world = makeWorld();
-    world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {1, 2}});
+    world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {1, 2}));
     tests::player(world).life = simple_platformer::LifeState::Dying;
     collect(world);
     REQUIRE(world.pickups().size() == 1);
@@ -218,7 +232,7 @@ TEST_CASE(
 {
     auto world = makeWorld();
     simple_platformer::TileMap map = tests::TileMapBuilder({"......", "......", "######"});
-    world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {3, 1}});
+    world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {3, 1}));
     world.setExit(
         {{{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2, {}});
     simple_platformer::updateWorldSimulation(map, world, 1.0F / 60.0F);
@@ -246,7 +260,7 @@ TEST_CASE(
 {
     auto world = makeWorld();
     tests::player(world).team = simple_platformer::Team::Player;
-    world.addPickup({{{18.0F, 20.0F}, {8.0F, 8.0F}}, {3, 1}});
+    world.addPickup(pickupAt({18.0F, 20.0F}, {8.0F, 8.0F}, {3, 1}));
     world.setExit({{{18.0F, 16.0F}, {16.0F, 16.0F}}, {}, false, {}, {}});
     simple_platformer::Projectile projectile;
     projectile.team = simple_platformer::Team::Enemy;
@@ -266,7 +280,7 @@ TEST_CASE("Pickups and exits produce camera-relative sprite commands", "[render]
     auto definitions = items();
     definitions[0].icon = {7, {{4.0F, 8.0F}, {6.0F, 10.0F}}, {6.0F, 10.0F}};
     simple_platformer::World world(definitions);
-    world.addPickup({{{20.0F, 20.0F}, {12.0F, 16.0F}}, {1, 1}});
+    world.addPickup(pickupAt({20.0F, 20.0F}, {12.0F, 16.0F}, {1, 1}));
     world.advanceSimulationTime(0.5F);
     simple_platformer::LevelExit exit;
     exit.bounds = {{50.0F, 20.0F}, {16.0F, 32.0F}};
@@ -291,8 +305,8 @@ TEST_CASE(
     auto definitions = items();
     definitions[0].icon = {7, {{4.0F, 8.0F}, {6.0F, 10.0F}}, {6.0F, 10.0F}};
     simple_platformer::World world(definitions);
-    world.addPickup({{{0.0F, 0.0F}, {16.0F, 16.0F}}, {1, 1}});
-    world.addPickup({{{16.0F, 0.0F}, {16.0F, 16.0F}}, {1, 1}});
+    world.addPickup(pickupAt({0.0F, 0.0F}, {16.0F, 16.0F}, {1, 1}));
+    world.addPickup(pickupAt({16.0F, 0.0F}, {16.0F, 16.0F}, {1, 1}));
     const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "......", "......"});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {320.0F, 180.0F}};
 
@@ -304,8 +318,8 @@ TEST_CASE(
     REQUIRE_NEAR(initialScene.sprites[1].position.y, 5.0F);
     REQUIRE_NEAR(advancedScene.sprites[0].position.y, 4.0F);
     REQUIRE_NEAR(advancedScene.sprites[1].position.y, 5.0F);
-    REQUIRE(world.pickups()[0].bounds.position == glm::vec2{0.0F, 0.0F});
-    REQUIRE(world.pickups()[1].bounds.position == glm::vec2{16.0F, 0.0F});
+    REQUIRE(world.pickups()[0].body.bounds.position == glm::vec2{0.0F, 0.0F});
+    REQUIRE(world.pickups()[1].body.bounds.position == glm::vec2{16.0F, 0.0F});
 }
 
 TEST_CASE("Pickup sprite overrides leave inventory icons unchanged", "[render][pickups]")
@@ -313,7 +327,9 @@ TEST_CASE("Pickup sprite overrides leave inventory icons unchanged", "[render][p
     simple_platformer::World world(items());
     const simple_platformer::Sprite sprite{
         7, {{24, 8}, {12, 10}}, {24, 20}, simple_platformer::SpriteAnchor::BodyCenter};
-    world.addPickup({{{20, 20}, {8, 8}}, {1, 1}, sprite});
+    simple_platformer::Pickup pickup = pickupAt({20.0F, 20.0F}, {8.0F, 8.0F}, {1, 1});
+    pickup.sprite = sprite;
+    world.addPickup(pickup);
     const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "......", "......"});
     const auto scene = simple_platformer::buildRenderScene(map, 0, {}, world);
     REQUIRE(scene.sprites.size() == 1);
@@ -322,18 +338,18 @@ TEST_CASE("Pickup sprite overrides leave inventory icons unchanged", "[render][p
     REQUIRE(scene.sprites[0].size == glm::vec2{24, 20});
     REQUIRE(scene.sprites[0].position.x == 12);
     REQUIRE(world.itemDefinition(1).icon.textureId != 7);
-    REQUIRE(world.pickups()[0].bounds.size == glm::vec2{8, 8});
+    REQUIRE(world.pickups()[0].body.bounds.size == glm::vec2{8, 8});
 }
 
 TEST_CASE("World rejects invalid level object data", "[pickups][exit]")
 {
     auto world = makeWorld();
     REQUIRE_THROWS_AS(
-        world.addPickup({{{0.0F, 0.0F}, {0.0F, 1.0F}}, {1, 1}}), std::invalid_argument);
+        world.addPickup(pickupAt({0.0F, 0.0F}, {0.0F, 1.0F}, {1, 1})), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        world.addPickup({{{0.0F, 0.0F}, {1.0F, 1.0F}}, {99, 1}}), std::invalid_argument);
+        world.addPickup(pickupAt({0.0F, 0.0F}, {1.0F, 1.0F}, {99, 1})), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        world.addPickup({{{0.0F, 0.0F}, {1.0F, 1.0F}}, {1, 0}}), std::invalid_argument);
+        world.addPickup(pickupAt({0.0F, 0.0F}, {1.0F, 1.0F}, {1, 0})), std::invalid_argument);
     REQUIRE_THROWS_AS(
         world.setExit(
             {{{0.0F, 0.0F}, {1.0F, 1.0F}}, simple_platformer::ItemStack{3, 0}, false, {}, {}}),
@@ -343,4 +359,49 @@ TEST_CASE("World rejects invalid level object data", "[pickups][exit]")
     auto definitions = items();
     definitions.push_back(definitions.front());
     REQUIRE_THROWS_AS(simple_platformer::World(definitions), std::invalid_argument);
+}
+
+TEST_CASE("A pickup falls until it rests on a tile", "[pickups]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "....", "####"});
+    simple_platformer::World world(items());
+    world.addPickup(pickupAt({4.0F, 4.0F}, {8.0F, 8.0F}, {1, 1}));
+    const simple_platformer::Pickup& pickup = world.pickups().front();
+
+    simple_platformer::updatePickupMovement(map, world, 0.1F);
+
+    REQUIRE_NEAR(pickup.body.velocity.y, simple_platformer::DefaultGravity * 0.1F);
+    REQUIRE_NEAR(pickup.body.bounds.position.y, 4.0F + pickup.body.velocity.y * 0.1F);
+
+    for (int step = 0; step < 10; ++step)
+    {
+        simple_platformer::updatePickupMovement(map, world, 0.1F);
+    }
+
+    // Resting on the floor, whose top edge is two tiles down.
+    REQUIRE_NEAR(pickup.body.bounds.position.y, 24.0F);
+    REQUIRE_NEAR(pickup.body.velocity.y, 0.0F);
+    REQUIRE_NEAR(pickup.body.bounds.position.x, 4.0F);
+}
+
+TEST_CASE("A pickup falls through the tile that breaks beneath it", "[pickups]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"....", "XXXX", "....", "####"})
+            .where('X', tests::Tile().blocksMovement().breaksInto('.'));
+    simple_platformer::World world(items());
+    world.addPickup(pickupAt({4.0F, 8.0F}, {8.0F, 8.0F}, {1, 1}));
+    const simple_platformer::Pickup& pickup = world.pickups().front();
+
+    simple_platformer::updatePickupMovement(map, world, 0.1F);
+    REQUIRE_NEAR(pickup.body.bounds.position.y, 8.0F);
+
+    REQUIRE(map.breakTile({0, 1}));
+    for (int step = 0; step < 12; ++step)
+    {
+        simple_platformer::updatePickupMovement(map, world, 0.1F);
+    }
+
+    REQUIRE_NEAR(pickup.body.bounds.position.y, 40.0F);
+    REQUIRE_NEAR(pickup.body.velocity.y, 0.0F);
 }

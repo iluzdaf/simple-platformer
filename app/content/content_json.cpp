@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -44,7 +45,7 @@ namespace simple_platformer
         }
     }
 
-    const nlohmann::json& requiredJsonMember(
+    const nlohmann::json* optionalJsonMember(
         const nlohmann::json& object,
         std::string_view key,
         std::string_view sourceName,
@@ -52,7 +53,17 @@ namespace simple_platformer
     {
         checkJsonObject(object, sourceName, path);
         const auto found = object.find(std::string(key));
-        if (found == object.end())
+        return found == object.end() ? nullptr : &*found;
+    }
+
+    const nlohmann::json& requiredJsonMember(
+        const nlohmann::json& object,
+        std::string_view key,
+        std::string_view sourceName,
+        std::string_view path)
+    {
+        const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path);
+        if (found == nullptr)
         {
             failJson(sourceName, path, "missing '" + std::string(key) + "'");
         }
@@ -181,9 +192,7 @@ namespace simple_platformer
         std::string_view sourceName,
         std::string_view path)
     {
-        checkJsonObject(object, sourceName, path);
-        const auto found = object.find(std::string(key));
-        if (found != object.end())
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
         {
             result = jsonInteger(*found, sourceName, fieldPath(path, key));
         }
@@ -206,9 +215,7 @@ namespace simple_platformer
         std::string_view sourceName,
         std::string_view path)
     {
-        checkJsonObject(object, sourceName, path);
-        const auto found = object.find(std::string(key));
-        if (found != object.end())
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
         {
             result = jsonNumber(*found, sourceName, fieldPath(path, key));
         }
@@ -231,9 +238,7 @@ namespace simple_platformer
         std::string_view sourceName,
         std::string_view path)
     {
-        checkJsonObject(object, sourceName, path);
-        const auto found = object.find(std::string(key));
-        if (found != object.end())
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
         {
             result = jsonBoolean(*found, sourceName, fieldPath(path, key));
         }
@@ -256,9 +261,7 @@ namespace simple_platformer
         std::string_view sourceName,
         std::string_view path)
     {
-        checkJsonObject(object, sourceName, path);
-        const auto found = object.find(std::string(key));
-        if (found != object.end())
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
         {
             result = jsonText(*found, sourceName, fieldPath(path, key));
         }
@@ -281,9 +284,7 @@ namespace simple_platformer
         std::string_view sourceName,
         std::string_view path)
     {
-        checkJsonObject(object, sourceName, path);
-        const auto found = object.find(std::string(key));
-        if (found != object.end())
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
         {
             result = jsonVector(*found, sourceName, fieldPath(path, key));
         }
@@ -342,6 +343,45 @@ namespace simple_platformer
         readOptionalVector(value, "displaySize", sprite.size, sourceName, path);
         readOptionalSpriteAnchor(value, "anchor", sprite.anchor, sourceName, path);
         return sprite;
+    }
+
+    void readOptionalInteger(
+        const nlohmann::json& object,
+        std::string_view key,
+        std::optional<int>& result,
+        std::string_view sourceName,
+        std::string_view path)
+    {
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
+        {
+            result = jsonInteger(*found, sourceName, fieldPath(path, key));
+        }
+    }
+
+    void readOptionalSprite(
+        const nlohmann::json& object,
+        std::string_view key,
+        Sprite& result,
+        std::string_view sourceName,
+        std::string_view path)
+    {
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
+        {
+            result = jsonSprite(*found, sourceName, fieldPath(path, key));
+        }
+    }
+
+    void readOptionalSprite(
+        const nlohmann::json& object,
+        std::string_view key,
+        std::optional<Sprite>& result,
+        std::string_view sourceName,
+        std::string_view path)
+    {
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
+        {
+            result = jsonSprite(*found, sourceName, fieldPath(path, key));
+        }
     }
 
     std::string loadContentText(const std::filesystem::path& path)

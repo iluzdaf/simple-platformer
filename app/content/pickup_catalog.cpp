@@ -65,13 +65,7 @@ namespace simple_platformer
                 readText(value, "item", sourceName, path),
                 readInteger(value, "quantity", sourceName, path)};
             definition.bodySize = readVector(value, "bodySize", sourceName, path);
-            if (value.contains("sprite"))
-            {
-                definition.sprite = jsonSprite(
-                    requiredJsonMember(value, "sprite", sourceName, path),
-                    sourceName,
-                    fieldPath(path, "sprite"));
-            }
+            readOptionalSprite(value, "sprite", definition.sprite, sourceName, path);
             catalog.emplace(entry.key(), definition);
         }
         validateInFile(sourceName, [&] { validatePickupCatalog(catalog, items); });

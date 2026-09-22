@@ -1,5 +1,6 @@
 #pragma once
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -26,6 +27,14 @@ namespace simple_platformer
         std::string_view sourceName = {},
         std::string_view path = {});
 
+    // The member when the object has it, otherwise nullptr: for fields whose absence means
+    // "keep the C++ default". Like requiredJsonMember, the object itself must be an object.
+    const nlohmann::json* optionalJsonMember(
+        const nlohmann::json& object,
+        std::string_view key,
+        std::string_view sourceName = {},
+        std::string_view path = {});
+
     int jsonInteger(
         const nlohmann::json& value,
         std::string_view sourceName = {},
@@ -41,6 +50,14 @@ namespace simple_platformer
         const nlohmann::json& object,
         std::string_view key,
         int& result,
+        std::string_view sourceName = {},
+        std::string_view path = {});
+
+    // For a field that is absent rather than defaulted when the key is missing.
+    void readOptionalInteger(
+        const nlohmann::json& object,
+        std::string_view key,
+        std::optional<int>& result,
         std::string_view sourceName = {},
         std::string_view path = {});
 
@@ -154,6 +171,20 @@ namespace simple_platformer
 
     Sprite jsonSprite(
         const nlohmann::json& value,
+        std::string_view sourceName = {},
+        std::string_view path = {});
+
+    void readOptionalSprite(
+        const nlohmann::json& object,
+        std::string_view key,
+        Sprite& result,
+        std::string_view sourceName = {},
+        std::string_view path = {});
+
+    void readOptionalSprite(
+        const nlohmann::json& object,
+        std::string_view key,
+        std::optional<Sprite>& result,
         std::string_view sourceName = {},
         std::string_view path = {});
 

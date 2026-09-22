@@ -22,11 +22,11 @@ namespace simple_platformer
         }
         world.advanceSimulationTime(deltaTime);
         holdPlayerAtOpeningExit(world);
-        WorldRequests requests;
         updateNpcSenses(map, world, deltaTime);
         updateNpcBehaviour(map, world, deltaTime);
         updateActorMovement(map, world, deltaTime);
         updatePickupMovement(map, world, deltaTime);
+        WorldRequests requests;
         updateAttacks(world, requests, deltaTime);
         updateProjectiles(map, world, requests, deltaTime);
         updateProjectileBursts(world, requests, deltaTime);

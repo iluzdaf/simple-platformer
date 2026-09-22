@@ -237,3 +237,44 @@ TEST_CASE("Collision rejects invalid bounds and movement", "[physics][collision]
             map, finiteBounds, {std::numeric_limits<float>::infinity(), 0.0F}),
         std::invalid_argument);
 }
+
+TEST_CASE("Arriving exactly at a map edge counts as touching it", "[physics][collision]")
+{
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
+
+    SECTION("the left wall")
+    {
+        Aabb bounds{{16.0F, 4.0F}, {8.0F, 8.0F}};
+        const CollisionContacts contacts =
+            simple_platformer::moveAndCollide(map, bounds, {-16.0F, 0.0F});
+        REQUIRE_NEAR(bounds.position.x, 0.0F);
+        REQUIRE(contacts.left);
+    }
+
+    SECTION("the right wall")
+    {
+        Aabb bounds{{40.0F, 4.0F}, {8.0F, 8.0F}};
+        const CollisionContacts contacts =
+            simple_platformer::moveAndCollide(map, bounds, {16.0F, 0.0F});
+        REQUIRE_NEAR(bounds.position.x, 56.0F);
+        REQUIRE(contacts.right);
+    }
+
+    SECTION("the floor under the bottom row")
+    {
+        Aabb bounds{{4.0F, 24.0F}, {8.0F, 8.0F}};
+        const CollisionContacts contacts =
+            simple_platformer::moveAndCollide(map, bounds, {0.0F, 16.0F});
+        REQUIRE_NEAR(bounds.position.y, 40.0F);
+        REQUIRE(contacts.ground);
+    }
+
+    SECTION("the open top, which is not a wall")
+    {
+        Aabb bounds{{4.0F, 16.0F}, {8.0F, 8.0F}};
+        const CollisionContacts contacts =
+            simple_platformer::moveAndCollide(map, bounds, {0.0F, -16.0F});
+        REQUIRE_NEAR(bounds.position.y, 0.0F);
+        REQUIRE_FALSE(contacts.ceiling);
+    }
+}

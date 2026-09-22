@@ -7,7 +7,6 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
-#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/input/input_state.hpp"
@@ -20,6 +19,7 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -142,16 +142,6 @@ namespace simple_platformer
         {
             clearPath(follower);
             changeState(brain, hasPatrol ? NpcState::Patrol : NpcState::Idle);
-        }
-
-        const Actor* livingTarget(const World& world, const NpcBrain& brain)
-        {
-            if (!brain.target.has_value())
-            {
-                return nullptr;
-            }
-            const Actor* target = world.findActor(brain.target.value_or(ActorId{}));
-            return target != nullptr && target->life == LifeState::Alive ? target : nullptr;
         }
 
         void chooseNpcState(

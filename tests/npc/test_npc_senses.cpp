@@ -246,3 +246,20 @@ TEST_CASE("NPC senses reject invalid timing and sensing ranges", "[npc][validati
         simple_platformer::canSeeTarget(map, bounds, bounds, {-1.0F, 1.0F}), std::invalid_argument);
     REQUIRE_THROWS_AS(simple_platformer::updateNpcSenses(map, world, -0.1F), std::invalid_argument);
 }
+
+TEST_CASE("A brain's living target is the remembered actor while it is alive", "[npc][senses]")
+{
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({38.0F, 28.0F}));
+    simple_platformer::NpcBrain brain;
+    REQUIRE(simple_platformer::livingTarget(world, brain) == nullptr);
+
+    brain.target = playerId;
+    REQUIRE(simple_platformer::livingTarget(world, brain) == &tests::player(world));
+
+    tests::player(world).life = simple_platformer::LifeState::Dying;
+    REQUIRE(simple_platformer::livingTarget(world, brain) == nullptr);
+
+    brain.target = simple_platformer::ActorId{999};
+    REQUIRE(simple_platformer::livingTarget(world, brain) == nullptr);
+}

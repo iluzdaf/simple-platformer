@@ -27,11 +27,6 @@
 
 namespace simple_platformer
 {
-    Game::Game(int textureId)
-        : Game(textureId, loadLevelCatalog())
-    {
-    }
-
     Game::Game(int textureId, LevelCatalog catalog)
         : levelCatalog(std::move(catalog)),
           catalogs(loadGameCatalogs(levelCatalog.levelDirectory)),

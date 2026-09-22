@@ -24,6 +24,5 @@ namespace simple_platformer
         std::string_view sourceName,
         const std::filesystem::path& levelDirectory = {});
     LevelCatalog loadLevelCatalog(const std::filesystem::path& path);
-    LevelCatalog loadLevelCatalog();
     std::filesystem::path levelPath(const LevelCatalog& catalog, int levelNumber);
 }

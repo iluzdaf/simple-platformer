@@ -18,7 +18,7 @@
 
 TEST_CASE("Every catalog level can be composed", "[app][content]")
 {
-    const auto catalog = simple_platformer::loadLevelCatalog();
+    const auto catalog = simple_platformer::loadLevelCatalog("assets/levels.json");
 
     REQUIRE_FALSE(catalog.levels.empty());
     for (const simple_platformer::LevelCatalogEntry& entry : catalog.levels)
@@ -41,7 +41,7 @@ TEST_CASE("Every catalog level can be composed", "[app][content]")
 
 TEST_CASE("Every catalog level has valid actor placement", "[app][content]")
 {
-    const auto catalog = simple_platformer::loadLevelCatalog();
+    const auto catalog = simple_platformer::loadLevelCatalog("assets/levels.json");
     const auto catalogs = simple_platformer::loadGameCatalogs(catalog.levelDirectory);
     for (const simple_platformer::LevelCatalogEntry& entry : catalog.levels)
     {

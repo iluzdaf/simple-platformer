@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -342,6 +343,45 @@ namespace simple_platformer
         readOptionalVector(value, "displaySize", sprite.size, sourceName, path);
         readOptionalSpriteAnchor(value, "anchor", sprite.anchor, sourceName, path);
         return sprite;
+    }
+
+    void readOptionalInteger(
+        const nlohmann::json& object,
+        std::string_view key,
+        std::optional<int>& result,
+        std::string_view sourceName,
+        std::string_view path)
+    {
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
+        {
+            result = jsonInteger(*found, sourceName, fieldPath(path, key));
+        }
+    }
+
+    void readOptionalSprite(
+        const nlohmann::json& object,
+        std::string_view key,
+        Sprite& result,
+        std::string_view sourceName,
+        std::string_view path)
+    {
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
+        {
+            result = jsonSprite(*found, sourceName, fieldPath(path, key));
+        }
+    }
+
+    void readOptionalSprite(
+        const nlohmann::json& object,
+        std::string_view key,
+        std::optional<Sprite>& result,
+        std::string_view sourceName,
+        std::string_view path)
+    {
+        if (const nlohmann::json* found = optionalJsonMember(object, key, sourceName, path))
+        {
+            result = jsonSprite(*found, sourceName, fieldPath(path, key));
+        }
     }
 
     std::string loadContentText(const std::filesystem::path& path)

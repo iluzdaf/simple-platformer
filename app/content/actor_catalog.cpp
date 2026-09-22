@@ -5,11 +5,11 @@
 #include "content/actor_definition.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include <filesystem>
 #include <initializer_list>
+#include <optional>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 #include <string_view>
@@ -169,12 +169,102 @@ namespace simple_platformer
             number("shootDuration", config.shootDuration);
             number("recoveryDuration", config.recoveryDuration);
             readOptionalBoolean(value, "breaksTiles", config.breaksTiles, sourceName, path);
-            if (const Json* sprite = optionalJsonMember(value, "sprite", sourceName, path))
-            {
-                config.projectileSprite =
-                    jsonSprite(*sprite, sourceName, fieldPath(path, "sprite"));
-            }
+            readOptionalSprite(value, "sprite", config.projectileSprite, sourceName, path);
             return config;
+        }
+
+        // The optional fields, in the readOptional shape: a missing key leaves the field
+        // alone, a present one is converted by the matching json reader.
+
+        void readOptionalTeam(
+            const Json& object,
+            std::string_view key,
+            Team& result,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
+            {
+                result = jsonTeam(*found, sourceName, fieldPath(path, key));
+            }
+        }
+
+        void readOptionalFacing(
+            const Json& object,
+            std::string_view key,
+            Facing& result,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
+            {
+                result = jsonFacing(*found, sourceName, fieldPath(path, key));
+            }
+        }
+
+        void readOptionalPlatformerConfig(
+            const Json& object,
+            std::string_view key,
+            std::optional<PlatformerMovementConfig>& result,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
+            {
+                result = jsonPlatformerConfig(*found, sourceName, fieldPath(path, key));
+            }
+        }
+
+        void readOptionalFlyingMovement(
+            const Json& object,
+            std::string_view key,
+            std::optional<FlyingMovement>& result,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
+            {
+                result = jsonFlyingMovement(*found, sourceName, fieldPath(path, key));
+            }
+        }
+
+        void readOptionalNpcSenses(
+            const Json& object,
+            std::string_view key,
+            std::optional<NpcSenses>& result,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
+            {
+                result = jsonNpcSenses(*found, sourceName, fieldPath(path, key));
+            }
+        }
+
+        void readOptionalBite(
+            const Json& object,
+            std::string_view key,
+            std::optional<BiteAttack>& result,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
+            {
+                result = jsonBite(*found, sourceName, fieldPath(path, key));
+            }
+        }
+
+        void readOptionalRangedWeapon(
+            const Json& object,
+            std::string_view key,
+            std::optional<RangedWeapon>& result,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
+            {
+                result = jsonRangedWeapon(*found, sourceName, fieldPath(path, key));
+            }
         }
 
         ActorDefinition jsonActorDefinition(
@@ -202,44 +292,15 @@ namespace simple_platformer
             result.bodySize = readVector(value, "bodySize", sourceName, path);
             readOptionalText(value, "animations", result.animations, sourceName, path);
             readOptionalSpriteAnchor(value, "spriteAnchor", result.spriteAnchor, sourceName, path);
-            if (const Json* team = optionalJsonMember(value, "team", sourceName, path))
-            {
-                result.team = jsonTeam(*team, sourceName, fieldPath(path, "team"));
-            }
-            if (const Json* facing = optionalJsonMember(value, "facing", sourceName, path))
-            {
-                result.facing = jsonFacing(*facing, sourceName, fieldPath(path, "facing"));
-            }
-            if (const Json* health = optionalJsonMember(value, "health", sourceName, path))
-            {
-                result.health = jsonInteger(*health, sourceName, fieldPath(path, "health"));
-            }
-            if (const Json* slots = optionalJsonMember(value, "inventorySlots", sourceName, path))
-            {
-                result.inventorySlots =
-                    jsonInteger(*slots, sourceName, fieldPath(path, "inventorySlots"));
-            }
-            if (const Json* platformer = optionalJsonMember(value, "platformer", sourceName, path))
-            {
-                result.platformer =
-                    jsonPlatformerConfig(*platformer, sourceName, fieldPath(path, "platformer"));
-            }
-            if (const Json* flying = optionalJsonMember(value, "flying", sourceName, path))
-            {
-                result.flying = jsonFlyingMovement(*flying, sourceName, fieldPath(path, "flying"));
-            }
-            if (const Json* senses = optionalJsonMember(value, "senses", sourceName, path))
-            {
-                result.senses = jsonNpcSenses(*senses, sourceName, fieldPath(path, "senses"));
-            }
-            if (const Json* bite = optionalJsonMember(value, "bite", sourceName, path))
-            {
-                result.bite = jsonBite(*bite, sourceName, fieldPath(path, "bite"));
-            }
-            if (const Json* ranged = optionalJsonMember(value, "ranged", sourceName, path))
-            {
-                result.ranged = jsonRangedWeapon(*ranged, sourceName, fieldPath(path, "ranged"));
-            }
+            readOptionalTeam(value, "team", result.team, sourceName, path);
+            readOptionalFacing(value, "facing", result.facing, sourceName, path);
+            readOptionalInteger(value, "health", result.health, sourceName, path);
+            readOptionalInteger(value, "inventorySlots", result.inventorySlots, sourceName, path);
+            readOptionalPlatformerConfig(value, "platformer", result.platformer, sourceName, path);
+            readOptionalFlyingMovement(value, "flying", result.flying, sourceName, path);
+            readOptionalNpcSenses(value, "senses", result.senses, sourceName, path);
+            readOptionalBite(value, "bite", result.bite, sourceName, path);
+            readOptionalRangedWeapon(value, "ranged", result.ranged, sourceName, path);
             return result;
         }
     }

@@ -442,6 +442,7 @@ of those. A `json` function receives a value; a `read` function finds one by key
 | `readOptionalText`, `readOptionalVector`, ... | an object, a key, and a reference | nothing | A missing key keeps the caller's value; a present but invalid one is an error. |
 | `checkJsonFields`, `checkJsonObject`, `checkJsonPair` | a JSON value | nothing | Shape assertions. They extract no value. |
 | `requiredJsonMember` | an object and a key | the member | Throws when the key is absent. |
+| `optionalJsonMember` | an object and a key | the member, or `nullptr` when the key is absent | The lookup every `readOptional...` and `requiredJsonMember` is built on. Parsers use those; only a new `readOptional...` calls this directly. |
 | `parseContentRoot` | the file text | the JSON document | The single place a syntax error is reported with its line and column. |
 
 The catalogues and [`level_data.cpp`](../app/content/level_data.cpp) build on those with a

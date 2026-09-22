@@ -213,14 +213,6 @@ namespace simple_platformer
         return worldToScreen(currentCamera(), topCenter);
     }
 
-    bool Game::exitReady() const
-    {
-        const Actor* player = level.world.findActor(level.world.playerId());
-        const auto& levelExit = level.world.exit();
-        return player != nullptr && levelExit.has_value() &&
-               exitUnlocked(levelExit.value(), *player);
-    }
-
     std::optional<Sprite> Game::lockedExitHintIcon() const
     {
         const auto& levelExit = level.world.exit();

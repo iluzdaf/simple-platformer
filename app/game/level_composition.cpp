@@ -25,7 +25,6 @@ namespace simple_platformer
 {
     namespace
     {
-        // Where a level position lands on the map, as feet.
         glm::vec2 feetOf(const TileMap& map, const LevelPosition& position)
         {
             if (const auto* cell = std::get_if<GridPosition>(&position))

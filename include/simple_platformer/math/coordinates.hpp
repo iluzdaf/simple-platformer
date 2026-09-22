@@ -24,8 +24,6 @@ namespace simple_platformer
         return !(left == right);
     }
 
-    // Cells are tileSize world pixels square; a TileMap knows its own.
-
     // The cell containing the point. A point on a tile edge belongs to the cell to its right
     // or below, and points left of or above the map give negative cells.
     GridPosition worldToGrid(int tileSize, glm::vec2 worldPosition);

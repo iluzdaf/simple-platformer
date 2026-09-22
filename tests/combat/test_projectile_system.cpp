@@ -45,7 +45,7 @@ namespace
         return tests::TileMapBuilder({"..........", "..........", ".........."});
     }
 
-    // One tile at column 3 of the top row, on the projectile's path. It is tile ID 1.
+    // One tile at column 3 of the top row, on the projectile's path.
     simple_platformer::TileMap mapWithTileInPath(tests::Tile tile)
     {
         return tests::TileMapBuilder({"...X......", "..........", ".........."}).where('X', tile);

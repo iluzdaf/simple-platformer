@@ -25,6 +25,9 @@ namespace simple_platformer
         constexpr float DeathFadeDurationSeconds = 0.2F;
         constexpr float HitFlashDurationSeconds = 0.1F;
         constexpr float HitFlashAmount = 0.1F;
+        // The door flashes white as it opens and the player fades into it; both follow
+        // how far through ExitOpenSeconds the opening is.
+        constexpr float ExitOpenFlashAmount = 0.5F;
         constexpr float PickupBobHeight = 2.0F;
         constexpr float PickupBobPeriodSeconds = 1.0F;
         constexpr int PickupBobPhaseCount = 4;
@@ -47,6 +50,18 @@ namespace simple_platformer
                 simulationTimeSeconds - actor.lastDamageTimeSeconds.value() <
                     HitFlashDurationSeconds;
             return wasRecentlyDamaged ? HitFlashAmount : 0.0F;
+        }
+
+        // 0 until the exit is entered, 1 once it has fully opened.
+        float exitOpenProgress(const World& world)
+        {
+            const auto& exit = world.exit();
+            if (!exit.has_value() || !exit->openedAtTimeSeconds.has_value())
+            {
+                return 0.0F;
+            }
+            const float sinceOpened = world.simulationTimeSeconds() - *exit->openedAtTimeSeconds;
+            return std::clamp(sinceOpened / ExitOpenSeconds, 0.0F, 1.0F);
         }
 
         float pickupVerticalOffset(float animationTime)
@@ -159,16 +174,23 @@ namespace simple_platformer
 
             const Sprite& sprite = levelExit.sprite.value();
             const Aabb bounds = spriteBounds(levelExit.bounds, sprite);
+            const float flash = levelExit.openedAtTimeSeconds.has_value()
+                                    ? (1.0F - exitOpenProgress(world)) * ExitOpenFlashAmount
+                                    : 0.0F;
             scene.sprites.push_back(
                 {sprite.textureId,
                  worldToScreen(camera, bounds.position),
                  bounds.size,
                  sprite.region,
-                 false});
+                 false,
+                 0.0F,
+                 1.0F,
+                 flash});
         }
 
         void appendActors(RenderScene& scene, const World& world, const Camera& camera)
         {
+            const float playerOpacity = 1.0F - exitOpenProgress(world);
             for (const Actor& actor : world.actors())
             {
                 if (!actor.sprite.has_value())
@@ -190,7 +212,7 @@ namespace simple_platformer
                      actor.sprite->region,
                      actor.facing == Facing::Left,
                      0.0F,
-                     actorOpacity(actor) * (isPlayer ? 1.0F : actorVisibility),
+                     actorOpacity(actor) * (isPlayer ? playerOpacity : actorVisibility),
                      actorWhiteFlashAmount(actor, world.simulationTimeSeconds()),
                      isPlayer ? (1.0F - actorVisibility) * PlayerConcealedShade : 0.0F});
             }

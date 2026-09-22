@@ -26,13 +26,6 @@ namespace simple_platformer
 {
     namespace
     {
-        using simple_platformer::isFinite;
-
-        bool isFinitePositive(float value)
-        {
-            return std::isfinite(value) && value > 0.0F;
-        }
-
         void validateProjectile(const simple_platformer::Projectile& projectile)
         {
             if (!isFinite(projectile.bounds.position) || !isFinite(projectile.bounds.size) ||

@@ -13,6 +13,11 @@ namespace simple_platformer
         return std::isfinite(value.x) && std::isfinite(value.y);
     }
 
+    bool isFinitePositive(float value)
+    {
+        return std::isfinite(value) && value > 0.0F;
+    }
+
     void requireTimeStep(float deltaTime, const char* what)
     {
         if (!std::isfinite(deltaTime) || deltaTime < 0.0F)

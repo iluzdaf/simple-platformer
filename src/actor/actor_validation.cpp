@@ -13,11 +13,6 @@ namespace simple_platformer
 {
     namespace
     {
-        bool isFinitePositive(float value)
-        {
-            return std::isfinite(value) && value > 0.0F;
-        }
-
         void validateIdentity(const Actor& actor)
         {
             if (isValid(actor.id))

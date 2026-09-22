@@ -15,7 +15,7 @@ TEST_CASE("Level placements reject overflowing integers and unknown fields", "[a
         "tileLegend": {".": "empty", "#": "stone"},
         "map":["....","####"],"playerSpawnCell":[0,0],
         "actors":[{"definition":"guard","spawnCell":[1,0]}],
-        "pickups":[{"item":"key","quantity":1,"spawnCell":[2,0]}],
+        "pickups":[{"item":"key","quantity":1,"bodySize":[8,8],"spawnCell":[2,0]}],
         "exit":{"definition":"door","spawnCell":[3,0]}
     })");
     SECTION("Oversized cell")
@@ -110,7 +110,8 @@ TEST_CASE("Level diagnostics identify authored fields and map cells", "[app][con
     }
     SECTION("Legend errors do not report generated array indices")
     {
-        level["objectLegend"]["K"] = {{"type", "pickup"}, {"item", "key"}, {"quantity", 0}};
+        level["objectLegend"]["K"] = {
+            {"type", "pickup"}, {"item", "key"}, {"quantity", 0}, {"bodySize", {8, 8}}};
         REQUIRE_THROWS_WITH(
             simple_platformer::parseLevelData(level.dump(), "level.json"),
             "level.json: objectLegend.K.quantity: expected a positive integer, got 0");
@@ -173,13 +174,13 @@ TEST_CASE(
             "P":{"type":"player"},
             "Z":{"type":"actor", "definition":"zombie", "patrol":{"firstCell":[1,0],"secondCell":[2,0]}},
             "B":{"type":"actor", "definition":"bat"}, "S":{"type":"actor", "definition":"zombie_soldier"},
-            "K":{"type":"pickup","item":"key","quantity":2},
+            "K":{"type":"pickup","item":"key","quantity":2,"bodySize":[8,8]},
             "E":{"type": "exit", "definition": "test_door","requirement":{"item":"key","quantity":1},
                  "consumeItem":true,"nextLevel":2}
         },
         "map":["PZZBSKKEG", "#########"],
         "actors":[{"definition":"zombie","spawnCell":[8,0]}],
-        "pickups":[{"item":"coin","quantity":3,"spawnFeet":[136,8]}]
+        "pickups":[{"item":"coin","quantity":3,"bodySize":[8,8],"spawnFeet":[136,8]}]
     })",
         "markers");
     REQUIRE(
@@ -271,7 +272,8 @@ TEST_CASE("Object legends reject ambiguous or invalid placements", "[app][conten
     }
     SECTION("Invalid pickup quantity")
     {
-        level["objectLegend"]["K"] = {{"type", "pickup"}, {"item", "key"}, {"quantity", 0}};
+        level["objectLegend"]["K"] = {
+            {"type", "pickup"}, {"item", "key"}, {"quantity", 0}, {"bodySize", {8, 8}}};
     }
     REQUIRE_THROWS_AS(
         simple_platformer::parseLevelData(level.dump(), "bad markers"), std::invalid_argument);
@@ -349,6 +351,7 @@ TEST_CASE(
             "pickups": [{
                 "item": "key",
                 "quantity": 1,
+                "bodySize": [8, 8],
                 "spawnCell": [1, 0]
             }],
             "exit": {"definition": "test_door",
@@ -480,4 +483,25 @@ TEST_CASE("Level JSON requires a tile legend", "[app][content][json]")
             })",
             "no legend"),
         Catch::Matchers::ContainsSubstring("tileLegend"));
+}
+
+TEST_CASE("An inline pickup placement states its own body size", "[app][content][json]")
+{
+    auto root = nlohmann::json::parse(R"({
+        "tileLegend": {".": "empty", "#": "stone"},
+        "map":["....","####"],"playerSpawnCell":[0,0],"actors":[],
+        "pickups":[{"item":"key","quantity":1,"spawnCell":[1,0]}],
+        "exit": {"definition": "test_door","spawnCell":[3,0]}
+    })");
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseLevelData(root.dump(), "placement.json"),
+        Catch::Matchers::ContainsSubstring("bodySize"));
+
+    root["pickups"][0]["bodySize"] = {10, 12};
+    const auto parsed = simple_platformer::parseLevelData(root.dump(), "placement.json");
+    REQUIRE(parsed.pickups.front().bodySize == glm::vec2{10.0F, 12.0F});
+
+    root["pickups"][0]["definition"] = "treasure";
+    REQUIRE_THROWS_AS(
+        simple_platformer::parseLevelData(root.dump(), "placement.json"), std::invalid_argument);
 }

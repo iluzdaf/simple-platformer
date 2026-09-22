@@ -12,7 +12,13 @@
 TEST_CASE("Pickup and exit settings are validated without JSON", "[app][content][validation]")
 {
     simple_platformer::PickupPlacement pickup;
+    pickup.bodySize = {8.0F, 8.0F};
     REQUIRE_NOTHROW(simple_platformer::validatePickupSettings(pickup));
+    pickup.bodySize.y = 0.0F;
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validatePickupSettings(pickup, "pickups[0]"),
+        "pickups[0].bodySize: expected a finite, positive size");
+    pickup.bodySize = {8.0F, 8.0F};
     pickup.stack.quantity = 0;
     REQUIRE_THROWS_WITH(
         simple_platformer::validatePickupSettings(pickup, "objectLegend.K"),

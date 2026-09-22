@@ -11,7 +11,8 @@ namespace simple_platformer
 {
     struct ExitDefinition
     {
-        glm::vec2 bodySize = {16, 32};
+        // Content declares it; composition rejects a size left at zero.
+        glm::vec2 bodySize = {0.0F, 0.0F};
         Sprite sprite;
     };
 

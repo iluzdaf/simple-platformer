@@ -40,7 +40,7 @@ TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[
 {
     const auto catalog = simple_platformer::parseActorCatalog(
         R"({
-      "player":"hero", "actors":{"hero":{"health":4,"inventorySlots":2,
+      "player":"hero", "actors":{"hero":{"bodySize":[12,20],"health":4,"inventorySlots":2,
       "platformer":{}, "team":"player", "ranged":{"damage":2,"projectileSize":[3,2],
       "projectileSpeed":120,"projectileLifetime":0.6,"shootDuration":0.2,"recoveryDuration":0.8,
       "sprite": {"position": [4,8], "size": [8,4]}}}}})",
@@ -65,6 +65,7 @@ TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[
 TEST_CASE("Actor composition creates fresh independent runtime state", "[app][actors]")
 {
     simple_platformer::ActorDefinition definition;
+    definition.bodySize = {12.0F, 20.0F};
     definition.platformer = simple_platformer::PlatformerMovementConfig{};
     definition.platformer.value().maximumSpeed = 42;
     definition.team = simple_platformer::Team::Enemy;
@@ -93,6 +94,7 @@ TEST_CASE("Actor composition creates fresh independent runtime state", "[app][ac
 TEST_CASE("Actor definitions reuse engine component validation", "[app][actors]")
 {
     simple_platformer::ActorDefinition definition;
+    definition.bodySize = {12.0F, 20.0F};
     definition.platformer = simple_platformer::PlatformerMovementConfig{};
     SECTION("Two movements")
     {
@@ -133,7 +135,7 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
     const auto catalog = simple_platformer::parseActorCatalog(
         R"({
         "player":"hero", "actors":{
-          "hero":{"platformer":{"jumpSpeed":210},"health":5,"inventorySlots":3},
+          "hero":{"bodySize":[12,20],"platformer":{"jumpSpeed":210},"health":5,"inventorySlots":3},
           "scout":{"flying":{"speed":25},"team":"enemy","senses":{"noticeDistance":40},
                    "bodySize":[8,6],"animations":"test_actor","spriteAnchor":"center","bite":{"damage":2}}
         }})",
@@ -156,7 +158,11 @@ TEST_CASE(
     "[app][actors][json]")
 {
     auto root = nlohmann::json::parse(
-        R"({"player":"hero","actors":{"hero":{"platformer":{},"health":3,"inventorySlots":2}}})");
+        R"({"player":"hero","actors":{"hero":{"bodySize":[12,20],"platformer":{},"health":3,"inventorySlots":2}}})");
+    SECTION("Missing body size")
+    {
+        root["actors"]["hero"].erase("bodySize");
+    }
     SECTION("Missing player reference")
     {
         root["player"] = "missing";

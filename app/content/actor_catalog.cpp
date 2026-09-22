@@ -43,7 +43,7 @@ namespace simple_platformer
                 sourceName,
                 path);
             ActorDefinition result;
-            readOptionalVector(value, "bodySize", result.bodySize, sourceName, path);
+            result.bodySize = readVector(value, "bodySize", sourceName, path);
             readOptionalText(value, "animations", result.animations, sourceName, path);
             std::string team = "neutral", facing = "right";
             readOptionalText(value, "team", team, sourceName, path);

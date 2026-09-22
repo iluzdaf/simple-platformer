@@ -16,7 +16,8 @@ namespace simple_platformer
     // Initial component settings; each composition creates fresh runtime state.
     struct ActorDefinition
     {
-        glm::vec2 bodySize = {12, 20};
+        // Content declares it; composition rejects a size left at zero.
+        glm::vec2 bodySize = {0.0F, 0.0F};
         Team team = Team::Neutral;
         Facing facing = Facing::Right;
         SpriteAnchor spriteAnchor = SpriteAnchor::BodyFeet;

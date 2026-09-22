@@ -12,6 +12,7 @@
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "tile_catalog.hpp"
 #include "level_data.hpp"
@@ -36,12 +37,21 @@ namespace simple_platformer
         const std::string& path,
         std::string_view sourceName)
     {
+        if (!placement.definitionName.empty())
+        {
+            return;
+        }
         if (placement.stack.quantity <= 0)
         {
             failJson(
                 sourceName,
                 fieldPath(path, "quantity"),
                 "expected a positive integer, got " + std::to_string(placement.stack.quantity));
+        }
+        if (!isFinite(placement.bodySize) || placement.bodySize.x <= 0.0F ||
+            placement.bodySize.y <= 0.0F)
+        {
+            failJson(sourceName, fieldPath(path, "bodySize"), "expected a finite, positive size");
         }
     }
 

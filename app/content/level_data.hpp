@@ -35,9 +35,11 @@ namespace simple_platformer
     struct PickupPlacement
     {
         LevelPosition spawn;
-        NamedItemStack stack;
-        // Empty selects an inline item stack with the default pickup appearance.
+        // Empty means the placement describes the pickup itself: its stack and body size,
+        // drawn with the item's inventory icon.
         std::string definitionName = {};
+        NamedItemStack stack;
+        glm::vec2 bodySize = {0.0F, 0.0F};
     };
 
     struct ExitPlacement

@@ -31,3 +31,12 @@ TEST_CASE("A time step must be finite and not negative", "[math][validation]")
         simple_platformer::requireTimeStep(std::numeric_limits<float>::quiet_NaN(), "Steps"),
         std::invalid_argument);
 }
+
+TEST_CASE("A finite positive number is above zero and not infinite", "[math][validation]")
+{
+    REQUIRE(simple_platformer::isFinitePositive(0.5F));
+    REQUIRE_FALSE(simple_platformer::isFinitePositive(0.0F));
+    REQUIRE_FALSE(simple_platformer::isFinitePositive(-0.5F));
+    REQUIRE_FALSE(simple_platformer::isFinitePositive(std::numeric_limits<float>::infinity()));
+    REQUIRE_FALSE(simple_platformer::isFinitePositive(std::numeric_limits<float>::quiet_NaN()));
+}

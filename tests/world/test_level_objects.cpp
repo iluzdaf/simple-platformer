@@ -13,6 +13,7 @@
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/inventory/item_use.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/render_scene.hpp"
@@ -365,7 +366,7 @@ TEST_CASE(
     world.addPickup(pickupAt({0.0F, 0.0F}, {16.0F, 16.0F}, {1, 1}));
     world.addPickup(pickupAt({16.0F, 0.0F}, {16.0F, 16.0F}, {1, 1}));
     const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "......", "......"});
-    const simple_platformer::Camera camera{{0.0F, 0.0F}, {320.0F, 180.0F}};
+    const simple_platformer::Camera camera{{0.0F, 0.0F}, simple_platformer::InternalViewportSize};
 
     const auto initialScene = simple_platformer::buildRenderScene(map, 0, camera, world);
     world.advanceSimulationTime(0.5F);

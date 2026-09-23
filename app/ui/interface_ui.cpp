@@ -1,6 +1,5 @@
 #include "interface_ui.hpp"
 
-#include <cstddef>
 #include <optional>
 
 #include "game/game.hpp"
@@ -12,26 +11,28 @@
 
 namespace simple_platformer
 {
-    std::optional<std::size_t> drawInterface(
+    InterfaceRequests drawInterface(
         const Game& game,
         const TextureView& atlas,
         const std::optional<WindowViewport>& viewport,
         bool inventoryOpen)
     {
+        InterfaceRequests requests;
         if (!viewport.has_value())
         {
-            return std::nullopt;
+            return requests;
         }
         drawHealthHud(game.playerHealth(), atlas, *viewport);
         if (!game.complete())
         {
+            requests.toggleInventory = drawInventoryButton(atlas, *viewport);
             drawLockedExitHint(game, atlas, *viewport);
         }
         drawLevelCompletion(game, *viewport);
         if (inventoryOpen && !game.complete())
         {
-            return drawInventory(game, atlas, *viewport);
+            requests.useInventorySlot = drawInventory(game, atlas, *viewport);
         }
-        return std::nullopt;
+        return requests;
     }
 }

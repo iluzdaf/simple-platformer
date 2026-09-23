@@ -634,7 +634,10 @@ agree about letterboxing and high-DPI coordinates.
 
 ImGui is used for the health HUD, inventory, completion message, and opt-in debug tools.
 `drawInterface` in `app/ui/interface_ui` is the short list of what the player sees over
-the scene and the order it is drawn in, as `world_simulation` is for the systems.
+the scene and the order it is drawn in, as `world_simulation` is for the systems. It is
+built before the simulation and hands back what the player asked for as
+`InterfaceRequests`, which the loop applies, so a click on the bag pauses the same frame
+instead of firing a shot and building the interface never changes the game.
 F1 toggles the debug overlay. The overlay can show actor details, sprite and collision
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing, and
 navigation paths. Debug data is built separately from its ImGui presentation so it can

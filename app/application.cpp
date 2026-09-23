@@ -1,7 +1,6 @@
 #include "application.hpp"
 
 #include <cstdlib>
-#include <cstddef>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -25,7 +24,6 @@
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/sprite_renderer.hpp"
-#include "ui/health_hud_ui.hpp"
 #include "ui/interface_ui.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/coordinates.hpp"
@@ -257,15 +255,21 @@ namespace simple_platformer
             glfwGetCursorPos(window.get(), &cursorX, &cursorY);
             const std::optional<WindowViewport> windowViewport = makeWindowViewport(
                 {windowWidth, windowHeight}, {framebufferWidth, framebufferHeight});
-            bool inventoryButtonClicked = false;
-            if (windowViewport.has_value() && !game.complete())
-            {
-                inventoryButtonClicked = drawInventoryButton(atlasTexture, *windowViewport);
-            }
-            if (inventoryButtonClicked)
+
+            FrameProfile profile;
+            profile.frameSeconds = frameClock.lapSeconds();
+            const Stopwatch interfaceWatch;
+            const InterfaceRequests interfaceRequests =
+                drawInterface(game, atlasTexture, windowViewport, context.inventoryOpen);
+            profile.interfaceSeconds = interfaceWatch.elapsedSeconds();
+            if (interfaceRequests.toggleInventory)
             {
                 context.inventoryOpen = !context.inventoryOpen;
                 context.inventoryToggled = true;
+            }
+            if (interfaceRequests.useInventorySlot.has_value())
+            {
+                game.useInventoryItem(*interfaceRequests.useInventorySlot);
             }
             const std::optional<glm::vec2> internalCursor = windowToInternal(
                 {static_cast<float>(cursorX), static_cast<float>(cursorY)},
@@ -278,8 +282,6 @@ namespace simple_platformer
                 context.input.clearButton(InputButton::PrimaryAttack);
             }
 
-            FrameProfile profile;
-            profile.frameSeconds = frameClock.lapSeconds();
             const bool paused = context.inventoryOpen || game.complete();
             if (paused || context.inventoryToggled || gameRestarted)
             {
@@ -325,15 +327,6 @@ namespace simple_platformer
             const Stopwatch renderWatch;
             renderer.render(scene, framebufferWidth, framebufferHeight);
             profile.renderSeconds = renderWatch.elapsedSeconds();
-
-            const Stopwatch interfaceWatch;
-            const std::optional<std::size_t> slotToUse =
-                drawInterface(game, atlasTexture, windowViewport, context.inventoryOpen);
-            if (slotToUse.has_value())
-            {
-                game.useInventoryItem(*slotToUse);
-            }
-            profile.interfaceSeconds = interfaceWatch.elapsedSeconds();
             frameHistory.push(profile);
 
             if (context.showDebugOverlay)

@@ -100,6 +100,32 @@ TEST_CASE("Kept connections can be read where the cache holds them", "[navigatio
         simple_platformer::platformerNeighbors(map, cell, BodySize, {}, tests::FixedStepSeconds));
 }
 
+TEST_CASE("Keeping every cell leaves a search nothing to simulate", "[navigation][cache]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "........", "###..###", "########"});
+    PlatformerConnectionCache cache;
+    simple_platformer::keepAllPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache);
+    REQUIRE(
+        cache.size() ==
+        static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height()));
+
+    PathSearchStatistics statistics;
+    REQUIRE(simple_platformer::findPlatformerPath(
+                map, {0, 2}, {7, 2}, BodySize, {}, tests::FixedStepSeconds, {}, &statistics, &cache)
+                .has_value());
+    REQUIRE(statistics.simulatedTicks == 0);
+    REQUIRE(statistics.cellsReused == statistics.nodesExpanded);
+
+    // Keeping again changes nothing.
+    simple_platformer::keepAllPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache);
+    REQUIRE(
+        cache.size() ==
+        static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height()));
+}
+
 TEST_CASE("Connections are kept apart for each body and step", "[navigation][cache]")
 {
     const simple_platformer::TileMap map =

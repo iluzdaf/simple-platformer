@@ -76,6 +76,15 @@ namespace simple_platformer
         PathSearchStatistics* statistics = nullptr,
         PlatformerConnectionCache* cache = nullptr);
 
+    // Simulates and keeps the connections leaving every cell of the map for this body, so
+    // no search has to during play. Cells already kept are left as they are.
+    void keepAllPlatformerConnections(
+        const TileMap& map,
+        glm::vec2 bodySize,
+        const PlatformerMovementConfig& movement,
+        float stepSeconds,
+        PlatformerConnectionCache& cache);
+
     // The same connections as the cache keeps them, simulated and kept first when it does
     // not yet, and read where they are rather than copied out. The reference holds until
     // the cache is cleared.

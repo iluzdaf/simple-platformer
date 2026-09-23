@@ -16,6 +16,8 @@
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/presentation.hpp"
 #include "simple_platformer/render/render_scene.hpp"
@@ -27,12 +29,17 @@
 
 namespace simple_platformer
 {
-    Game::Game(int textureId, LevelCatalog catalog)
+    Game::Game(int textureId, LevelCatalog catalog, float stepSeconds)
         : levelCatalog(std::move(catalog)),
           catalogs(loadGameCatalogs(levelCatalog.levelDirectory)),
           level(composeGameLevel(levelCatalog, levelCatalog.startLevel, textureId, catalogs)),
-          atlasTextureId(textureId)
+          atlasTextureId(textureId),
+          simulationStepSeconds(stepSeconds)
     {
+        if (!isFinitePositive(simulationStepSeconds))
+        {
+            throw std::invalid_argument("The game's simulation step must be finite and positive");
+        }
         startLevel(composePlayer(catalogs, atlasTextureId));
     }
 
@@ -63,6 +70,7 @@ namespace simple_platformer
         }
         cameraController =
             makeCameraController(level.map, playerActor->body.bounds, {80.0F, 45.0F});
+        warmNpcNavigation(level.map, level.world, simulationStepSeconds);
     }
 
     void Game::update(const InputIntentions& intentions, float deltaTime, FrameProfile* profile)
@@ -131,7 +139,7 @@ namespace simple_platformer
             level.map, player->sprite.value().textureId, currentCamera(), level.world);
     }
 
-    DebugOverlay Game::debugOverlay(float atlasWidth, float simulationStepSeconds) const
+    DebugOverlay Game::debugOverlay(float atlasWidth) const
     {
         return makeDebugOverlay(
             level.world, level.map, cameraControllerValue(), atlasWidth, simulationStepSeconds);

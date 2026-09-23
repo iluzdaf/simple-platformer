@@ -23,38 +23,24 @@ namespace simple_platformer
         }
         world.advanceSimulationTime(deltaTime);
         holdPlayerAtOpeningExit(world);
-        timePhase(profile, "NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
-        timePhase(
-            profile,
-            "NPC",
-            "NPC behaviour",
-            [&] { updateNpcBehaviour(map, world, deltaTime, profile); });
-        timePhase(
-            profile,
-            "Movement",
-            "Actor movement",
-            [&] { updateActorMovement(map, world, deltaTime); });
-        timePhase(
-            profile,
-            "Movement",
-            "Pickup movement",
-            [&] { updatePickupMovement(map, world, deltaTime); });
+        // Each phase is charged to the profile under its category, when there is one.
+        const auto phase = [&](const char* category, const char* name, auto&& run)
+        { timePhase(profile, category, name, run); };
+
+        phase("NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
+        phase("NPC", "NPC behaviour", [&] { updateNpcBehaviour(map, world, deltaTime, profile); });
+        phase("Movement", "Actor movement", [&] { updateActorMovement(map, world, deltaTime); });
+        phase("Movement", "Pickup movement", [&] { updatePickupMovement(map, world, deltaTime); });
         WorldRequests requests;
-        timePhase(profile, "Combat", "Attacks", [&] { updateAttacks(world, requests, deltaTime); });
-        timePhase(
-            profile,
-            "Combat",
-            "Projectiles",
-            [&] { updateProjectiles(map, world, requests, deltaTime); });
-        timePhase(
-            profile,
+        phase("Combat", "Attacks", [&] { updateAttacks(world, requests, deltaTime); });
+        phase("Combat", "Projectiles", [&] { updateProjectiles(map, world, requests, deltaTime); });
+        phase(
             "Combat",
             "Projectile bursts",
             [&] { updateProjectileBursts(world, requests, deltaTime); });
-        timePhase(
-            profile, "World", "Life states", [&] { updateLifeState(world, requests, deltaTime); });
-        timePhase(profile, "World", "Pickups", [&] { updatePickups(world, requests); });
-        timePhase(profile, "World", "World requests", [&] { applyWorldRequests(world, requests); });
-        timePhase(profile, "World", "Level exit", [&] { updateLevelExit(world); });
+        phase("World", "Life states", [&] { updateLifeState(world, requests, deltaTime); });
+        phase("World", "Pickups", [&] { updatePickups(world, requests); });
+        phase("World", "World requests", [&] { applyWorldRequests(world, requests); });
+        phase("World", "Level exit", [&] { updateLevelExit(world); });
     }
 }

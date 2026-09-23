@@ -21,6 +21,7 @@
 
 #include "content/level_catalog.hpp"
 #include "debug/debug_overlay_ui.hpp"
+#include "debug/frame_profile_ui.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/sprite_renderer.hpp"

@@ -144,6 +144,7 @@ add_executable(
     app/application.cpp
     app/debug/debug_overlay.cpp
     app/debug/debug_overlay_ui.cpp
+    app/debug/frame_profile_ui.cpp
     app/content/actor_catalog.cpp
     app/content/actor_definition.cpp
     app/content/animation_catalog.cpp

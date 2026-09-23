@@ -638,10 +638,10 @@ bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensi
 navigation paths. Debug data is built separately from its ImGui presentation so it can
 be tested without a window.
 
-The overlay also shows a frame panel. The application times each frame with a
-`Stopwatch` from `timing/stopwatch`, how many fixed steps it ran, and how long
-simulation, scene building, rendering, and the interface took, and records them in a
-`FrameHistory` from `timing/frame_profile`.
+The overlay also shows a frame panel, drawn by `app/debug/frame_profile_ui`. The
+application times each frame with a `Stopwatch` from `timing/stopwatch`, how many fixed
+steps it ran, and how long simulation, scene building, rendering, and the interface
+took, and records them in a `FrameHistory` from `timing/frame_profile`.
 The panel is one ImPlot plot over the recent frames with two vertical axes: frame time against the 60 Hz budget line on the left, and the simulation's phases on the right, stacked by category (NPC, Movement, Combat, World) on a fixed scale so a slow frame shows as a spike that may leave the top rather than rescaling the stack. Hiding a category in the legend restacks the rest. Under the plot it prints the latest breakdown, the average, the worst frame, and every phase under its category as an average cost per simulation step over the history, since one frame's numbers change too fast to read. The panel's window is invisible to the mouse, so clicks over it reach the game like the rest of the overlay; its legend is a small window of its own and the one place a click lands. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a category and a short name, and the NPC system times each path search as a phase of its own, so the behaviour phase keeps only its own time, and counts the searches it ran, the cells they expanded and the movement ticks they simulated; the stack shows which category widened in a slow frame. `Stopwatch` is the one place the engine reads a clock; `timePhase` in `timing/frame_profile` times with it, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
 meaningful from a release build.
 

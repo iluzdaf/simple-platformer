@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstddef>
 #include <stdexcept>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -146,6 +147,48 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
     REQUIRE(second.pathSearches == 1);
     REQUIRE(second.pathSearchCellsReused > 0);
     REQUIRE(second.pathSearchSimulatedTicks == 0);
+}
+
+TEST_CASE("Warming navigation keeps every cell for each walking NPC body", "[npc][navigation]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
+    simple_platformer::World world;
+    const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
+    // Two walkers of one body, one of another, and a flyer, which needs no connections.
+    for (const float x : {24.0F, 40.0F})
+    {
+        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                           .atFeet({x, 32.0F})
+                           .walking()
+                           .thinking({64.0F, 1.0F}));
+    }
+    const auto tallId = world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
+                                           .atFeet({56.0F, 32.0F})
+                                           .walking()
+                                           .thinking({64.0F, 1.0F}));
+    world.addActor(makeNpc({8.0F, 16.0F}));
+
+    simple_platformer::warmNpcNavigation(map, world, tests::FixedStepSeconds);
+    const std::size_t cells =
+        static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height());
+    REQUIRE(world.platformerConnections().size() == 2 * cells);
+    const simple_platformer::ConnectionBody tall{
+        {12.0F, 20.0F}, simple_platformer::PlatformerMovementConfig{}, tests::FixedStepSeconds};
+    REQUIRE(world.platformerConnections().find({2, 1}, tall) != nullptr);
+
+    // The first chase then simulates nothing.
+    tests::platformerMovement(world, tallId).grounded = true;
+    brain(world, tallId).target = playerId;
+    brain(world, tallId).lastSeenTargetFeet = {8.0F, 32.0F};
+    brain(world, tallId).targetVisible = false;
+    simple_platformer::FrameProfile profile;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &profile);
+    REQUIRE(profile.pathSearches == 1);
+    REQUIRE(profile.pathSearchSimulatedTicks == 0);
+    REQUIRE(profile.pathSearchCellsReused == profile.pathSearchNodes);
+
+    REQUIRE_THROWS_AS(
+        simple_platformer::warmNpcNavigation(map, world, 0.0F), std::invalid_argument);
 }
 
 TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][fsm]")

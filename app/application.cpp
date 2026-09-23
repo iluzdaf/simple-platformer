@@ -154,8 +154,11 @@ namespace simple_platformer
         SpriteRenderer renderer;
         const int atlas = renderer.loadTexture("assets/sprites.png");
         const TextureView atlasTexture = renderer.textureView(atlas);
-        Game game(atlas, loadLevelCatalog("assets/levels.json"));
         FixedStep fixedStep;
+        Game game(
+            atlas,
+            loadLevelCatalog("assets/levels.json"),
+            static_cast<float>(fixedStep.stepSeconds()));
         FrameHistory frameHistory;
         FrameSelection frameSelection;
         Stopwatch frameClock;
@@ -246,10 +249,7 @@ namespace simple_platformer
             if (context.showDebugOverlay)
             {
                 drawDebugOverlay(
-                    game.debugOverlay(
-                        static_cast<float>(atlasTexture.width),
-                        static_cast<float>(fixedStep.stepSeconds())),
-                    windowViewport);
+                    game.debugOverlay(static_cast<float>(atlasTexture.width)), windowViewport);
                 drawFrameProfile(frameHistory, frameSelection);
             }
             imgui.render();

@@ -27,7 +27,9 @@ namespace simple_platformer
     class Game
     {
     public:
-        Game(int textureId, LevelCatalog catalog);
+        // The step is the one the game will be simulated with; a level's navigation is
+        // prepared for it when the level starts.
+        Game(int textureId, LevelCatalog catalog, float simulationStepSeconds);
 
         // With a profile, the simulation charges each of its phases to it.
         void update(
@@ -37,7 +39,7 @@ namespace simple_platformer
         glm::vec2 playerAimDirection(glm::vec2 screenPosition) const;
         RenderScene buildScene() const;
         // The atlas width comes from whoever loaded the texture; the game knows only its id.
-        DebugOverlay debugOverlay(float atlasWidth, float simulationStepSeconds) const;
+        DebugOverlay debugOverlay(float atlasWidth) const;
         Health playerHealth() const;
         // Use these references immediately. Changing or restarting the level replaces the World,
         // so do not store a returned reference for later.
@@ -65,6 +67,7 @@ namespace simple_platformer
         GameLevel level;
         std::optional<CameraController> cameraController;
         int atlasTextureId = 0;
+        float simulationStepSeconds = 0.0F;
         bool gameComplete = false;
     };
 }

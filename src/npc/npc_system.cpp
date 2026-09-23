@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -363,6 +364,34 @@ namespace simple_platformer
                 updateNpcState(map, world, actor, deltaTime, profile);
                 brain.stateElapsed += deltaTime;
             }
+        }
+    }
+
+    void warmNpcNavigation(const TileMap& map, World& world, float stepSeconds)
+    {
+        requireSeconds(stepSeconds, "NPC navigation step");
+        std::vector<ConnectionBody> bodies;
+        for (const Actor& actor : world.actors())
+        {
+            if (!actor.pathFollower.has_value() || !actor.platformerMovement.has_value())
+            {
+                continue;
+            }
+            const ConnectionBody body{
+                actor.body.bounds.size, actor.platformerMovement->config, stepSeconds};
+            const bool known = std::any_of(
+                bodies.begin(),
+                bodies.end(),
+                [&body](const ConnectionBody& kept) { return kept == body; });
+            if (!known)
+            {
+                bodies.push_back(body);
+            }
+        }
+        for (const ConnectionBody& body : bodies)
+        {
+            keepAllPlatformerConnections(
+                map, body.size, body.movement, body.stepSeconds, world.platformerConnections());
         }
     }
 }

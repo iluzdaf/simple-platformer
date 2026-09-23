@@ -569,6 +569,22 @@ namespace simple_platformer
         }
     }
 
+    void keepAllPlatformerConnections(
+        const TileMap& map,
+        glm::vec2 bodySize,
+        const PlatformerMovementConfig& movement,
+        float stepSeconds,
+        PlatformerConnectionCache& cache)
+    {
+        for (int row = 0; row < map.height(); ++row)
+        {
+            for (int column = 0; column < map.width(); ++column)
+            {
+                platformerNeighborsKept(map, {column, row}, bodySize, movement, stepSeconds, cache);
+            }
+        }
+    }
+
     const std::vector<NavigationNeighbor>& platformerNeighborsKept(
         const TileMap& map,
         GridPosition cell,

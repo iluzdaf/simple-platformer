@@ -57,7 +57,9 @@ TEST_CASE(
     "[app][level-transition]")
 {
     simple_platformer::Game game(
-        0, simple_platformer::loadLevelCatalog("tests/fixtures/levels.json"));
+        0,
+        simple_platformer::loadLevelCatalog("tests/fixtures/levels.json"),
+        tests::FixedStepSeconds);
     const auto initialHealth = game.playerHealth();
     const auto initialInventory = game.playerInventory();
     const int initialLevel = game.levelNumber();
@@ -99,7 +101,9 @@ TEST_CASE(
     "[app][level-transition][exit]")
 {
     simple_platformer::Game game(
-        0, simple_platformer::loadLevelCatalog("tests/fixtures/locked_levels.json"));
+        0,
+        simple_platformer::loadLevelCatalog("tests/fixtures/locked_levels.json"),
+        tests::FixedStepSeconds);
     REQUIRE_FALSE(game.lockedExitHintIcon().has_value());
 
     simple_platformer::InputIntentions walkRight;

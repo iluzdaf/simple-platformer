@@ -470,7 +470,10 @@ A search handed a cache reads each expanded cell's connections where the cache k
 them, simulating and keeping them first when it does not yet; a search without one
 simulates every cell, as the tests of the policies do. The `World` owns the cache for the map it is
 simulated with, since the world is replaced with its level, and the NPC system hands it
-to every platformer search. A search that fails has expanded every cell its start
+to every platformer search. The game fills it when a level starts: `warmNpcNavigation`
+keeps every cell of the map for each platformer NPC body in the world, at the step the
+game is simulated with, which takes a few milliseconds per shipped level in a release
+build, so the first chase simulates nothing during play. A search that fails has expanded every cell its start
 leads to, and the cache keeps that set too, per start and body, so a later search from
 there to a goal outside it returns no path without expanding anything; an NPC that can
 see a player it cannot reach retries every quarter second at no cost. The profile

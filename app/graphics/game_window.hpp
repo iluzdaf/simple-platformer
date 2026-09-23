@@ -36,12 +36,15 @@ namespace simple_platformer
         void present() const;
 
     private:
-        struct Library
+        // Starts GLFW and stops it again. Declared before the window so GLFW is running
+        // when the window is created and still running when it is destroyed, even when
+        // the constructor throws part way.
+        struct GlfwLibrary
         {
-            Library();
-            ~Library();
-            Library(const Library&) = delete;
-            Library& operator=(const Library&) = delete;
+            GlfwLibrary();
+            ~GlfwLibrary();
+            GlfwLibrary(const GlfwLibrary&) = delete;
+            GlfwLibrary& operator=(const GlfwLibrary&) = delete;
         };
 
         struct WindowDeleter
@@ -49,7 +52,7 @@ namespace simple_platformer
             void operator()(GLFWwindow* target) const;
         };
 
-        Library library;
+        GlfwLibrary library;
         std::unique_ptr<GLFWwindow, WindowDeleter> window;
     };
 }

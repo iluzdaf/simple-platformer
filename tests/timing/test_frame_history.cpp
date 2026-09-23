@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "simple_platformer/timing/frame_profile.hpp"
@@ -73,4 +74,19 @@ TEST_CASE("A frame history rejects impossible measurements", "[timing][profile]"
     FrameProfile negativeTicks;
     negativeTicks.simulationTicks = -1;
     REQUIRE_THROWS_AS(history.push(negativeTicks), std::invalid_argument);
+}
+
+TEST_CASE("Adding to a phase sums repeats and keeps first-seen order", "[timing][profile]")
+{
+    FrameProfile profile;
+    simple_platformer::addPhaseSeconds(profile, "Senses", 0.001F);
+    simple_platformer::addPhaseSeconds(profile, "Movement", 0.002F);
+    simple_platformer::addPhaseSeconds(profile, "Senses", 0.003F);
+
+    REQUIRE(profile.phases.size() == 2);
+    REQUIRE(std::string(profile.phases[0].name) == "Senses");
+    REQUIRE_NEAR(profile.phases[0].seconds, 0.004F);
+    REQUIRE(std::string(profile.phases[1].name) == "Movement");
+    REQUIRE_THROWS_AS(
+        simple_platformer::addPhaseSeconds(profile, "Senses", -0.001F), std::invalid_argument);
 }

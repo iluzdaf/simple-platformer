@@ -3,12 +3,27 @@
 #include <algorithm>
 #include <cstddef>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 #include "simple_platformer/math/validation.hpp"
 
 namespace simple_platformer
 {
+    void addPhaseSeconds(FrameProfile& profile, const char* name, float seconds)
+    {
+        requireSeconds(seconds, name);
+        for (PhaseTiming& phase : profile.phases)
+        {
+            if (std::string_view(phase.name) == name)
+            {
+                phase.seconds += seconds;
+                return;
+            }
+        }
+        profile.phases.push_back({name, seconds});
+    }
+
     FrameHistory::FrameHistory(std::size_t capacity)
         : frames(capacity)
     {
@@ -25,9 +40,10 @@ namespace simple_platformer
         requireSeconds(frame.sceneSeconds, "Scene time");
         requireSeconds(frame.renderSeconds, "Render time");
         requireSeconds(frame.interfaceSeconds, "Interface time");
-        if (frame.simulationTicks < 0)
+        if (frame.simulationTicks < 0 || frame.pathSearches < 0)
         {
-            throw std::invalid_argument("A frame cannot run a negative number of ticks");
+            throw std::invalid_argument(
+                "A frame cannot run a negative number of steps or searches");
         }
         frames[next] = frame;
         next = (next + 1) % frames.size();

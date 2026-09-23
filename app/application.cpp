@@ -18,6 +18,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <implot.h>
 
 #include "content/level_catalog.hpp"
 #include "debug/debug_overlay_ui.hpp"
@@ -65,17 +66,18 @@ namespace simple_platformer
             {
                 IMGUI_CHECKVERSION();
                 ImGui::CreateContext();
+                ImPlot::CreateContext();
                 ImGui::StyleColorsDark();
 
                 if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
                 {
-                    ImGui::DestroyContext();
+                    destroyContexts();
                     throw std::runtime_error("ImGui could not start its GLFW backend");
                 }
                 if (!ImGui_ImplOpenGL3_Init("#version 330 core"))
                 {
                     ImGui_ImplGlfw_Shutdown();
-                    ImGui::DestroyContext();
+                    destroyContexts();
                     throw std::runtime_error("ImGui could not start its OpenGL backend");
                 }
             }
@@ -84,6 +86,12 @@ namespace simple_platformer
             {
                 ImGui_ImplOpenGL3_Shutdown();
                 ImGui_ImplGlfw_Shutdown();
+                destroyContexts();
+            }
+
+            static void destroyContexts()
+            {
+                ImPlot::DestroyContext();
                 ImGui::DestroyContext();
             }
 

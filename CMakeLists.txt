@@ -70,6 +70,8 @@ add_library(
     external/imgui/imgui_widgets.cpp
     external/imgui/backends/imgui_impl_glfw.cpp
     external/imgui/backends/imgui_impl_opengl3.cpp
+    external/implot/implot.cpp
+    external/implot/implot_items.cpp
 )
 target_compile_features(simple_platformer_imgui PUBLIC cxx_std_17)
 target_include_directories(
@@ -77,6 +79,7 @@ target_include_directories(
     SYSTEM PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui
     ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/backends
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/implot
 )
 target_link_libraries(simple_platformer_imgui PUBLIC glfw)
 

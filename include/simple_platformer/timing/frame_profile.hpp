@@ -6,9 +6,11 @@
 namespace simple_platformer
 {
     // One named part of the simulation step and what it cost this frame, summed over the
-    // fixed steps the frame ran.
+    // fixed steps the frame ran. The category is the broad part of the step it belongs to,
+    // such as "NPC" or "Combat", so a plot can show a few bands instead of every phase.
     struct PhaseTiming
     {
+        const char* category = "";
         const char* name = "";
         float seconds = 0.0F;
     };
@@ -30,8 +32,13 @@ namespace simple_platformer
         int pathSearches = 0;
     };
 
-    // Adds to the named phase, appending it the first time it is seen.
-    void addPhaseSeconds(FrameProfile& profile, const char* name, float seconds);
+    // Adds to the named phase, appending it the first time it is seen. A phase keeps the
+    // category it was first charged under.
+    void addPhaseSeconds(
+        FrameProfile& profile,
+        const char* category,
+        const char* name,
+        float seconds);
 
     // The most recent frames, oldest dropped first, for a frame-time plot and its summary.
     class FrameHistory
@@ -50,7 +57,15 @@ namespace simple_platformer
         // the fixed step, many frames run none and have no breakdown to show.
         const FrameProfile* latestSimulated() const;
         float averageFrameSeconds() const;
+        // Summed over every frame held, for costs per simulation step.
+        int totalSimulationTicks() const;
+        int totalPathSearches() const;
         std::vector<float> frameSecondsOldestFirst() const;
+        std::vector<float> simulationSecondsOldestFirst() const;
+        // One phase's cost per frame; zero for frames that did not run it.
+        std::vector<float> phaseSecondsOldestFirst(const char* name) const;
+        // Every phase in one category summed, per frame.
+        std::vector<float> categorySecondsOldestFirst(const char* category) const;
 
     private:
         std::vector<FrameProfile> frames;

@@ -8,6 +8,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/path_search.hpp"
 
 namespace simple_platformer
 {
@@ -34,7 +35,8 @@ namespace simple_platformer
         const PlatformerMovementConfig& movement,
         float stepSeconds);
 
-    // High-level path API for platformer actors.
+    // High-level path API for platformer actors. With statistics, reports what the search
+    // cost: the cells it expanded and the movement ticks it simulated.
     std::optional<NavigationPath> findPlatformerPath(
         const TileMap& map,
         GridPosition start,
@@ -42,7 +44,8 @@ namespace simple_platformer
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
         float stepSeconds,
-        const PlatformerNavigationConfig& navigation = {});
+        const PlatformerNavigationConfig& navigation = {},
+        PathSearchStatistics* statistics = nullptr);
 
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize);
 
@@ -59,10 +62,12 @@ namespace simple_platformer
         glm::vec2 bodySize);
 
     // Lower-level policy used by the generic path search.
+    // With statistics, adds the movement ticks it simulated.
     std::vector<NavigationNeighbor> platformerNeighbors(
         const TileMap& map,
         GridPosition cell,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
-        float stepSeconds);
+        float stepSeconds,
+        PathSearchStatistics* statistics = nullptr);
 }

@@ -14,13 +14,14 @@ namespace simple_platformer
     std::optional<NavigationPath> findFlyingPath(
         const TileMap& map,
         GridPosition start,
-        GridPosition goal)
+        GridPosition goal,
+        PathSearchStatistics* statistics)
     {
         const GridNeighborFunction neighbors = [&map](GridPosition cell)
         { return flyingNeighbors(map, cell); };
 
         // Remove manhattanHeuristic to compare this A* search with the default Dijkstra search.
-        return findLowestCostPath(start, goal, neighbors, manhattanHeuristic);
+        return findLowestCostPath(start, goal, neighbors, manhattanHeuristic, statistics);
     }
 
     std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition cell)

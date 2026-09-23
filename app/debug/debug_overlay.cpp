@@ -22,7 +22,6 @@
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
-#include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/pickup.hpp"
@@ -72,7 +71,8 @@ namespace simple_platformer
             const Actor& actor,
             const TileMap& map,
             GridPosition start,
-            const NavigationStep& step)
+            const NavigationStep& step,
+            float stepSeconds)
         {
             if ((step.traversal != Traversal::Jump && step.traversal != Traversal::Fall) ||
                 step.inputs.empty() || !actor.platformerMovement.has_value())
@@ -80,7 +80,6 @@ namespace simple_platformer
                 return {};
             }
 
-            constexpr float SimulationStepSeconds = static_cast<float>(FixedDeltaSeconds);
             Body body;
             body.bounds = boxInCell(map.tileSize(), start, actor.body.bounds.size);
             PlatformerMovement movement{actor.platformerMovement->config, true, 0.0F, 0.0F};
@@ -89,11 +88,10 @@ namespace simple_platformer
 
             for (const InputStep& input : step.inputs)
             {
-                const long ticks = std::lround(input.duration / SimulationStepSeconds);
+                const long ticks = std::lround(input.duration / stepSeconds);
                 for (long tick = 0; tick < ticks; ++tick)
                 {
-                    updatePlatformerMovement(
-                        map, body, movement, input.intentions, SimulationStepSeconds);
+                    updatePlatformerMovement(map, body, movement, input.intentions, stepSeconds);
                     sampledFeet.push_back(feetOf(body.bounds));
                 }
             }
@@ -103,7 +101,8 @@ namespace simple_platformer
         PathFollowerDebugInfo pathFollowerDebugInfo(
             const Actor& actor,
             const TileMap& map,
-            const PathFollower& follower)
+            const PathFollower& follower,
+            float stepSeconds)
         {
             PathFollowerDebugInfo info;
             if (follower.destinationCell.has_value())
@@ -133,7 +132,7 @@ namespace simple_platformer
                      step.traversal,
                      index < follower.nextStep,
                      index == follower.nextStep,
-                     sampleAirborneTraversal(actor, map, fromCell, step)});
+                     sampleAirborneTraversal(actor, map, fromCell, step, stepSeconds)});
                 fromCell = step.destinationCell;
                 from = to;
             }
@@ -168,8 +167,14 @@ namespace simple_platformer
         const World& world,
         const TileMap& map,
         const CameraController& cameraController,
-        float atlasWidth)
+        float atlasWidth,
+        float simulationStepSeconds)
     {
+        if (!isFinitePositive(simulationStepSeconds))
+        {
+            throw std::invalid_argument(
+                "Debug overlay simulation step must be finite and positive");
+        }
         if (!std::isfinite(atlasWidth) || atlasWidth <= 0.0F)
         {
             throw std::invalid_argument("Debug overlay atlas width must be positive and finite");
@@ -205,7 +210,8 @@ namespace simple_platformer
             }
             if (actor.pathFollower.has_value())
             {
-                info.pathFollower = pathFollowerDebugInfo(actor, map, actor.pathFollower.value());
+                info.pathFollower = pathFollowerDebugInfo(
+                    actor, map, actor.pathFollower.value(), simulationStepSeconds);
             }
             if (actor.brain.has_value() && actor.senses.has_value())
             {

@@ -265,14 +265,13 @@ namespace simple_platformer
                 {
                     context.input = {};
                 }
+                const auto step = [&](float deltaTime)
+                {
+                    const InputIntentions intentions = playerIntentions(context, game, gameCursor);
+                    game.update(intentions, deltaTime, &profile);
+                };
                 const Stopwatch simulationWatch;
-                const FixedStepResult stepped = fixedStep.advance(
-                    profile.frameSeconds,
-                    [&](float deltaTime)
-                    {
-                        game.update(
-                            playerIntentions(context, game, gameCursor), deltaTime, &profile);
-                    });
+                const FixedStepResult stepped = fixedStep.advance(profile.frameSeconds, step);
                 profile.simulationTicks = static_cast<int>(stepped.updates);
                 profile.simulationSeconds = simulationWatch.elapsedSeconds();
             }

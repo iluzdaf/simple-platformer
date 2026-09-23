@@ -143,6 +143,46 @@ namespace simple_platformer
         std::vector<int> nodeAt(
             static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height), NoNode);
         nodeAt[slotOf(start)] = 0;
+
+        // Relaxes one connection leaving the cell being expanded. Built once: a callback
+        // built for every cell would be allocated for every cell.
+        std::size_t expandedIndex = 0;
+        int costFromStart = 0;
+        const GridNeighborVisitor relax = [&](const NavigationNeighbor& neighbor, int cost)
+        {
+            if (cost <= 0)
+            {
+                throw std::invalid_argument("A navigation connection must have positive cost");
+            }
+            if (!contains(grid, neighbor.destinationCell))
+            {
+                throw std::invalid_argument("A connection leads outside the grid");
+            }
+            const int nextCost = costFromStart + cost;
+            int& existing = nodeAt[slotOf(neighbor.destinationCell)];
+            if (existing == NoNode)
+            {
+                existing = static_cast<int>(nodes.size());
+                nodes.push_back(
+                    {neighbor.destinationCell,
+                     nextCost,
+                     nextCost + estimateRemainingCost(heuristic, neighbor.destinationCell, goal),
+                     IncomingConnection{expandedIndex, neighbor},
+                     false});
+                return;
+            }
+
+            SearchNode& known = nodes[static_cast<std::size_t>(existing)];
+            if (nextCost < known.costFromStart)
+            {
+                known.costFromStart = nextCost;
+                known.estimatedTotalCost =
+                    nextCost + estimateRemainingCost(heuristic, neighbor.destinationCell, goal);
+                known.incoming = IncomingConnection{expandedIndex, neighbor};
+                known.closed = false;
+            }
+        };
+
         while (true)
         {
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);
@@ -169,7 +209,8 @@ namespace simple_platformer
             }
 
             const GridPosition currentCell = currentNode.cell;
-            const int costFromStart = currentNode.costFromStart;
+            expandedIndex = currentIndex.value();
+            costFromStart = currentNode.costFromStart;
             currentNode.closed = true;
             if (statistics != nullptr)
             {
@@ -177,45 +218,7 @@ namespace simple_platformer
             }
 
             // Adding a node may move the others, so nothing above is referenced below.
-            neighbors(
-                currentCell,
-                [&](const NavigationNeighbor& neighbor, int cost)
-                {
-                    if (cost <= 0)
-                    {
-                        throw std::invalid_argument(
-                            "A navigation connection must have positive cost");
-                    }
-                    if (!contains(grid, neighbor.destinationCell))
-                    {
-                        throw std::invalid_argument("A connection leads outside the grid");
-                    }
-                    const int nextCost = costFromStart + cost;
-                    int& existing = nodeAt[slotOf(neighbor.destinationCell)];
-                    if (existing == NoNode)
-                    {
-                        existing = static_cast<int>(nodes.size());
-                        nodes.push_back(
-                            {neighbor.destinationCell,
-                             nextCost,
-                             nextCost +
-                                 estimateRemainingCost(heuristic, neighbor.destinationCell, goal),
-                             IncomingConnection{currentIndex.value(), neighbor},
-                             false});
-                        return;
-                    }
-
-                    SearchNode& known = nodes[static_cast<std::size_t>(existing)];
-                    if (nextCost < known.costFromStart)
-                    {
-                        known.costFromStart = nextCost;
-                        known.estimatedTotalCost =
-                            nextCost +
-                            estimateRemainingCost(heuristic, neighbor.destinationCell, goal);
-                        known.incoming = IncomingConnection{currentIndex.value(), neighbor};
-                        known.closed = false;
-                    }
-                });
+            neighbors(currentCell, relax);
         }
     }
 }

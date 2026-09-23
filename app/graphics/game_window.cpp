@@ -14,7 +14,7 @@
 
 namespace simple_platformer
 {
-    GameWindow::Library::Library()
+    GameWindow::GlfwLibrary::GlfwLibrary()
     {
         glfwSetErrorCallback([](int, const char* description)
                              { std::cerr << "GLFW: " << description << '\n'; });
@@ -24,7 +24,7 @@ namespace simple_platformer
         }
     }
 
-    GameWindow::Library::~Library()
+    GameWindow::GlfwLibrary::~GlfwLibrary()
     {
         glfwTerminate();
     }

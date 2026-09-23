@@ -1,6 +1,5 @@
 #include "application.hpp"
 
-#include <chrono>
 #include <cstdlib>
 #include <cstddef>
 #include <iostream>
@@ -34,6 +33,7 @@
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
+#include "simple_platformer/timing/stopwatch.hpp"
 
 namespace simple_platformer
 {
@@ -171,12 +171,6 @@ namespace simple_platformer
             context->input.setButton(*button, action == GLFW_PRESS);
         }
 
-        // Wall-clock seconds since an earlier reading, for the frame profile.
-        float secondsSince(std::chrono::steady_clock::time_point start)
-        {
-            return std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count();
-        }
-
         void handleMouseButton(GLFWwindow* window, int button, int action, int)
         {
             if (button != GLFW_MOUSE_BUTTON_LEFT ||
@@ -230,7 +224,7 @@ namespace simple_platformer
         Game game(atlas, loadLevelCatalog("assets/levels.json"));
         FixedStep fixedStep;
         FrameHistory frameHistory;
-        double previousTime = glfwGetTime();
+        Stopwatch frameClock;
 
         while (glfwWindowShouldClose(window.get()) == GLFW_FALSE)
         {
@@ -239,9 +233,6 @@ namespace simple_platformer
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            const double currentTime = glfwGetTime();
-            const double frameTime = currentTime - previousTime;
-            previousTime = currentTime;
             bool gameRestarted = false;
             if (context.restartRequested)
             {
@@ -289,7 +280,7 @@ namespace simple_platformer
             }
 
             FrameProfile profile;
-            profile.frameSeconds = static_cast<float>(frameTime);
+            profile.frameSeconds = frameClock.lapSeconds();
             const bool paused = context.inventoryOpen || game.complete();
             if (paused || context.inventoryToggled || gameRestarted)
             {
@@ -304,9 +295,9 @@ namespace simple_platformer
                 {
                     context.input = {};
                 }
-                const auto simulationStart = std::chrono::steady_clock::now();
+                const Stopwatch simulationWatch;
                 const FixedStepResult stepped = fixedStep.advance(
-                    frameTime,
+                    profile.frameSeconds,
                     [&](float deltaTime)
                     {
                         InputIntentions intentions = context.input.consumeIntentions();
@@ -326,17 +317,17 @@ namespace simple_platformer
                         game.update(intentions, deltaTime, &profile);
                     });
                 profile.simulationTicks = static_cast<int>(stepped.updates);
-                profile.simulationSeconds = secondsSince(simulationStart);
+                profile.simulationSeconds = simulationWatch.elapsedSeconds();
             }
 
-            const auto sceneStart = std::chrono::steady_clock::now();
+            const Stopwatch sceneWatch;
             const RenderScene scene = game.buildScene();
-            profile.sceneSeconds = secondsSince(sceneStart);
-            const auto renderStart = std::chrono::steady_clock::now();
+            profile.sceneSeconds = sceneWatch.elapsedSeconds();
+            const Stopwatch renderWatch;
             renderer.render(scene, framebufferWidth, framebufferHeight);
-            profile.renderSeconds = secondsSince(renderStart);
+            profile.renderSeconds = renderWatch.elapsedSeconds();
 
-            const auto interfaceStart = std::chrono::steady_clock::now();
+            const Stopwatch interfaceWatch;
             if (windowViewport.has_value())
             {
                 drawHealthHud(game.playerHealth(), atlasTexture, *windowViewport);
@@ -355,7 +346,7 @@ namespace simple_platformer
                     game.useInventoryItem(*slotToUse);
                 }
             }
-            profile.interfaceSeconds = secondsSince(interfaceStart);
+            profile.interfaceSeconds = interfaceWatch.elapsedSeconds();
             frameHistory.push(profile);
 
             if (context.showDebugOverlay)

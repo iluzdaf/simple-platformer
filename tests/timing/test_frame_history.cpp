@@ -8,6 +8,7 @@
 
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "support/require_near.hpp"
+#include "support/spin_for.hpp"
 
 namespace
 {
@@ -182,18 +183,15 @@ TEST_CASE("Timing a phase charges it less the phases timed inside it", "[timing]
     REQUIRE(ran);
 
     FrameProfile profile;
-    const auto spin = []
-    {
-        const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds(2);
-        while (std::chrono::steady_clock::now() < until)
-        {
-        }
-    };
     simple_platformer::timePhase(
         &profile,
         "NPC",
         "Outer",
-        [&] { simple_platformer::timePhase(&profile, "NPC", "Inner", spin); });
+        [&]
+        {
+            simple_platformer::timePhase(
+                &profile, "NPC", "Inner", [] { tests::spinFor(std::chrono::milliseconds(2)); });
+        });
 
     // The outer phase lists first though it finished last, and keeps only its own time.
     REQUIRE(profile.phases.size() == 2);

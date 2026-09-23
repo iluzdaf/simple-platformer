@@ -17,6 +17,27 @@ namespace simple_platformer
 {
     namespace
     {
+        // Frame panel layout, in window pixels. Adjust these to resize the panel.
+        constexpr float PanelWidth = 420.0F;
+        // Tall enough for the legend beside it: the frame line, the budget, and one row per
+        // simulation category.
+        constexpr float PlotHeight = 160.0F;
+        constexpr float LegendWidth = 130.0F;
+        // A legend swatch sits inside its text row by this fraction of the row height.
+        constexpr float SwatchInsetFraction = 0.2F;
+        // A hidden series keeps its swatch at this fraction of its colour's opacity.
+        constexpr float HiddenSwatchOpacity = 0.35F;
+
+        // Frame plot scales. The frame axis keeps the 60 Hz budget in view, showing at
+        // least this many budgets, and stretches to this much headroom over the worst frame.
+        constexpr float TargetFrameMilliseconds = static_cast<float>(FixedDeltaSeconds) * 1000.0F;
+        constexpr double FrameAxisBudgets = 2.0;
+        constexpr double FrameAxisHeadroom = 1.1;
+        // The stack's scale is a display choice, not a budget: an ordinary frame of this
+        // project simulates in a fraction of it, and a slow frame goes off the top rather
+        // than rescaling the axis under the reader. Raise it if the simulation grows.
+        constexpr float SimulationAxisMilliseconds = 0.06F;
+
         std::vector<float> toMilliseconds(std::vector<float> seconds)
         {
             for (float& value : seconds)
@@ -72,7 +93,7 @@ namespace simple_platformer
                 ImGuiStorage* hidden = ImGui::GetStateStorage();
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
                 const float rowHeight = ImGui::GetTextLineHeight();
-                const float swatchInset = rowHeight * 0.2F;
+                const float swatchInset = rowHeight * SwatchInsetFraction;
                 const float swatchSize = rowHeight - 2.0F * swatchInset;
                 for (FramePlotSeries& entry : series)
                 {
@@ -89,7 +110,7 @@ namespace simple_platformer
                     ImVec4 swatch = entry.colour;
                     if (entry.hidden)
                     {
-                        swatch.w *= 0.35F;
+                        swatch.w *= HiddenSwatchOpacity;
                     }
                     drawList->AddRectFilled(
                         {rowTopLeft.x + swatchInset, rowTopLeft.y + swatchInset},
@@ -113,16 +134,6 @@ namespace simple_platformer
             return;
         }
 
-        constexpr float TargetFrameMilliseconds = static_cast<float>(FixedDeltaSeconds) * 1000.0F;
-        constexpr float PanelWidth = 420.0F;
-        // Tall enough for the legend beside it: the frame line, the budget, and one row per
-        // simulation category.
-        constexpr float PlotHeight = 160.0F;
-        constexpr float LegendWidth = 130.0F;
-        // The stack's scale is a display choice, not a budget: an ordinary frame of this
-        // project simulates in a fraction of it, and a slow frame goes off the top rather
-        // than rescaling the axis under the reader. Raise it if the simulation grows.
-        constexpr float SimulationAxisMilliseconds = 0.06F;
         const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(mainViewport->WorkPos, ImGuiCond_Always);
         // A fixed width keeps the window still while the numbers in it change; each line
@@ -153,10 +164,9 @@ namespace simple_platformer
             toMilliseconds(history.frameSecondsOldestFirst());
         const int frameCount = static_cast<int>(frameMilliseconds.size());
         const auto frameAxis = static_cast<double>(history.capacity());
-        // The frame axis keeps the 60 Hz budget in view and stretches when a frame passes it.
         const double frameTop = std::max(
-            static_cast<double>(TargetFrameMilliseconds) * 2.0,
-            static_cast<double>(worst.frameSeconds) * 1000.0 * 1.1);
+            static_cast<double>(TargetFrameMilliseconds) * FrameAxisBudgets,
+            static_cast<double>(worst.frameSeconds) * 1000.0 * FrameAxisHeadroom);
         constexpr ImPlotFlags PlotFlags = ImPlotFlags_NoInputs | ImPlotFlags_NoMenus |
                                           ImPlotFlags_NoTitle | ImPlotFlags_NoBoxSelect |
                                           ImPlotFlags_NoLegend;

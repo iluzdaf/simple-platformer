@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 #include <optional>
-#include <stdexcept>
 
 #include <glm/vec2.hpp>
 
@@ -10,9 +9,6 @@
 #include <GLFW/glfw3.h>
 
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-#include <implot.h>
 
 #include "content/level_catalog.hpp"
 #include "debug/debug_overlay_ui.hpp"
@@ -20,6 +16,7 @@
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/game_window.hpp"
+#include "graphics/imgui_session.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "ui/interface_ui.hpp"
 #include "simple_platformer/input/input_state.hpp"
@@ -32,46 +29,6 @@ namespace simple_platformer
 {
     namespace
     {
-        class ImGuiSession
-        {
-        public:
-            explicit ImGuiSession(GLFWwindow* window)
-            {
-                IMGUI_CHECKVERSION();
-                ImGui::CreateContext();
-                ImPlot::CreateContext();
-                ImGui::StyleColorsDark();
-
-                if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
-                {
-                    destroyContexts();
-                    throw std::runtime_error("ImGui could not start its GLFW backend");
-                }
-                if (!ImGui_ImplOpenGL3_Init("#version 330 core"))
-                {
-                    ImGui_ImplGlfw_Shutdown();
-                    destroyContexts();
-                    throw std::runtime_error("ImGui could not start its OpenGL backend");
-                }
-            }
-
-            ~ImGuiSession()
-            {
-                ImGui_ImplOpenGL3_Shutdown();
-                ImGui_ImplGlfw_Shutdown();
-                destroyContexts();
-            }
-
-            static void destroyContexts()
-            {
-                ImPlot::DestroyContext();
-                ImGui::DestroyContext();
-            }
-
-            ImGuiSession(const ImGuiSession&) = delete;
-            ImGuiSession& operator=(const ImGuiSession&) = delete;
-        };
-
         struct ApplicationContext
         {
             InputState input;
@@ -124,6 +81,7 @@ namespace simple_platformer
             if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
             {
                 glfwSetWindowShouldClose(window, GLFW_TRUE);
+                return;
             }
             if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
             {
@@ -203,9 +161,7 @@ namespace simple_platformer
         while (!window.shouldClose())
         {
             glfwPollEvents();
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
+            imgui.beginFrame();
 
             if (context.restartRequested)
             {
@@ -294,8 +250,7 @@ namespace simple_platformer
                     windowViewport);
                 drawFrameProfile(frameHistory);
             }
-            ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            imgui.render();
             window.present();
         }
 

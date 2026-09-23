@@ -12,15 +12,19 @@
 
 namespace simple_platformer
 {
+    namespace
+    {
+        // Where the heart icons sit in the atlas, in pixels.
+        constexpr float HeartTop = 192.0F;
+        constexpr float FilledHeartLeft = 96.0F;
+        constexpr float EmptyHeartLeft = 112.0F;
+    }
+
     void drawHealthHud(
         const Health& health,
         const TextureView& atlas,
         const WindowViewport& viewport)
     {
-        constexpr float HeartTop = 192.0F;
-        constexpr float FilledHeartLeft = 96.0F;
-        constexpr float EmptyHeartLeft = 112.0F;
-
         if (atlas.width < static_cast<int>(EmptyHeartLeft + HudIconSize) ||
             atlas.height < static_cast<int>(HeartTop + HudIconSize))
         {

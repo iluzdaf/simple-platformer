@@ -13,10 +13,14 @@ namespace simple_platformer
 {
     namespace
     {
+        constexpr ImU32 TextColour = IM_COL32(255, 255, 255, 255);
+        // The message ends this far above the door, in window pixels.
+        constexpr float GapAboveDoor = 4.0F;
+
         void drawCenteredText(ImDrawList& drawList, ImVec2 center, float y, const char* text)
         {
             const float left = center.x - ImGui::CalcTextSize(text).x * 0.5F;
-            drawShadowedText(drawList, {left, y}, IM_COL32(255, 255, 255, 255), text);
+            drawShadowedText(drawList, {left, y}, TextColour, text);
         }
     }
 
@@ -36,7 +40,7 @@ namespace simple_platformer
             viewport.topLeft.x + exitPosition->x * viewport.scale.x,
             viewport.topLeft.y + exitPosition->y * viewport.scale.y};
         const float lineHeight = ImGui::GetTextLineHeight();
-        const float firstLineY = doorTopCenter.y - lineHeight * 3.0F - 4.0F;
+        const float firstLineY = doorTopCenter.y - lineHeight * 3.0F - GapAboveDoor;
         ImDrawList* drawList = ImGui::GetForegroundDrawList();
         drawCenteredText(*drawList, doorTopCenter, firstLineY, "Completed");
         drawCenteredText(*drawList, doorTopCenter, firstLineY + lineHeight, "Press R to");

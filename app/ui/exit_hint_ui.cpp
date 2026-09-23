@@ -13,6 +13,12 @@
 
 namespace simple_platformer
 {
+    namespace
+    {
+        // The hint icon floats this far above the door, in internal pixels.
+        constexpr float GapAboveDoor = 4.0F;
+    }
+
     void drawLockedExitHint(
         const Game& game,
         const TextureView& atlas,
@@ -25,7 +31,6 @@ namespace simple_platformer
             return;
         }
 
-        constexpr float GapAboveDoor = 4.0F;
         const ImVec2 topLeft = {
             viewport.topLeft.x + (doorTopCenter->x - icon->size.x * 0.5F) * viewport.scale.x,
             viewport.topLeft.y +

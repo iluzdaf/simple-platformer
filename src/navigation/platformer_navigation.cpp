@@ -28,6 +28,8 @@ namespace simple_platformer
 {
     namespace
     {
+        // Two seconds at 60 Hz. A traversal that has not landed and stopped by then is not
+        // a connection.
         constexpr int MaximumConnectionSimulationTicks = 120;
 
         void countSimulatedTick(PathSearchStatistics* statistics)
@@ -55,6 +57,8 @@ namespace simple_platformer
                    first.primaryAttackPressed == second.primaryAttackPressed;
         }
 
+        // Extends the last step while the intentions hold, so a program is a few long
+        // steps rather than one per tick.
         void recordSimulationInput(
             InputProgram& program,
             const InputIntentions& intentions,
@@ -68,6 +72,7 @@ namespace simple_platformer
             program.push_back({stepSeconds, intentions});
         }
 
+        // No cell the bounds cover blocks movement.
         bool bodyFits(const TileMap& map, const Aabb& bounds)
         {
             const CellRange cells = cellsCovered(map.tileSize(), bounds);
@@ -115,6 +120,8 @@ namespace simple_platformer
             return std::nullopt;
         }
 
+        // Whether the bounds have reached the map's edge in the direction travelled, past
+        // which a traversal cannot go.
         bool touchesHorizontalMapEdge(const TileMap& map, const Aabb& bounds, float direction)
         {
             return (direction < 0.0F && bounds.position.x <= EdgeTolerance) ||
@@ -122,6 +129,8 @@ namespace simple_platformer
                     bounds.position.x + bounds.size.x >= map.pixelWidth() - EdgeTolerance);
         }
 
+        // The inputs of a fall or a jump at this tick: pushing one way until landed, and
+        // for a jump, pressing on the first tick and holding for as many as asked.
         InputIntentions makeTraversalIntentions(
             Traversal traversal,
             float direction,
@@ -139,6 +148,7 @@ namespace simple_platformer
             return intentions;
         }
 
+        // The standable cell under the feet, unless it is the cell the traversal left.
         std::optional<GridPosition> tryFindLandingCell(
             const TileMap& map,
             GridPosition start,
@@ -215,6 +225,8 @@ namespace simple_platformer
             return std::nullopt;
         }
 
+        // Adds the connection, or replaces the one already found to the same cell by the
+        // same traversal when this one is cheaper.
         void keepCheapest(std::vector<NavigationNeighbor>& neighbors, NavigationNeighbor candidate)
         {
             const auto existing = std::find_if(
@@ -280,6 +292,36 @@ namespace simple_platformer
         {
             throw std::invalid_argument("A jump start penalty cannot be negative");
         }
+        // A goal off the map has no path, and there is nothing to learn from searching.
+        if (!map.contains(start) || !map.contains(goal))
+        {
+            return std::nullopt;
+        }
+        // A search answered before: while the connections hold, so does the cheapest
+        // route between two cells for one penalty.
+        const ConnectionBody body{bodySize, movement, stepSeconds};
+        const PathQuery query{start, goal, navigation.jumpStartPenaltyTicks};
+        if (cache != nullptr)
+        {
+            const NavigationPath* kept = cache->pathKept(query, body);
+            if (kept != nullptr)
+            {
+                if (statistics != nullptr)
+                {
+                    ++statistics->pathsRemembered;
+                }
+                return *kept;
+            }
+            // A search that failed from this start has already found every cell it leads
+            // to, so a goal outside them has no path and there is nothing to search.
+            const std::vector<GridPosition>* reachable = cache->reachableFrom(start, body);
+            if (reachable != nullptr &&
+                std::find(reachable->begin(), reachable->end(), goal) == reachable->end())
+            {
+                return std::nullopt;
+            }
+        }
+
         // With a cache, the connections are read where the cache keeps them; without one
         // they are simulated for this search alone. Either way a jump is charged its cost
         // and the start penalty.
@@ -320,37 +362,9 @@ namespace simple_platformer
             [&map, &movement, stepSeconds](GridPosition cell, GridPosition goal)
         { return platformerTickHeuristic(map.tileSize(), cell, goal, movement, stepSeconds); };
 
-        // A goal off the map has no path, and there is nothing to learn from searching.
-        if (!map.contains(start) || !map.contains(goal))
-        {
-            return std::nullopt;
-        }
-        // A search answered before: the connections never change, so neither does the
-        // cheapest route between two cells for one penalty.
-        const ConnectionBody body{bodySize, movement, stepSeconds};
-        const PathQuery query{start, goal, navigation.jumpStartPenaltyTicks};
-        if (cache != nullptr)
-        {
-            const NavigationPath* kept = cache->pathKept(query, body);
-            if (kept != nullptr)
-            {
-                if (statistics != nullptr)
-                {
-                    ++statistics->pathsRemembered;
-                }
-                return *kept;
-            }
-            // A search that failed from this start has already found every cell it leads
-            // to, so a goal outside them has no path and there is nothing to search.
-            const std::vector<GridPosition>* reachable = cache->reachableFrom(start, body);
-            if (reachable != nullptr &&
-                std::find(reachable->begin(), reachable->end(), goal) == reachable->end())
-            {
-                return std::nullopt;
-            }
-        }
+        // What a failed search learns is kept; a found path too.
         std::vector<GridPosition> reached;
-        // Pass no heuristic to compare A* with the default Dijkstra search.
+        // Call the overload without a heuristic to compare A* with a plain lowest-cost search.
         std::optional<NavigationPath> path = findLowestCostPath(
             start,
             goal,
@@ -635,11 +649,10 @@ namespace simple_platformer
             }
             return *kept;
         }
-        cache.keep(
+        return cache.keep(
             cell,
             body,
             simulatePlatformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics));
-        return *cache.find(cell, body);
     }
 
     std::vector<NavigationNeighbor> platformerNeighbors(

@@ -39,19 +39,23 @@ namespace simple_platformer
         std::size_t operator()(const PathQuery& query) const;
     };
 
-    // The platformer connections leaving each cell, kept once simulated so no search
-    // simulates a cell twice. They depend only on the map, the cell and the body, and a
-    // map never changes within a level, so a cache serves one map for as long as the
-    // level lasts. Connections found for one body are kept apart from another's.
+    // What platformer searches learn about one map, kept so nothing is worked out twice:
+    // the connections leaving each cell, the cells reachable from each start a search
+    // failed from, and the path found for each query. All of it depends only on the
+    // map, the body and the step, so a cache serves one map. A tile that breaks during
+    // play is not yet reflected: what was kept before the break stays until the cache
+    // is cleared, and invalidating only what a break touches is the next piece of work.
+    // What is learned for one body is kept apart from another's. Every keep requires a
+    // body with a finite, positive size and step.
     class PlatformerConnectionCache
     {
     public:
         // The connections kept for this cell and body, or nothing while none have been.
         const std::vector<NavigationNeighbor>* find(GridPosition cell, const ConnectionBody& body)
             const;
-        // Keeps these as the cell's connections for the body, replacing any kept before.
-        // The body must have a finite, positive size and step.
-        void keep(
+        // Keeps these as the cell's connections for the body, replacing any kept before,
+        // and returns them where they are kept.
+        const std::vector<NavigationNeighbor>& keep(
             GridPosition cell,
             const ConnectionBody& body,
             std::vector<NavigationNeighbor> connections);
@@ -61,14 +65,13 @@ namespace simple_platformer
         const std::vector<GridPosition>* reachableFrom(
             GridPosition start,
             const ConnectionBody& body) const;
-        // Keeps these as the cells reachable from the start for the body. The body must
-        // have a finite, positive size and step.
+        // Keeps these as the cells reachable from the start for the body.
         void keepReachable(
             GridPosition start,
             const ConnectionBody& body,
             std::vector<GridPosition> cells);
         // The path an earlier search found for this query and body, or nothing while none
-        // has. The connections never change, so neither does the cheapest route.
+        // has. While the connections hold, so does the cheapest route.
         const NavigationPath* pathKept(const PathQuery& query, const ConnectionBody& body) const;
         void keepPath(const PathQuery& query, const ConnectionBody& body, NavigationPath path);
         void clear();

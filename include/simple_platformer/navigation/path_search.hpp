@@ -16,6 +16,7 @@ namespace simple_platformer
     // is, so one that keeps them, such as a cache, need not copy them out for every search.
     using GridNeighborFunction =
         std::function<void(GridPosition cell, const GridNeighborVisitor& visit)>;
+    // An optimistic guess at the cost left from a cell to the goal, never below zero.
     using GridHeuristicFunction = std::function<int(GridPosition cell, GridPosition goal)>;
 
     // What a search cost, for the frame profile.
@@ -33,22 +34,16 @@ namespace simple_platformer
 
     int manhattanHeuristic(GridPosition cell, GridPosition goal);
 
-    // Every search runs over a grid of the given size and keeps a slot per cell of it, so
-    // a connection's destination is found without hashing or scanning. The start, the
-    // goal and every destination must lie within it.
-
-    // Uses no heuristic and always searches for the lowest accumulated connection cost.
-    std::optional<NavigationPath> findLowestCostPath(
-        GridPosition start,
-        GridPosition goal,
-        GridSize grid,
-        const GridNeighborFunction& neighbors);
-
-    // Uses A* ordering. The heuristic must never overestimate the remaining cost. Only
-    // the connections the search follows are copied, into the path. With statistics,
-    // counts the cells it expanded. When there is no path and reached is given, fills it
-    // with every cell the search got to, which is every cell reachable from the start; a
-    // search that finds a path leaves it alone.
+    // The cheapest path from the start to the goal over the connections the policy
+    // reports, in A* order: the heuristic must never overestimate the cost left, and with
+    // a heuristic of zero the search expands in order of cost from the start alone. The
+    // search runs over a grid of the given size and keeps a slot per cell of it, so a
+    // connection's destination is found without hashing or scanning; the start, the goal
+    // and every destination must lie within it. Only the connections the search follows
+    // are copied, into the path. With statistics, counts the cells it expanded. When
+    // there is no path and reached is given, fills it with every cell the search got to,
+    // which is every cell reachable from the start; a search that finds a path leaves
+    // it alone.
     std::optional<NavigationPath> findLowestCostPath(
         GridPosition start,
         GridPosition goal,
@@ -57,4 +52,11 @@ namespace simple_platformer
         const GridHeuristicFunction& heuristic,
         PathSearchStatistics* statistics = nullptr,
         std::vector<GridPosition>* reached = nullptr);
+
+    // The same search with a heuristic of zero, for comparison and for tests.
+    std::optional<NavigationPath> findLowestCostPath(
+        GridPosition start,
+        GridPosition goal,
+        GridSize grid,
+        const GridNeighborFunction& neighbors);
 }

@@ -75,8 +75,8 @@ namespace simple_platformer
         void respawnPlayer();
 
         // The platformer connections this world's searches have found, for the map it is
-        // simulated with. A map never changes within a level and the world goes with it,
-        // so what one search simulated serves every later one.
+        // simulated with. The world goes with its level, so what one search simulated
+        // serves every later one. A tile broken during play is not yet reflected in it.
         PlatformerConnectionCache& platformerConnections();
         const PlatformerConnectionCache& platformerConnections() const;
 

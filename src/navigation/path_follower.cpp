@@ -22,10 +22,14 @@ namespace simple_platformer
 {
     namespace
     {
+        // In world pixels: how close the feet must come to a step's feet position to be
+        // there. A flyer steers straight at the point and would circle a looser target.
         constexpr float ArrivalDistance = 1.0F;
         constexpr float FlyingArrivalDistance = 0.001F;
+        // In pixels per second: slower than this is stopped, as a takeoff requires.
         constexpr float StoppedSpeed = 0.001F;
 
+        // Minus one, zero or one: which way along an axis leads from one place to another.
         float directionTowards(float from, float to)
         {
             if (to < from)
@@ -35,6 +39,7 @@ namespace simple_platformer
             return to > from ? 1.0F : 0.0F;
         }
 
+        // Standing within arrival distance of the cell's feet position.
         bool arrivedAt(
             int tileSize,
             const Body& body,
@@ -47,6 +52,7 @@ namespace simple_platformer
                    std::abs(target.y - feet.y) <= ArrivalDistance;
         }
 
+        // Standing still at the takeoff cell, which is where every recorded program began.
         bool readyForInputProgram(
             int tileSize,
             const Body& body,
@@ -57,6 +63,9 @@ namespace simple_platformer
                    std::abs(body.velocity.x) <= StoppedSpeed;
         }
 
+        // Walks towards the takeoff cell and lets go early enough to brake to a stop within
+        // arrival distance, so the actor arrives stopped instead of overshooting. Nothing
+        // in the air or on another row, where walking would not help.
         InputIntentions approachAndBrake(
             int tileSize,
             const Body& body,
@@ -154,6 +163,7 @@ namespace simple_platformer
             const float distance = glm::length(offset);
             if (distance > FlyingArrivalDistance)
             {
+                // Straight at the cell, and no further than it this tick.
                 InputIntentions intentions;
                 intentions.direction = maximumMovement > 0.0F && distance <= maximumMovement
                                            ? offset / maximumMovement
@@ -186,6 +196,7 @@ namespace simple_platformer
                 throw std::invalid_argument("A platformer actor cannot follow a flying path step");
             }
 
+            // A walk is done once the actor stands still in its cell.
             if (step.traversal == Traversal::Walk)
             {
                 if (readyForInputProgram(tileSize, body, movement, step.destinationCell))
@@ -200,6 +211,8 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("Jump and fall path steps require an input program");
             }
+            // A jump or a fall replays the inputs recorded when it was simulated, from a
+            // standstill at its takeoff: where the previous step ended, or the path's start.
             if (follower.programElapsed == 0.0F)
             {
                 const GridPosition takeoff =
@@ -221,6 +234,8 @@ namespace simple_platformer
                     std::min(programDuration, follower.programElapsed + deltaTime);
                 return intentions;
             }
+            // The program has run out. The step is done once the actor stands in its
+            // cell; until it lands, nothing is pressed.
             if (movement.grounded &&
                 cellAtFeet(tileSize, feetOf(body.bounds)) == step.destinationCell)
             {

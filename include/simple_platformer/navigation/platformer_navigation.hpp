@@ -36,10 +36,13 @@ namespace simple_platformer
         const PlatformerMovementConfig& movement,
         float stepSeconds);
 
-    // High-level path API for platformer actors. With statistics, reports what the search
-    // cost: the cells it expanded and the movement ticks it simulated. With a cache for
-    // this map, takes each cell's connections from it when they are there and keeps them
-    // there when they are not, so no cell is simulated twice.
+    // The cheapest route for a platformer body from one cell to another, each of its
+    // steps a walk, a fall or a jump. No path when either cell is off the map. With
+    // statistics, reports what the search cost. With a cache for this map, reads each
+    // cell's connections from it, simulating and keeping them first when it lacks them;
+    // answers a query it has answered before with the path it kept; and when a search
+    // from the start has failed before, answers without searching unless the goal is
+    // among the cells that start reaches.
     std::optional<NavigationPath> findPlatformerPath(
         const TileMap& map,
         GridPosition start,
@@ -51,6 +54,8 @@ namespace simple_platformer
         PathSearchStatistics* statistics = nullptr,
         PlatformerConnectionCache* cache = nullptr);
 
+    // Whether the body can stand in the cell: the cell blocks nothing, nor does any cell
+    // the body covers standing there, and the cell below blocks movement.
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize);
 
     // Finds the closest standable cell beneath a grounded body. The body's feet may
@@ -65,8 +70,11 @@ namespace simple_platformer
         glm::vec2 lastSeenFeet,
         glm::vec2 bodySize);
 
-    // Lower-level policy used by the generic path search. With statistics, adds the
-    // movement ticks it simulated, or counts the cell as reused when a cache held it.
+    // The connections leaving a cell, as a copy the caller owns: walks to every cell
+    // along the floor either way, and the cheapest fall and jumps to either side that
+    // land on a standable cell. With a cache, taken from it or kept in it as
+    // platformerNeighborsKept does; without one, simulated for this call alone. With
+    // statistics, adds the movement ticks simulated, or counts the cell as reused.
     std::vector<NavigationNeighbor> platformerNeighbors(
         const TileMap& map,
         GridPosition cell,
@@ -76,8 +84,9 @@ namespace simple_platformer
         PathSearchStatistics* statistics = nullptr,
         PlatformerConnectionCache* cache = nullptr);
 
-    // Simulates and keeps the connections leaving every cell of the map for this body, so
-    // no search has to during play. Cells already kept are left as they are.
+    // Keeps the connections leaving every cell of the map for this body, simulating any the
+    // cache lacks. Cells already kept are left as they are, so calling it again fills only
+    // what has since been emptied.
     void keepAllPlatformerConnections(
         const TileMap& map,
         glm::vec2 bodySize,
@@ -85,9 +94,9 @@ namespace simple_platformer
         float stepSeconds,
         PlatformerConnectionCache& cache);
 
-    // The same connections as the cache keeps them, simulated and kept first when it does
-    // not yet, and read where they are rather than copied out. The reference holds until
-    // the cache is cleared.
+    // The connections leaving a cell, read from the cache rather than copied out of it:
+    // simulated and kept first when the cache lacks them. The reference holds until the
+    // cache is cleared. With statistics, counts the cell as reused when it was kept already.
     const std::vector<NavigationNeighbor>& platformerNeighborsKept(
         const TileMap& map,
         GridPosition cell,

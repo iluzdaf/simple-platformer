@@ -373,9 +373,6 @@ namespace simple_platformer
         bool plotted = false;
         if (ImPlot::BeginPlot("##frame", {-LegendWidth, PlotHeight}, PlotFlags))
         {
-            plotTopLeft = ImPlot::GetPlotPos();
-            plotSize = ImPlot::GetPlotSize();
-            plotted = true;
             ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoTickLabels);
             ImPlot::SetupAxis(ImAxis_Y1, "frame ms");
             ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, frameAxis, ImPlotCond_Always);
@@ -446,6 +443,10 @@ namespace simple_platformer
                     lower = upper;
                 }
             }
+            // Asking for the plot area locks its setup, so it comes after the axes.
+            plotTopLeft = ImPlot::GetPlotPos();
+            plotSize = ImPlot::GetPlotSize();
+            plotted = true;
             ImPlot::EndPlot();
         }
         if (plotted)

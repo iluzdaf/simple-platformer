@@ -60,7 +60,8 @@ build/mac-release/simple_platformer
 In the game, F1 opens the debug overlay, whose frame panel plots the last two seconds of
 frame times against the 60 Hz budget, stacks the simulation's cost by category on a second
 axis, and breaks the latest frame into simulation, scene building, rendering, and
-interface time, with every simulation phase listed under its category. On Windows the matching presets are
+interface time, with every simulation phase listed under its category. Clicking the plot
+holds it still on that frame and shows its costs, until it is clicked again. On Windows the matching presets are
 `windows-release` for building and testing.
 
 ## Windows: create and use the Visual Studio solution

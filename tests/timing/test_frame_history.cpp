@@ -38,6 +38,9 @@ TEST_CASE("A frame history keeps the newest frames and drops the oldest", "[timi
     history.push(frameTaking(0.040F));
     REQUIRE(history.size() == 3);
     REQUIRE(history.frameSecondsOldestFirst() == std::vector<float>{0.020F, 0.030F, 0.040F});
+    REQUIRE_NEAR(history.frameOldestFirst(0).frameSeconds, 0.020F);
+    REQUIRE_NEAR(history.frameOldestFirst(2).frameSeconds, 0.040F);
+    REQUIRE_THROWS_AS(history.frameOldestFirst(3), std::out_of_range);
     REQUIRE_NEAR(history.latest().frameSeconds, 0.040F);
 }
 

@@ -144,6 +144,16 @@ namespace simple_platformer
         return frames[(next + frames.size() - 1) % frames.size()];
     }
 
+    const FrameProfile& FrameHistory::frameOldestFirst(std::size_t index) const
+    {
+        if (index >= count)
+        {
+            throw std::out_of_range("No frame has been recorded at that position");
+        }
+        const std::size_t oldest = count < frames.size() ? 0 : next;
+        return frames[(oldest + index) % frames.size()];
+    }
+
     std::vector<PhaseTiming> FrameHistory::phasesSummed() const
     {
         std::vector<PhaseTiming> summed;

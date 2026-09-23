@@ -70,6 +70,8 @@ namespace simple_platformer
         // Both require at least one frame.
         const FrameProfile& latest() const;
         const FrameProfile& worst() const;
+        // The frame at this position counting from the oldest held, as the plots list them.
+        const FrameProfile& frameOldestFirst(std::size_t index) const;
         float averageFrameSeconds() const;
         // Every phase any held frame ran, in simulation order, with its seconds summed over
         // the frames. A phase that runs only now and then, such as a path search, keeps its

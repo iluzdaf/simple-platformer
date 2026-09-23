@@ -145,6 +145,7 @@ add_executable(
     app/debug/debug_overlay.cpp
     app/debug/debug_overlay_ui.cpp
     app/debug/frame_profile_ui.cpp
+    app/debug/frame_selection.cpp
     app/content/actor_catalog.cpp
     app/content/actor_definition.cpp
     app/content/animation_catalog.cpp
@@ -337,6 +338,7 @@ if(BUILD_TESTING)
     add_executable(
         simple_platformer_tests
         app/debug/debug_overlay.cpp
+        app/debug/frame_selection.cpp
         app/content/actor_catalog.cpp
         app/content/actor_definition.cpp
         app/content/animation_catalog.cpp
@@ -356,6 +358,7 @@ if(BUILD_TESTING)
         app/ui/inventory_layout.cpp
         tests/app/test_debug_overlay.cpp
         tests/app/test_display_viewport.cpp
+        tests/app/test_frame_selection.cpp
         tests/app/test_level_composition.cpp
         tests/app/test_inventory_layout.cpp
         tests/app/test_level_data.cpp

@@ -159,7 +159,8 @@ namespace simple_platformer
         requireSeconds(frame.sceneSeconds, "Scene time");
         requireSeconds(frame.renderSeconds, "Render time");
         requireSeconds(frame.interfaceSeconds, "Interface time");
-        if (frame.simulationTicks < 0 || frame.pathSearches < 0 || frame.pathSearchNodes < 0 ||
+        if (frame.simulationTicks < 0 || frame.pathSearches < 0 ||
+            frame.pathSearchesRemembered < 0 || frame.pathSearchNodes < 0 ||
             frame.pathSearchCellsReused < 0 || frame.pathSearchSimulatedTicks < 0)
         {
             throw std::invalid_argument(
@@ -272,6 +273,12 @@ namespace simple_platformer
     int FrameHistory::totalPathSearches() const
     {
         return sumOver(frames, count, [](const FrameProfile& frame) { return frame.pathSearches; });
+    }
+
+    int FrameHistory::totalPathSearchesRemembered() const
+    {
+        return sumOver(
+            frames, count, [](const FrameProfile& frame) { return frame.pathSearchesRemembered; });
     }
 
     int FrameHistory::totalPathSearchNodes() const

@@ -25,16 +25,23 @@ namespace simple_platformer
         int nodesExpanded = 0;
         // Of those, cells whose connections a cache already held.
         int cellsReused = 0;
+        // Searches answered with a path kept from an earlier one, expanding nothing.
+        int pathsRemembered = 0;
         // Movement ticks simulated to build connections; only platformer searches do this.
         int simulatedTicks = 0;
     };
 
     int manhattanHeuristic(GridPosition cell, GridPosition goal);
 
+    // Every search runs over a grid of the given size and keeps a slot per cell of it, so
+    // a connection's destination is found without hashing or scanning. The start, the
+    // goal and every destination must lie within it.
+
     // Uses no heuristic and always searches for the lowest accumulated connection cost.
     std::optional<NavigationPath> findLowestCostPath(
         GridPosition start,
         GridPosition goal,
+        GridSize grid,
         const GridNeighborFunction& neighbors);
 
     // Uses A* ordering. The heuristic must never overestimate the remaining cost. Only
@@ -45,6 +52,7 @@ namespace simple_platformer
     std::optional<NavigationPath> findLowestCostPath(
         GridPosition start,
         GridPosition goal,
+        GridSize grid,
         const GridNeighborFunction& neighbors,
         const GridHeuristicFunction& heuristic,
         PathSearchStatistics* statistics = nullptr,

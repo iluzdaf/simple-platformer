@@ -126,6 +126,7 @@ namespace simple_platformer
             if (profile != nullptr)
             {
                 ++profile->pathSearches;
+                profile->pathSearchesRemembered += statistics.pathsRemembered;
                 profile->pathSearchNodes += statistics.nodesExpanded;
                 profile->pathSearchCellsReused += statistics.cellsReused;
                 profile->pathSearchSimulatedTicks += statistics.simulatedTicks;

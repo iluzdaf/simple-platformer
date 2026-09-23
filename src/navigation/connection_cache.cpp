@@ -53,8 +53,24 @@ namespace simple_platformer
                 return kept;
             }
         }
-        bodies.push_back({body, {}, {}});
+        bodies.push_back({body, {}, {}, {}});
         return bodies.back();
+    }
+
+    bool operator==(const PathQuery& left, const PathQuery& right)
+    {
+        return left.start == right.start && left.goal == right.goal &&
+               left.jumpStartPenaltyTicks == right.jumpStartPenaltyTicks;
+    }
+
+    std::size_t PathQueryHash::operator()(const PathQuery& query) const
+    {
+        const GridPositionHash cell;
+        std::size_t seed = cell(query.start);
+        seed ^= cell(query.goal) + 0x9e3779b9U + (seed << 6U) + (seed >> 2U);
+        seed ^= static_cast<std::size_t>(query.jumpStartPenaltyTicks) + 0x9e3779b9U + (seed << 6U) +
+                (seed >> 2U);
+        return seed;
     }
 
     const std::vector<NavigationNeighbor>* PlatformerConnectionCache::find(
@@ -99,6 +115,28 @@ namespace simple_platformer
     {
         requireValid(body);
         connectionsFor(body).reachable[start] = std::move(cells);
+    }
+
+    const NavigationPath* PlatformerConnectionCache::pathKept(
+        const PathQuery& query,
+        const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        if (kept == nullptr)
+        {
+            return nullptr;
+        }
+        const auto path = kept->paths.find(query);
+        return path == kept->paths.end() ? nullptr : &path->second;
+    }
+
+    void PlatformerConnectionCache::keepPath(
+        const PathQuery& query,
+        const ConnectionBody& body,
+        NavigationPath path)
+    {
+        requireValid(body);
+        connectionsFor(body).paths[query] = std::move(path);
     }
 
     void PlatformerConnectionCache::clear()

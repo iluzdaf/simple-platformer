@@ -399,27 +399,68 @@ namespace simple_platformer
             }
         }
 
+        // Nearest first: rings of cells around the cell nearest the feet, out until a ring
+        // can no longer beat the best found. Every cell in ring r lies at least r - 1
+        // tiles from the feet, so once that exceeds the best distance the rest of the map
+        // cannot win. The closest feet position wins; equal distances keep row, then
+        // column order, as a scan of the whole map would.
+        const auto tileSize = static_cast<float>(map.tileSize());
+        const GridPosition anchor{
+            static_cast<int>(
+                std::floor(std::clamp(lastSeenFeet.x, 0.0F, map.pixelWidth() - 1.0F) / tileSize)),
+            static_cast<int>(
+                std::floor(std::clamp(lastSeenFeet.y, 0.0F, map.pixelHeight() - 1.0F) / tileSize))};
+        const int farthestRing =
+            std::max({anchor.x, map.width() - 1 - anchor.x, anchor.y, map.height() - 1 - anchor.y});
+
         std::optional<GridPosition> closest;
         double closestDistanceSquared = 0.0;
-        for (int row = 0; row < map.height(); ++row)
+        const auto consider = [&](GridPosition candidate)
         {
-            for (int column = 0; column < map.width(); ++column)
+            if (!map.contains(candidate) || !canStandAt(map, candidate, bodySize))
             {
-                const GridPosition candidate{column, row};
-                if (!canStandAt(map, candidate, bodySize))
-                {
-                    continue;
-                }
+                return;
+            }
+            const glm::vec2 candidateFeet = feetInCell(map.tileSize(), candidate);
+            const double dx = static_cast<double>(candidateFeet.x) - lastSeenFeet.x;
+            const double dy = static_cast<double>(candidateFeet.y) - lastSeenFeet.y;
+            const double distanceSquared = dx * dx + dy * dy;
+            const bool earlierInScanOrder =
+                closest.has_value() && (candidate.y < closest->y ||
+                                        (candidate.y == closest->y && candidate.x < closest->x));
+            if (!closest.has_value() || distanceSquared < closestDistanceSquared ||
+                (distanceSquared == closestDistanceSquared && earlierInScanOrder))
+            {
+                closest = candidate;
+                closestDistanceSquared = distanceSquared;
+            }
+        };
 
-                const glm::vec2 candidateFeet = feetInCell(map.tileSize(), candidate);
-                const double dx = static_cast<double>(candidateFeet.x) - lastSeenFeet.x;
-                const double dy = static_cast<double>(candidateFeet.y) - lastSeenFeet.y;
-                const double distanceSquared = dx * dx + dy * dy;
-                if (!closest.has_value() || distanceSquared < closestDistanceSquared)
+        for (int ring = 0; ring <= farthestRing; ++ring)
+        {
+            if (closest.has_value())
+            {
+                const double nearestPossible = static_cast<double>(ring - 1) * tileSize;
+                if (nearestPossible > 0.0 &&
+                    nearestPossible * nearestPossible > closestDistanceSquared)
                 {
-                    closest = candidate;
-                    closestDistanceSquared = distanceSquared;
+                    break;
                 }
+            }
+            if (ring == 0)
+            {
+                consider(anchor);
+                continue;
+            }
+            for (int column = anchor.x - ring; column <= anchor.x + ring; ++column)
+            {
+                consider({column, anchor.y - ring});
+                consider({column, anchor.y + ring});
+            }
+            for (int row = anchor.y - ring + 1; row <= anchor.y + ring - 1; ++row)
+            {
+                consider({anchor.x - ring, row});
+                consider({anchor.x + ring, row});
             }
         }
         return closest;

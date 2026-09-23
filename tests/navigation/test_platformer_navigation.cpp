@@ -157,6 +157,83 @@ TEST_CASE(
         simple_platformer::GridPosition{0, 1});
 }
 
+TEST_CASE(
+    "Chase destinations match a scan of the whole map from anywhere",
+    "[navigation][platformer]")
+{
+    // A standable target cell is kept; otherwise the closest standable cell by feet
+    // distance, where equal distances keep row, then column order. This is the scan the
+    // nearest-first search replaced, kept as its oracle.
+    const auto closestByScan =
+        [](const simple_platformer::TileMap& map,
+           glm::vec2 feet,
+           glm::vec2 bodySize) -> std::optional<simple_platformer::GridPosition>
+    {
+        if (feet.x >= 0.0F && feet.x < map.pixelWidth() && feet.y >= 0.0F &&
+            feet.y <= map.pixelHeight())
+        {
+            const simple_platformer::GridPosition targetCell =
+                simple_platformer::cellAtFeet(map.tileSize(), feet);
+            if (simple_platformer::canStandAt(map, targetCell, bodySize))
+            {
+                return targetCell;
+            }
+        }
+        std::optional<simple_platformer::GridPosition> closest;
+        double closestDistanceSquared = 0.0;
+        for (int row = 0; row < map.height(); ++row)
+        {
+            for (int column = 0; column < map.width(); ++column)
+            {
+                const simple_platformer::GridPosition candidate{column, row};
+                if (!simple_platformer::canStandAt(map, candidate, bodySize))
+                {
+                    continue;
+                }
+                const glm::vec2 candidateFeet =
+                    simple_platformer::feetInCell(map.tileSize(), candidate);
+                const double dx = static_cast<double>(candidateFeet.x) - feet.x;
+                const double dy = static_cast<double>(candidateFeet.y) - feet.y;
+                const double distanceSquared = dx * dx + dy * dy;
+                if (!closest.has_value() || distanceSquared < closestDistanceSquared)
+                {
+                    closest = candidate;
+                    closestDistanceSquared = distanceSquared;
+                }
+            }
+        }
+        return closest;
+    };
+
+    const std::vector<simple_platformer::TileMap> maps = {
+        tests::TileMapBuilder({"........", "........", "..###...", "........", "########"}),
+        tests::TileMapBuilder({"..#....", ".......", "#######"}),
+        tests::TileMapBuilder(
+            {"##########", "#........#", "#..##..#.#", "#......#.#", "##########"}),
+        tests::TileMapBuilder({"...", "...", "..."}),
+    };
+    const std::vector<glm::vec2> bodies = {{12.0F, 12.0F}, {12.0F, 20.0F}, {20.0F, 12.0F}};
+    for (const simple_platformer::TileMap& map : maps)
+    {
+        // Sample feet on a fine grid over the map and a margin outside it.
+        const int height = static_cast<int>(map.pixelHeight());
+        const int width = static_cast<int>(map.pixelWidth());
+        for (int y = -24; y <= height + 24; y += 5)
+        {
+            for (int x = -24; x <= width + 24; x += 5)
+            {
+                const glm::vec2 feet{static_cast<float>(x), static_cast<float>(y)};
+                for (const glm::vec2 body : bodies)
+                {
+                    REQUIRE(
+                        simple_platformer::findPlatformerChaseCell(map, feet, body) ==
+                        closestByScan(map, feet, body));
+                }
+            }
+        }
+    }
+}
+
 TEST_CASE("Chase destinations reject invalid inputs", "[navigation][platformer]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});

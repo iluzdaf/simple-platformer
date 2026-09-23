@@ -145,17 +145,33 @@ namespace simple_platformer
         return frames[(next + frames.size() - 1) % frames.size()];
     }
 
-    const FrameProfile* FrameHistory::latestSimulated() const
+    std::vector<PhaseTiming> FrameHistory::phasesSummed() const
     {
-        for (std::size_t back = 1; back <= count; ++back)
+        std::vector<PhaseTiming> summed;
+        for (std::size_t index = 0; index < count; ++index)
         {
-            const FrameProfile& frame = frames[(next + frames.size() - back) % frames.size()];
-            if (frame.simulationTicks > 0)
+            // A phase this frame ran that no earlier frame did slots in after the phase
+            // that preceded it here, so the merged list keeps the simulation's order.
+            std::size_t insertAt = 0;
+            for (const PhaseTiming& phase : frames[index].phases)
             {
-                return &frame;
+                std::size_t existing = 0;
+                while (existing < summed.size() &&
+                       std::string_view(summed[existing].name) != phase.name)
+                {
+                    ++existing;
+                }
+                if (existing < summed.size())
+                {
+                    summed[existing].seconds += phase.seconds;
+                    insertAt = existing + 1;
+                    continue;
+                }
+                summed.insert(summed.begin() + static_cast<std::ptrdiff_t>(insertAt), phase);
+                ++insertAt;
             }
         }
-        return nullptr;
+        return summed;
     }
 
     const FrameProfile& FrameHistory::worst() const
@@ -224,25 +240,6 @@ namespace simple_platformer
     {
         return oldestFirst(
             frames, next, count, [](const FrameProfile& frame) { return frame.simulationSeconds; });
-    }
-
-    std::vector<float> FrameHistory::phaseSecondsOldestFirst(const char* name) const
-    {
-        return oldestFirst(
-            frames,
-            next,
-            count,
-            [name](const FrameProfile& frame)
-            {
-                for (const PhaseTiming& phase : frame.phases)
-                {
-                    if (std::string_view(phase.name) == name)
-                    {
-                        return phase.seconds;
-                    }
-                }
-                return 0.0F;
-            });
     }
 
     std::vector<float> FrameHistory::categorySecondsOldestFirst(const char* category) const

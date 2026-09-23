@@ -70,10 +70,11 @@ namespace simple_platformer
         // Both require at least one frame.
         const FrameProfile& latest() const;
         const FrameProfile& worst() const;
-        // The newest frame that ran a simulation step, or nullptr. On a display faster than
-        // the fixed step, many frames run none and have no breakdown to show.
-        const FrameProfile* latestSimulated() const;
         float averageFrameSeconds() const;
+        // Every phase any held frame ran, in simulation order, with its seconds summed over
+        // the frames. A phase that runs only now and then, such as a path search, keeps its
+        // place as long as one held frame ran it.
+        std::vector<PhaseTiming> phasesSummed() const;
         // Summed over every frame held, for costs per simulation step.
         int totalSimulationTicks() const;
         int totalPathSearches() const;
@@ -81,9 +82,7 @@ namespace simple_platformer
         int totalPathSearchSimulatedTicks() const;
         std::vector<float> frameSecondsOldestFirst() const;
         std::vector<float> simulationSecondsOldestFirst() const;
-        // One phase's cost per frame; zero for frames that did not run it.
-        std::vector<float> phaseSecondsOldestFirst(const char* name) const;
-        // Every phase in one category summed, per frame.
+        // Every phase in one category summed, per frame; zero for frames that ran none.
         std::vector<float> categorySecondsOldestFirst(const char* category) const;
 
     private:

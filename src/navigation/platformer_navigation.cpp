@@ -280,26 +280,41 @@ namespace simple_platformer
         {
             throw std::invalid_argument("A jump start penalty cannot be negative");
         }
-        const GridNeighborFunction neighbors =
+        // With a cache, the connections are read where the cache keeps them; without one
+        // they are simulated for this search alone. Either way a jump is charged its cost
+        // and the start penalty.
+        const GridNeighborVisitFunction visitNeighbors =
             [&map, bodySize, &movement, stepSeconds, &navigation, statistics, cache](
-                GridPosition cell)
+                GridPosition cell, const GridNeighborVisitor& visit)
         {
-            std::vector<NavigationNeighbor> result =
-                platformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics, cache);
-            for (NavigationNeighbor& neighbor : result)
+            const auto charge = [&](const NavigationNeighbor& neighbor)
             {
                 if (neighbor.traversal != Traversal::Jump)
                 {
-                    continue;
+                    visit(neighbor, neighbor.cost);
+                    return;
                 }
                 if (neighbor.cost >
                     std::numeric_limits<int>::max() - navigation.jumpStartPenaltyTicks)
                 {
                     throw std::overflow_error("A navigation connection cost is too large");
                 }
-                neighbor.cost += navigation.jumpStartPenaltyTicks;
+                visit(neighbor, neighbor.cost + navigation.jumpStartPenaltyTicks);
+            };
+            if (cache != nullptr)
+            {
+                for (const NavigationNeighbor& neighbor : platformerNeighborsKept(
+                         map, cell, bodySize, movement, stepSeconds, *cache, statistics))
+                {
+                    charge(neighbor);
+                }
+                return;
             }
-            return result;
+            for (const NavigationNeighbor& neighbor :
+                 platformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics))
+            {
+                charge(neighbor);
+            }
         };
         const GridHeuristicFunction heuristic =
             [&map, &movement, stepSeconds](GridPosition cell, GridPosition goal)
@@ -320,7 +335,12 @@ namespace simple_platformer
         std::vector<GridPosition> reached;
         // Pass no heuristic to compare A* with the default Dijkstra search.
         std::optional<NavigationPath> path = findLowestCostPath(
-            start, goal, neighbors, heuristic, statistics, cache != nullptr ? &reached : nullptr);
+            start,
+            goal,
+            visitNeighbors,
+            heuristic,
+            statistics,
+            cache != nullptr ? &reached : nullptr);
         if (!path.has_value() && cache != nullptr)
         {
             cache->keepReachable(start, body, std::move(reached));
@@ -466,6 +486,121 @@ namespace simple_platformer
         return closest;
     }
 
+    namespace
+    {
+        // Every connection leaving a cell, simulated with the real movement code. A cell
+        // that cannot be stood on has none.
+        std::vector<NavigationNeighbor> simulatePlatformerNeighbors(
+            const TileMap& map,
+            GridPosition cell,
+            glm::vec2 bodySize,
+            const PlatformerMovementConfig& movement,
+            float stepSeconds,
+            PathSearchStatistics* statistics)
+        {
+            std::vector<NavigationNeighbor> neighbors;
+            if (!canStandAt(map, cell, bodySize))
+            {
+                return neighbors;
+            }
+
+            constexpr std::array<int, 2> Directions{-1, 1};
+            for (const int direction : Directions)
+            {
+                const GridPosition adjacent{cell.x + direction, cell.y};
+                if (canStandAt(map, adjacent, bodySize))
+                {
+                    GridPosition walkDestination = adjacent;
+                    while (canStandAt(map, walkDestination, bodySize))
+                    {
+                        const std::optional<int> walkCost = trySimulateWalkCost(
+                            map,
+                            cell,
+                            walkDestination,
+                            bodySize,
+                            movement,
+                            stepSeconds,
+                            statistics);
+                        if (!walkCost.has_value())
+                        {
+                            // Destinations are checked nearest first. Once a continuous walk
+                            // exceeds the simulation limit, farther destinations are excluded.
+                            break;
+                        }
+
+                        neighbors.push_back(
+                            {walkDestination, Traversal::Walk, walkCost.value_or(1), {}});
+                        walkDestination.x += direction;
+                    }
+                }
+                else
+                {
+                    const std::optional<NavigationNeighbor> fall = trySimulateAirborneConnection(
+                        map,
+                        cell,
+                        bodySize,
+                        movement,
+                        Traversal::Fall,
+                        static_cast<float>(direction),
+                        0,
+                        stepSeconds,
+                        statistics);
+                    if (fall.has_value())
+                    {
+                        keepCheapest(neighbors, fall.value());
+                    }
+                }
+
+                constexpr std::array<int, 2> JumpHoldTicks{1, MaximumConnectionSimulationTicks};
+                for (const int holdTicks : JumpHoldTicks)
+                {
+                    const std::optional<NavigationNeighbor> jump = trySimulateAirborneConnection(
+                        map,
+                        cell,
+                        bodySize,
+                        movement,
+                        Traversal::Jump,
+                        static_cast<float>(direction),
+                        holdTicks,
+                        stepSeconds,
+                        statistics);
+                    if (jump.has_value())
+                    {
+                        keepCheapest(neighbors, jump.value());
+                    }
+                }
+            }
+            return neighbors;
+        }
+    }
+
+    const std::vector<NavigationNeighbor>& platformerNeighborsKept(
+        const TileMap& map,
+        GridPosition cell,
+        glm::vec2 bodySize,
+        const PlatformerMovementConfig& movement,
+        float stepSeconds,
+        PlatformerConnectionCache& cache,
+        PathSearchStatistics* statistics)
+    {
+        requireStep(stepSeconds);
+        const ConnectionBody body{bodySize, movement, stepSeconds};
+        const std::vector<NavigationNeighbor>* kept = cache.find(cell, body);
+        if (kept != nullptr)
+        {
+            if (statistics != nullptr)
+            {
+                ++statistics->cellsReused;
+            }
+            return *kept;
+        }
+        cache.keep(
+            cell,
+            body,
+            simulatePlatformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics));
+        return *cache.find(cell, body);
+    }
+
     std::vector<NavigationNeighbor> platformerNeighbors(
         const TileMap& map,
         GridPosition cell,
@@ -476,94 +611,11 @@ namespace simple_platformer
         PlatformerConnectionCache* cache)
     {
         requireStep(stepSeconds);
-        const ConnectionBody body{bodySize, movement, stepSeconds};
         if (cache != nullptr)
         {
-            const std::vector<NavigationNeighbor>* kept = cache->find(cell, body);
-            if (kept != nullptr)
-            {
-                if (statistics != nullptr)
-                {
-                    ++statistics->cellsReused;
-                }
-                return *kept;
-            }
+            return platformerNeighborsKept(
+                map, cell, bodySize, movement, stepSeconds, *cache, statistics);
         }
-
-        std::vector<NavigationNeighbor> neighbors;
-        if (!canStandAt(map, cell, bodySize))
-        {
-            if (cache != nullptr)
-            {
-                cache->keep(cell, body, neighbors);
-            }
-            return neighbors;
-        }
-
-        constexpr std::array<int, 2> Directions{-1, 1};
-        for (const int direction : Directions)
-        {
-            const GridPosition adjacent{cell.x + direction, cell.y};
-            if (canStandAt(map, adjacent, bodySize))
-            {
-                GridPosition walkDestination = adjacent;
-                while (canStandAt(map, walkDestination, bodySize))
-                {
-                    const std::optional<int> walkCost = trySimulateWalkCost(
-                        map, cell, walkDestination, bodySize, movement, stepSeconds, statistics);
-                    if (!walkCost.has_value())
-                    {
-                        // Destinations are checked nearest first. Once a continuous walk
-                        // exceeds the simulation limit, farther destinations are excluded.
-                        break;
-                    }
-
-                    neighbors.push_back(
-                        {walkDestination, Traversal::Walk, walkCost.value_or(1), {}});
-                    walkDestination.x += direction;
-                }
-            }
-            else
-            {
-                const std::optional<NavigationNeighbor> fall = trySimulateAirborneConnection(
-                    map,
-                    cell,
-                    bodySize,
-                    movement,
-                    Traversal::Fall,
-                    static_cast<float>(direction),
-                    0,
-                    stepSeconds,
-                    statistics);
-                if (fall.has_value())
-                {
-                    keepCheapest(neighbors, fall.value());
-                }
-            }
-
-            constexpr std::array<int, 2> JumpHoldTicks{1, MaximumConnectionSimulationTicks};
-            for (const int holdTicks : JumpHoldTicks)
-            {
-                const std::optional<NavigationNeighbor> jump = trySimulateAirborneConnection(
-                    map,
-                    cell,
-                    bodySize,
-                    movement,
-                    Traversal::Jump,
-                    static_cast<float>(direction),
-                    holdTicks,
-                    stepSeconds,
-                    statistics);
-                if (jump.has_value())
-                {
-                    keepCheapest(neighbors, jump.value());
-                }
-            }
-        }
-        if (cache != nullptr)
-        {
-            cache->keep(cell, body, neighbors);
-        }
-        return neighbors;
+        return simulatePlatformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics);
     }
 }

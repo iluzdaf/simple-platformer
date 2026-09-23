@@ -431,7 +431,10 @@ Navigation is intentionally the most advanced subsystem. It separates a generic
 lowest-cost search from movement-specific neighbour policies.
 
 `path_search` accepts connections with positive costs and an optional heuristic.
-Supplying zero produces Dijkstra-style lowest-cost search. Flying navigation uses
+Supplying zero produces Dijkstra-style lowest-cost search. A policy hands the search
+each cell's connections either as a vector it builds on the spot or by visiting them
+where they already are, each with the cost the search should charge; only the
+connections the search follows are copied, into the path. Flying navigation uses
 ordinary walkable grid neighbours and can use Manhattan distance. Platformer
 navigation uses fixed simulation ticks as the common connection cost and a conservative
 tick estimate as its heuristic.
@@ -463,9 +466,9 @@ A cell's connections depend only on the map, the cell, the body's size, its move
 configuration and the step, and a map never changes within a level, so simulating them
 once per level is enough. `PlatformerConnectionCache` in `navigation/connection_cache`
 keeps the connections leaving each cell, grouped by the body they were simulated for.
-A search handed a cache takes each expanded cell's connections from it when they are
-there and keeps them there when they are not; a search without one simulates every
-cell, as the tests of the policies do. The `World` owns the cache for the map it is
+A search handed a cache reads each expanded cell's connections where the cache keeps
+them, simulating and keeping them first when it does not yet; a search without one
+simulates every cell, as the tests of the policies do. The `World` owns the cache for the map it is
 simulated with, since the world is replaced with its level, and the NPC system hands it
 to every platformer search. A search that fails has expanded every cell its start
 leads to, and the cache keeps that set too, per start and body, so a later search from

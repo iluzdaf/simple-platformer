@@ -159,6 +159,77 @@ TEST_CASE("A search with no path reports every cell it reached", "[navigation][p
     REQUIRE(untouched == std::vector<simple_platformer::GridPosition>{{9, 9}});
 }
 
+TEST_CASE("Connections visited in place are charged the cost given", "[navigation][path-search]")
+{
+    // Two ways from the start to the goal: a jump straight there and a walk by way of a
+    // middle cell. The jump's own cost is lower, but the visit charges it more.
+    const simple_platformer::NavigationNeighbor jump{
+        {2, 0}, simple_platformer::Traversal::Jump, 1, {{0.5F, {}}}};
+    const simple_platformer::NavigationNeighbor walkOut{
+        {1, 0}, simple_platformer::Traversal::Walk, 1, {}};
+    const simple_platformer::NavigationNeighbor walkIn{
+        {2, 0}, simple_platformer::Traversal::Walk, 1, {}};
+    int visits = 0;
+    const simple_platformer::GridNeighborVisitFunction visitNeighbors =
+        [&](simple_platformer::GridPosition cell,
+            const simple_platformer::GridNeighborVisitor& visit)
+    {
+        ++visits;
+        if (cell == simple_platformer::GridPosition{0, 0})
+        {
+            visit(jump, jump.cost + 5);
+            visit(walkOut, walkOut.cost);
+        }
+        else if (cell == simple_platformer::GridPosition{1, 0})
+        {
+            visit(walkIn, walkIn.cost);
+        }
+    };
+
+    simple_platformer::PathSearchStatistics statistics;
+    const auto path = simple_platformer::findLowestCostPath(
+        {0, 0}, {2, 0}, visitNeighbors, simple_platformer::manhattanHeuristic, &statistics);
+    REQUIRE(path.has_value());
+    const simple_platformer::NavigationPath route =
+        path.value_or(simple_platformer::NavigationPath{});
+    REQUIRE(route.steps.size() == 2);
+    REQUIRE(route.steps.front().traversal == simple_platformer::Traversal::Walk);
+    REQUIRE(statistics.nodesExpanded == visits);
+
+    // Charged the same as its own cost, the jump wins and its inputs come through.
+    const simple_platformer::GridNeighborVisitFunction visitPlainly =
+        [&](simple_platformer::GridPosition cell,
+            const simple_platformer::GridNeighborVisitor& visit)
+    {
+        if (cell == simple_platformer::GridPosition{0, 0})
+        {
+            visit(jump, jump.cost);
+            visit(walkOut, walkOut.cost);
+        }
+    };
+    const auto direct = simple_platformer::findLowestCostPath(
+        {0, 0}, {2, 0}, visitPlainly, simple_platformer::manhattanHeuristic);
+    REQUIRE(direct.has_value());
+    const simple_platformer::NavigationPath directRoute =
+        direct.value_or(simple_platformer::NavigationPath{});
+    REQUIRE(directRoute.steps.size() == 1);
+    REQUIRE(directRoute.steps.front().traversal == simple_platformer::Traversal::Jump);
+    REQUIRE(directRoute.steps.front().inputs.size() == 1);
+
+    const simple_platformer::GridNeighborVisitFunction chargesNothing =
+        [&](simple_platformer::GridPosition, const simple_platformer::GridNeighborVisitor& visit)
+    { visit(walkOut, 0); };
+    REQUIRE_THROWS_AS(
+        simple_platformer::findLowestCostPath(
+            {0, 0}, {1, 0}, chargesNothing, simple_platformer::manhattanHeuristic),
+        std::invalid_argument);
+    const simple_platformer::GridNeighborVisitFunction missing;
+    REQUIRE_THROWS_AS(
+        simple_platformer::findLowestCostPath(
+            {0, 0}, {1, 0}, missing, simple_platformer::manhattanHeuristic),
+        std::invalid_argument);
+}
+
 TEST_CASE("Path search rejects invalid functions and costs", "[navigation][path-search]")
 {
     const auto invalidNeighbors = [](simple_platformer::GridPosition)

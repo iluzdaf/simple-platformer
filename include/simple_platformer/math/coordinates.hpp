@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include <glm/vec2.hpp>
 
 namespace simple_platformer
@@ -26,6 +28,12 @@ namespace simple_platformer
     {
         return !(left == right);
     }
+
+    // For keying an unordered container by cell.
+    struct GridPositionHash
+    {
+        std::size_t operator()(GridPosition cell) const;
+    };
 
     // Points within this of a tile edge count as on the side they visually belong to: feet
     // resting on a tile's top edge stand in the cell above it, a box whose edge lies on a

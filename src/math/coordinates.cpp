@@ -1,9 +1,19 @@
 #include "simple_platformer/math/coordinates.hpp"
 
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 
 namespace simple_platformer
 {
+    std::size_t GridPositionHash::operator()(GridPosition cell) const
+    {
+        const auto column = static_cast<std::uint64_t>(static_cast<std::uint32_t>(cell.x));
+        const auto row = static_cast<std::uint64_t>(static_cast<std::uint32_t>(cell.y));
+        return std::hash<std::uint64_t>{}((column << 32U) | row);
+    }
+
     GridPosition worldToGrid(int tileSize, glm::vec2 worldPosition)
     {
         return {

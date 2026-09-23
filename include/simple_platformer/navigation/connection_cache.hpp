@@ -23,11 +23,6 @@ namespace simple_platformer
 
     bool operator==(const ConnectionBody& left, const ConnectionBody& right);
 
-    struct GridPositionHash
-    {
-        std::size_t operator()(GridPosition cell) const;
-    };
-
     // The platformer connections leaving each cell, kept once simulated so no search
     // simulates a cell twice. They depend only on the map, the cell and the body, and a
     // map never changes within a level, so a cache serves one map for as long as the

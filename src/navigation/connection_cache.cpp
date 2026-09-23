@@ -1,8 +1,6 @@
 #include "simple_platformer/navigation/connection_cache.hpp"
 
 #include <cstddef>
-#include <cstdint>
-#include <functional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -20,13 +18,6 @@ namespace simple_platformer
     {
         return left.size == right.size && left.movement == right.movement &&
                left.stepSeconds == right.stepSeconds;
-    }
-
-    std::size_t GridPositionHash::operator()(GridPosition cell) const
-    {
-        const auto column = static_cast<std::uint64_t>(static_cast<std::uint32_t>(cell.x));
-        const auto row = static_cast<std::uint64_t>(static_cast<std::uint32_t>(cell.y));
-        return std::hash<std::uint64_t>{}((column << 32U) | row);
     }
 
     void PlatformerConnectionCache::requireValid(const ConnectionBody& body) const

@@ -434,7 +434,9 @@ lowest-cost search from movement-specific neighbour policies.
 Supplying zero produces Dijkstra-style lowest-cost search. A policy hands the search
 each cell's connections by visiting them where they are, each with the cost the search
 should charge, so a policy reading a cache need not copy them out; only the
-connections the search follows are copied, into the path. Flying navigation uses
+connections the search follows are copied, into the path. A search is told the size of
+its grid and keeps a slot per cell, so a connection's destination is found without
+hashing or scanning. Flying navigation uses
 ordinary walkable grid neighbours and can use Manhattan distance. Platformer
 navigation uses fixed simulation ticks as the common connection cost and a conservative
 tick estimate as its heuristic.
@@ -476,7 +478,11 @@ game is simulated with, which takes a few milliseconds per shipped level in a re
 build, so the first chase simulates nothing during play. A search that fails has expanded every cell its start
 leads to, and the cache keeps that set too, per start and body, so a later search from
 there to a goal outside it returns no path without expanding anything; an NPC that can
-see a player it cannot reach retries every quarter second at no cost. The profile
+see a player it cannot reach retries every quarter second at no cost. A search that
+succeeds is kept as well, by start, goal, body and jump penalty, since the connections
+never change and so neither does the cheapest route: a patrol searches each of its
+legs once, and a chase back to a cell it has been to costs a lookup. The profile counts
+the searches answered this way beside the ones that ran. The profile
 counts the cells a search reused beside the cells it expanded, so the frame panel shows
 the simulated ticks fall to nothing once the level's reachable cells have been found.
 

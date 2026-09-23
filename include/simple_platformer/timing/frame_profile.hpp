@@ -30,9 +30,11 @@ namespace simple_platformer
         // In the order the simulation runs them.
         std::vector<PhaseTiming> phases;
         // Navigation searches are the simulation's one expensive, occasional job: how many
-        // ran, the cells they expanded, how many of those the connection cache already
-        // held, and the movement ticks they simulated to build platformer connections.
+        // ran, how many of those were answered with a path kept from an earlier one, the
+        // cells they expanded, how many of those the connection cache already held, and
+        // the movement ticks they simulated to build platformer connections.
         int pathSearches = 0;
+        int pathSearchesRemembered = 0;
         int pathSearchNodes = 0;
         int pathSearchCellsReused = 0;
         int pathSearchSimulatedTicks = 0;
@@ -85,6 +87,7 @@ namespace simple_platformer
         // Summed over every frame held, for costs per simulation step.
         int totalSimulationTicks() const;
         int totalPathSearches() const;
+        int totalPathSearchesRemembered() const;
         int totalPathSearchNodes() const;
         int totalPathSearchCellsReused() const;
         int totalPathSearchSimulatedTicks() const;

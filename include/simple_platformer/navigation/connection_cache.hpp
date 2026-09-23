@@ -23,6 +23,22 @@ namespace simple_platformer
 
     bool operator==(const ConnectionBody& left, const ConnectionBody& right);
 
+    // What a path was searched for: from where to where, and the jump start penalty the
+    // search charged, which can change which route is cheapest.
+    struct PathQuery
+    {
+        GridPosition start;
+        GridPosition goal;
+        int jumpStartPenaltyTicks = 0;
+    };
+
+    bool operator==(const PathQuery& left, const PathQuery& right);
+
+    struct PathQueryHash
+    {
+        std::size_t operator()(const PathQuery& query) const;
+    };
+
     // The platformer connections leaving each cell, kept once simulated so no search
     // simulates a cell twice. They depend only on the map, the cell and the body, and a
     // map never changes within a level, so a cache serves one map for as long as the
@@ -51,6 +67,10 @@ namespace simple_platformer
             GridPosition start,
             const ConnectionBody& body,
             std::vector<GridPosition> cells);
+        // The path an earlier search found for this query and body, or nothing while none
+        // has. The connections never change, so neither does the cheapest route.
+        const NavigationPath* pathKept(const PathQuery& query, const ConnectionBody& body) const;
+        void keepPath(const PathQuery& query, const ConnectionBody& body, NavigationPath path);
         void clear();
         // Cells whose connections are kept, over every body.
         std::size_t size() const;
@@ -60,12 +80,14 @@ namespace simple_platformer
             std::unordered_map<GridPosition, std::vector<NavigationNeighbor>, GridPositionHash>;
         using ReachableCells =
             std::unordered_map<GridPosition, std::vector<GridPosition>, GridPositionHash>;
+        using PathsFound = std::unordered_map<PathQuery, NavigationPath, PathQueryHash>;
 
         struct BodyConnections
         {
             ConnectionBody body;
             CellConnections cells;
             ReachableCells reachable;
+            PathsFound paths;
         };
 
         void requireValid(const ConnectionBody& body) const;

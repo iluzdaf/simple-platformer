@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <optional>
 #include <stdexcept>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -98,15 +97,17 @@ namespace simple_platformer
     std::optional<NavigationPath> findLowestCostPath(
         GridPosition start,
         GridPosition goal,
+        GridSize grid,
         const GridNeighborFunction& neighbors)
     {
         const GridHeuristicFunction noHeuristic = [](GridPosition, GridPosition) { return 0; };
-        return findLowestCostPath(start, goal, neighbors, noHeuristic);
+        return findLowestCostPath(start, goal, grid, neighbors, noHeuristic);
     }
 
     std::optional<NavigationPath> findLowestCostPath(
         GridPosition start,
         GridPosition goal,
+        GridSize grid,
         const GridNeighborFunction& neighbors,
         const GridHeuristicFunction& heuristic,
         PathSearchStatistics* statistics,
@@ -120,11 +121,28 @@ namespace simple_platformer
         {
             throw std::invalid_argument("Path search requires a heuristic function");
         }
+        if (grid.width <= 0 || grid.height <= 0)
+        {
+            throw std::invalid_argument("Path search requires a grid with cells");
+        }
+        if (!contains(grid, start) || !contains(grid, goal))
+        {
+            throw std::invalid_argument("Path search start and goal must lie within the grid");
+        }
 
         std::vector<SearchNode> nodes{
             {start, 0, estimateRemainingCost(heuristic, start, goal), std::nullopt, false}};
-        // Where each cell's node is, so a connection's destination is found without a scan.
-        std::unordered_map<GridPosition, std::size_t, GridPositionHash> nodeIndex{{start, 0}};
+        // A slot per cell of the grid holding the index of its node, if it has one, so a
+        // connection's destination is found without a scan.
+        constexpr int NoNode = -1;
+        const auto slotOf = [grid](GridPosition cell)
+        {
+            return static_cast<std::size_t>(cell.y) * static_cast<std::size_t>(grid.width) +
+                   static_cast<std::size_t>(cell.x);
+        };
+        std::vector<int> nodeAt(
+            static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height), NoNode);
+        nodeAt[slotOf(start)] = 0;
         while (true)
         {
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);
@@ -168,11 +186,15 @@ namespace simple_platformer
                         throw std::invalid_argument(
                             "A navigation connection must have positive cost");
                     }
-                    const int nextCost = costFromStart + cost;
-                    const auto existing = nodeIndex.find(neighbor.destinationCell);
-                    if (existing == nodeIndex.end())
+                    if (!contains(grid, neighbor.destinationCell))
                     {
-                        nodeIndex.emplace(neighbor.destinationCell, nodes.size());
+                        throw std::invalid_argument("A connection leads outside the grid");
+                    }
+                    const int nextCost = costFromStart + cost;
+                    int& existing = nodeAt[slotOf(neighbor.destinationCell)];
+                    if (existing == NoNode)
+                    {
+                        existing = static_cast<int>(nodes.size());
                         nodes.push_back(
                             {neighbor.destinationCell,
                              nextCost,
@@ -183,7 +205,7 @@ namespace simple_platformer
                         return;
                     }
 
-                    SearchNode& known = nodes[existing->second];
+                    SearchNode& known = nodes[static_cast<std::size_t>(existing)];
                     if (nextCost < known.costFromStart)
                     {
                         known.costFromStart = nextCost;

@@ -183,17 +183,24 @@ TEST_CASE(
     REQUIRE(filling.simulatedTicks == uncached.simulatedTicks);
     REQUIRE(filling.cellsReused == 0);
 
+    // A search from the next cell over expands only cells the first one kept.
+    const GridPosition nextStart{1, 2};
+    PathSearchStatistics uncachedNext;
+    const std::optional<simple_platformer::NavigationPath> expectedNext =
+        simple_platformer::findPlatformerPath(
+            map, nextStart, goal, BodySize, {}, tests::FixedStepSeconds, {}, &uncachedNext);
     PathSearchStatistics reusing;
     const std::optional<simple_platformer::NavigationPath> reused =
         simple_platformer::findPlatformerPath(
-            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &reusing, &cache);
+            map, nextStart, goal, BodySize, {}, tests::FixedStepSeconds, {}, &reusing, &cache);
     REQUIRE(reused.has_value());
     REQUIRE(reusing.simulatedTicks == 0);
-    REQUIRE(reusing.nodesExpanded == filling.nodesExpanded);
+    REQUIRE(reusing.nodesExpanded == uncachedNext.nodesExpanded);
     REQUIRE(reusing.cellsReused == reusing.nodesExpanded);
+    REQUIRE(reusing.pathsRemembered == 0);
 
     const std::vector<simple_platformer::NavigationStep> expectedSteps =
-        expected.value_or(simple_platformer::NavigationPath{}).steps;
+        expectedNext.value_or(simple_platformer::NavigationPath{}).steps;
     const std::vector<simple_platformer::NavigationStep> reusedSteps =
         reused.value_or(simple_platformer::NavigationPath{}).steps;
     REQUIRE(reusedSteps.size() == expectedSteps.size());
@@ -222,14 +229,22 @@ TEST_CASE("A cell that cannot be stood on is kept as having no connections", "[n
 
 TEST_CASE("What a failed search learned spares the next one", "[navigation][cache]")
 {
-    // A ledge far above the floor that no jump reaches.
+    // A ledge six tiles above the floor, far beyond any jump.
     const simple_platformer::TileMap map = tests::TileMapBuilder(
-        {"..###...", "........", "........", "........", "........", "........", "########"});
-    const GridPosition start{0, 5};
-    const GridPosition ledge{3, -1};
-    const GridPosition farRight{7, 5};
+        {"........",
+         "..###...",
+         "........",
+         "........",
+         "........",
+         "........",
+         "........",
+         "########"});
+    const GridPosition start{0, 6};
+    const GridPosition ledge{3, 0};
+    const GridPosition farRight{7, 6};
     PlatformerConnectionCache cache;
     const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    REQUIRE(simple_platformer::canStandAt(map, ledge, BodySize));
     REQUIRE(cache.reachableFrom(start, body) == nullptr);
 
     PathSearchStatistics failing;
@@ -260,12 +275,77 @@ TEST_CASE("What a failed search learned spares the next one", "[navigation][cach
                 .has_value());
     REQUIRE(reaching.nodesExpanded > 0);
 
+    // A goal off the map is no path, and teaches nothing.
+    PlatformerConnectionCache fresh;
+    PathSearchStatistics offMap;
+    REQUIRE_FALSE(
+        simple_platformer::findPlatformerPath(
+            map, start, {3, -1}, BodySize, {}, tests::FixedStepSeconds, {}, &offMap, &fresh)
+            .has_value());
+    REQUIRE(offMap.nodesExpanded == 0);
+    REQUIRE(fresh.reachableFrom(start, body) == nullptr);
+
     // Without a cache the failure is searched every time, as before.
     PathSearchStatistics uncached;
     REQUIRE_FALSE(simple_platformer::findPlatformerPath(
                       map, start, ledge, BodySize, {}, tests::FixedStepSeconds, {}, &uncached)
                       .has_value());
     REQUIRE(uncached.nodesExpanded == failing.nodesExpanded);
+}
+
+TEST_CASE("A found path answers the same search again without expanding", "[navigation][cache]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "........", "###..###", "########"});
+    const GridPosition start{0, 2};
+    const GridPosition goal{7, 2};
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    const simple_platformer::PathQuery query{start, goal, 30};
+    REQUIRE(cache.pathKept(query, body) == nullptr);
+
+    PathSearchStatistics first;
+    const std::optional<simple_platformer::NavigationPath> found =
+        simple_platformer::findPlatformerPath(
+            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {30}, &first, &cache);
+    REQUIRE(found.has_value());
+    REQUIRE(first.nodesExpanded > 0);
+    REQUIRE(first.pathsRemembered == 0);
+    REQUIRE(cache.pathKept(query, body) != nullptr);
+
+    PathSearchStatistics second;
+    const std::optional<simple_platformer::NavigationPath> remembered =
+        simple_platformer::findPlatformerPath(
+            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {30}, &second, &cache);
+    REQUIRE(remembered.has_value());
+    REQUIRE(second.nodesExpanded == 0);
+    REQUIRE(second.cellsReused == 0);
+    REQUIRE(second.pathsRemembered == 1);
+    const std::vector<simple_platformer::NavigationStep> foundSteps =
+        found.value_or(simple_platformer::NavigationPath{}).steps;
+    const std::vector<simple_platformer::NavigationStep> rememberedSteps =
+        remembered.value_or(simple_platformer::NavigationPath{}).steps;
+    REQUIRE(rememberedSteps.size() == foundSteps.size());
+    for (std::size_t index = 0; index < foundSteps.size(); ++index)
+    {
+        REQUIRE(rememberedSteps[index].destinationCell == foundSteps[index].destinationCell);
+        REQUIRE(rememberedSteps[index].traversal == foundSteps[index].traversal);
+        REQUIRE(rememberedSteps[index].inputs.size() == foundSteps[index].inputs.size());
+    }
+
+    // Another goal, or another penalty, is a new search.
+    PathSearchStatistics elsewhere;
+    simple_platformer::findPlatformerPath(
+        map, start, {6, 2}, BodySize, {}, tests::FixedStepSeconds, {30}, &elsewhere, &cache);
+    REQUIRE(elsewhere.nodesExpanded > 0);
+    PathSearchStatistics penalised;
+    simple_platformer::findPlatformerPath(
+        map, start, goal, BodySize, {}, tests::FixedStepSeconds, {0}, &penalised, &cache);
+    REQUIRE(penalised.nodesExpanded > 0);
+    REQUIRE(penalised.pathsRemembered == 0);
+
+    cache.clear();
+    REQUIRE(cache.pathKept(query, body) == nullptr);
 }
 
 TEST_CASE("Reachable cells are kept per start and body until cleared", "[navigation][cache]")

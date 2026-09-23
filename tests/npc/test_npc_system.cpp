@@ -147,6 +147,15 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
     REQUIRE(second.pathSearches == 1);
     REQUIRE(second.pathSearchCellsReused > 0);
     REQUIRE(second.pathSearchSimulatedTicks == 0);
+
+    // Back to the first destination, the path is remembered and nothing is expanded.
+    brain(world, npcId).lastSeenTargetFeet = {8.0F, 32.0F};
+    pathFollower(world, npcId).repathRemaining = 0.0F;
+    simple_platformer::FrameProfile third;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &third);
+    REQUIRE(third.pathSearches == 1);
+    REQUIRE(third.pathSearchesRemembered == 1);
+    REQUIRE(third.pathSearchNodes == 0);
 }
 
 TEST_CASE("Warming navigation keeps every cell for each walking NPC body", "[npc][navigation]")

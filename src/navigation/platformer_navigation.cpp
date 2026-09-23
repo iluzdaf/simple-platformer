@@ -320,11 +320,28 @@ namespace simple_platformer
             [&map, &movement, stepSeconds](GridPosition cell, GridPosition goal)
         { return platformerTickHeuristic(map.tileSize(), cell, goal, movement, stepSeconds); };
 
-        // A search that failed from this start has already found every cell it leads to,
-        // so a goal outside them has no path and there is nothing to search.
+        // A goal off the map has no path, and there is nothing to learn from searching.
+        if (!map.contains(start) || !map.contains(goal))
+        {
+            return std::nullopt;
+        }
+        // A search answered before: the connections never change, so neither does the
+        // cheapest route between two cells for one penalty.
         const ConnectionBody body{bodySize, movement, stepSeconds};
+        const PathQuery query{start, goal, navigation.jumpStartPenaltyTicks};
         if (cache != nullptr)
         {
+            const NavigationPath* kept = cache->pathKept(query, body);
+            if (kept != nullptr)
+            {
+                if (statistics != nullptr)
+                {
+                    ++statistics->pathsRemembered;
+                }
+                return *kept;
+            }
+            // A search that failed from this start has already found every cell it leads
+            // to, so a goal outside them has no path and there is nothing to search.
             const std::vector<GridPosition>* reachable = cache->reachableFrom(start, body);
             if (reachable != nullptr &&
                 std::find(reachable->begin(), reachable->end(), goal) == reachable->end())
@@ -335,10 +352,23 @@ namespace simple_platformer
         std::vector<GridPosition> reached;
         // Pass no heuristic to compare A* with the default Dijkstra search.
         std::optional<NavigationPath> path = findLowestCostPath(
-            start, goal, neighbors, heuristic, statistics, cache != nullptr ? &reached : nullptr);
-        if (!path.has_value() && cache != nullptr)
+            start,
+            goal,
+            {map.width(), map.height()},
+            neighbors,
+            heuristic,
+            statistics,
+            cache != nullptr ? &reached : nullptr);
+        if (cache != nullptr)
         {
-            cache->keepReachable(start, body, std::move(reached));
+            if (path.has_value())
+            {
+                cache->keepPath(query, body, *path);
+            }
+            else
+            {
+                cache->keepReachable(start, body, std::move(reached));
+            }
         }
         return path;
     }

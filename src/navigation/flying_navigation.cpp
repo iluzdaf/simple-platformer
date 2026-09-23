@@ -17,6 +17,10 @@ namespace simple_platformer
         GridPosition goal,
         PathSearchStatistics* statistics)
     {
+        if (!map.contains(start) || !map.contains(goal))
+        {
+            return std::nullopt;
+        }
         const GridNeighborFunction neighbors =
             [&map](GridPosition cell, const GridNeighborVisitor& visit)
         {
@@ -27,7 +31,8 @@ namespace simple_platformer
         };
 
         // Remove manhattanHeuristic to compare this A* search with the default Dijkstra search.
-        return findLowestCostPath(start, goal, neighbors, manhattanHeuristic, statistics);
+        return findLowestCostPath(
+            start, goal, {map.width(), map.height()}, neighbors, manhattanHeuristic, statistics);
     }
 
     std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition cell)

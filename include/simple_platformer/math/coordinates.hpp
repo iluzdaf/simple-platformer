@@ -35,6 +35,18 @@ namespace simple_platformer
         std::size_t operator()(GridPosition cell) const;
     };
 
+    // How many cells a grid has across and down.
+    struct GridSize
+    {
+        int width = 0;
+        int height = 0;
+    };
+
+    constexpr bool contains(GridSize grid, GridPosition cell)
+    {
+        return cell.x >= 0 && cell.x < grid.width && cell.y >= 0 && cell.y < grid.height;
+    }
+
     // Points within this of a tile edge count as on the side they visually belong to: feet
     // resting on a tile's top edge stand in the cell above it, a box whose edge lies on a
     // boundary covers only the cells inside it, and a body this close to the map's edge is

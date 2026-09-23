@@ -30,7 +30,7 @@ namespace simple_platformer
             }
         };
 
-        // Remove manhattanHeuristic to compare this A* search with the default Dijkstra search.
+        // Call the overload without a heuristic to compare A* with a plain lowest-cost search.
         return findLowestCostPath(
             start, goal, {map.width(), map.height()}, neighbors, manhattanHeuristic, statistics);
     }

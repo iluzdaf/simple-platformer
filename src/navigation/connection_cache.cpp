@@ -20,6 +20,23 @@ namespace simple_platformer
                left.stepSeconds == right.stepSeconds;
     }
 
+    bool operator==(const PathQuery& left, const PathQuery& right)
+    {
+        return left.start == right.start && left.goal == right.goal &&
+               left.jumpStartPenaltyTicks == right.jumpStartPenaltyTicks;
+    }
+
+    std::size_t PathQueryHash::operator()(const PathQuery& query) const
+    {
+        // Each part mixed into the seed the way Boost's hash_combine does.
+        const GridPositionHash cell;
+        std::size_t seed = cell(query.start);
+        seed ^= cell(query.goal) + 0x9e3779b9U + (seed << 6U) + (seed >> 2U);
+        seed ^= static_cast<std::size_t>(query.jumpStartPenaltyTicks) + 0x9e3779b9U + (seed << 6U) +
+                (seed >> 2U);
+        return seed;
+    }
+
     void PlatformerConnectionCache::requireValid(const ConnectionBody& body) const
     {
         if (!isFinite(body.size) || body.size.x <= 0.0F || body.size.y <= 0.0F ||
@@ -57,22 +74,6 @@ namespace simple_platformer
         return bodies.back();
     }
 
-    bool operator==(const PathQuery& left, const PathQuery& right)
-    {
-        return left.start == right.start && left.goal == right.goal &&
-               left.jumpStartPenaltyTicks == right.jumpStartPenaltyTicks;
-    }
-
-    std::size_t PathQueryHash::operator()(const PathQuery& query) const
-    {
-        const GridPositionHash cell;
-        std::size_t seed = cell(query.start);
-        seed ^= cell(query.goal) + 0x9e3779b9U + (seed << 6U) + (seed >> 2U);
-        seed ^= static_cast<std::size_t>(query.jumpStartPenaltyTicks) + 0x9e3779b9U + (seed << 6U) +
-                (seed >> 2U);
-        return seed;
-    }
-
     const std::vector<NavigationNeighbor>* PlatformerConnectionCache::find(
         GridPosition cell,
         const ConnectionBody& body) const
@@ -86,13 +87,15 @@ namespace simple_platformer
         return connections == kept->cells.end() ? nullptr : &connections->second;
     }
 
-    void PlatformerConnectionCache::keep(
+    const std::vector<NavigationNeighbor>& PlatformerConnectionCache::keep(
         GridPosition cell,
         const ConnectionBody& body,
         std::vector<NavigationNeighbor> connections)
     {
         requireValid(body);
-        connectionsFor(body).cells[cell] = std::move(connections);
+        std::vector<NavigationNeighbor>& kept = connectionsFor(body).cells[cell];
+        kept = std::move(connections);
+        return kept;
     }
 
     const std::vector<GridPosition>* PlatformerConnectionCache::reachableFrom(

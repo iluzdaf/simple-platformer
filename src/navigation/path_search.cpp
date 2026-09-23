@@ -15,12 +15,15 @@ namespace simple_platformer
 {
     namespace
     {
+        // How a node was cheapest reached, for walking the path back to the start.
         struct IncomingConnection
         {
             std::size_t parentIndex;
             NavigationNeighbor neighbor;
         };
 
+        // A cell the search has reached. Closed once expanded, and opened again if a
+        // cheaper way to it turns up.
         struct SearchNode
         {
             GridPosition cell;
@@ -43,6 +46,8 @@ namespace simple_platformer
             return estimate;
         }
 
+        // The open node with the lowest estimated total, by a scan: a search here is a few
+        // dozen nodes, which a heap would not beat.
         std::optional<std::size_t> cheapestOpenNode(const std::vector<SearchNode>& nodes)
         {
             std::optional<std::size_t> cheapest;
@@ -65,6 +70,8 @@ namespace simple_platformer
             return cheapest;
         }
 
+        // Follows incoming connections from the goal back to the start and lists them the
+        // other way round.
         NavigationPath reconstructPath(const std::vector<SearchNode>& nodes, std::size_t goalIndex)
         {
             std::vector<NavigationStep> steps;
@@ -217,7 +224,8 @@ namespace simple_platformer
                 ++statistics->nodesExpanded;
             }
 
-            // Adding a node may move the others, so nothing above is referenced below.
+            // Relaxing may add nodes, which can move them all, so currentNode is not used
+            // after this.
             neighbors(currentCell, relax);
         }
     }

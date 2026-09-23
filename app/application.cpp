@@ -361,7 +361,10 @@ namespace simple_platformer
             if (context.showDebugOverlay)
             {
                 drawDebugOverlay(
-                    game.debugOverlay(static_cast<float>(atlasTexture.width)), windowViewport);
+                    game.debugOverlay(
+                        static_cast<float>(atlasTexture.width),
+                        static_cast<float>(fixedStep.stepSeconds())),
+                    windowViewport);
                 drawFrameProfile(frameHistory);
             }
             ImGui::Render();

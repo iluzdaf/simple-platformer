@@ -447,8 +447,10 @@ or Jump. Jump and fall connections also store an `InputProgram`, a sequence of
 intentions and tick counts that can be replayed by the path follower.
 
 Neighbour generation reuses the real platformer movement and collision functions at
-the fixed step. A simulated jump is accepted only when it lands on another standable
-cell. Walk connections scan continuously walkable cells and include braking at their
+the step the caller passes in, which the NPC system takes from the tick it is running,
+so a predicted jump and the real one run the same physics; the debug overlay replays
+recorded jumps at the application's step for the same reason. A simulated jump is
+accepted only when it lands on another standable cell. Walk connections scan continuously walkable cells and include braking at their
 destination. Raw connection durations are measured in simulation ticks. The
 high-level platformer search can add a configurable jump-start penalty, also expressed
 in ticks, so a marginal shortcut does not make a grounded NPC hop unnecessarily.

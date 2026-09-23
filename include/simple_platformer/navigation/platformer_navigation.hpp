@@ -21,12 +21,18 @@ namespace simple_platformer
         int jumpStartPenaltyTicks = 30;
     };
 
-    // Optimistic remaining travel time in fixed simulation ticks.
+    // Every search below takes the fixed step the actor is moved with, in seconds.
+    // Connections are simulated tick by tick at that step with the real movement code
+    // and costs are counted in its ticks, so a predicted jump and the real one run the
+    // same physics. It must be finite and positive.
+
+    // Optimistic remaining travel time in simulation ticks.
     int platformerTickHeuristic(
         int tileSize,
         GridPosition cell,
         GridPosition goal,
-        const PlatformerMovementConfig& movement);
+        const PlatformerMovementConfig& movement,
+        float stepSeconds);
 
     // High-level path API for platformer actors.
     std::optional<NavigationPath> findPlatformerPath(
@@ -35,6 +41,7 @@ namespace simple_platformer
         GridPosition goal,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
+        float stepSeconds,
         const PlatformerNavigationConfig& navigation = {});
 
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize);
@@ -56,5 +63,6 @@ namespace simple_platformer
         const TileMap& map,
         GridPosition cell,
         glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement);
+        const PlatformerMovementConfig& movement,
+        float stepSeconds);
 }

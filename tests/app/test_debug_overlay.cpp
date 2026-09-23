@@ -29,6 +29,7 @@
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 #include "support/add_player.hpp"
+#include "support/fixed_step.hpp"
 #include "support/neighbor_with.hpp"
 
 TEST_CASE("Debug overlay data supports actors without presentation components", "[app][debug]")
@@ -41,8 +42,8 @@ TEST_CASE("Debug overlay data supports actors without presentation components", 
     const simple_platformer::Camera camera{{4.0F, 5.0F}, simple_platformer::InternalViewportSize};
     const simple_platformer::CameraController cameraController{camera, {80.0F, 40.0F}};
 
-    const simple_platformer::DebugOverlay debug =
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.cameraBounds.position == camera.position);
     REQUIRE(debug.cameraBounds.size == camera.viewportSize);
@@ -77,8 +78,8 @@ TEST_CASE("Debug overlay data describes NPC patrol points", "[app][debug]")
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
-    const simple_platformer::DebugOverlay debug =
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.actors.front().patrol.has_value());
     const simple_platformer::PatrolDebugInfo patrol =
@@ -113,8 +114,8 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
 
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
-    const simple_platformer::DebugOverlay debug =
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.actors.size() == 2);
     const simple_platformer::ActorDebugInfo& playerDebug = debug.actors.front();
@@ -173,8 +174,8 @@ TEST_CASE("Debug overlay data describes visible and remembered targets", "[app][
     const simple_platformer::TileMap map = tests::TileMapBuilder({".......", "#######"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
-    const simple_platformer::DebugOverlay debug =
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE_FALSE(debug.actors[0].sensor.has_value());
     const simple_platformer::SensorDebugInfo visible =
@@ -211,8 +212,8 @@ TEST_CASE("Debug overlay data describes projectiles", "[app][debug]")
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
-    const simple_platformer::DebugOverlay debug =
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.projectiles.size() == 2);
     REQUIRE(debug.projectiles[0].bounds.position == owned.bounds.position);
@@ -232,8 +233,8 @@ TEST_CASE("Debug overlay data describes pickup bounds", "[app][debug]")
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
-    const simple_platformer::DebugOverlay debug =
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.pickups.size() == 1);
     REQUIRE(debug.pickups.front().bounds.position == bounds.position);
@@ -263,8 +264,8 @@ TEST_CASE("Debug overlay data shows only an active bite hitbox", "[app][debug]")
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
-    const simple_platformer::DebugOverlay debug =
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.actors[0].biteHitbox.has_value());
     const simple_platformer::Aabb hitbox =
@@ -296,8 +297,8 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
-    const simple_platformer::DebugOverlay debug =
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.actors.size() == 1);
     REQUIRE(debug.actors.front().pathFollower.has_value());
@@ -335,7 +336,8 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const simple_platformer::PlatformerMovementConfig movementConfig;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
-        simple_platformer::platformerNeighbors(map, {2, 2}, {12.0F, 12.0F}, movementConfig);
+        simple_platformer::platformerNeighbors(
+            map, {2, 2}, {12.0F, 12.0F}, movementConfig, tests::FixedStepSeconds);
     const simple_platformer::NavigationNeighbor& jump =
         tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
 
@@ -355,8 +357,8 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
-    const simple_platformer::DebugOverlay debug =
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 128.0F);
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
     const simple_platformer::PathFollowerDebugInfo path =
         debug.actors.front().pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});
 
@@ -378,6 +380,7 @@ TEST_CASE("Debug overlay data rejects an invalid atlas width", "[app][debug]")
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 
     REQUIRE_THROWS_AS(
-        simple_platformer::makeDebugOverlay(world, map, cameraController, 0.0F),
+        simple_platformer::makeDebugOverlay(
+            world, map, cameraController, 0.0F, tests::FixedStepSeconds),
         std::invalid_argument);
 }

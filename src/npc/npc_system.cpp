@@ -56,11 +56,13 @@ namespace simple_platformer
             return patrol.headingToSecond ? patrol.secondFeet : patrol.firstFeet;
         }
 
+        // The search simulates at deltaTime, the step this actor is about to be moved with.
         void requestPath(
             const TileMap& map,
             const Actor& actor,
             PathFollower& follower,
             glm::vec2 goalFeet,
+            float deltaTime,
             FrameProfile* profile)
         {
             GridPosition start = cellAtFeet(map.tileSize(), feetOf(actor.body.bounds));
@@ -99,7 +101,12 @@ namespace simple_platformer
             else if (actor.platformerMovement.has_value())
             {
                 path = findPlatformerPath(
-                    map, start, goal, actor.body.bounds.size, actor.platformerMovement->config);
+                    map,
+                    start,
+                    goal,
+                    actor.body.bounds.size,
+                    actor.platformerMovement->config,
+                    deltaTime);
             }
             if (profile != nullptr)
             {
@@ -127,7 +134,7 @@ namespace simple_platformer
             float deltaTime,
             FrameProfile* profile)
         {
-            requestPath(map, actor, follower, destinationFeet, profile);
+            requestPath(map, actor, follower, destinationFeet, deltaTime, profile);
             if (actor.flyingMovement.has_value())
             {
                 actor.intentions = followFlyingPath(

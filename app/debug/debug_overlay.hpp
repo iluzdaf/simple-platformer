@@ -106,9 +106,12 @@ namespace simple_platformer
         Aabb cameraDeadZone;
     };
 
+    // simulationStepSeconds is the fixed step the world is simulated with; predicted jump
+    // arcs are replayed at it so they match what the actor will do.
     DebugOverlay makeDebugOverlay(
         const World& world,
         const TileMap& map,
         const CameraController& cameraController,
-        float atlasWidth);
+        float atlasWidth,
+        float simulationStepSeconds);
 }

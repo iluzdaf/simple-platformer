@@ -29,11 +29,6 @@ namespace simple_platformer
         glfwTerminate();
     }
 
-    void GameWindow::WindowDeleter::operator()(GLFWwindow* target) const
-    {
-        glfwDestroyWindow(target);
-    }
-
     GameWindow::GameWindow(const char* title, glm::ivec2 size)
     {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -41,15 +36,15 @@ namespace simple_platformer
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 
-        window.reset(glfwCreateWindow(size.x, size.y, title, nullptr, nullptr));
-        if (!window)
+        window = glfwCreateWindow(size.x, size.y, title, nullptr, nullptr);
+        if (window == nullptr)
         {
             throw std::runtime_error("GLFW could not create the game window");
         }
 
         glfwSetWindowSizeLimits(
-            window.get(), InternalWidth, InternalHeight, GLFW_DONT_CARE, GLFW_DONT_CARE);
-        glfwMakeContextCurrent(window.get());
+            window, InternalWidth, InternalHeight, GLFW_DONT_CARE, GLFW_DONT_CARE);
+        glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
         if (gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)) == 0)
         {
@@ -57,16 +52,19 @@ namespace simple_platformer
         }
     }
 
-    GameWindow::~GameWindow() = default;
+    GameWindow::~GameWindow()
+    {
+        glfwDestroyWindow(window);
+    }
 
     GLFWwindow* GameWindow::handle() const
     {
-        return window.get();
+        return window;
     }
 
     bool GameWindow::shouldClose() const
     {
-        return glfwWindowShouldClose(window.get()) == GLFW_TRUE;
+        return glfwWindowShouldClose(window) == GLFW_TRUE;
     }
 
     WindowReading GameWindow::read() const
@@ -74,16 +72,15 @@ namespace simple_platformer
         WindowReading reading;
         double cursorX = 0.0;
         double cursorY = 0.0;
-        glfwGetWindowSize(window.get(), &reading.size.x, &reading.size.y);
-        glfwGetFramebufferSize(
-            window.get(), &reading.framebufferSize.x, &reading.framebufferSize.y);
-        glfwGetCursorPos(window.get(), &cursorX, &cursorY);
+        glfwGetWindowSize(window, &reading.size.x, &reading.size.y);
+        glfwGetFramebufferSize(window, &reading.framebufferSize.x, &reading.framebufferSize.y);
+        glfwGetCursorPos(window, &cursorX, &cursorY);
         reading.cursor = {static_cast<float>(cursorX), static_cast<float>(cursorY)};
         return reading;
     }
 
     void GameWindow::present() const
     {
-        glfwSwapBuffers(window.get());
+        glfwSwapBuffers(window);
     }
 }

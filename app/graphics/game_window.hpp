@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include <glm/vec2.hpp>
 
 struct GLFWwindow;
@@ -47,12 +45,9 @@ namespace simple_platformer
             GlfwLibrary& operator=(const GlfwLibrary&) = delete;
         };
 
-        struct WindowDeleter
-        {
-            void operator()(GLFWwindow* target) const;
-        };
-
         GlfwLibrary library;
-        std::unique_ptr<GLFWwindow, WindowDeleter> window;
+        // Destroyed before the library stops GLFW. Should the constructor throw after the
+        // window exists, stopping GLFW destroys it too.
+        GLFWwindow* window = nullptr;
     };
 }

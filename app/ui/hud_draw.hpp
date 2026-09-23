@@ -7,6 +7,8 @@ namespace simple_platformer
     struct SpriteRegion;
     struct TextureView;
 
+    constexpr ImU32 HudTextColour = IM_COL32(255, 255, 255, 255);
+
     // Text over a one-pixel dark shadow, so it reads on any part of the scene.
     void drawShadowedText(ImDrawList& drawList, ImVec2 position, ImU32 colour, const char* text);
 

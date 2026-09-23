@@ -10,15 +10,10 @@
 #include "graphics/sprite_renderer.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "ui/hud_draw.hpp"
+#include "ui/hud_layout.hpp"
 
 namespace simple_platformer
 {
-    namespace
-    {
-        // The hint icon floats this far above the door, in internal pixels.
-        constexpr float GapAboveDoor = 4.0F;
-    }
-
     void drawLockedExitHint(
         const Game& game,
         const TextureView& atlas,

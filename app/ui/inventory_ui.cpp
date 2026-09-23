@@ -35,7 +35,6 @@ namespace simple_platformer
         constexpr ImU32 SlotColour = IM_COL32(40, 44, 52, 220);
         constexpr ImU32 HoveredSlotColour = IM_COL32(72, 76, 84, 240);
         constexpr ImU32 SlotBorderColour = IM_COL32(150, 156, 168, 220);
-        constexpr ImU32 CountColour = IM_COL32(255, 255, 255, 255);
     }
 
     bool drawInventoryButton(const TextureView& atlas, const WindowViewport& viewport)
@@ -133,7 +132,7 @@ namespace simple_platformer
 
                     char count[16];
                     std::snprintf(count, sizeof(count), "%d", slot->quantity);
-                    drawShadowedText(*drawList, iconMinimum, CountColour, count);
+                    drawShadowedText(*drawList, iconMinimum, HudTextColour, count);
                     if (clicked && item.effect != ItemEffect::None)
                     {
                         slotToUse = index;

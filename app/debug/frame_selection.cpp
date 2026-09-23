@@ -1,5 +1,6 @@
 #include "frame_selection.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <optional>
@@ -31,13 +32,22 @@ namespace simple_platformer
         return nearest;
     }
 
-    void FrameSelection::pick(const FrameHistory& live, std::size_t index)
+    std::size_t frameNearestPlotFraction(float fraction, std::size_t capacity, std::size_t count)
     {
-        if (frozen.has_value() && index == selected)
+        if (count == 0)
         {
-            clear();
-            return;
+            throw std::invalid_argument("No frame has been plotted to scrub to");
         }
+        if (!std::isfinite(fraction))
+        {
+            return 0;
+        }
+        const float x = std::fmin(std::fmax(fraction, 0.0F), 1.0F) * static_cast<float>(capacity);
+        return std::min(static_cast<std::size_t>(std::lround(x)), count - 1);
+    }
+
+    void FrameSelection::select(const FrameHistory& live, std::size_t index)
+    {
         const FrameHistory& history = frozen.has_value() ? *frozen : live;
         if (index >= history.size())
         {

@@ -12,6 +12,7 @@ namespace
 {
     using simple_platformer::frameAtPlotFraction;
     using simple_platformer::FrameHistory;
+    using simple_platformer::frameNearestPlotFraction;
     using simple_platformer::FrameProfile;
     using simple_platformer::FrameSelection;
 
@@ -48,16 +49,25 @@ TEST_CASE(
     REQUIRE_FALSE(frameAtPlotFraction(0.0F, 120, 0).has_value());
 }
 
-TEST_CASE(
-    "Picking a frame keeps the history as it was until it is picked again",
-    "[debug][profile]")
+TEST_CASE("A drag scrubs to the nearest frame and stops at the ends", "[debug][profile]")
+{
+    REQUIRE(frameNearestPlotFraction(0.6F / 120.0F, 120, 10) == 1);
+    REQUIRE(frameNearestPlotFraction(-0.5F, 120, 10) == 0);
+    REQUIRE(frameNearestPlotFraction(9.0F / 120.0F, 120, 10) == 9);
+    // Dragged past the last frame or off the plot, it holds the last one.
+    REQUIRE(frameNearestPlotFraction(0.5F, 120, 10) == 9);
+    REQUIRE(frameNearestPlotFraction(1.5F, 120, 10) == 9);
+    REQUIRE_THROWS_AS(frameNearestPlotFraction(0.0F, 120, 0), std::invalid_argument);
+}
+
+TEST_CASE("Selecting a frame keeps the history as it was until cleared", "[debug][profile]")
 {
     FrameHistory live = historyOf({0.010F, 0.020F, 0.030F});
     FrameSelection selection;
     REQUIRE(selection.kept() == nullptr);
     REQUIRE_FALSE(selection.selectedIndex().has_value());
 
-    selection.pick(live, 1);
+    selection.select(live, 1);
     REQUIRE(selection.selectedIndex() == 1);
     REQUIRE_NEAR(selection.selectedFrame().frameSeconds, 0.020F);
 
@@ -67,27 +77,29 @@ TEST_CASE(
     REQUIRE(
         selection.kept()->frameSecondsOldestFirst() == std::vector<float>{0.010F, 0.020F, 0.030F});
 
-    // Another frame of the kept history can be picked without losing it.
-    selection.pick(live, 2);
+    // Another frame of the kept history can be selected without losing it, and the
+    // selected one again changes nothing.
+    selection.select(live, 2);
+    selection.select(live, 2);
     REQUIRE(selection.selectedIndex() == 2);
     REQUIRE_NEAR(selection.selectedFrame().frameSeconds, 0.030F);
     REQUIRE(selection.kept()->size() == 3);
 
-    // Picking the selected frame again resumes the live history.
-    selection.pick(live, 2);
+    // Clearing lets the live history show again.
+    selection.clear();
     REQUIRE_FALSE(selection.selectedIndex().has_value());
     REQUIRE(selection.kept() == nullptr);
 }
 
-TEST_CASE("Picking a frame that was not plotted is rejected", "[debug][profile]")
+TEST_CASE("Selecting a frame that was not plotted is rejected", "[debug][profile]")
 {
     const FrameHistory live = historyOf({0.010F, 0.020F, 0.030F});
     FrameSelection selection;
     REQUIRE_THROWS_AS(selection.selectedFrame(), std::logic_error);
-    REQUIRE_THROWS_AS(selection.pick(live, 3), std::out_of_range);
+    REQUIRE_THROWS_AS(selection.select(live, 3), std::out_of_range);
     REQUIRE_FALSE(selection.selectedIndex().has_value());
 
-    selection.pick(live, 0);
-    REQUIRE_THROWS_AS(selection.pick(live, 3), std::out_of_range);
+    selection.select(live, 0);
+    REQUIRE_THROWS_AS(selection.select(live, 3), std::out_of_range);
     REQUIRE(selection.selectedIndex() == 0);
 }

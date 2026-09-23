@@ -15,15 +15,20 @@ namespace simple_platformer
         std::size_t capacity,
         std::size_t count);
 
+    // The frame nearest a drag this far across the plot, for scrubbing: past either end
+    // it is the first or the last frame. Requires at least one frame.
+    std::size_t frameNearestPlotFraction(float fraction, std::size_t capacity, std::size_t count);
+
     // A frame picked from the plot to read at leisure. Picking one keeps a copy of the
     // history as it was, so the panel stops following the live frames and the picked
     // frame holds its place in the plot, until the pick is cleared.
     class FrameSelection
     {
     public:
-        // Picks the frame at this index of the history shown; picking the selected frame
-        // again clears the selection.
-        void pick(const FrameHistory& live, std::size_t index);
+        // Selects the frame at this index of the history shown, keeping a copy of the live
+        // history the first time.
+        void select(const FrameHistory& live, std::size_t index);
+        // Lets the live history show again.
         void clear();
 
         std::optional<std::size_t> selectedIndex() const;

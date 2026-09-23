@@ -133,8 +133,12 @@ namespace simple_platformer
         }
 
         // The plot's picker, a window of its own over the plot area like the legend, so a
-        // click there picks the frame under the cursor while clicks over the rest of the
-        // panel reach the game. It marks the column under the cursor and the picked one.
+        // press there picks the frame under the cursor while clicks over the rest of the
+        // panel reach the game. Holding the button scrubs: the pick follows the cursor
+        // until it is released. A click on the picked frame that never moves off it lets
+        // the live history show again; whether the press landed on it is kept in the
+        // window's ImGui storage until the release, as the legend keeps what it hides.
+        // The column under the cursor and the picked one are marked.
         void drawFramePicker(
             ImVec2 topLeft,
             ImVec2 size,
@@ -162,18 +166,34 @@ namespace simple_platformer
                                                     static_cast<float>(history.capacity());
                     drawList->AddLine({x, topLeft.y}, {x, topLeft.y + size.y}, colour);
                 };
-                if (ImGui::IsItemHovered())
+                const float fraction = (ImGui::GetMousePos().x - topLeft.x) / size.x;
+                ImGuiStorage* storage = ImGui::GetStateStorage();
+                const ImGuiID pressedOnPicked = ImGui::GetID("pressed on picked");
+                if (ImGui::IsItemActive())
                 {
-                    const float fraction = (ImGui::GetMousePos().x - topLeft.x) / size.x;
+                    const std::size_t under =
+                        frameNearestPlotFraction(fraction, history.capacity(), history.size());
+                    if (ImGui::IsItemActivated())
+                    {
+                        storage->SetBool(pressedOnPicked, selection.selectedIndex() == under);
+                    }
+                    if (selection.selectedIndex() != under)
+                    {
+                        selection.select(live, under);
+                        storage->SetBool(pressedOnPicked, false);
+                    }
+                }
+                else if (ImGui::IsItemDeactivated() && storage->GetBool(pressedOnPicked))
+                {
+                    selection.clear();
+                }
+                else if (ImGui::IsItemHovered())
+                {
                     const std::optional<std::size_t> hovered =
                         frameAtPlotFraction(fraction, history.capacity(), history.size());
                     if (hovered.has_value())
                     {
                         markFrame(*hovered, HoveredFrameColour);
-                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                        {
-                            selection.pick(live, *hovered);
-                        }
                     }
                 }
                 const std::optional<std::size_t> picked = selection.selectedIndex();
@@ -276,10 +296,11 @@ namespace simple_platformer
         void drawPickedFrame(const FrameProfile& frame, std::size_t index, std::size_t count)
         {
             ImGui::Text(
-                "frame %d of %d   %6.2f ms   click it again to resume",
+                "frame %d of %d   %6.2f ms",
                 static_cast<int>(index + 1),
                 static_cast<int>(count),
                 frame.frameSeconds * 1000.0F);
+            ImGui::TextDisabled("drag the plot to scrub, click the frame again to resume");
             ImGui::Text(
                 "scene %5.2f ms   render %5.2f   ui %5.2f",
                 frame.sceneSeconds * 1000.0F,

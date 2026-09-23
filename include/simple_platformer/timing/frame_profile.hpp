@@ -51,6 +51,9 @@ namespace simple_platformer
         const FrameProfile* latestSimulated() const;
         float averageFrameSeconds() const;
         std::vector<float> frameSecondsOldestFirst() const;
+        std::vector<float> simulationSecondsOldestFirst() const;
+        // One phase's cost per frame; zero for frames that did not run it.
+        std::vector<float> phaseSecondsOldestFirst(const char* name) const;
 
     private:
         std::vector<FrameProfile> frames;

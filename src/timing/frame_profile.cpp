@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
@@ -113,15 +114,53 @@ namespace simple_platformer
         return total / static_cast<float>(count);
     }
 
+    namespace
+    {
+        std::vector<float> oldestFirst(
+            const std::vector<FrameProfile>& frames,
+            std::size_t next,
+            std::size_t count,
+            const std::function<float(const FrameProfile&)>& measure)
+        {
+            std::vector<float> result;
+            result.reserve(count);
+            const std::size_t oldest = count < frames.size() ? 0 : next;
+            for (std::size_t offset = 0; offset < count; ++offset)
+            {
+                result.push_back(measure(frames[(oldest + offset) % frames.size()]));
+            }
+            return result;
+        }
+    }
+
     std::vector<float> FrameHistory::frameSecondsOldestFirst() const
     {
-        std::vector<float> result;
-        result.reserve(count);
-        const std::size_t oldest = count < frames.size() ? 0 : next;
-        for (std::size_t offset = 0; offset < count; ++offset)
-        {
-            result.push_back(frames[(oldest + offset) % frames.size()].frameSeconds);
-        }
-        return result;
+        return oldestFirst(
+            frames, next, count, [](const FrameProfile& frame) { return frame.frameSeconds; });
+    }
+
+    std::vector<float> FrameHistory::simulationSecondsOldestFirst() const
+    {
+        return oldestFirst(
+            frames, next, count, [](const FrameProfile& frame) { return frame.simulationSeconds; });
+    }
+
+    std::vector<float> FrameHistory::phaseSecondsOldestFirst(const char* name) const
+    {
+        return oldestFirst(
+            frames,
+            next,
+            count,
+            [name](const FrameProfile& frame)
+            {
+                for (const PhaseTiming& phase : frame.phases)
+                {
+                    if (std::string_view(phase.name) == name)
+                    {
+                        return phase.seconds;
+                    }
+                }
+                return 0.0F;
+            });
     }
 }

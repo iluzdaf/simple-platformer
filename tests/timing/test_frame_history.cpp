@@ -107,3 +107,19 @@ TEST_CASE("The latest simulated frame skips frames that ran no step", "[timing][
     REQUIRE_NEAR(history.latestSimulated()->frameSeconds, 0.016F);
     REQUIRE_NEAR(history.latest().frameSeconds, 0.007F);
 }
+
+TEST_CASE("A frame history reports one measurement across its frames", "[timing][profile]")
+{
+    FrameHistory history(3);
+    FrameProfile first = frameTaking(0.010F);
+    first.simulationSeconds = 0.004F;
+    simple_platformer::addPhaseSeconds(first, "NPC behaviour", 0.003F);
+    FrameProfile second = frameTaking(0.007F);
+    history.push(first);
+    history.push(second);
+
+    REQUIRE(history.simulationSecondsOldestFirst() == std::vector<float>{0.004F, 0.0F});
+    // A frame that ran no step contributes zero to every phase.
+    REQUIRE(history.phaseSecondsOldestFirst("NPC behaviour") == std::vector<float>{0.003F, 0.0F});
+    REQUIRE(history.phaseSecondsOldestFirst("Attacks") == std::vector<float>{0.0F, 0.0F});
+}

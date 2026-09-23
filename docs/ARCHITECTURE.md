@@ -633,6 +633,8 @@ agree about letterboxing and high-DPI coordinates.
 ### HUD and debug overlay
 
 ImGui is used for the health HUD, inventory, completion message, and opt-in debug tools.
+`drawInterface` in `app/ui/interface_ui` is the short list of what the player sees over
+the scene and the order it is drawn in, as `world_simulation` is for the systems.
 F1 toggles the debug overlay. The overlay can show actor details, sprite and collision
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing, and
 navigation paths. Debug data is built separately from its ImGui presentation so it can

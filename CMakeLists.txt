@@ -167,6 +167,7 @@ add_executable(
     app/ui/exit_hint_ui.cpp
     app/ui/health_hud_ui.cpp
     app/ui/hud_draw.cpp
+    app/ui/interface_ui.cpp
     app/ui/inventory_layout.cpp
     app/ui/inventory_ui.cpp
 )

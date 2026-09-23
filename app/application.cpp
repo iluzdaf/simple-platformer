@@ -25,10 +25,8 @@
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/sprite_renderer.hpp"
-#include "ui/completion_ui.hpp"
-#include "ui/exit_hint_ui.hpp"
 #include "ui/health_hud_ui.hpp"
-#include "ui/inventory_ui.hpp"
+#include "ui/interface_ui.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/render/render_scene.hpp"
@@ -329,23 +327,11 @@ namespace simple_platformer
             profile.renderSeconds = renderWatch.elapsedSeconds();
 
             const Stopwatch interfaceWatch;
-            if (windowViewport.has_value())
+            const std::optional<std::size_t> slotToUse =
+                drawInterface(game, atlasTexture, windowViewport, context.inventoryOpen);
+            if (slotToUse.has_value())
             {
-                drawHealthHud(game.playerHealth(), atlasTexture, *windowViewport);
-                if (!game.complete())
-                {
-                    drawLockedExitHint(game, atlasTexture, *windowViewport);
-                }
-                drawLevelCompletion(game, *windowViewport);
-            }
-            if (context.inventoryOpen && !game.complete() && windowViewport.has_value())
-            {
-                const std::optional<std::size_t> slotToUse =
-                    drawInventory(game, atlasTexture, *windowViewport);
-                if (slotToUse.has_value())
-                {
-                    game.useInventoryItem(*slotToUse);
-                }
+                game.useInventoryItem(*slotToUse);
             }
             profile.interfaceSeconds = interfaceWatch.elapsedSeconds();
             frameHistory.push(profile);

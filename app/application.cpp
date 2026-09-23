@@ -155,6 +155,31 @@ namespace simple_platformer
             auto* context = static_cast<ApplicationContext*>(glfwGetWindowUserPointer(window));
             context->input.setButton(InputButton::PrimaryAttack, action == GLFW_PRESS);
         }
+
+        // What the player asks of one simulation step: the buttons pressed since the last
+        // one, aimed at the cursor while the game has it. Without the cursor the last aim
+        // holds and no shot fires.
+        InputIntentions playerIntentions(
+            ApplicationContext& context,
+            const Game& game,
+            const std::optional<glm::vec2>& gameCursor)
+        {
+            InputIntentions intentions = context.input.consumeIntentions();
+            if (gameCursor.has_value())
+            {
+                const glm::vec2 aimDirection = game.playerAimDirection(*gameCursor);
+                if (aimDirection != glm::vec2{0.0F, 0.0F})
+                {
+                    context.aimDirection = aimDirection;
+                }
+            }
+            else
+            {
+                intentions.primaryAttackPressed = false;
+            }
+            intentions.aimDirection = context.aimDirection;
+            return intentions;
+        }
     }
 
     int runApplication()
@@ -214,11 +239,14 @@ namespace simple_platformer
             {
                 game.useInventoryItem(*interfaceRequests.useInventorySlot);
             }
-            const std::optional<glm::vec2> internalCursor =
+            // The game has the cursor while it is over the image and no UI wants the mouse.
+            std::optional<glm::vec2> gameCursor =
                 windowToInternal(reading.cursor, reading.size, reading.framebufferSize);
-            const bool mouseAvailable = internalCursor.has_value() &&
-                                        !ImGui::GetIO().WantCaptureMouse && !context.inventoryOpen;
-            if (!mouseAvailable)
+            if (ImGui::GetIO().WantCaptureMouse || context.inventoryOpen)
+            {
+                gameCursor.reset();
+            }
+            if (!gameCursor.has_value())
             {
                 context.input.clearButton(InputButton::PrimaryAttack);
             }
@@ -237,27 +265,13 @@ namespace simple_platformer
                 {
                     context.input = {};
                 }
+                const auto step = [&](float deltaTime)
+                {
+                    const InputIntentions intentions = playerIntentions(context, game, gameCursor);
+                    game.update(intentions, deltaTime, &profile);
+                };
                 const Stopwatch simulationWatch;
-                const FixedStepResult stepped = fixedStep.advance(
-                    profile.frameSeconds,
-                    [&](float deltaTime)
-                    {
-                        InputIntentions intentions = context.input.consumeIntentions();
-                        if (mouseAvailable && internalCursor.has_value())
-                        {
-                            const glm::vec2 aimDirection = game.playerAimDirection(*internalCursor);
-                            if (aimDirection != glm::vec2{0.0F, 0.0F})
-                            {
-                                context.aimDirection = aimDirection;
-                            }
-                        }
-                        else
-                        {
-                            intentions.primaryAttackPressed = false;
-                        }
-                        intentions.aimDirection = context.aimDirection;
-                        game.update(intentions, deltaTime, &profile);
-                    });
+                const FixedStepResult stepped = fixedStep.advance(profile.frameSeconds, step);
                 profile.simulationTicks = static_cast<int>(stepped.updates);
                 profile.simulationSeconds = simulationWatch.elapsedSeconds();
             }

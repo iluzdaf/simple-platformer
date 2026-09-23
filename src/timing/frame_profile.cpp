@@ -1,7 +1,6 @@
 #include "simple_platformer/timing/frame_profile.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
@@ -10,6 +9,7 @@
 #include <vector>
 
 #include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/timing/stopwatch.hpp"
 
 namespace simple_platformer
 {
@@ -82,10 +82,9 @@ namespace simple_platformer
         // Registered before it runs so it lists ahead of the phases timed inside it.
         addPhaseSeconds(*profile, category, name, 0.0F);
         profile->nestedSecondsOfOpenPhases.push_back(0.0F);
-        const auto start = std::chrono::steady_clock::now();
+        const Stopwatch stopwatch;
         phase();
-        const float elapsed =
-            std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count();
+        const float elapsed = stopwatch.elapsedSeconds();
         const float nested = profile->nestedSecondsOfOpenPhases.back();
         profile->nestedSecondsOfOpenPhases.pop_back();
         addPhaseSeconds(*profile, category, name, std::max(0.0F, elapsed - nested));

@@ -588,6 +588,26 @@ namespace simple_platformer
             latest.sceneSeconds * 1000.0F,
             latest.renderSeconds * 1000.0F,
             latest.interfaceSeconds * 1000.0F);
+
+        if (!latest.phases.empty())
+        {
+            ImGui::Separator();
+            ImGui::Text(
+                "simulation phases, costliest first   path searches %d", latest.pathSearches);
+            std::vector<PhaseTiming> phases = latest.phases;
+            std::sort(
+                phases.begin(),
+                phases.end(),
+                [](const PhaseTiming& left, const PhaseTiming& right)
+                { return left.seconds > right.seconds; });
+            const float total = std::max(latest.simulationSeconds, 0.000001F);
+            for (const PhaseTiming& phase : phases)
+            {
+                ImGui::Text("%-18s %6.2f ms", phase.name, phase.seconds * 1000.0F);
+                ImGui::SameLine();
+                ImGui::ProgressBar(phase.seconds / total, {PlotWidth * 0.5F, 0.0F}, "");
+            }
+        }
         ImGui::End();
     }
 }

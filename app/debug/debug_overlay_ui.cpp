@@ -4,6 +4,7 @@
 #include "graphics/display_viewport.hpp"
 
 #include <algorithm>
+#include <cfloat>
 #include <cstddef>
 #include <cstdio>
 #include <optional>
@@ -535,7 +536,7 @@ namespace simple_platformer
         }
 
         constexpr float TargetFrameSeconds = static_cast<float>(FixedDeltaSeconds);
-        constexpr float PlotWidth = 240.0F;
+        constexpr float PanelWidth = 320.0F;
         constexpr float PlotHeight = 60.0F;
         constexpr float PanelMargin = 8.0F;
         constexpr float PanelTop = 48.0F;
@@ -543,6 +544,8 @@ namespace simple_platformer
         ImGui::SetNextWindowPos(
             {mainViewport->WorkPos.x + PanelMargin, mainViewport->WorkPos.y + PanelTop},
             ImGuiCond_Always);
+        // A fixed width keeps the window still while the numbers in it change.
+        ImGui::SetNextWindowSizeConstraints({PanelWidth, 0.0F}, {PanelWidth, FLT_MAX});
         ImGui::SetNextWindowBgAlpha(0.6F);
         if (!ImGui::Begin(
                 "Frame##profile",
@@ -560,6 +563,7 @@ namespace simple_platformer
         const FrameProfile& worst = history.worst();
         // The plot always shows the 60 Hz budget line, and stretches when a frame passes it.
         const float plotTop = std::max(TargetFrameSeconds * 2.0F, worst.frameSeconds * 1.1F);
+        const float plotWidth = ImGui::GetContentRegionAvail().x;
         ImGui::PlotLines(
             "##frame",
             seconds.data(),
@@ -568,7 +572,7 @@ namespace simple_platformer
             nullptr,
             0.0F,
             plotTop,
-            {PlotWidth, PlotHeight});
+            {plotWidth, PlotHeight});
         const ImVec2 plotMinimum = ImGui::GetItemRectMin();
         const ImVec2 plotMaximum = ImGui::GetItemRectMax();
         const float budgetY =
@@ -577,17 +581,38 @@ namespace simple_platformer
             {plotMinimum.x, budgetY}, {plotMaximum.x, budgetY}, CameraDeadZoneColour, 1.0F);
 
         ImGui::Text(
-            "frame %.2f ms   avg %.2f   worst %.2f",
+            "frame %6.2f ms   avg %6.2f   worst %6.2f   budget %.2f",
             latest.frameSeconds * 1000.0F,
             history.averageFrameSeconds() * 1000.0F,
-            worst.frameSeconds * 1000.0F);
+            worst.frameSeconds * 1000.0F,
+            TargetFrameSeconds * 1000.0F);
         ImGui::Text(
-            "ticks %d   simulation %.2f ms   scene %.2f   render %.2f   ui %.2f",
-            latest.simulationTicks,
-            latest.simulationSeconds * 1000.0F,
+            "scene %5.2f ms   render %5.2f   ui %5.2f",
             latest.sceneSeconds * 1000.0F,
             latest.renderSeconds * 1000.0F,
             latest.interfaceSeconds * 1000.0F);
+
+        // Frames faster than the fixed step run no simulation; show the last one that did.
+        const FrameProfile* simulated = history.latestSimulated();
+        if (simulated == nullptr)
+        {
+            ImGui::End();
+            return;
+        }
+        ImGui::Separator();
+        ImGui::Text(
+            "last simulated frame: %d tick%s in %5.2f ms   path searches %d",
+            simulated->simulationTicks,
+            simulated->simulationTicks == 1 ? "" : "s",
+            simulated->simulationSeconds * 1000.0F,
+            simulated->pathSearches);
+        const float total = std::max(simulated->simulationSeconds, 0.000001F);
+        for (const PhaseTiming& phase : simulated->phases)
+        {
+            ImGui::Text("%-18s %5.2f ms", phase.name, phase.seconds * 1000.0F);
+            ImGui::SameLine();
+            ImGui::ProgressBar(phase.seconds / total, {-FLT_MIN, 0.0F}, "");
+        }
         ImGui::End();
     }
 }

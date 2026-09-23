@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "simple_platformer/timing/frame_profile.hpp"
@@ -73,4 +74,36 @@ TEST_CASE("A frame history rejects impossible measurements", "[timing][profile]"
     FrameProfile negativeTicks;
     negativeTicks.simulationTicks = -1;
     REQUIRE_THROWS_AS(history.push(negativeTicks), std::invalid_argument);
+}
+
+TEST_CASE("Adding to a phase sums repeats and keeps first-seen order", "[timing][profile]")
+{
+    FrameProfile profile;
+    simple_platformer::addPhaseSeconds(profile, "Senses", 0.001F);
+    simple_platformer::addPhaseSeconds(profile, "Movement", 0.002F);
+    simple_platformer::addPhaseSeconds(profile, "Senses", 0.003F);
+
+    REQUIRE(profile.phases.size() == 2);
+    REQUIRE(std::string(profile.phases[0].name) == "Senses");
+    REQUIRE_NEAR(profile.phases[0].seconds, 0.004F);
+    REQUIRE(std::string(profile.phases[1].name) == "Movement");
+    REQUIRE_THROWS_AS(
+        simple_platformer::addPhaseSeconds(profile, "Senses", -0.001F), std::invalid_argument);
+}
+
+TEST_CASE("The latest simulated frame skips frames that ran no step", "[timing][profile]")
+{
+    FrameHistory history(4);
+    REQUIRE(history.latestSimulated() == nullptr);
+
+    FrameProfile stepped = frameTaking(0.016F);
+    stepped.simulationTicks = 1;
+    history.push(stepped);
+    history.push(frameTaking(0.007F));
+    history.push(frameTaking(0.007F));
+
+    REQUIRE(history.latestSimulated() != nullptr);
+    REQUIRE(history.latestSimulated()->simulationTicks == 1);
+    REQUIRE_NEAR(history.latestSimulated()->frameSeconds, 0.016F);
+    REQUIRE_NEAR(history.latest().frameSeconds, 0.007F);
 }

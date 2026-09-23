@@ -65,7 +65,7 @@ namespace simple_platformer
             makeCameraController(level.map, playerActor->body.bounds, {80.0F, 45.0F});
     }
 
-    void Game::update(const InputIntentions& intentions, float deltaTime)
+    void Game::update(const InputIntentions& intentions, float deltaTime, FrameProfile* profile)
     {
         if (gameComplete)
         {
@@ -78,7 +78,7 @@ namespace simple_platformer
         }
 
         player->intentions = intentions;
-        updateWorldSimulation(level.map, level.world, deltaTime);
+        updateWorldSimulation(level.map, level.world, deltaTime, profile);
 
         if (level.world.levelComplete())
         {

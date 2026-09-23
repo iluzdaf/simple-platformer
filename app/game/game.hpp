@@ -17,6 +17,7 @@ namespace simple_platformer
     // How long the screen keeps hinting after the player last stood in a locked exit.
     constexpr float LockedExitHintSeconds = 1.0F;
 
+    struct FrameProfile;
     struct Health;
     struct InputIntentions;
     struct RenderScene;
@@ -28,7 +29,11 @@ namespace simple_platformer
     public:
         Game(int textureId, LevelCatalog catalog);
 
-        void update(const InputIntentions& intentions, float deltaTime);
+        // With a profile, the simulation charges each of its phases to it.
+        void update(
+            const InputIntentions& intentions,
+            float deltaTime,
+            FrameProfile* profile = nullptr);
         glm::vec2 playerAimDirection(glm::vec2 screenPosition) const;
         RenderScene buildScene() const;
         // The atlas width comes from whoever loaded the texture; the game knows only its id.

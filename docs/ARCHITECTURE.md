@@ -639,8 +639,7 @@ The overlay also shows a frame panel. The application times each frame with the 
 clock, how many fixed steps it ran, and how long simulation, scene building, rendering,
 and the interface took, and records them in a `FrameHistory` from `timing/frame_profile`.
 The panel plots the recent frame times against the 60 Hz budget and prints the latest
-breakdown, the average, and the worst frame. The engine never reads a clock: the history
-is plain data the application fills, and tests build it by hand. Timings are only
+breakdown, the average, and the worst frame. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a short name for the step, and the NPC system counts the navigation searches it ran; the panel lists the phases costliest first. That is the one place the engine reads a clock, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
 meaningful from a release build.
 
 The inventory UI is an example presentation, not an engine rule. It derives its rows

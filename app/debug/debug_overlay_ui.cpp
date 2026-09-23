@@ -549,8 +549,10 @@ namespace simple_platformer
         }
 
         constexpr float TargetFrameMilliseconds = static_cast<float>(FixedDeltaSeconds) * 1000.0F;
-        constexpr float PanelWidth = 360.0F;
+        constexpr float PanelWidth = 420.0F;
         constexpr float PlotHeight = 110.0F;
+        // Tall enough for one legend row per simulation phase beside the stack.
+        constexpr float PhasePlotHeight = 200.0F;
         constexpr float PanelMargin = 8.0F;
         constexpr float PanelTop = 48.0F;
         const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
@@ -579,7 +581,7 @@ namespace simple_platformer
             toMilliseconds(history.simulationSecondsOldestFirst());
         const int frameCount = static_cast<int>(frameMilliseconds.size());
         const auto frameAxis = static_cast<double>(history.capacity());
-        // Both plots keep the 60 Hz budget in view and stretch when a frame passes it.
+        // The frame plot keeps the 60 Hz budget in view and stretches when a frame passes it.
         const double frameTop = std::max(
             static_cast<double>(TargetFrameMilliseconds) * 2.0,
             static_cast<double>(worst.frameSeconds) * 1000.0 * 1.1);
@@ -627,16 +629,18 @@ namespace simple_platformer
             simulated->simulationSeconds * 1000.0F,
             simulated->pathSearches);
 
-        double stackTop = static_cast<double>(TargetFrameMilliseconds);
+        // The stack answers where the simulation's own time went, so it scales to the
+        // slowest simulated frame rather than the frame budget, which would flatten it.
+        double stackTop = 0.0;
         for (const float milliseconds : simulationMilliseconds)
         {
             stackTop = std::max(stackTop, static_cast<double>(milliseconds) * 1.1);
         }
-        if (ImPlot::BeginPlot("##phases", {-1.0F, PlotHeight}, PlotFlags))
+        if (stackTop > 0.0 && ImPlot::BeginPlot("##phases", {-1.0F, PhasePlotHeight}, PlotFlags))
         {
             ImPlot::SetupAxes(nullptr, "ms", ImPlotAxisFlags_NoTickLabels, 0);
             ImPlot::SetupAxesLimits(0.0, frameAxis, 0.0, stackTop, ImPlotCond_Always);
-            ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Outside);
+            ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
             std::vector<float> frames(frameMilliseconds.size());
             for (std::size_t index = 0; index < frames.size(); ++index)
             {

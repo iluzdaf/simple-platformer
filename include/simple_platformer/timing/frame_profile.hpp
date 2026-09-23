@@ -46,6 +46,9 @@ namespace simple_platformer
         // Both require at least one frame.
         const FrameProfile& latest() const;
         const FrameProfile& worst() const;
+        // The newest frame that ran a simulation step, or nullptr. On a display faster than
+        // the fixed step, many frames run none and have no breakdown to show.
+        const FrameProfile* latestSimulated() const;
         float averageFrameSeconds() const;
         std::vector<float> frameSecondsOldestFirst() const;
 

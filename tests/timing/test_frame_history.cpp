@@ -90,3 +90,20 @@ TEST_CASE("Adding to a phase sums repeats and keeps first-seen order", "[timing]
     REQUIRE_THROWS_AS(
         simple_platformer::addPhaseSeconds(profile, "Senses", -0.001F), std::invalid_argument);
 }
+
+TEST_CASE("The latest simulated frame skips frames that ran no step", "[timing][profile]")
+{
+    FrameHistory history(4);
+    REQUIRE(history.latestSimulated() == nullptr);
+
+    FrameProfile stepped = frameTaking(0.016F);
+    stepped.simulationTicks = 1;
+    history.push(stepped);
+    history.push(frameTaking(0.007F));
+    history.push(frameTaking(0.007F));
+
+    REQUIRE(history.latestSimulated() != nullptr);
+    REQUIRE(history.latestSimulated()->simulationTicks == 1);
+    REQUIRE_NEAR(history.latestSimulated()->frameSeconds, 0.016F);
+    REQUIRE_NEAR(history.latest().frameSeconds, 0.007F);
+}

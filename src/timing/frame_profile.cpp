@@ -69,6 +69,19 @@ namespace simple_platformer
         return frames[(next + frames.size() - 1) % frames.size()];
     }
 
+    const FrameProfile* FrameHistory::latestSimulated() const
+    {
+        for (std::size_t back = 1; back <= count; ++back)
+        {
+            const FrameProfile& frame = frames[(next + frames.size() - back) % frames.size()];
+            if (frame.simulationTicks > 0)
+            {
+                return &frame;
+            }
+        }
+        return nullptr;
+    }
+
     const FrameProfile& FrameHistory::worst() const
     {
         if (count == 0)

@@ -98,15 +98,16 @@ namespace simple_platformer
             return;
         }
         LevelExit& exit = levelExit.value();
-        const float now = world.simulationTimeSeconds();
-        if (exit.openedTimeSeconds.has_value())
+        const std::optional<float> sinceOpened = world.secondsSince(exit.openedTimeSeconds);
+        if (sinceOpened.has_value())
         {
-            if (now - *exit.openedTimeSeconds >= ExitOpenSeconds)
+            if (*sinceOpened >= ExitOpenSeconds)
             {
                 world.completeLevel();
             }
             return;
         }
+        const float now = world.simulationTimeSeconds();
         if (!overlaps(player->body.bounds, exit.bounds))
         {
             return;

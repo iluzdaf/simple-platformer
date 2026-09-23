@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <stdexcept>
 
 #include <glm/geometric.hpp>
@@ -34,15 +35,15 @@ namespace simple_platformer
 
         // Senses run before attacks in an update, so a shot fired since senses last ran is
         // stamped one step ago. A tenth of a step of slack covers the clock's rounding.
-        bool firedSinceLastSensing(const Actor& actor, float now, float deltaTime)
+        bool firedSinceLastSensing(const World& world, const Actor& actor, float deltaTime)
         {
-            if (!actor.rangedWeapon.has_value() ||
-                !actor.rangedWeapon->lastFiredTimeSeconds.has_value())
+            if (!actor.rangedWeapon.has_value())
             {
                 return false;
             }
-            const float age = now - *actor.rangedWeapon->lastFiredTimeSeconds;
-            return age >= 0.0F && age <= deltaTime * 1.1F;
+            const std::optional<float> sinceShot =
+                world.secondsSince(actor.rangedWeapon->lastFiredTimeSeconds);
+            return sinceShot.has_value() && *sinceShot <= deltaTime * 1.1F;
         }
 
         void rememberTarget(NpcBrain& brain, const Actor& target, const NpcSenses& senses)
@@ -120,8 +121,7 @@ namespace simple_platformer
             }
             // A shot is heard through anything within notice distance, and remembers where
             // the player fired from without making them visible.
-            if (sensesPlayer &&
-                firedSinceLastSensing(*player, world.simulationTimeSeconds(), deltaTime) &&
+            if (sensesPlayer && firedSinceLastSensing(world, *player, deltaTime) &&
                 withinNoticeDistance(actor.body.bounds, player->body.bounds, *actor.senses))
             {
                 rememberTarget(brain, *player, *actor.senses);

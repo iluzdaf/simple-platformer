@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <limits>
+#include <optional>
 #include <stdexcept>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -73,6 +74,20 @@ TEST_CASE("World owns a validated simulation clock", "[world][time]")
     REQUIRE_THROWS_AS(
         overflowingWorld.advanceSimulationTime(std::numeric_limits<float>::max()),
         std::overflow_error);
+}
+
+TEST_CASE("World measures how long ago a stamp on its clock was", "[world][time]")
+{
+    simple_platformer::World world;
+    REQUIRE_FALSE(world.secondsSince(std::nullopt).has_value());
+    REQUIRE(world.secondsSince(0.0F) == 0.0F);
+
+    world.advanceSimulationTime(0.5F);
+    REQUIRE(world.secondsSince(0.25F) == 0.25F);
+    REQUIRE_FALSE(world.secondsSince(std::nullopt).has_value());
+    // A stamp cannot come from before the world began or from its future.
+    REQUIRE_THROWS_AS(world.secondsSince(-0.1F), std::invalid_argument);
+    REQUIRE_THROWS_AS(world.secondsSince(0.75F), std::invalid_argument);
 }
 
 TEST_CASE("World rejects invalid actor composition", "[world][actor]")

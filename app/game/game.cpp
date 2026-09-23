@@ -211,14 +211,13 @@ namespace simple_platformer
     std::optional<Sprite> Game::lockedExitHintIcon() const
     {
         const auto& levelExit = level.world.exit();
-        if (!levelExit.has_value() || !levelExit->requirement.has_value() ||
-            !levelExit->lastLockedTouchTimeSeconds.has_value())
+        if (!levelExit.has_value() || !levelExit->requirement.has_value())
         {
             return std::nullopt;
         }
-        const float sinceTouch =
-            level.world.simulationTimeSeconds() - *levelExit->lastLockedTouchTimeSeconds;
-        if (sinceTouch > LockedExitHintSeconds)
+        const std::optional<float> sinceTouch =
+            level.world.secondsSince(levelExit->lastLockedTouchTimeSeconds);
+        if (!sinceTouch.has_value() || *sinceTouch > LockedExitHintSeconds)
         {
             return std::nullopt;
         }

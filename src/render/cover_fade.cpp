@@ -18,20 +18,20 @@ namespace simple_platformer
 {
     namespace
     {
-        bool firedWithinRevealWindow(const Actor& player, float now)
+        bool firedWithinRevealWindow(const World& world, const Actor& player)
         {
-            if (!player.rangedWeapon.has_value() ||
-                !player.rangedWeapon->lastFiredTimeSeconds.has_value())
+            if (!player.rangedWeapon.has_value())
             {
                 return false;
             }
-            return now - *player.rangedWeapon->lastFiredTimeSeconds < ShotRevealSeconds;
+            const std::optional<float> sinceShot =
+                world.secondsSince(player.rangedWeapon->lastFiredTimeSeconds);
+            return sinceShot.has_value() && *sinceShot < ShotRevealSeconds;
         }
 
         float playerTarget(const TileMap& map, const World& world, const Actor& player)
         {
-            if (playerSeenByAnyNpc(world) ||
-                firedWithinRevealWindow(player, world.simulationTimeSeconds()))
+            if (playerSeenByAnyNpc(world) || firedWithinRevealWindow(world, player))
             {
                 return 1.0F;
             }

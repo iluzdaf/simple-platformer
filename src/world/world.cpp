@@ -89,6 +89,16 @@ namespace simple_platformer
         return elapsedSimulationTimeSeconds;
     }
 
+    std::optional<float> World::secondsSince(const std::optional<float>& timeSeconds) const
+    {
+        requireWithinSimulationTime(timeSeconds, "Stamp");
+        if (!timeSeconds.has_value())
+        {
+            return std::nullopt;
+        }
+        return elapsedSimulationTimeSeconds - *timeSeconds;
+    }
+
     void World::advanceSimulationTime(float deltaTime)
     {
         requireSeconds(deltaTime, "Simulation time step");

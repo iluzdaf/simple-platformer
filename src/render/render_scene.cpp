@@ -43,11 +43,12 @@ namespace simple_platformer
             return std::clamp(actor.deathTimeRemaining / DeathFadeSeconds, 0.0F, 1.0F);
         }
 
-        float actorWhiteFlashAmount(const Actor& actor, float simulationTimeSeconds)
+        float actorWhiteFlashAmount(const World& world, const Actor& actor)
         {
+            const std::optional<float> sinceDamage =
+                world.secondsSince(actor.lastDamageTimeSeconds);
             const bool wasRecentlyDamaged =
-                actor.lastDamageTimeSeconds.has_value() &&
-                simulationTimeSeconds - actor.lastDamageTimeSeconds.value() < HitFlashSeconds;
+                sinceDamage.has_value() && *sinceDamage < HitFlashSeconds;
             return wasRecentlyDamaged ? HitFlashAmount : 0.0F;
         }
 
@@ -55,12 +56,16 @@ namespace simple_platformer
         float exitOpenProgress(const World& world)
         {
             const auto& exit = world.exit();
-            if (!exit.has_value() || !exit->openedTimeSeconds.has_value())
+            if (!exit.has_value())
             {
                 return 0.0F;
             }
-            const float sinceOpened = world.simulationTimeSeconds() - *exit->openedTimeSeconds;
-            return std::clamp(sinceOpened / ExitOpenSeconds, 0.0F, 1.0F);
+            const std::optional<float> sinceOpened = world.secondsSince(exit->openedTimeSeconds);
+            if (!sinceOpened.has_value())
+            {
+                return 0.0F;
+            }
+            return std::clamp(*sinceOpened / ExitOpenSeconds, 0.0F, 1.0F);
         }
 
         float pickupVerticalOffset(float animationTime)
@@ -212,7 +217,7 @@ namespace simple_platformer
                      actor.facing == Facing::Left,
                      0.0F,
                      actorOpacity(actor) * (isPlayer ? playerOpacity : actorVisibility),
-                     actorWhiteFlashAmount(actor, world.simulationTimeSeconds()),
+                     actorWhiteFlashAmount(world, actor),
                      isPlayer ? (1.0F - actorVisibility) * PlayerConcealedShade : 0.0F});
             }
         }

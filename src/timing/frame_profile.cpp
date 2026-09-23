@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -11,18 +12,27 @@
 
 namespace simple_platformer
 {
-    void addPhaseSeconds(FrameProfile& profile, const char* name, float seconds)
+    void addPhaseSeconds(
+        FrameProfile& profile,
+        const char* category,
+        const char* name,
+        float seconds)
     {
         requireSeconds(seconds, name);
         for (PhaseTiming& phase : profile.phases)
         {
             if (std::string_view(phase.name) == name)
             {
+                if (std::string_view(phase.category) != category)
+                {
+                    throw std::invalid_argument(
+                        std::string("Phase ") + name + " is already charged to " + phase.category);
+                }
                 phase.seconds += seconds;
                 return;
             }
         }
-        profile.phases.push_back({name, seconds});
+        profile.phases.push_back({category, name, seconds});
     }
 
     FrameHistory::FrameHistory(std::size_t capacity)
@@ -114,6 +124,26 @@ namespace simple_platformer
         return total / static_cast<float>(count);
     }
 
+    int FrameHistory::totalSimulationTicks() const
+    {
+        int total = 0;
+        for (std::size_t index = 0; index < count; ++index)
+        {
+            total += frames[index].simulationTicks;
+        }
+        return total;
+    }
+
+    int FrameHistory::totalPathSearches() const
+    {
+        int total = 0;
+        for (std::size_t index = 0; index < count; ++index)
+        {
+            total += frames[index].pathSearches;
+        }
+        return total;
+    }
+
     namespace
     {
         std::vector<float> oldestFirst(
@@ -161,6 +191,26 @@ namespace simple_platformer
                     }
                 }
                 return 0.0F;
+            });
+    }
+
+    std::vector<float> FrameHistory::categorySecondsOldestFirst(const char* category) const
+    {
+        return oldestFirst(
+            frames,
+            next,
+            count,
+            [category](const FrameProfile& frame)
+            {
+                float total = 0.0F;
+                for (const PhaseTiming& phase : frame.phases)
+                {
+                    if (std::string_view(phase.category) == category)
+                    {
+                        total += phase.seconds;
+                    }
+                }
+                return total;
             });
     }
 }

@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <glm/geometric.hpp>
@@ -533,22 +534,23 @@ TEST_CASE(
 
     simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds, &profile);
 
-    const std::vector<const char*> expected{
-        "NPC senses",
-        "NPC behaviour",
-        "Actor movement",
-        "Pickup movement",
-        "Attacks",
-        "Projectiles",
-        "Projectile bursts",
-        "Life states",
-        "Pickups",
-        "World requests",
-        "Level exit"};
+    const std::vector<std::pair<const char*, const char*>> expected{
+        {"NPC", "NPC senses"},
+        {"NPC", "NPC behaviour"},
+        {"Movement", "Actor movement"},
+        {"Movement", "Pickup movement"},
+        {"Combat", "Attacks"},
+        {"Combat", "Projectiles"},
+        {"Combat", "Projectile bursts"},
+        {"World", "Life states"},
+        {"World", "Pickups"},
+        {"World", "World requests"},
+        {"World", "Level exit"}};
     REQUIRE(profile.phases.size() == expected.size());
     for (std::size_t index = 0; index < expected.size(); ++index)
     {
-        REQUIRE(std::string(profile.phases[index].name) == expected[index]);
+        REQUIRE(std::string(profile.phases[index].category) == expected[index].first);
+        REQUIRE(std::string(profile.phases[index].name) == expected[index].second);
         REQUIRE(profile.phases[index].seconds >= 0.0F);
     }
 

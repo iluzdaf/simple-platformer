@@ -5,14 +5,17 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <numeric>
 #include <cstddef>
 #include <cstdio>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <imgui.h>
 #include <implot.h>
+#include <implot_internal.h>
 
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
@@ -539,69 +542,143 @@ namespace simple_platformer
             }
             return seconds;
         }
+
+        // The categories of a frame's phases, in the order the simulation first charged them.
+        std::vector<const char*> categoriesOf(const FrameProfile& frame)
+        {
+            std::vector<const char*> categories;
+            for (const PhaseTiming& phase : frame.phases)
+            {
+                const bool seen = std::any_of(
+                    categories.begin(),
+                    categories.end(),
+                    [&](const char* category)
+                    { return std::string_view(category) == phase.category; });
+                if (!seen)
+                {
+                    categories.push_back(phase.category);
+                }
+            }
+            return categories;
+        }
     }
 
-    void drawFrameProfile(const FrameHistory& history)
+    bool drawFrameProfile(const FrameHistory& history)
     {
         if (history.size() == 0)
         {
-            return;
+            return false;
         }
 
         constexpr float TargetFrameMilliseconds = static_cast<float>(FixedDeltaSeconds) * 1000.0F;
         constexpr float PanelWidth = 420.0F;
-        constexpr float PlotHeight = 110.0F;
-        // Tall enough for one legend row per simulation phase beside the stack.
-        constexpr float PhasePlotHeight = 200.0F;
-        constexpr float PanelMargin = 8.0F;
-        constexpr float PanelTop = 48.0F;
+        // Tall enough for the legend beside it: the frame line, the budget, and one row per
+        // simulation category.
+        constexpr float PlotHeight = 160.0F;
+        // The stack's scale is a display choice, not a budget: an ordinary frame of this
+        // project simulates in a fraction of it, and a slow frame goes off the top rather
+        // than rescaling the axis under the reader. Raise it if the simulation grows.
+        constexpr float SimulationAxisMilliseconds = 0.06F;
         const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(
-            {mainViewport->WorkPos.x + PanelMargin, mainViewport->WorkPos.y + PanelTop},
-            ImGuiCond_Always);
-        // A fixed width keeps the window still while the numbers in it change.
+        ImGui::SetNextWindowPos(mainViewport->WorkPos, ImGuiCond_Always);
+        // A fixed width keeps the window still while the numbers in it change; each line
+        // below is written to fit it, and no scrollbar appears if one does not.
         ImGui::SetNextWindowSizeConstraints({PanelWidth, 0.0F}, {PanelWidth, FLT_MAX});
-        ImGui::SetNextWindowBgAlpha(0.6F);
         if (!ImGui::Begin(
                 "Frame##profile",
                 nullptr,
-                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-                    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
-                    ImGuiWindowFlags_NoNav))
+                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground |
+                    ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove |
+                    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav |
+                    ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
         {
             ImGui::End();
-            return;
+            return false;
         }
 
         const FrameProfile& latest = history.latest();
         const FrameProfile& worst = history.worst();
+        // Frames faster than the fixed step run no simulation; the categories and phases
+        // come from the last frame that did, and the stack shows them over the whole history.
+        const FrameProfile* simulated = history.latestSimulated();
         const std::vector<float> frameMilliseconds =
             toMilliseconds(history.frameSecondsOldestFirst());
-        const std::vector<float> simulationMilliseconds =
-            toMilliseconds(history.simulationSecondsOldestFirst());
         const int frameCount = static_cast<int>(frameMilliseconds.size());
         const auto frameAxis = static_cast<double>(history.capacity());
-        // The frame plot keeps the 60 Hz budget in view and stretches when a frame passes it.
+        // The frame axis keeps the 60 Hz budget in view and stretches when a frame passes it.
         const double frameTop = std::max(
             static_cast<double>(TargetFrameMilliseconds) * 2.0,
             static_cast<double>(worst.frameSeconds) * 1000.0 * 1.1);
         constexpr ImPlotFlags PlotFlags = ImPlotFlags_NoInputs | ImPlotFlags_NoMenus |
                                           ImPlotFlags_NoTitle | ImPlotFlags_NoBoxSelect;
 
+        bool legendHovered = false;
         if (ImPlot::BeginPlot("##frame", {-1.0F, PlotHeight}, PlotFlags))
         {
-            ImPlot::SetupAxes(nullptr, "ms", ImPlotAxisFlags_NoTickLabels, 0);
-            ImPlot::SetupAxesLimits(0.0, frameAxis, 0.0, frameTop, ImPlotCond_Always);
-            ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Horizontal);
+            ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoTickLabels);
+            ImPlot::SetupAxis(ImAxis_Y1, "frame ms");
+            ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, frameAxis, ImPlotCond_Always);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, frameTop, ImPlotCond_Always);
+            if (simulated != nullptr)
+            {
+                // The simulation is a small fraction of a frame; on the frame axis its
+                // stack would be a hairline, so it has an axis of its own on the right.
+                ImPlot::SetupAxis(ImAxis_Y2, "simulation ms", ImPlotAxisFlags_Opposite);
+                ImPlot::SetupAxisLimits(
+                    ImAxis_Y2, 0.0, SimulationAxisMilliseconds, ImPlotCond_Always);
+            }
+            ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
+
             ImPlot::PlotInfLines(
                 "60 Hz budget",
                 &TargetFrameMilliseconds,
                 1,
                 ImPlotSpec(ImPlotProp_Flags, ImPlotInfLinesFlags_Horizontal));
             ImPlot::PlotLine("frame", frameMilliseconds.data(), frameCount);
-            ImPlot::PlotLine("simulation", simulationMilliseconds.data(), frameCount);
+            legendHovered = ImPlot::IsLegendEntryHovered("60 Hz budget") ||
+                            ImPlot::IsLegendEntryHovered("frame");
+
+            if (simulated != nullptr)
+            {
+                ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
+                std::vector<float> frames(frameMilliseconds.size());
+                for (std::size_t index = 0; index < frames.size(); ++index)
+                {
+                    frames[index] = static_cast<float>(index);
+                }
+                std::vector<float> lower(frames.size(), 0.0F);
+                for (const char* category : categoriesOf(*simulated))
+                {
+                    std::vector<float> upper =
+                        toMilliseconds(history.categorySecondsOldestFirst(category));
+                    for (std::size_t index = 0; index < upper.size(); ++index)
+                    {
+                        upper[index] += lower[index];
+                    }
+                    ImPlot::PlotShaded(
+                        category, frames.data(), lower.data(), upper.data(), frameCount);
+                    legendHovered = legendHovered || ImPlot::IsLegendEntryHovered(category);
+                    // ImPlot only stops drawing a category hidden from the legend. It has
+                    // to leave the stack too, so the bands above it drop to the remaining
+                    // cost instead of floating over a gap.
+                    const ImPlotItem* item = ImPlot::GetItem(category);
+                    if (item == nullptr || item->Show)
+                    {
+                        lower = upper;
+                    }
+                }
+            }
             ImPlot::EndPlot();
         }
+        // Measured by rectangle rather than asked of ImGui, which only learns what the
+        // pointer is over at the start of a frame and would drop a click made on arrival.
+        const ImVec2 panelTopLeft = ImGui::GetWindowPos();
+        const ImVec2 panelSize = ImGui::GetWindowSize();
+        const ImVec2 pointer = ImGui::GetIO().MousePos;
+        const bool overPanel =
+            pointer.x >= panelTopLeft.x && pointer.x < panelTopLeft.x + panelSize.x &&
+            pointer.y >= panelTopLeft.y && pointer.y < panelTopLeft.y + panelSize.y;
+        const bool playerKeepsMouse = overPanel && !legendHovered;
         ImGui::Text(
             "frame %6.2f ms   avg %6.2f   worst %6.2f",
             latest.frameSeconds * 1000.0F,
@@ -612,55 +689,59 @@ namespace simple_platformer
             latest.sceneSeconds * 1000.0F,
             latest.renderSeconds * 1000.0F,
             latest.interfaceSeconds * 1000.0F);
-
-        // Frames faster than the fixed step run no simulation; the phases come from the
-        // last one that did, and the stack shows every phase's share over the whole history.
-        const FrameProfile* simulated = history.latestSimulated();
         if (simulated == nullptr)
         {
             ImGui::End();
-            return;
+            return playerKeepsMouse;
         }
+
+        // The list averages each cost per simulation step over the whole history. One
+        // frame's numbers change sixty times a second and a phase of a few microseconds
+        // would flicker between 0.00 and 0.01; the stack above already shows the spikes.
+        const int ticks = history.totalSimulationTicks();
+        const auto millisecondsPerTick = [ticks](const std::vector<float>& secondsPerFrame)
+        {
+            const float total =
+                std::accumulate(secondsPerFrame.begin(), secondsPerFrame.end(), 0.0F);
+            return total * 1000.0F / static_cast<float>(ticks);
+        };
         ImGui::Separator();
         ImGui::Text(
-            "last simulated frame: %d tick%s in %5.2f ms   path searches %d",
-            simulated->simulationTicks,
-            simulated->simulationTicks == 1 ? "" : "s",
-            simulated->simulationSeconds * 1000.0F,
-            simulated->pathSearches);
-
-        // The stack answers where the simulation's own time went, so it scales to the
-        // slowest simulated frame rather than the frame budget, which would flatten it.
-        double stackTop = 0.0;
-        for (const float milliseconds : simulationMilliseconds)
+            "simulation %6.3f ms per tick over %d ticks",
+            millisecondsPerTick(history.simulationSecondsOldestFirst()),
+            ticks);
+        ImGui::Text("path searches %d", history.totalPathSearches());
+        // Each category with its total, then its phases, all in simulation order so rows
+        // never move while the numbers change.
+        if (ImGui::BeginTable("phases", 2, ImGuiTableFlags_SizingFixedFit))
         {
-            stackTop = std::max(stackTop, static_cast<double>(milliseconds) * 1.1);
-        }
-        if (stackTop > 0.0 && ImPlot::BeginPlot("##phases", {-1.0F, PhasePlotHeight}, PlotFlags))
-        {
-            ImPlot::SetupAxes(nullptr, "ms", ImPlotAxisFlags_NoTickLabels, 0);
-            ImPlot::SetupAxesLimits(0.0, frameAxis, 0.0, stackTop, ImPlotCond_Always);
-            ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
-            std::vector<float> frames(frameMilliseconds.size());
-            for (std::size_t index = 0; index < frames.size(); ++index)
+            ImGui::TableSetupColumn("phase", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("ms per tick");
+            for (const char* category : categoriesOf(*simulated))
             {
-                frames[index] = static_cast<float>(index);
-            }
-            std::vector<float> lower(frames.size(), 0.0F);
-            for (const PhaseTiming& phase : simulated->phases)
-            {
-                std::vector<float> upper =
-                    toMilliseconds(history.phaseSecondsOldestFirst(phase.name));
-                for (std::size_t index = 0; index < upper.size(); ++index)
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(category);
+                ImGui::TableNextColumn();
+                ImGui::Text(
+                    "%6.3f ms", millisecondsPerTick(history.categorySecondsOldestFirst(category)));
+                for (const PhaseTiming& phase : simulated->phases)
                 {
-                    upper[index] += lower[index];
+                    if (std::string_view(phase.category) != category)
+                    {
+                        continue;
+                    }
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::Text("   %s", phase.name);
+                    ImGui::TableNextColumn();
+                    ImGui::Text(
+                        "%6.3f", millisecondsPerTick(history.phaseSecondsOldestFirst(phase.name)));
                 }
-                ImPlot::PlotShaded(
-                    phase.name, frames.data(), lower.data(), upper.data(), frameCount);
-                lower = upper;
             }
-            ImPlot::EndPlot();
+            ImGui::EndTable();
         }
         ImGui::End();
+        return playerKeepsMouse;
     }
 }

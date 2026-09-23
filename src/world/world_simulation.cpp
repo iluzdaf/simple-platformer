@@ -21,7 +21,11 @@ namespace simple_platformer
     namespace
     {
         // Runs one phase, and charges its wall-clock time to the profile when there is one.
-        void timePhase(FrameProfile* profile, const char* name, const std::function<void()>& phase)
+        void timePhase(
+            FrameProfile* profile,
+            const char* category,
+            const char* name,
+            const std::function<void()>& phase)
         {
             if (profile == nullptr)
             {
@@ -32,6 +36,7 @@ namespace simple_platformer
             phase();
             addPhaseSeconds(
                 *profile,
+                category,
                 name,
                 std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count());
         }
@@ -45,22 +50,38 @@ namespace simple_platformer
         }
         world.advanceSimulationTime(deltaTime);
         holdPlayerAtOpeningExit(world);
-        timePhase(profile, "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
-        timePhase(
-            profile, "NPC behaviour", [&] { updateNpcBehaviour(map, world, deltaTime, profile); });
-        timePhase(profile, "Actor movement", [&] { updateActorMovement(map, world, deltaTime); });
-        timePhase(profile, "Pickup movement", [&] { updatePickupMovement(map, world, deltaTime); });
-        WorldRequests requests;
-        timePhase(profile, "Attacks", [&] { updateAttacks(world, requests, deltaTime); });
-        timePhase(
-            profile, "Projectiles", [&] { updateProjectiles(map, world, requests, deltaTime); });
+        timePhase(profile, "NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
         timePhase(
             profile,
+            "NPC",
+            "NPC behaviour",
+            [&] { updateNpcBehaviour(map, world, deltaTime, profile); });
+        timePhase(
+            profile,
+            "Movement",
+            "Actor movement",
+            [&] { updateActorMovement(map, world, deltaTime); });
+        timePhase(
+            profile,
+            "Movement",
+            "Pickup movement",
+            [&] { updatePickupMovement(map, world, deltaTime); });
+        WorldRequests requests;
+        timePhase(profile, "Combat", "Attacks", [&] { updateAttacks(world, requests, deltaTime); });
+        timePhase(
+            profile,
+            "Combat",
+            "Projectiles",
+            [&] { updateProjectiles(map, world, requests, deltaTime); });
+        timePhase(
+            profile,
+            "Combat",
             "Projectile bursts",
             [&] { updateProjectileBursts(world, requests, deltaTime); });
-        timePhase(profile, "Life states", [&] { updateLifeState(world, requests, deltaTime); });
-        timePhase(profile, "Pickups", [&] { updatePickups(world, requests); });
-        timePhase(profile, "World requests", [&] { applyWorldRequests(world, requests); });
-        timePhase(profile, "Level exit", [&] { updateLevelExit(world); });
+        timePhase(
+            profile, "World", "Life states", [&] { updateLifeState(world, requests, deltaTime); });
+        timePhase(profile, "World", "Pickups", [&] { updatePickups(world, requests); });
+        timePhase(profile, "World", "World requests", [&] { applyWorldRequests(world, requests); });
+        timePhase(profile, "World", "Level exit", [&] { updateLevelExit(world); });
     }
 }

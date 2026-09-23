@@ -230,6 +230,8 @@ namespace simple_platformer
         Game game(atlas, loadLevelCatalog("assets/levels.json"));
         FixedStep fixedStep;
         FrameHistory frameHistory;
+        // From the previous frame: the panel draws last, and it does not move.
+        bool playerKeepsMouseOverFramePanel = false;
         double previousTime = glfwGetTime();
 
         while (glfwWindowShouldClose(window.get()) == GLFW_FALSE)
@@ -281,8 +283,12 @@ namespace simple_platformer
                 {static_cast<float>(cursorX), static_cast<float>(cursorY)},
                 {windowWidth, windowHeight},
                 {framebufferWidth, framebufferHeight});
-            const bool mouseAvailable = internalCursor.has_value() &&
-                                        !ImGui::GetIO().WantCaptureMouse && !context.inventoryOpen;
+            // The frame panel lies over the play area and takes no click outside its legend,
+            // so the player keeps the mouse there even though ImGui counts it as hovered.
+            const bool interfaceWantsMouse =
+                ImGui::GetIO().WantCaptureMouse && !playerKeepsMouseOverFramePanel;
+            const bool mouseAvailable =
+                internalCursor.has_value() && !interfaceWantsMouse && !context.inventoryOpen;
             if (!mouseAvailable)
             {
                 context.input.clearButton(InputButton::PrimaryAttack);
@@ -358,11 +364,12 @@ namespace simple_platformer
             profile.interfaceSeconds = secondsSince(interfaceStart);
             frameHistory.push(profile);
 
+            playerKeepsMouseOverFramePanel = false;
             if (context.showDebugOverlay)
             {
                 drawDebugOverlay(
                     game.debugOverlay(static_cast<float>(atlasTexture.width)), windowViewport);
-                drawFrameProfile(frameHistory);
+                playerKeepsMouseOverFramePanel = drawFrameProfile(frameHistory);
             }
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

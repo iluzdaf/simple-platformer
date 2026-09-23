@@ -12,6 +12,25 @@
 
 namespace simple_platformer
 {
+    namespace
+    {
+        std::vector<float> oldestFirst(
+            const std::vector<FrameProfile>& frames,
+            std::size_t next,
+            std::size_t count,
+            const std::function<float(const FrameProfile&)>& measure)
+        {
+            std::vector<float> result;
+            result.reserve(count);
+            const std::size_t oldest = count < frames.size() ? 0 : next;
+            for (std::size_t offset = 0; offset < count; ++offset)
+            {
+                result.push_back(measure(frames[(oldest + offset) % frames.size()]));
+            }
+            return result;
+        }
+    }
+
     void addPhaseSeconds(
         FrameProfile& profile,
         const char* category,
@@ -142,25 +161,6 @@ namespace simple_platformer
             total += frames[index].pathSearches;
         }
         return total;
-    }
-
-    namespace
-    {
-        std::vector<float> oldestFirst(
-            const std::vector<FrameProfile>& frames,
-            std::size_t next,
-            std::size_t count,
-            const std::function<float(const FrameProfile&)>& measure)
-        {
-            std::vector<float> result;
-            result.reserve(count);
-            const std::size_t oldest = count < frames.size() ? 0 : next;
-            for (std::size_t offset = 0; offset < count; ++offset)
-            {
-                result.push_back(measure(frames[(oldest + offset) % frames.size()]));
-            }
-            return result;
-        }
     }
 
     std::vector<float> FrameHistory::frameSecondsOldestFirst() const

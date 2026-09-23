@@ -454,6 +454,34 @@ namespace simple_platformer
             lineCount += actor.pathFollower.has_value() ? 1 : 0;
             return static_cast<float>(lineCount) * ImGui::GetTextLineHeight() + ActorTextGap;
         }
+
+        std::vector<float> toMilliseconds(std::vector<float> seconds)
+        {
+            for (float& value : seconds)
+            {
+                value *= 1000.0F;
+            }
+            return seconds;
+        }
+
+        // The categories of a frame's phases, in the order the simulation first charged them.
+        std::vector<const char*> categoriesOf(const FrameProfile& frame)
+        {
+            std::vector<const char*> categories;
+            for (const PhaseTiming& phase : frame.phases)
+            {
+                const bool seen = std::any_of(
+                    categories.begin(),
+                    categories.end(),
+                    [&](const char* category)
+                    { return std::string_view(category) == phase.category; });
+                if (!seen)
+                {
+                    categories.push_back(phase.category);
+                }
+            }
+            return categories;
+        }
     }
 
     void drawDebugOverlay(const DebugOverlay& scene, const std::optional<WindowViewport>& viewport)
@@ -529,37 +557,6 @@ namespace simple_platformer
                     PickupColour,
                     pickup.itemName.c_str());
             }
-        }
-    }
-
-    namespace
-    {
-        std::vector<float> toMilliseconds(std::vector<float> seconds)
-        {
-            for (float& value : seconds)
-            {
-                value *= 1000.0F;
-            }
-            return seconds;
-        }
-
-        // The categories of a frame's phases, in the order the simulation first charged them.
-        std::vector<const char*> categoriesOf(const FrameProfile& frame)
-        {
-            std::vector<const char*> categories;
-            for (const PhaseTiming& phase : frame.phases)
-            {
-                const bool seen = std::any_of(
-                    categories.begin(),
-                    categories.end(),
-                    [&](const char* category)
-                    { return std::string_view(category) == phase.category; });
-                if (!seen)
-                {
-                    categories.push_back(phase.category);
-                }
-            }
-            return categories;
         }
     }
 

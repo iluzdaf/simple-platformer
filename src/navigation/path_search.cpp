@@ -121,7 +121,8 @@ namespace simple_platformer
         GridPosition goal,
         const GridNeighborFunction& neighbors,
         const GridHeuristicFunction& heuristic,
-        PathSearchStatistics* statistics)
+        PathSearchStatistics* statistics,
+        std::vector<GridPosition>* reached)
     {
         if (!neighbors)
         {
@@ -139,6 +140,17 @@ namespace simple_platformer
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);
             if (!currentIndex.has_value())
             {
+                // Nothing left to expand: every node is closed, and together they are
+                // every cell the start leads to.
+                if (reached != nullptr)
+                {
+                    reached->clear();
+                    reached->reserve(nodes.size());
+                    for (const SearchNode& node : nodes)
+                    {
+                        reached->push_back(node.cell);
+                    }
+                }
                 return std::nullopt;
             }
 

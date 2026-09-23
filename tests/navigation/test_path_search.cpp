@@ -124,6 +124,41 @@ TEST_CASE(
     REQUIRE(route.steps.front().destinationCell == simple_platformer::GridPosition{4, 0});
 }
 
+TEST_CASE("A search with no path reports every cell it reached", "[navigation][path-search]")
+{
+    // A line of three cells; nothing leads beyond the last.
+    const auto forwardOnly = [](simple_platformer::GridPosition position)
+    {
+        std::vector<simple_platformer::NavigationNeighbor> result;
+        if (position.x < 2)
+        {
+            result.push_back(
+                {{position.x + 1, position.y}, simple_platformer::Traversal::Fly, 1, {}});
+        }
+        return result;
+    };
+    std::vector<simple_platformer::GridPosition> reached{{9, 9}};
+
+    const std::optional<simple_platformer::NavigationPath> none =
+        simple_platformer::findLowestCostPath(
+            {0, 0}, {5, 0}, forwardOnly, simple_platformer::manhattanHeuristic, nullptr, &reached);
+    REQUIRE_FALSE(none.has_value());
+    REQUIRE(reached == std::vector<simple_platformer::GridPosition>{{0, 0}, {1, 0}, {2, 0}});
+
+    // A search that finds its goal leaves what was passed alone.
+    std::vector<simple_platformer::GridPosition> untouched{{9, 9}};
+    const std::optional<simple_platformer::NavigationPath> found =
+        simple_platformer::findLowestCostPath(
+            {0, 0},
+            {2, 0},
+            forwardOnly,
+            simple_platformer::manhattanHeuristic,
+            nullptr,
+            &untouched);
+    REQUIRE(found.has_value());
+    REQUIRE(untouched == std::vector<simple_platformer::GridPosition>{{9, 9}});
+}
+
 TEST_CASE("Path search rejects invalid functions and costs", "[navigation][path-search]")
 {
     const auto invalidNeighbors = [](simple_platformer::GridPosition)

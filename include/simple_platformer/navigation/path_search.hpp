@@ -32,11 +32,14 @@ namespace simple_platformer
         const GridNeighborFunction& neighbors);
 
     // Uses A* ordering. The heuristic must never overestimate the remaining cost. With
-    // statistics, counts the cells it expanded.
+    // statistics, counts the cells it expanded. When there is no path and reached is
+    // given, fills it with every cell the search got to, which is every cell reachable
+    // from the start; a search that finds a path leaves it alone.
     std::optional<NavigationPath> findLowestCostPath(
         GridPosition start,
         GridPosition goal,
         const GridNeighborFunction& neighbors,
         const GridHeuristicFunction& heuristic,
-        PathSearchStatistics* statistics = nullptr);
+        PathSearchStatistics* statistics = nullptr,
+        std::vector<GridPosition>* reached = nullptr);
 }

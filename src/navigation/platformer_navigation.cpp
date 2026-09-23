@@ -305,8 +305,27 @@ namespace simple_platformer
             [&map, &movement, stepSeconds](GridPosition cell, GridPosition goal)
         { return platformerTickHeuristic(map.tileSize(), cell, goal, movement, stepSeconds); };
 
-        // Remove the final argument to compare A* with the default Dijkstra search.
-        return findLowestCostPath(start, goal, neighbors, heuristic, statistics);
+        // A search that failed from this start has already found every cell it leads to,
+        // so a goal outside them has no path and there is nothing to search.
+        const ConnectionBody body{bodySize, movement, stepSeconds};
+        if (cache != nullptr)
+        {
+            const std::vector<GridPosition>* reachable = cache->reachableFrom(start, body);
+            if (reachable != nullptr &&
+                std::find(reachable->begin(), reachable->end(), goal) == reachable->end())
+            {
+                return std::nullopt;
+            }
+        }
+        std::vector<GridPosition> reached;
+        // Pass no heuristic to compare A* with the default Dijkstra search.
+        std::optional<NavigationPath> path = findLowestCostPath(
+            start, goal, neighbors, heuristic, statistics, cache != nullptr ? &reached : nullptr);
+        if (!path.has_value() && cache != nullptr)
+        {
+            cache->keepReachable(start, body, std::move(reached));
+        }
+        return path;
     }
 
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize)

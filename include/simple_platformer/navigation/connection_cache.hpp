@@ -44,19 +44,38 @@ namespace simple_platformer
             GridPosition cell,
             const ConnectionBody& body,
             std::vector<NavigationNeighbor> connections);
+        // The cells a body can reach from this start, learned from a search that failed
+        // there, or nothing while none has. A goal outside the set has no path, so a
+        // search for one need not run.
+        const std::vector<GridPosition>* reachableFrom(
+            GridPosition start,
+            const ConnectionBody& body) const;
+        // Keeps these as the cells reachable from the start for the body. The body must
+        // have a finite, positive size and step.
+        void keepReachable(
+            GridPosition start,
+            const ConnectionBody& body,
+            std::vector<GridPosition> cells);
         void clear();
-        // Cells kept, over every body.
+        // Cells whose connections are kept, over every body.
         std::size_t size() const;
 
     private:
         using CellConnections =
             std::unordered_map<GridPosition, std::vector<NavigationNeighbor>, GridPositionHash>;
+        using ReachableCells =
+            std::unordered_map<GridPosition, std::vector<GridPosition>, GridPositionHash>;
 
         struct BodyConnections
         {
             ConnectionBody body;
             CellConnections cells;
+            ReachableCells reachable;
         };
+
+        void requireValid(const ConnectionBody& body) const;
+        BodyConnections& connectionsFor(const ConnectionBody& body);
+        const BodyConnections* findConnectionsFor(const ConnectionBody& body) const;
 
         std::vector<BodyConnections> bodies;
     };

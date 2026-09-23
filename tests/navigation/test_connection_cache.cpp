@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
@@ -166,6 +167,74 @@ TEST_CASE("A cell that cannot be stood on is kept as having no connections", "[n
     simple_platformer::platformerNeighbors(
         map, {3, 0}, BodySize, {}, tests::FixedStepSeconds, &statistics, &cache);
     REQUIRE(statistics.cellsReused == 1);
+}
+
+TEST_CASE("What a failed search learned spares the next one", "[navigation][cache]")
+{
+    // A ledge far above the floor that no jump reaches.
+    const simple_platformer::TileMap map = tests::TileMapBuilder(
+        {"..###...", "........", "........", "........", "........", "........", "########"});
+    const GridPosition start{0, 5};
+    const GridPosition ledge{3, -1};
+    const GridPosition farRight{7, 5};
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    REQUIRE(cache.reachableFrom(start, body) == nullptr);
+
+    PathSearchStatistics failing;
+    REQUIRE_FALSE(
+        simple_platformer::findPlatformerPath(
+            map, start, ledge, BodySize, {}, tests::FixedStepSeconds, {}, &failing, &cache)
+            .has_value());
+    REQUIRE(failing.nodesExpanded > 0);
+    const std::vector<GridPosition>* reachable = cache.reachableFrom(start, body);
+    REQUIRE(reachable != nullptr);
+    REQUIRE(std::find(reachable->begin(), reachable->end(), start) != reachable->end());
+    REQUIRE(std::find(reachable->begin(), reachable->end(), farRight) != reachable->end());
+    REQUIRE(std::find(reachable->begin(), reachable->end(), ledge) == reachable->end());
+
+    // The same failure again costs no expansion at all.
+    PathSearchStatistics spared;
+    REQUIRE_FALSE(simple_platformer::findPlatformerPath(
+                      map, start, ledge, BodySize, {}, tests::FixedStepSeconds, {}, &spared, &cache)
+                      .has_value());
+    REQUIRE(spared.nodesExpanded == 0);
+    REQUIRE(spared.cellsReused == 0);
+    REQUIRE(spared.simulatedTicks == 0);
+
+    // A goal the start leads to is still searched for and found.
+    PathSearchStatistics reaching;
+    REQUIRE(simple_platformer::findPlatformerPath(
+                map, start, farRight, BodySize, {}, tests::FixedStepSeconds, {}, &reaching, &cache)
+                .has_value());
+    REQUIRE(reaching.nodesExpanded > 0);
+
+    // Without a cache the failure is searched every time, as before.
+    PathSearchStatistics uncached;
+    REQUIRE_FALSE(simple_platformer::findPlatformerPath(
+                      map, start, ledge, BodySize, {}, tests::FixedStepSeconds, {}, &uncached)
+                      .has_value());
+    REQUIRE(uncached.nodesExpanded == failing.nodesExpanded);
+}
+
+TEST_CASE("Reachable cells are kept per start and body until cleared", "[navigation][cache]")
+{
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    cache.keepReachable({0, 0}, body, {{0, 0}, {1, 0}});
+    REQUIRE(cache.reachableFrom({0, 0}, body) != nullptr);
+    REQUIRE(cache.reachableFrom({0, 0}, body)->size() == 2);
+    REQUIRE(cache.reachableFrom({1, 0}, body) == nullptr);
+    ConnectionBody taller = body;
+    taller.size.y = 20.0F;
+    REQUIRE(cache.reachableFrom({0, 0}, taller) == nullptr);
+    // Reachable cells are not connections.
+    REQUIRE(cache.size() == 0);
+
+    cache.clear();
+    REQUIRE(cache.reachableFrom({0, 0}, body) == nullptr);
+    ConnectionBody stopped{BodySize, {}, 0.0F};
+    REQUIRE_THROWS_AS(cache.keepReachable({0, 0}, stopped, {}), std::invalid_argument);
 }
 
 TEST_CASE("Connections are kept only for a valid body", "[navigation][cache][validation]")

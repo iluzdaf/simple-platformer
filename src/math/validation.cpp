@@ -18,12 +18,12 @@ namespace simple_platformer
         return std::isfinite(value) && value > 0.0F;
     }
 
-    void requireTimeStep(float deltaTime, const char* what)
+    void requireSeconds(float seconds, const char* what)
     {
-        if (!std::isfinite(deltaTime) || deltaTime < 0.0F)
+        if (!std::isfinite(seconds) || seconds < 0.0F)
         {
             throw std::invalid_argument(
-                std::string(what) + " require a finite, non-negative time step");
+                std::string(what) + " must be a finite, non-negative number of seconds");
         }
     }
 }

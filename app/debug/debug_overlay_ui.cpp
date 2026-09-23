@@ -3,10 +3,12 @@
 #include "debug_overlay.hpp"
 #include "graphics/display_viewport.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdio>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <imgui.h>
 
@@ -14,6 +16,8 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
+#include "simple_platformer/timing/fixed_step.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "ui/hud_draw.hpp"
 
 namespace simple_platformer
@@ -521,5 +525,69 @@ namespace simple_platformer
                     pickup.itemName.c_str());
             }
         }
+    }
+
+    void drawFrameProfile(const FrameHistory& history)
+    {
+        if (history.size() == 0)
+        {
+            return;
+        }
+
+        constexpr float TargetFrameSeconds = static_cast<float>(FixedDeltaSeconds);
+        constexpr float PlotWidth = 240.0F;
+        constexpr float PlotHeight = 60.0F;
+        constexpr float PanelMargin = 8.0F;
+        constexpr float PanelTop = 48.0F;
+        const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(
+            {mainViewport->WorkPos.x + PanelMargin, mainViewport->WorkPos.y + PanelTop},
+            ImGuiCond_Always);
+        ImGui::SetNextWindowBgAlpha(0.6F);
+        if (!ImGui::Begin(
+                "Frame##profile",
+                nullptr,
+                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                    ImGuiWindowFlags_NoNav))
+        {
+            ImGui::End();
+            return;
+        }
+
+        const std::vector<float> seconds = history.frameSecondsOldestFirst();
+        const FrameProfile& latest = history.latest();
+        const FrameProfile& worst = history.worst();
+        // The plot always shows the 60 Hz budget line, and stretches when a frame passes it.
+        const float plotTop = std::max(TargetFrameSeconds * 2.0F, worst.frameSeconds * 1.1F);
+        ImGui::PlotLines(
+            "##frame",
+            seconds.data(),
+            static_cast<int>(seconds.size()),
+            0,
+            nullptr,
+            0.0F,
+            plotTop,
+            {PlotWidth, PlotHeight});
+        const ImVec2 plotMinimum = ImGui::GetItemRectMin();
+        const ImVec2 plotMaximum = ImGui::GetItemRectMax();
+        const float budgetY =
+            plotMaximum.y - (plotMaximum.y - plotMinimum.y) * (TargetFrameSeconds / plotTop);
+        ImGui::GetWindowDrawList()->AddLine(
+            {plotMinimum.x, budgetY}, {plotMaximum.x, budgetY}, CameraDeadZoneColour, 1.0F);
+
+        ImGui::Text(
+            "frame %.2f ms   avg %.2f   worst %.2f",
+            latest.frameSeconds * 1000.0F,
+            history.averageFrameSeconds() * 1000.0F,
+            worst.frameSeconds * 1000.0F);
+        ImGui::Text(
+            "ticks %d   simulation %.2f ms   scene %.2f   render %.2f   ui %.2f",
+            latest.simulationTicks,
+            latest.simulationSeconds * 1000.0F,
+            latest.sceneSeconds * 1000.0F,
+            latest.renderSeconds * 1000.0F,
+            latest.interfaceSeconds * 1000.0F);
+        ImGui::End();
     }
 }

@@ -17,6 +17,16 @@
       }
     },
     {
+      "name": "mac-release",
+      "displayName": "macOS Release",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/mac-release",
+      "cacheVariables": {
+        "BUILD_TESTING": true,
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
       "name": "windows-vs",
       "displayName": "Windows Visual Studio 2022",
       "generator": "Visual Studio 17 2022",
@@ -33,9 +43,18 @@
       "configurePreset": "mac-debug"
     },
     {
+      "name": "mac-release",
+      "configurePreset": "mac-release"
+    },
+    {
       "name": "windows-debug",
       "configurePreset": "windows-vs",
       "configuration": "Debug"
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-vs",
+      "configuration": "Release"
     }
   ],
   "testPresets": [
@@ -47,9 +66,24 @@
       }
     },
     {
+      "name": "mac-release",
+      "configurePreset": "mac-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
       "name": "windows-debug",
       "configurePreset": "windows-vs",
       "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-vs",
+      "configuration": "Release",
       "output": {
         "outputOnFailure": true
       }

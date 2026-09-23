@@ -19,7 +19,7 @@ namespace simple_platformer
         float deltaTime,
         float deathDuration)
     {
-        requireTimeStep(deltaTime, "Life states");
+        requireSeconds(deltaTime, "Life states time step");
         if (!std::isfinite(deathDuration) || deathDuration <= 0.0F)
         {
             throw std::invalid_argument("Life states require a finite, positive death duration");

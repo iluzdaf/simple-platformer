@@ -127,7 +127,7 @@ namespace simple_platformer
         PathFollower& follower,
         float deltaTime)
     {
-        requireTimeStep(deltaTime, "Flying path following");
+        requireSeconds(deltaTime, "Flying path following time step");
         if (!std::isfinite(movement.speed) || movement.speed < 0.0F)
         {
             throw std::invalid_argument(
@@ -172,7 +172,7 @@ namespace simple_platformer
         PathFollower& follower,
         float deltaTime)
     {
-        requireTimeStep(deltaTime, "Platformer path following");
+        requireSeconds(deltaTime, "Platformer path following time step");
         if (!follower.path.has_value())
         {
             return {};

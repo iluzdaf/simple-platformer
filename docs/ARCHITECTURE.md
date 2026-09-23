@@ -635,6 +635,14 @@ bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensi
 navigation paths. Debug data is built separately from its ImGui presentation so it can
 be tested without a window.
 
+The overlay also shows a frame panel. The application times each frame with the wall
+clock, how many fixed steps it ran, and how long simulation, scene building, rendering,
+and the interface took, and records them in a `FrameHistory` from `timing/frame_profile`.
+The panel plots the recent frame times against the 60 Hz budget and prints the latest
+breakdown, the average, and the worst frame. The engine never reads a clock: the history
+is plain data the application fills, and tests build it by hand. Timings are only
+meaningful from a release build.
+
 The inventory UI is an example presentation, not an engine rule. It derives its rows
 from the configured slot count, uses at most three columns, pauses simulation while
 open, and emits item use requests instead of changing the world directly.

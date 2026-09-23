@@ -91,7 +91,7 @@ namespace simple_platformer
 
     void World::advanceSimulationTime(float deltaTime)
     {
-        requireTimeStep(deltaTime, "Simulation steps");
+        requireSeconds(deltaTime, "Simulation time step");
         const float advancedTime = elapsedSimulationTimeSeconds + deltaTime;
         if (!std::isfinite(advancedTime))
         {

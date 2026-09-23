@@ -70,7 +70,7 @@ namespace simple_platformer
         AnimationName selected,
         float deltaTime)
     {
-        requireTimeStep(deltaTime, "Animations");
+        requireSeconds(deltaTime, "Animations time step");
         if (animator.current != selected)
         {
             animator.current = selected;

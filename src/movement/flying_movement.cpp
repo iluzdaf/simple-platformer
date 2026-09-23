@@ -22,7 +22,7 @@ namespace simple_platformer
         const InputIntentions& intentions,
         float deltaTime)
     {
-        requireTimeStep(deltaTime, "Flying movement");
+        requireSeconds(deltaTime, "Flying movement time step");
         if (!std::isfinite(movement.speed) || movement.speed < 0.0F ||
             !isFinite(intentions.direction))
         {

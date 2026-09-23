@@ -19,16 +19,18 @@ TEST_CASE("Vector finiteness checks both components", "[math][validation]")
 
 TEST_CASE("A time step must be finite and not negative", "[math][validation]")
 {
-    REQUIRE_NOTHROW(simple_platformer::requireTimeStep(0.0F, "Steps"));
-    REQUIRE_NOTHROW(simple_platformer::requireTimeStep(0.25F, "Steps"));
+    REQUIRE_NOTHROW(simple_platformer::requireSeconds(0.0F, "Attacks time step"));
+    REQUIRE_NOTHROW(simple_platformer::requireSeconds(0.25F, "Attacks time step"));
     REQUIRE_THROWS_WITH(
-        simple_platformer::requireTimeStep(-0.1F, "Steps"),
-        Catch::Matchers::ContainsSubstring("Steps require"));
+        simple_platformer::requireSeconds(-0.1F, "Attacks time step"),
+        "Attacks time step must be a finite, non-negative number of seconds");
     REQUIRE_THROWS_AS(
-        simple_platformer::requireTimeStep(std::numeric_limits<float>::infinity(), "Steps"),
+        simple_platformer::requireSeconds(
+            std::numeric_limits<float>::infinity(), "Attacks time step"),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::requireTimeStep(std::numeric_limits<float>::quiet_NaN(), "Steps"),
+        simple_platformer::requireSeconds(
+            std::numeric_limits<float>::quiet_NaN(), "Attacks time step"),
         std::invalid_argument);
 }
 
@@ -39,4 +41,15 @@ TEST_CASE("A finite positive number is above zero and not infinite", "[math][val
     REQUIRE_FALSE(simple_platformer::isFinitePositive(-0.5F));
     REQUIRE_FALSE(simple_platformer::isFinitePositive(std::numeric_limits<float>::infinity()));
     REQUIRE_FALSE(simple_platformer::isFinitePositive(std::numeric_limits<float>::quiet_NaN()));
+}
+
+TEST_CASE("A length of time must be finite and not negative", "[math][validation]")
+{
+    REQUIRE_NOTHROW(simple_platformer::requireSeconds(0.0F, "Frame time"));
+    REQUIRE_THROWS_WITH(
+        simple_platformer::requireSeconds(-1.0F, "Frame time"),
+        "Frame time must be a finite, non-negative number of seconds");
+    REQUIRE_THROWS_AS(
+        simple_platformer::requireSeconds(std::numeric_limits<float>::infinity(), "Frame time"),
+        std::invalid_argument);
 }

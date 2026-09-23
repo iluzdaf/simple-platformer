@@ -103,7 +103,7 @@ namespace simple_platformer
 
     void updateProjectiles(TileMap& map, World& world, WorldRequests& requests, float deltaTime)
     {
-        requireTimeStep(deltaTime, "Projectiles");
+        requireSeconds(deltaTime, "Projectiles time step");
 
         // The map belongs to GameLevel, not World, so breaks are not WorldRequests. They are
         // still held back until every shot has been traced, so one shot cannot open a hole
@@ -155,7 +155,7 @@ namespace simple_platformer
 
     void updateProjectileBursts(World& world, WorldRequests& requests, float deltaTime)
     {
-        requireTimeStep(deltaTime, "Projectile bursts");
+        requireSeconds(deltaTime, "Projectile bursts time step");
 
         for (std::size_t index = 0; index < world.projectileBursts().size(); ++index)
         {

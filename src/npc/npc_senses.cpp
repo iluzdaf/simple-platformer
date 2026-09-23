@@ -92,7 +92,7 @@ namespace simple_platformer
 
     void updateNpcSenses(const TileMap& map, World& world, float deltaTime)
     {
-        requireTimeStep(deltaTime, "NPC senses");
+        requireSeconds(deltaTime, "NPC senses time step");
 
         const Actor* player = world.findActor(world.playerId());
         for (Actor& actor : world.actors())

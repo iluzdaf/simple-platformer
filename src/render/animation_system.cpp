@@ -42,7 +42,7 @@ namespace simple_platformer
 
     void updateWorldAnimations(World& world, float deltaTime)
     {
-        requireTimeStep(deltaTime, "Animations");
+        requireSeconds(deltaTime, "Animations time step");
         updateActorAnimations(world, deltaTime);
     }
 }

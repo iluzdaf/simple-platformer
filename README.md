@@ -48,6 +48,20 @@ cd build/mac-debug
 ./simple_platformer
 ```
 
+For performance numbers, build and run the release preset instead. The debug build has
+no optimisation, so its timings say little about the game players run:
+
+```sh
+cmake --preset mac-release
+cmake --build --preset mac-release
+build/mac-release/simple_platformer
+```
+
+In the game, F1 opens the debug overlay, whose frame panel plots the last two seconds of
+frame times against the 60 Hz budget and breaks the latest frame into simulation, scene
+building, rendering, and interface time. On Windows the matching presets are
+`windows-release` for building and testing.
+
 ## Windows: create and use the Visual Studio solution
 
 Install Visual Studio 2022 with **Desktop development with C++** and **C++ CMake

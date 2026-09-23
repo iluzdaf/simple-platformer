@@ -57,6 +57,10 @@ namespace simple_platformer
         const char* name,
         float seconds);
 
+    // The phases by cost, for reading a still frame: categories from the dearest by their
+    // total, each followed by its phases from the dearest. Equal costs keep their order.
+    std::vector<PhaseTiming> phasesByCost(const std::vector<PhaseTiming>& phases);
+
     // The most recent frames, oldest dropped first, for a frame-time plot and its summary.
     class FrameHistory
     {
@@ -70,6 +74,8 @@ namespace simple_platformer
         // Both require at least one frame.
         const FrameProfile& latest() const;
         const FrameProfile& worst() const;
+        // The frame at this position counting from the oldest held, as the plots list them.
+        const FrameProfile& frameOldestFirst(std::size_t index) const;
         float averageFrameSeconds() const;
         // Every phase any held frame ran, in simulation order, with its seconds summed over
         // the frames. A phase that runs only now and then, such as a path search, keeps its

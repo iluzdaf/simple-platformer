@@ -1,9 +1,12 @@
 #include "frame_profile_ui.hpp"
 
+#include "frame_selection.hpp"
+
 #include <algorithm>
 #include <cfloat>
 #include <cstddef>
 #include <numeric>
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -27,6 +30,9 @@ namespace simple_platformer
         constexpr float SwatchInsetFraction = 0.2F;
         // A hidden series keeps its swatch at this fraction of its colour's opacity.
         constexpr float HiddenSwatchOpacity = 0.35F;
+        // The plot column under the cursor, and the one picked.
+        constexpr ImU32 HoveredFrameColour = IM_COL32(255, 255, 255, 90);
+        constexpr ImU32 PickedFrameColour = IM_COL32(255, 255, 255, 230);
 
         // Frame plot scales. The frame axis keeps the 60 Hz budget in view, showing at
         // least this many budgets, and stretches to this much headroom over the worst frame.
@@ -125,10 +131,203 @@ namespace simple_platformer
             }
             ImGui::End();
         }
+
+        // The plot's picker, a window of its own over the plot area like the legend, so a
+        // press there picks the frame under the cursor while clicks over the rest of the
+        // panel reach the game. Holding the button scrubs: the pick follows the cursor
+        // until it is released. A click on the picked frame that never moves off it lets
+        // the live history show again; whether the press landed on it is kept in the
+        // window's ImGui storage until the release, as the legend keeps what it hides.
+        // The column under the cursor and the picked one are marked.
+        void drawFramePicker(
+            ImVec2 topLeft,
+            ImVec2 size,
+            const FrameHistory& history,
+            const FrameHistory& live,
+            FrameSelection& selection)
+        {
+            ImGui::SetNextWindowPos(topLeft, ImGuiCond_Always);
+            ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0F, 0.0F});
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.0F, 0.0F});
+            if (ImGui::Begin(
+                    "Frame picker##profile",
+                    nullptr,
+                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground |
+                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                        ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar |
+                        ImGuiWindowFlags_NoScrollWithMouse))
+            {
+                ImGui::InvisibleButton("Pick frame", size);
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                const auto markFrame = [&](std::size_t index, ImU32 colour)
+                {
+                    const float x = topLeft.x + size.x * static_cast<float>(index) /
+                                                    static_cast<float>(history.capacity());
+                    drawList->AddLine({x, topLeft.y}, {x, topLeft.y + size.y}, colour);
+                };
+                const float fraction = (ImGui::GetMousePos().x - topLeft.x) / size.x;
+                ImGuiStorage* storage = ImGui::GetStateStorage();
+                const ImGuiID pressedOnPicked = ImGui::GetID("pressed on picked");
+                if (ImGui::IsItemActive())
+                {
+                    const std::size_t under =
+                        frameNearestPlotFraction(fraction, history.capacity(), history.size());
+                    if (ImGui::IsItemActivated())
+                    {
+                        storage->SetBool(pressedOnPicked, selection.selectedIndex() == under);
+                    }
+                    if (selection.selectedIndex() != under)
+                    {
+                        selection.select(live, under);
+                        storage->SetBool(pressedOnPicked, false);
+                    }
+                }
+                else if (ImGui::IsItemDeactivated() && storage->GetBool(pressedOnPicked))
+                {
+                    selection.clear();
+                }
+                else if (ImGui::IsItemHovered())
+                {
+                    const std::optional<std::size_t> hovered =
+                        frameAtPlotFraction(fraction, history.capacity(), history.size());
+                    if (hovered.has_value())
+                    {
+                        markFrame(*hovered, HoveredFrameColour);
+                    }
+                }
+                const std::optional<std::size_t> picked = selection.selectedIndex();
+                if (picked.has_value())
+                {
+                    markFrame(*picked, PickedFrameColour);
+                }
+            }
+            ImGui::End();
+            ImGui::PopStyleVar(2);
+        }
+
+        // Each category with its total, then its phases, in the order given: simulation
+        // order for the live history, so rows never move while the numbers change, and by
+        // cost for a picked frame. Seconds are multiplied by the scale before they are
+        // shown: a thousand for milliseconds, or a thousand over the tick count for
+        // milliseconds per simulation step.
+        void drawPhaseTable(
+            const std::vector<PhaseTiming>& phases,
+            const char* heading,
+            float scale)
+        {
+            if (!ImGui::BeginTable("phases", 2, ImGuiTableFlags_SizingFixedFit))
+            {
+                return;
+            }
+            ImGui::TableSetupColumn("phase", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn(heading);
+            for (const char* category : categoriesOf(phases))
+            {
+                float categorySeconds = 0.0F;
+                for (const PhaseTiming& phase : phases)
+                {
+                    if (std::string_view(phase.category) == category)
+                    {
+                        categorySeconds += phase.seconds;
+                    }
+                }
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(category);
+                ImGui::TableNextColumn();
+                ImGui::Text("%6.3f ms", categorySeconds * scale);
+                for (const PhaseTiming& phase : phases)
+                {
+                    if (std::string_view(phase.category) != category)
+                    {
+                        continue;
+                    }
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::Text("   %s", phase.name);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%6.3f", phase.seconds * scale);
+                }
+            }
+            ImGui::EndTable();
+        }
+
+        // The history's summary under the plot: the latest frame, the average and the
+        // worst, then the simulation's costs per step over every frame held.
+        void drawHistorySummary(const FrameHistory& history, const std::vector<PhaseTiming>& phases)
+        {
+            const FrameProfile& latest = history.latest();
+            ImGui::Text(
+                "frame %6.2f ms   avg %6.2f   worst %6.2f",
+                latest.frameSeconds * 1000.0F,
+                history.averageFrameSeconds() * 1000.0F,
+                history.worst().frameSeconds * 1000.0F);
+            ImGui::Text(
+                "scene %5.2f ms   render %5.2f   ui %5.2f",
+                latest.sceneSeconds * 1000.0F,
+                latest.renderSeconds * 1000.0F,
+                latest.interfaceSeconds * 1000.0F);
+            const int ticks = history.totalSimulationTicks();
+            if (ticks == 0)
+            {
+                return;
+            }
+
+            // The list averages each cost per simulation step over the whole history. One
+            // frame's numbers change sixty times a second and a phase of a few microseconds
+            // would flicker between 0.00 and 0.01; the stack above already shows the spikes.
+            const std::vector<float> simulationSeconds = history.simulationSecondsOldestFirst();
+            const float scale = 1000.0F / static_cast<float>(ticks);
+            ImGui::Separator();
+            ImGui::Text(
+                "simulation %6.3f ms per tick over %d ticks",
+                std::accumulate(simulationSeconds.begin(), simulationSeconds.end(), 0.0F) * scale,
+                ticks);
+            ImGui::Text(
+                "path searches %d   cells %d   simulated ticks %d",
+                history.totalPathSearches(),
+                history.totalPathSearchNodes(),
+                history.totalPathSearchSimulatedTicks());
+            drawPhaseTable(phases, "ms per tick", scale);
+        }
+
+        // One picked frame's own costs, whole rather than per step and listed from the
+        // dearest, since a still frame can be read at leisure.
+        void drawPickedFrame(const FrameProfile& frame, std::size_t index, std::size_t count)
+        {
+            ImGui::Text(
+                "frame %d of %d   %6.2f ms",
+                static_cast<int>(index + 1),
+                static_cast<int>(count),
+                frame.frameSeconds * 1000.0F);
+            ImGui::TextDisabled("drag the plot to scrub, click the frame again to resume");
+            ImGui::Text(
+                "scene %5.2f ms   render %5.2f   ui %5.2f",
+                frame.sceneSeconds * 1000.0F,
+                frame.renderSeconds * 1000.0F,
+                frame.interfaceSeconds * 1000.0F);
+            if (frame.simulationTicks == 0)
+            {
+                return;
+            }
+            ImGui::Separator();
+            ImGui::Text(
+                "simulation %6.3f ms over %d ticks",
+                frame.simulationSeconds * 1000.0F,
+                frame.simulationTicks);
+            ImGui::Text(
+                "path searches %d   cells %d   simulated ticks %d",
+                frame.pathSearches,
+                frame.pathSearchNodes,
+                frame.pathSearchSimulatedTicks);
+            drawPhaseTable(phasesByCost(frame.phases), "ms", 1000.0F);
+        }
     }
 
-    void drawFrameProfile(const FrameHistory& history)
+    void drawFrameProfile(const FrameHistory& live, FrameSelection& selection)
     {
+        const FrameHistory& history = selection.kept() != nullptr ? *selection.kept() : live;
         if (history.size() == 0)
         {
             return;
@@ -154,7 +353,6 @@ namespace simple_platformer
             return;
         }
 
-        const FrameProfile& latest = history.latest();
         const FrameProfile& worst = history.worst();
         // The phases come from every frame in the history, so one that runs only now and
         // then, such as a path search, keeps its row and band instead of coming and going.
@@ -192,6 +390,9 @@ namespace simple_platformer
         const FramePlotSeries& budget = series[0];
         const FramePlotSeries& frame = series[1];
 
+        ImVec2 plotTopLeft;
+        ImVec2 plotSize;
+        bool plotted = false;
         if (ImPlot::BeginPlot("##frame", {-LegendWidth, PlotHeight}, PlotFlags))
         {
             ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoTickLabels);
@@ -264,76 +465,25 @@ namespace simple_platformer
                     lower = upper;
                 }
             }
+            // Asking for the plot area locks its setup, so it comes after the axes.
+            plotTopLeft = ImPlot::GetPlotPos();
+            plotSize = ImPlot::GetPlotSize();
+            plotted = true;
             ImPlot::EndPlot();
         }
-        ImGui::Text(
-            "frame %6.2f ms   avg %6.2f   worst %6.2f",
-            latest.frameSeconds * 1000.0F,
-            history.averageFrameSeconds() * 1000.0F,
-            worst.frameSeconds * 1000.0F);
-        ImGui::Text(
-            "scene %5.2f ms   render %5.2f   ui %5.2f",
-            latest.sceneSeconds * 1000.0F,
-            latest.renderSeconds * 1000.0F,
-            latest.interfaceSeconds * 1000.0F);
-        if (ticks == 0)
+        if (plotted)
         {
-            ImGui::End();
-            return;
+            drawFramePicker(plotTopLeft, plotSize, history, live, selection);
         }
 
-        // The list averages each cost per simulation step over the whole history. One
-        // frame's numbers change sixty times a second and a phase of a few microseconds
-        // would flicker between 0.00 and 0.01; the stack above already shows the spikes.
-        const auto millisecondsPerTick = [ticks](float seconds)
-        { return seconds * 1000.0F / static_cast<float>(ticks); };
-        const std::vector<float> simulationSeconds = history.simulationSecondsOldestFirst();
-        ImGui::Separator();
-        ImGui::Text(
-            "simulation %6.3f ms per tick over %d ticks",
-            millisecondsPerTick(
-                std::accumulate(simulationSeconds.begin(), simulationSeconds.end(), 0.0F)),
-            ticks);
-        ImGui::Text(
-            "path searches %d   cells %d   simulated ticks %d",
-            history.totalPathSearches(),
-            history.totalPathSearchNodes(),
-            history.totalPathSearchSimulatedTicks());
-        // Each category with its total, then its phases, all in simulation order so rows
-        // never move while the numbers change.
-        if (ImGui::BeginTable("phases", 2, ImGuiTableFlags_SizingFixedFit))
+        const std::optional<std::size_t> picked = selection.selectedIndex();
+        if (picked.has_value())
         {
-            ImGui::TableSetupColumn("phase", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("ms per tick");
-            for (const char* category : categoriesOf(phases))
-            {
-                float categorySeconds = 0.0F;
-                for (const PhaseTiming& phase : phases)
-                {
-                    if (std::string_view(phase.category) == category)
-                    {
-                        categorySeconds += phase.seconds;
-                    }
-                }
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::TextUnformatted(category);
-                ImGui::TableNextColumn();
-                ImGui::Text("%6.3f ms", millisecondsPerTick(categorySeconds));
-                for (const PhaseTiming& phase : phases)
-                {
-                    if (std::string_view(phase.category) != category)
-                    {
-                        continue;
-                    }
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("   %s", phase.name);
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%6.3f", millisecondsPerTick(phase.seconds));
-                }
-            }
-            ImGui::EndTable();
+            drawPickedFrame(selection.selectedFrame(), *picked, history.size());
+        }
+        else
+        {
+            drawHistorySummary(history, phases);
         }
         ImGui::End();
     }

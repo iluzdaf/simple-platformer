@@ -13,6 +13,7 @@
 #include "content/level_catalog.hpp"
 #include "debug/debug_overlay_ui.hpp"
 #include "debug/frame_profile_ui.hpp"
+#include "debug/frame_selection.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/game_window.hpp"
@@ -156,6 +157,7 @@ namespace simple_platformer
         Game game(atlas, loadLevelCatalog("assets/levels.json"));
         FixedStep fixedStep;
         FrameHistory frameHistory;
+        FrameSelection frameSelection;
         Stopwatch frameClock;
 
         while (!window.shouldClose())
@@ -248,7 +250,7 @@ namespace simple_platformer
                         static_cast<float>(atlasTexture.width),
                         static_cast<float>(fixedStep.stepSeconds())),
                     windowViewport);
-                drawFrameProfile(frameHistory);
+                drawFrameProfile(frameHistory, frameSelection);
             }
             imgui.render();
             window.present();

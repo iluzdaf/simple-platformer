@@ -38,6 +38,9 @@ TEST_CASE("A frame history keeps the newest frames and drops the oldest", "[timi
     history.push(frameTaking(0.040F));
     REQUIRE(history.size() == 3);
     REQUIRE(history.frameSecondsOldestFirst() == std::vector<float>{0.020F, 0.030F, 0.040F});
+    REQUIRE_NEAR(history.frameOldestFirst(0).frameSeconds, 0.020F);
+    REQUIRE_NEAR(history.frameOldestFirst(2).frameSeconds, 0.040F);
+    REQUIRE_THROWS_AS(history.frameOldestFirst(3), std::out_of_range);
     REQUIRE_NEAR(history.latest().frameSeconds, 0.040F);
 }
 
@@ -103,6 +106,41 @@ TEST_CASE("Adding to a phase sums repeats and keeps first-seen order", "[timing]
     REQUIRE_THROWS_AS(
         simple_platformer::addPhaseSeconds(profile, "Combat", "Senses", 0.001F),
         std::invalid_argument);
+}
+
+TEST_CASE(
+    "Phases by cost list the dearest category first, then its dearest phases",
+    "[timing][profile]")
+{
+    FrameProfile profile;
+    simple_platformer::addPhaseSeconds(profile, "NPC", "NPC senses", 0.001F);
+    simple_platformer::addPhaseSeconds(profile, "NPC", "NPC behaviour", 0.003F);
+    simple_platformer::addPhaseSeconds(profile, "Movement", "Actor movement", 0.005F);
+    simple_platformer::addPhaseSeconds(profile, "Combat", "Attacks", 0.002F);
+    simple_platformer::addPhaseSeconds(profile, "Combat", "Projectiles", 0.004F);
+    // A tie keeps simulation order.
+    simple_platformer::addPhaseSeconds(profile, "World", "Pickups", 0.001F);
+    simple_platformer::addPhaseSeconds(profile, "World", "Level exit", 0.001F);
+
+    const std::vector<simple_platformer::PhaseTiming> sorted =
+        simple_platformer::phasesByCost(profile.phases);
+    std::vector<std::string> names;
+    names.reserve(sorted.size());
+    for (const simple_platformer::PhaseTiming& phase : sorted)
+    {
+        names.emplace_back(phase.name);
+    }
+    // Combat 6 ms, Movement 5, NPC 4, World 2.
+    REQUIRE(
+        names == std::vector<std::string>{
+                     "Projectiles",
+                     "Attacks",
+                     "Actor movement",
+                     "NPC behaviour",
+                     "NPC senses",
+                     "Pickups",
+                     "Level exit"});
+    REQUIRE(simple_platformer::phasesByCost({}).empty());
 }
 
 TEST_CASE("A frame history lists every phase its frames ran, in order", "[timing][profile]")

@@ -220,8 +220,10 @@ namespace simple_platformer
             {
                 return;
             }
-            ImGui::TableSetupColumn("phase", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn(heading);
+            // Both columns fit their content, so the numbers sit beside the longest name
+            // instead of at the panel's far edge.
+            ImGui::TableSetupColumn("phase", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn(heading, ImGuiTableColumnFlags_WidthFixed);
             for (const char* category : categoriesOf(phases))
             {
                 float categorySeconds = 0.0F;
@@ -236,7 +238,7 @@ namespace simple_platformer
                 ImGui::TableNextColumn();
                 ImGui::TextUnformatted(category);
                 ImGui::TableNextColumn();
-                ImGui::Text("%6.3f ms", categorySeconds * scale);
+                ImGui::Text("%6.3f", categorySeconds * scale);
                 for (const PhaseTiming& phase : phases)
                 {
                     if (std::string_view(phase.category) != category)
@@ -301,7 +303,6 @@ namespace simple_platformer
                 static_cast<int>(index + 1),
                 static_cast<int>(count),
                 frame.frameSeconds * 1000.0F);
-            ImGui::TextDisabled("drag the plot to scrub, click the frame again to resume");
             ImGui::Text(
                 "scene %5.2f ms   render %5.2f   ui %5.2f",
                 frame.sceneSeconds * 1000.0F,

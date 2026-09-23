@@ -40,9 +40,9 @@ namespace simple_platformer
         constexpr ImU32 TextHeadingColour = IM_COL32(255, 255, 255, 255);
         constexpr ImU32 TextDetailColour = IM_COL32(224, 224, 224, 255);
         constexpr ImU32 CameraBoundsColour = IM_COL32(64, 224, 255, 255);
-        constexpr ImU32 CameraDeadZoneColour = IM_COL32(255, 224, 64, 255);
+        constexpr ImU32 CameraDeadZoneColour = IM_COL32(64, 64, 64, 255);
         constexpr ImU32 BiteHitboxColour = IM_COL32(255, 64, 224, 255);
-        constexpr ImU32 SpriteBoundsColour = IM_COL32(255, 255, 255, 255);
+        constexpr ImU32 SpriteBoundsColour = IM_COL32(64, 64, 64, 255);
         constexpr ImU32 ColliderBoundsColour = IM_COL32(255, 64, 64, 255);
         constexpr ImU32 PickupColour = IM_COL32(96, 255, 160, 255);
 

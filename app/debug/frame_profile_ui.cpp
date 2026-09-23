@@ -287,9 +287,10 @@ namespace simple_platformer
                 std::accumulate(simulationSeconds.begin(), simulationSeconds.end(), 0.0F) * scale,
                 ticks);
             ImGui::Text(
-                "path searches %d   cells %d   simulated ticks %d",
+                "path searches %d   cells %d   reused %d   sim ticks %d",
                 history.totalPathSearches(),
                 history.totalPathSearchNodes(),
+                history.totalPathSearchCellsReused(),
                 history.totalPathSearchSimulatedTicks());
             drawPhaseTable(phases, "ms per tick", scale);
         }
@@ -318,9 +319,10 @@ namespace simple_platformer
                 frame.simulationSeconds * 1000.0F,
                 frame.simulationTicks);
             ImGui::Text(
-                "path searches %d   cells %d   simulated ticks %d",
+                "path searches %d   cells %d   reused %d   sim ticks %d",
                 frame.pathSearches,
                 frame.pathSearchNodes,
+                frame.pathSearchCellsReused,
                 frame.pathSearchSimulatedTicks);
             drawPhaseTable(phasesByCost(frame.phases), "ms", 1000.0F);
         }

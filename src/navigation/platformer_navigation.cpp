@@ -16,6 +16,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -271,7 +272,8 @@ namespace simple_platformer
         const PlatformerMovementConfig& movement,
         float stepSeconds,
         const PlatformerNavigationConfig& navigation,
-        PathSearchStatistics* statistics)
+        PathSearchStatistics* statistics,
+        PlatformerConnectionCache* cache)
     {
         requireStep(stepSeconds);
         if (navigation.jumpStartPenaltyTicks < 0)
@@ -279,10 +281,11 @@ namespace simple_platformer
             throw std::invalid_argument("A jump start penalty cannot be negative");
         }
         const GridNeighborFunction neighbors =
-            [&map, bodySize, &movement, stepSeconds, &navigation, statistics](GridPosition cell)
+            [&map, bodySize, &movement, stepSeconds, &navigation, statistics, cache](
+                GridPosition cell)
         {
             std::vector<NavigationNeighbor> result =
-                platformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics);
+                platformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics, cache);
             for (NavigationNeighbor& neighbor : result)
             {
                 if (neighbor.traversal != Traversal::Jump)
@@ -409,15 +412,34 @@ namespace simple_platformer
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
         float stepSeconds,
-        PathSearchStatistics* statistics)
+        PathSearchStatistics* statistics,
+        PlatformerConnectionCache* cache)
     {
         requireStep(stepSeconds);
-        if (!canStandAt(map, cell, bodySize))
+        const ConnectionBody body{bodySize, movement, stepSeconds};
+        if (cache != nullptr)
         {
-            return {};
+            const std::vector<NavigationNeighbor>* kept = cache->find(cell, body);
+            if (kept != nullptr)
+            {
+                if (statistics != nullptr)
+                {
+                    ++statistics->cellsReused;
+                }
+                return *kept;
+            }
         }
 
         std::vector<NavigationNeighbor> neighbors;
+        if (!canStandAt(map, cell, bodySize))
+        {
+            if (cache != nullptr)
+            {
+                cache->keep(cell, body, neighbors);
+            }
+            return neighbors;
+        }
+
         constexpr std::array<int, 2> Directions{-1, 1};
         for (const int direction : Directions)
         {
@@ -477,6 +499,10 @@ namespace simple_platformer
                     keepCheapest(neighbors, jump.value());
                 }
             }
+        }
+        if (cache != nullptr)
+        {
+            cache->keep(cell, body, neighbors);
         }
         return neighbors;
     }

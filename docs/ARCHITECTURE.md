@@ -186,7 +186,8 @@ Physics code works with `body.bounds.position`. Content and ground navigation us
 ## World ownership and identity
 
 `World` owns actors, projectiles, their short-lived burst effects, pickups, item
-definitions, and the current exit. An actor has a typed, monotonically increasing ID
+definitions, the current exit, and the platformer connections its searches have found
+for the level's map. An actor has a typed, monotonically increasing ID
 rather than exposing its vector index:
 
 ```cpp
@@ -458,6 +459,18 @@ high-level platformer search can add a configurable jump-start penalty, also exp
 in ticks, so a marginal shortcut does not make a grounded NPC hop unnecessarily.
 Setting that penalty to zero selects strictly by simulated travel time.
 
+A cell's connections depend only on the map, the cell, the body's size, its movement
+configuration and the step, and a map never changes within a level, so simulating them
+once per level is enough. `PlatformerConnectionCache` in `navigation/connection_cache`
+keeps the connections leaving each cell, grouped by the body they were simulated for.
+A search handed a cache takes each expanded cell's connections from it when they are
+there and keeps them there when they are not; a search without one simulates every
+cell, as the tests of the policies do. The `World` owns the cache for the map it is
+simulated with, since the world is replaced with its level, and the NPC system hands it
+to every platformer search. The profile counts the cells a search reused beside the
+cells it expanded, so the frame panel shows the simulated ticks fall to nothing once
+the level's reachable cells have been found.
+
 Path following never teleports an actor or writes its velocity. It emits intentions,
 and the ordinary actor movement system performs the motion. End-to-end tests replay
 generated input programs through the real simulation so navigation cannot quietly
@@ -648,7 +661,7 @@ The overlay also shows a frame panel, drawn by `app/debug/frame_profile_ui`. The
 application times each frame with a `Stopwatch` from `timing/stopwatch`, how many fixed
 steps it ran, and how long simulation, scene building, rendering, and the interface
 took, and records them in a `FrameHistory` from `timing/frame_profile`.
-The panel is one ImPlot plot over the recent frames with two vertical axes: frame time against the 60 Hz budget line on the left, and the simulation's phases on the right, stacked by category (NPC, Movement, Combat, World) on a fixed scale so a slow frame shows as a spike that may leave the top rather than rescaling the stack. Hiding a category in the legend restacks the rest. Under the plot it prints the latest breakdown, the average, the worst frame, and every phase under its category as an average cost per simulation step over the history, since one frame's numbers change too fast to read. The panel's window is invisible to the mouse, so clicks over it reach the game like the rest of the overlay; its legend and its plot are small windows of their own and the two places a click lands. A press on the plot picks the frame under the cursor and holding the button scrubs along the frames: a `FrameSelection` from `app/debug/frame_selection` keeps a copy of the history as it was, the plot holds still with the picked frame marked, and the summary shows that frame's own costs, its phases in milliseconds rather than per step and listed by cost, the dearest category first and each category's dearest phase first, until the picked frame is clicked again. The selection is data without ImGui, so what a press or a drag picks and what it keeps are tested. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a category and a short name, and the NPC system times each path search as a phase of its own, so the behaviour phase keeps only its own time, and counts the searches it ran, the cells they expanded and the movement ticks they simulated; the stack shows which category widened in a slow frame. `Stopwatch` is the one place the engine reads a clock; `timePhase` in `timing/frame_profile` times with it, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
+The panel is one ImPlot plot over the recent frames with two vertical axes: frame time against the 60 Hz budget line on the left, and the simulation's phases on the right, stacked by category (NPC, Movement, Combat, World) on a fixed scale so a slow frame shows as a spike that may leave the top rather than rescaling the stack. Hiding a category in the legend restacks the rest. Under the plot it prints the latest breakdown, the average, the worst frame, and every phase under its category as an average cost per simulation step over the history, since one frame's numbers change too fast to read. The panel's window is invisible to the mouse, so clicks over it reach the game like the rest of the overlay; its legend and its plot are small windows of their own and the two places a click lands. A press on the plot picks the frame under the cursor and holding the button scrubs along the frames: a `FrameSelection` from `app/debug/frame_selection` keeps a copy of the history as it was, the plot holds still with the picked frame marked, and the summary shows that frame's own costs, its phases in milliseconds rather than per step and listed by cost, the dearest category first and each category's dearest phase first, until the picked frame is clicked again. The selection is data without ImGui, so what a press or a drag picks and what it keeps are tested. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a category and a short name, and the NPC system times each path search as a phase of its own, so the behaviour phase keeps only its own time, and counts the searches it ran, the cells they expanded, how many of those the connection cache already held, and the movement ticks they simulated; the stack shows which category widened in a slow frame. `Stopwatch` is the one place the engine reads a clock; `timePhase` in `timing/frame_profile` times with it, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
 meaningful from a release build.
 
 The inventory UI is an example presentation, not an engine rule. It derives its rows

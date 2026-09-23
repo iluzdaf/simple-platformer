@@ -18,6 +18,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/inventory/item.hpp"
+#include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
@@ -82,6 +83,16 @@ namespace simple_platformer
         {
             throw std::invalid_argument(std::string(what) + " must be within simulation time");
         }
+    }
+
+    PlatformerConnectionCache& World::platformerConnections()
+    {
+        return platformerConnectionCache;
+    }
+
+    const PlatformerConnectionCache& World::platformerConnections() const
+    {
+        return platformerConnectionCache;
     }
 
     float World::simulationTimeSeconds() const

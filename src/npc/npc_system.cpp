@@ -14,6 +14,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/flying_navigation.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -60,6 +61,7 @@ namespace simple_platformer
         // The search simulates at deltaTime, the step this actor is about to be moved with.
         void requestPath(
             const TileMap& map,
+            PlatformerConnectionCache& connections,
             const Actor& actor,
             PathFollower& follower,
             glm::vec2 goalFeet,
@@ -116,13 +118,15 @@ namespace simple_platformer
                             actor.platformerMovement->config,
                             deltaTime,
                             PlatformerNavigationConfig{},
-                            &statistics);
+                            &statistics,
+                            &connections);
                     }
                 });
             if (profile != nullptr)
             {
                 ++profile->pathSearches;
                 profile->pathSearchNodes += statistics.nodesExpanded;
+                profile->pathSearchCellsReused += statistics.cellsReused;
                 profile->pathSearchSimulatedTicks += statistics.simulatedTicks;
             }
             follower.destinationCell = goal;
@@ -141,13 +145,14 @@ namespace simple_platformer
 
         void followDestination(
             const TileMap& map,
+            PlatformerConnectionCache& connections,
             Actor& actor,
             PathFollower& follower,
             glm::vec2 destinationFeet,
             float deltaTime,
             FrameProfile* profile)
         {
-            requestPath(map, actor, follower, destinationFeet, deltaTime, profile);
+            requestPath(map, connections, actor, follower, destinationFeet, deltaTime, profile);
             if (actor.flyingMovement.has_value())
             {
                 actor.intentions = followFlyingPath(
@@ -217,6 +222,7 @@ namespace simple_platformer
 
         void updatePatrolState(
             const TileMap& map,
+            PlatformerConnectionCache& connections,
             Actor& actor,
             PathFollower& follower,
             float deltaTime,
@@ -227,7 +233,8 @@ namespace simple_platformer
                 throw std::logic_error("A patrolling NPC is missing its patrol");
             }
             Patrol& patrol = *actor.patrol;
-            followDestination(map, actor, follower, patrolDestination(patrol), deltaTime, profile);
+            followDestination(
+                map, connections, actor, follower, patrolDestination(patrol), deltaTime, profile);
             if (pathComplete(follower))
             {
                 patrol.headingToSecond = !patrol.headingToSecond;
@@ -237,6 +244,7 @@ namespace simple_platformer
 
         void updateChaseState(
             const TileMap& map,
+            PlatformerConnectionCache& connections,
             Actor& actor,
             NpcBrain& brain,
             PathFollower& follower,
@@ -277,7 +285,8 @@ namespace simple_platformer
                 }
                 destinationFeet = feetInCell(map.tileSize(), chaseCell.value());
             }
-            followDestination(map, actor, follower, destinationFeet, deltaTime, profile);
+            followDestination(
+                map, connections, actor, follower, destinationFeet, deltaTime, profile);
         }
 
         void updateNpcState(
@@ -301,10 +310,19 @@ namespace simple_platformer
             case NpcState::Idle:
                 break;
             case NpcState::Patrol:
-                updatePatrolState(map, actor, follower, deltaTime, profile);
+                updatePatrolState(
+                    map, world.platformerConnections(), actor, follower, deltaTime, profile);
                 break;
             case NpcState::Chase:
-                updateChaseState(map, actor, brain, follower, target, deltaTime, profile);
+                updateChaseState(
+                    map,
+                    world.platformerConnections(),
+                    actor,
+                    brain,
+                    follower,
+                    target,
+                    deltaTime,
+                    profile);
                 break;
             case NpcState::Bite:
                 if (!actor.bite.has_value())

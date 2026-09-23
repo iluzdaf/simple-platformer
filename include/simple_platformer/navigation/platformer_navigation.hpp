@@ -13,6 +13,7 @@
 namespace simple_platformer
 {
     struct Aabb;
+    class PlatformerConnectionCache;
     class TileMap;
 
     struct PlatformerNavigationConfig
@@ -36,7 +37,9 @@ namespace simple_platformer
         float stepSeconds);
 
     // High-level path API for platformer actors. With statistics, reports what the search
-    // cost: the cells it expanded and the movement ticks it simulated.
+    // cost: the cells it expanded and the movement ticks it simulated. With a cache for
+    // this map, takes each cell's connections from it when they are there and keeps them
+    // there when they are not, so no cell is simulated twice.
     std::optional<NavigationPath> findPlatformerPath(
         const TileMap& map,
         GridPosition start,
@@ -45,7 +48,8 @@ namespace simple_platformer
         const PlatformerMovementConfig& movement,
         float stepSeconds,
         const PlatformerNavigationConfig& navigation = {},
-        PathSearchStatistics* statistics = nullptr);
+        PathSearchStatistics* statistics = nullptr,
+        PlatformerConnectionCache* cache = nullptr);
 
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize);
 
@@ -61,13 +65,14 @@ namespace simple_platformer
         glm::vec2 lastSeenFeet,
         glm::vec2 bodySize);
 
-    // Lower-level policy used by the generic path search.
-    // With statistics, adds the movement ticks it simulated.
+    // Lower-level policy used by the generic path search. With statistics, adds the
+    // movement ticks it simulated, or counts the cell as reused when a cache held it.
     std::vector<NavigationNeighbor> platformerNeighbors(
         const TileMap& map,
         GridPosition cell,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
         float stepSeconds,
-        PathSearchStatistics* statistics = nullptr);
+        PathSearchStatistics* statistics = nullptr,
+        PlatformerConnectionCache* cache = nullptr);
 }

@@ -10,9 +10,11 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
@@ -112,6 +114,38 @@ TEST_CASE(
     REQUIRE(actor(world, npcId).intentions.direction.x < 0.0F);
     REQUIRE(pathFollower(world, npcId).destinationCell == simple_platformer::GridPosition{0, 1});
     REQUIRE(brain(world, npcId).lastSeenTargetFeet == lastSeenFeet);
+}
+
+TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][navigation]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
+    simple_platformer::World world;
+    const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
+    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                                          .atFeet({56.0F, 32.0F})
+                                          .walking()
+                                          .thinking({64.0F, 1.0F}));
+    tests::platformerMovement(world, npcId).grounded = true;
+    brain(world, npcId).target = playerId;
+    brain(world, npcId).lastSeenTargetFeet = {8.0F, 32.0F};
+    brain(world, npcId).targetVisible = false;
+    REQUIRE(world.platformerConnections().size() == 0);
+
+    simple_platformer::FrameProfile first;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &first);
+    REQUIRE(first.pathSearches == 1);
+    REQUIRE(first.pathSearchCellsReused == 0);
+    REQUIRE(first.pathSearchSimulatedTicks > 0);
+    REQUIRE(world.platformerConnections().size() > 0);
+
+    // A search to a new destination reuses what the first one simulated.
+    brain(world, npcId).lastSeenTargetFeet = {24.0F, 32.0F};
+    pathFollower(world, npcId).repathRemaining = 0.0F;
+    simple_platformer::FrameProfile second;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &second);
+    REQUIRE(second.pathSearches == 1);
+    REQUIRE(second.pathSearchCellsReused > 0);
+    REQUIRE(second.pathSearchSimulatedTicks == 0);
 }
 
 TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][fsm]")

@@ -82,6 +82,9 @@ TEST_CASE("A frame history rejects impossible measurements", "[timing][profile]"
     FrameProfile negativeCells;
     negativeCells.pathSearchNodes = -1;
     REQUIRE_THROWS_AS(history.push(negativeCells), std::invalid_argument);
+    FrameProfile negativeReuse;
+    negativeReuse.pathSearchCellsReused = -1;
+    REQUIRE_THROWS_AS(history.push(negativeReuse), std::invalid_argument);
     FrameProfile stillTiming;
     stillTiming.nestedSecondsOfOpenPhases.push_back(0.0F);
     REQUIRE_THROWS_AS(history.push(stillTiming), std::invalid_argument);
@@ -195,17 +198,20 @@ TEST_CASE("A frame history totals ticks and path searches across its frames", "[
     first.simulationTicks = 2;
     first.pathSearches = 1;
     first.pathSearchNodes = 10;
+    first.pathSearchCellsReused = 4;
     first.pathSearchSimulatedTicks = 100;
     FrameProfile second = frameTaking(0.016F);
     second.simulationTicks = 1;
     second.pathSearches = 3;
     second.pathSearchNodes = 5;
+    second.pathSearchCellsReused = 5;
     second.pathSearchSimulatedTicks = 50;
     history.push(first);
     history.push(second);
     REQUIRE(history.totalSimulationTicks() == 3);
     REQUIRE(history.totalPathSearches() == 4);
     REQUIRE(history.totalPathSearchNodes() == 15);
+    REQUIRE(history.totalPathSearchCellsReused() == 9);
     REQUIRE(history.totalPathSearchSimulatedTicks() == 150);
 
     // A third frame evicts the first.

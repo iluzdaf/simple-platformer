@@ -186,7 +186,13 @@ namespace simple_platformer
         }
 
         tileIds[indexOf(cell)] = *broken;
+        brokenCellLog.push_back(cell);
         return true;
+    }
+
+    const std::vector<GridPosition>& TileMap::brokenCells() const
+    {
+        return brokenCellLog;
     }
 
     std::size_t TileMap::indexOf(GridPosition cell) const

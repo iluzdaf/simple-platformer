@@ -76,7 +76,7 @@ namespace simple_platformer
 
         // The platformer connections this world's searches have found, for the map it is
         // simulated with. The world goes with its level, so what one search simulated
-        // serves every later one. A tile broken during play is not yet reflected in it.
+        // serves every later one; a tile broken during play drops only what it touched.
         PlatformerConnectionCache& platformerConnections();
         const PlatformerConnectionCache& platformerConnections() const;
 

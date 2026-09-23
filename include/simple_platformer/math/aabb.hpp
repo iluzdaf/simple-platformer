@@ -26,6 +26,10 @@ namespace simple_platformer
         GridPosition last;
     };
 
+    bool contains(const CellRange& range, GridPosition cell);
+    // The smallest range holding both.
+    CellRange unionOf(const CellRange& left, const CellRange& right);
+
     // The cells the box lies over. Its edges are read EdgeTolerance inside, so a box resting
     // exactly on a boundary does not also cover the cell beyond it.
     CellRange cellsCovered(int tileSize, const Aabb& box);

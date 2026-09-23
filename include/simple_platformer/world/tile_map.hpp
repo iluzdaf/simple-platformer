@@ -60,6 +60,9 @@ namespace simple_platformer
         // breaksIntoTileId, is left alone: callers pass in cells that came from a cast,
         // and map boundaries report as blocking cells that lie outside the map.
         bool breakTile(GridPosition cell);
+        // Every cell broken so far, in order, so whatever was worked out from the map as it
+        // was can find out what changed since.
+        const std::vector<GridPosition>& brokenCells() const;
 
     private:
         // Row-major offset into tileIds. The cell must be inside the map.
@@ -70,5 +73,6 @@ namespace simple_platformer
         int mapHeight = 0;
         std::vector<int> tileIds;
         std::vector<TileDefinition> tileDefinitions;
+        std::vector<GridPosition> brokenCellLog;
     };
 }

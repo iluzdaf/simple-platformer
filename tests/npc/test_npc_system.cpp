@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <stdexcept>
+#include <vector>
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
@@ -198,6 +199,38 @@ TEST_CASE("Warming navigation keeps every cell for each walking NPC body", "[npc
 
     REQUIRE_THROWS_AS(
         simple_platformer::warmNpcNavigation(map, world, 0.0F), std::invalid_argument);
+}
+
+TEST_CASE("An NPC's search after a break sees the map as it is", "[npc][navigation]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", ".....", "##g##"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    simple_platformer::World world;
+    const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
+    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                                          .atFeet({8.0F, 32.0F})
+                                          .walking()
+                                          .thinking({64.0F, 1.0F}));
+    simple_platformer::warmNpcNavigation(map, world, tests::FixedStepSeconds);
+    const simple_platformer::ConnectionBody body{
+        {12.0F, 12.0F}, simple_platformer::PlatformerMovementConfig{}, tests::FixedStepSeconds};
+    REQUIRE(world.platformerConnections().find({2, 1}, body) != nullptr);
+
+    REQUIRE(map.breakTile({2, 2}));
+    tests::platformerMovement(world, npcId).grounded = true;
+    brain(world, npcId).target = playerId;
+    brain(world, npcId).lastSeenTargetFeet = {72.0F, 32.0F};
+    brain(world, npcId).targetVisible = false;
+    simple_platformer::FrameProfile profile;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &profile);
+
+    // The search synced with the map first: the cells the break touched were dropped
+    // and simulated again, and the cell over the hole, which nothing can stand on now,
+    // is no longer kept as a cell with connections.
+    REQUIRE(profile.pathSearches == 1);
+    REQUIRE(profile.pathSearchSimulatedTicks > 0);
+    REQUIRE(world.platformerConnections().find({2, 1}, body) == nullptr);
 }
 
 TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][fsm]")

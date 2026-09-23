@@ -6,12 +6,15 @@
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 
 namespace simple_platformer
 {
+    class TileMap;
+
     // What a cell's connections are simulated for. The same body at the same step finds
     // the same connections from a cell every time.
     struct ConnectionBody
@@ -42,23 +45,33 @@ namespace simple_platformer
     // What platformer searches learn about one map, kept so nothing is worked out twice:
     // the connections leaving each cell, the cells reachable from each start a search
     // failed from, and the path found for each query. All of it depends only on the
-    // map, the body and the step, so a cache serves one map. A tile that breaks during
-    // play is not yet reflected: what was kept before the break stays until the cache
-    // is cleared, and invalidating only what a break touches is the next piece of work.
-    // What is learned for one body is kept apart from another's. Every keep requires a
-    // body with a finite, positive size and step.
+    // map, the body and the step, so a cache serves one map. When a tile of that map
+    // breaks, the cache drops only what the break can have changed: each cell's
+    // connections come with the footprint their simulation swept, and a broken tile
+    // inside a footprint drops that cell, the reachable sets that held it, and every
+    // remembered path, since a new opening can make a cheaper route anywhere. What is
+    // learned for one body is kept apart from another's. Every keep requires a body
+    // with a finite, positive size and step.
     class PlatformerConnectionCache
     {
     public:
+        // Drops what the map's breaks since the last sync can have changed. Every read of
+        // the cache that has the map to hand syncs first, so nothing has to remember to.
+        void syncWith(const TileMap& map);
+        // Drops what a break of this cell can have changed, as syncWith does per break.
+        void invalidate(GridPosition brokenCell);
+
         // The connections kept for this cell and body, or nothing while none have been.
         const std::vector<NavigationNeighbor>* find(GridPosition cell, const ConnectionBody& body)
             const;
         // Keeps these as the cell's connections for the body, replacing any kept before,
-        // and returns them where they are kept.
+        // and returns them where they are kept. The footprint is every cell their
+        // simulation swept: a break inside it drops them.
         const std::vector<NavigationNeighbor>& keep(
             GridPosition cell,
             const ConnectionBody& body,
-            std::vector<NavigationNeighbor> connections);
+            std::vector<NavigationNeighbor> connections,
+            const CellRange& footprint);
         // The cells a body can reach from this start, learned from a search that failed
         // there, or nothing while none has. A goal outside the set has no path, so a
         // search for one need not run.
@@ -79,8 +92,13 @@ namespace simple_platformer
         std::size_t size() const;
 
     private:
-        using CellConnections =
-            std::unordered_map<GridPosition, std::vector<NavigationNeighbor>, GridPositionHash>;
+        struct KeptConnections
+        {
+            std::vector<NavigationNeighbor> connections;
+            CellRange footprint;
+        };
+
+        using CellConnections = std::unordered_map<GridPosition, KeptConnections, GridPositionHash>;
         using ReachableCells =
             std::unordered_map<GridPosition, std::vector<GridPosition>, GridPositionHash>;
         using PathsFound = std::unordered_map<PathQuery, NavigationPath, PathQueryHash>;
@@ -98,5 +116,7 @@ namespace simple_platformer
         const BodyConnections* findConnectionsFor(const ConnectionBody& body) const;
 
         std::vector<BodyConnections> bodies;
+        // How many of the map's breaks have been applied.
+        std::size_t breaksApplied = 0;
     };
 }

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 
@@ -85,6 +86,20 @@ TEST_CASE("Breaking a tile replaces it with what its definition breaks into", "[
     // The neighbouring solid tile declares nothing to break into either, so it stays.
     REQUIRE_FALSE(map.breakTile({1, 0}));
     REQUIRE(map.blocksMovement({1, 0}));
+}
+
+TEST_CASE("A tile map logs the cells it broke, in order", "[world][tile-map]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"gg#"}).where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    REQUIRE(map.brokenCells().empty());
+
+    REQUIRE(map.breakTile({1, 0}));
+    REQUIRE(map.breakTile({0, 0}));
+    // Neither an empty cell nor a solid one that declares nothing to break into is logged.
+    REQUIRE_FALSE(map.breakTile({1, 0}));
+    REQUIRE_FALSE(map.breakTile({2, 0}));
+    REQUIRE(map.brokenCells() == std::vector<simple_platformer::GridPosition>{{1, 0}, {0, 0}});
 }
 
 TEST_CASE("Breaking reports failure outside the map instead of throwing", "[world][tile-map]")

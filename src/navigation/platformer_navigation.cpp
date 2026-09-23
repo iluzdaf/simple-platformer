@@ -283,7 +283,7 @@ namespace simple_platformer
         // With a cache, the connections are read where the cache keeps them; without one
         // they are simulated for this search alone. Either way a jump is charged its cost
         // and the start penalty.
-        const GridNeighborVisitFunction visitNeighbors =
+        const GridNeighborFunction neighbors =
             [&map, bodySize, &movement, stepSeconds, &navigation, statistics, cache](
                 GridPosition cell, const GridNeighborVisitor& visit)
         {
@@ -335,12 +335,7 @@ namespace simple_platformer
         std::vector<GridPosition> reached;
         // Pass no heuristic to compare A* with the default Dijkstra search.
         std::optional<NavigationPath> path = findLowestCostPath(
-            start,
-            goal,
-            visitNeighbors,
-            heuristic,
-            statistics,
-            cache != nullptr ? &reached : nullptr);
+            start, goal, neighbors, heuristic, statistics, cache != nullptr ? &reached : nullptr);
         if (!path.has_value() && cache != nullptr)
         {
             cache->keepReachable(start, body, std::move(reached));

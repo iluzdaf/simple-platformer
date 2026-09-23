@@ -432,8 +432,8 @@ lowest-cost search from movement-specific neighbour policies.
 
 `path_search` accepts connections with positive costs and an optional heuristic.
 Supplying zero produces Dijkstra-style lowest-cost search. A policy hands the search
-each cell's connections either as a vector it builds on the spot or by visiting them
-where they already are, each with the cost the search should charge; only the
+each cell's connections by visiting them where they are, each with the cost the search
+should charge, so a policy reading a cache need not copy them out; only the
 connections the search follows are copied, into the path. Flying navigation uses
 ordinary walkable grid neighbours and can use Manhattan distance. Platformer
 navigation uses fixed simulation ticks as the common connection cost and a conservative

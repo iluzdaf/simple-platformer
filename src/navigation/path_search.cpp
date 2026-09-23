@@ -116,29 +116,6 @@ namespace simple_platformer
         {
             throw std::invalid_argument("Path search requires a neighbor function");
         }
-        const GridNeighborVisitFunction visitNeighbors =
-            [&neighbors](GridPosition cell, const GridNeighborVisitor& visit)
-        {
-            for (const NavigationNeighbor& neighbor : neighbors(cell))
-            {
-                visit(neighbor, neighbor.cost);
-            }
-        };
-        return findLowestCostPath(start, goal, visitNeighbors, heuristic, statistics, reached);
-    }
-
-    std::optional<NavigationPath> findLowestCostPath(
-        GridPosition start,
-        GridPosition goal,
-        const GridNeighborVisitFunction& visitNeighbors,
-        const GridHeuristicFunction& heuristic,
-        PathSearchStatistics* statistics,
-        std::vector<GridPosition>* reached)
-    {
-        if (!visitNeighbors)
-        {
-            throw std::invalid_argument("Path search requires a neighbor function");
-        }
         if (!heuristic)
         {
             throw std::invalid_argument("Path search requires a heuristic function");
@@ -182,7 +159,7 @@ namespace simple_platformer
             }
 
             // Adding a node may move the others, so nothing above is referenced below.
-            visitNeighbors(
+            neighbors(
                 currentCell,
                 [&](const NavigationNeighbor& neighbor, int cost)
                 {

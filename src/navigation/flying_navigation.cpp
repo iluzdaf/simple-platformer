@@ -17,8 +17,14 @@ namespace simple_platformer
         GridPosition goal,
         PathSearchStatistics* statistics)
     {
-        const GridNeighborFunction neighbors = [&map](GridPosition cell)
-        { return flyingNeighbors(map, cell); };
+        const GridNeighborFunction neighbors =
+            [&map](GridPosition cell, const GridNeighborVisitor& visit)
+        {
+            for (const NavigationNeighbor& neighbor : flyingNeighbors(map, cell))
+            {
+                visit(neighbor, neighbor.cost);
+            }
+        };
 
         // Remove manhattanHeuristic to compare this A* search with the default Dijkstra search.
         return findLowestCostPath(start, goal, neighbors, manhattanHeuristic, statistics);

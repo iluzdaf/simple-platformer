@@ -315,7 +315,7 @@ namespace simple_platformer
                             intentions.primaryAttackPressed = false;
                         }
                         intentions.aimDirection = context.aimDirection;
-                        game.update(intentions, deltaTime);
+                        game.update(intentions, deltaTime, &profile);
                     });
                 profile.simulationTicks = static_cast<int>(stepped.updates);
                 profile.simulationSeconds = secondsSince(simulationStart);

@@ -20,6 +20,7 @@
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -59,7 +60,8 @@ namespace simple_platformer
             const TileMap& map,
             const Actor& actor,
             PathFollower& follower,
-            glm::vec2 goalFeet)
+            glm::vec2 goalFeet,
+            FrameProfile* profile)
         {
             GridPosition start = cellAtFeet(map.tileSize(), feetOf(actor.body.bounds));
             if (actor.platformerMovement.has_value())
@@ -99,6 +101,10 @@ namespace simple_platformer
                 path = findPlatformerPath(
                     map, start, goal, actor.body.bounds.size, actor.platformerMovement->config);
             }
+            if (profile != nullptr)
+            {
+                ++profile->pathSearches;
+            }
             follower.destinationCell = goal;
             follower.repathRemaining = follower.repathCooldown;
             if (path.has_value())
@@ -118,9 +124,10 @@ namespace simple_platformer
             Actor& actor,
             PathFollower& follower,
             glm::vec2 destinationFeet,
-            float deltaTime)
+            float deltaTime,
+            FrameProfile* profile)
         {
-            requestPath(map, actor, follower, destinationFeet);
+            requestPath(map, actor, follower, destinationFeet, profile);
             if (actor.flyingMovement.has_value())
             {
                 actor.intentions = followFlyingPath(
@@ -192,14 +199,15 @@ namespace simple_platformer
             const TileMap& map,
             Actor& actor,
             PathFollower& follower,
-            float deltaTime)
+            float deltaTime,
+            FrameProfile* profile)
         {
             if (!actor.patrol.has_value())
             {
                 throw std::logic_error("A patrolling NPC is missing its patrol");
             }
             Patrol& patrol = *actor.patrol;
-            followDestination(map, actor, follower, patrolDestination(patrol), deltaTime);
+            followDestination(map, actor, follower, patrolDestination(patrol), deltaTime, profile);
             if (pathComplete(follower))
             {
                 patrol.headingToSecond = !patrol.headingToSecond;
@@ -213,7 +221,8 @@ namespace simple_platformer
             NpcBrain& brain,
             PathFollower& follower,
             const Actor* target,
-            float deltaTime)
+            float deltaTime,
+            FrameProfile* profile)
         {
             if (target == nullptr)
             {
@@ -248,10 +257,15 @@ namespace simple_platformer
                 }
                 destinationFeet = feetInCell(map.tileSize(), chaseCell.value());
             }
-            followDestination(map, actor, follower, destinationFeet, deltaTime);
+            followDestination(map, actor, follower, destinationFeet, deltaTime, profile);
         }
 
-        void updateNpcState(const TileMap& map, World& world, Actor& actor, float deltaTime)
+        void updateNpcState(
+            const TileMap& map,
+            World& world,
+            Actor& actor,
+            float deltaTime,
+            FrameProfile* profile)
         {
             if (!actor.brain.has_value() || !actor.pathFollower.has_value())
             {
@@ -267,10 +281,10 @@ namespace simple_platformer
             case NpcState::Idle:
                 break;
             case NpcState::Patrol:
-                updatePatrolState(map, actor, follower, deltaTime);
+                updatePatrolState(map, actor, follower, deltaTime, profile);
                 break;
             case NpcState::Chase:
-                updateChaseState(map, actor, brain, follower, target, deltaTime);
+                updateChaseState(map, actor, brain, follower, target, deltaTime, profile);
                 break;
             case NpcState::Bite:
                 if (!actor.bite.has_value())
@@ -283,7 +297,11 @@ namespace simple_platformer
         }
     }
 
-    void updateNpcBehaviour(const TileMap& map, World& world, float deltaTime)
+    void updateNpcBehaviour(
+        const TileMap& map,
+        World& world,
+        float deltaTime,
+        FrameProfile* profile)
     {
         requireSeconds(deltaTime, "NPC behaviour time step");
 
@@ -304,7 +322,7 @@ namespace simple_platformer
             follower.repathRemaining = std::max(0.0F, follower.repathRemaining - deltaTime);
             if (actor.life == LifeState::Alive)
             {
-                updateNpcState(map, world, actor, deltaTime);
+                updateNpcState(map, world, actor, deltaTime, profile);
                 brain.stateElapsed += deltaTime;
             }
         }

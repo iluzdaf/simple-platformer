@@ -20,10 +20,25 @@
 
 namespace simple_platformer
 {
-    bool drawInventoryButton(const TextureView& atlas, const WindowViewport& viewport)
+    namespace
     {
+        // Where the bag icon sits in the atlas, in pixels.
         constexpr float BagLeft = 64.0F;
         constexpr float BagTop = 216.0F;
+
+        // Inventory grid layout, in internal pixels before the viewport scales them.
+        constexpr float SlotSize = 20.0F;
+        constexpr float IconPadding = 2.0F;
+        constexpr float GridPadding = 2.0F;
+
+        // Inventory grid palette.
+        constexpr ImU32 SlotColour = IM_COL32(40, 44, 52, 220);
+        constexpr ImU32 HoveredSlotColour = IM_COL32(72, 76, 84, 240);
+        constexpr ImU32 SlotBorderColour = IM_COL32(150, 156, 168, 220);
+    }
+
+    bool drawInventoryButton(const TextureView& atlas, const WindowViewport& viewport)
+    {
         if (atlas.width < static_cast<int>(BagLeft + HudIconSize) ||
             atlas.height < static_cast<int>(BagTop + HudIconSize))
         {
@@ -69,9 +84,9 @@ namespace simple_platformer
     {
         const auto& slots = game.playerInventory().slots();
         const InventoryGridLayout layout = makeInventoryGridLayout(slots.size());
-        const float slotSize = 20.0F * viewport.scale.x;
-        const float iconPadding = 2.0F * viewport.scale.x;
-        const float windowPadding = 2.0F * viewport.scale.x;
+        const float slotSize = SlotSize * viewport.scale.x;
+        const float iconPadding = IconPadding * viewport.scale.x;
+        const float windowPadding = GridPadding * viewport.scale.x;
         const ImVec2 windowSize = {
             slotSize * static_cast<float>(layout.columns) +
                 windowPadding * static_cast<float>(layout.columns + 1),
@@ -101,11 +116,9 @@ namespace simple_platformer
                 const ImVec2 slotMinimum = ImGui::GetItemRectMin();
                 const ImVec2 slotMaximum = ImGui::GetItemRectMax();
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
-                const ImU32 background =
-                    ImGui::IsItemHovered() ? IM_COL32(72, 76, 84, 240) : IM_COL32(40, 44, 52, 220);
+                const ImU32 background = ImGui::IsItemHovered() ? HoveredSlotColour : SlotColour;
                 drawList->AddRectFilled(slotMinimum, slotMaximum, background);
-                drawList->AddRect(
-                    slotMinimum, slotMaximum, IM_COL32(150, 156, 168, 220), 0.0F, 0, 1.0F);
+                drawList->AddRect(slotMinimum, slotMaximum, SlotBorderColour, 0.0F, 0, 1.0F);
 
                 const auto& slot = slots[index];
                 if (slot.has_value())
@@ -119,7 +132,7 @@ namespace simple_platformer
 
                     char count[16];
                     std::snprintf(count, sizeof(count), "%d", slot->quantity);
-                    drawShadowedText(*drawList, iconMinimum, IM_COL32(255, 255, 255, 255), count);
+                    drawShadowedText(*drawList, iconMinimum, HudTextColour, count);
                     if (clicked && item.effect != ItemEffect::None)
                     {
                         slotToUse = index;

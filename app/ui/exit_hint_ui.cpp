@@ -10,6 +10,7 @@
 #include "graphics/sprite_renderer.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "ui/hud_draw.hpp"
+#include "ui/hud_layout.hpp"
 
 namespace simple_platformer
 {
@@ -25,7 +26,6 @@ namespace simple_platformer
             return;
         }
 
-        constexpr float GapAboveDoor = 4.0F;
         const ImVec2 topLeft = {
             viewport.topLeft.x + (doorTopCenter->x - icon->size.x * 0.5F) * viewport.scale.x,
             viewport.topLeft.y +

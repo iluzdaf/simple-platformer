@@ -7,10 +7,17 @@
 
 namespace simple_platformer
 {
+    namespace
+    {
+        // The text shadow's colour and how far down and right it falls, in window pixels.
+        constexpr ImU32 ShadowColour = IM_COL32(0, 0, 0, 220);
+        constexpr float ShadowOffset = 1.0F;
+    }
+
     void drawShadowedText(ImDrawList& drawList, ImVec2 position, ImU32 colour, const char* text)
     {
-        constexpr ImU32 ShadowColour = IM_COL32(0, 0, 0, 220);
-        drawList.AddText({position.x + 1.0F, position.y + 1.0F}, ShadowColour, text);
+        drawList.AddText(
+            {position.x + ShadowOffset, position.y + ShadowOffset}, ShadowColour, text);
         drawList.AddText(position, colour, text);
     }
 

@@ -8,6 +8,7 @@
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "ui/hud_draw.hpp"
+#include "ui/hud_layout.hpp"
 
 namespace simple_platformer
 {
@@ -16,7 +17,7 @@ namespace simple_platformer
         void drawCenteredText(ImDrawList& drawList, ImVec2 center, float y, const char* text)
         {
             const float left = center.x - ImGui::CalcTextSize(text).x * 0.5F;
-            drawShadowedText(drawList, {left, y}, IM_COL32(255, 255, 255, 255), text);
+            drawShadowedText(drawList, {left, y}, HudTextColour, text);
         }
     }
 
@@ -36,7 +37,8 @@ namespace simple_platformer
             viewport.topLeft.x + exitPosition->x * viewport.scale.x,
             viewport.topLeft.y + exitPosition->y * viewport.scale.y};
         const float lineHeight = ImGui::GetTextLineHeight();
-        const float firstLineY = doorTopCenter.y - lineHeight * 3.0F - 4.0F;
+        const float firstLineY =
+            doorTopCenter.y - lineHeight * 3.0F - GapAboveDoor * viewport.scale.y;
         ImDrawList* drawList = ImGui::GetForegroundDrawList();
         drawCenteredText(*drawList, doorTopCenter, firstLineY, "Completed");
         drawCenteredText(*drawList, doorTopCenter, firstLineY + lineHeight, "Press R to");

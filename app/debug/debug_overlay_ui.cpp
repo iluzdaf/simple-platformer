@@ -799,7 +799,11 @@ namespace simple_platformer
             "simulation %6.3f ms per tick over %d ticks",
             millisecondsPerTick(history.simulationSecondsOldestFirst()),
             ticks);
-        ImGui::Text("path searches %d", history.totalPathSearches());
+        ImGui::Text(
+            "path searches %d   cells %d   simulated ticks %d",
+            history.totalPathSearches(),
+            history.totalPathSearchNodes(),
+            history.totalPathSearchSimulatedTicks());
         // Each category with its total, then its phases, all in simulation order so rows
         // never move while the numbers change.
         if (ImGui::BeginTable("phases", 2, ImGuiTableFlags_SizingFixedFit))

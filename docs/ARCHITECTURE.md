@@ -73,7 +73,7 @@ simulation tick, and inspect the result without needing a window or graphics con
 
 All third-party source is vendored under `external/` so the project builds offline and
 everyone works from the same releases. The current dependencies include GLFW, glad, GLM, ImGui,
-Catch2, stb image loading, and nlohmann/json.
+ImPlot for the debug overlay's plots, Catch2, stb image loading, and nlohmann/json.
 
 ### Application folders
 
@@ -638,8 +638,7 @@ be tested without a window.
 The overlay also shows a frame panel. The application times each frame with the wall
 clock, how many fixed steps it ran, and how long simulation, scene building, rendering,
 and the interface took, and records them in a `FrameHistory` from `timing/frame_profile`.
-The panel plots the recent frame times against the 60 Hz budget and prints the latest
-breakdown, the average, and the worst frame. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a short name for the step, and the NPC system counts the navigation searches it ran; the panel lists the phases costliest first. That is the one place the engine reads a clock, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
+The panel draws two ImPlot plots over the recent frames: frame and simulation time against the 60 Hz budget line, and the simulation phases stacked so each band's thickness is one phase's share; under them it prints the latest breakdown, the average, and the worst frame. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a short name for the step, and the NPC system counts the navigation searches it ran; the stacked plot shows where a slow frame's time went. That is the one place the engine reads a clock, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
 meaningful from a release build.
 
 The inventory UI is an example presentation, not an engine rule. It derives its rows

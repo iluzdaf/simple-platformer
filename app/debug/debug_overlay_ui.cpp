@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <imgui.h>
+#include <implot.h>
 
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
@@ -528,6 +529,18 @@ namespace simple_platformer
         }
     }
 
+    namespace
+    {
+        std::vector<float> toMilliseconds(std::vector<float> seconds)
+        {
+            for (float& value : seconds)
+            {
+                value *= 1000.0F;
+            }
+            return seconds;
+        }
+    }
+
     void drawFrameProfile(const FrameHistory& history)
     {
         if (history.size() == 0)
@@ -535,9 +548,9 @@ namespace simple_platformer
             return;
         }
 
-        constexpr float TargetFrameSeconds = static_cast<float>(FixedDeltaSeconds);
-        constexpr float PanelWidth = 320.0F;
-        constexpr float PlotHeight = 60.0F;
+        constexpr float TargetFrameMilliseconds = static_cast<float>(FixedDeltaSeconds) * 1000.0F;
+        constexpr float PanelWidth = 360.0F;
+        constexpr float PlotHeight = 110.0F;
         constexpr float PanelMargin = 8.0F;
         constexpr float PanelTop = 48.0F;
         const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
@@ -558,41 +571,48 @@ namespace simple_platformer
             return;
         }
 
-        const std::vector<float> seconds = history.frameSecondsOldestFirst();
         const FrameProfile& latest = history.latest();
         const FrameProfile& worst = history.worst();
-        // The plot always shows the 60 Hz budget line, and stretches when a frame passes it.
-        const float plotTop = std::max(TargetFrameSeconds * 2.0F, worst.frameSeconds * 1.1F);
-        const float plotWidth = ImGui::GetContentRegionAvail().x;
-        ImGui::PlotLines(
-            "##frame",
-            seconds.data(),
-            static_cast<int>(seconds.size()),
-            0,
-            nullptr,
-            0.0F,
-            plotTop,
-            {plotWidth, PlotHeight});
-        const ImVec2 plotMinimum = ImGui::GetItemRectMin();
-        const ImVec2 plotMaximum = ImGui::GetItemRectMax();
-        const float budgetY =
-            plotMaximum.y - (plotMaximum.y - plotMinimum.y) * (TargetFrameSeconds / plotTop);
-        ImGui::GetWindowDrawList()->AddLine(
-            {plotMinimum.x, budgetY}, {plotMaximum.x, budgetY}, CameraDeadZoneColour, 1.0F);
+        const std::vector<float> frameMilliseconds =
+            toMilliseconds(history.frameSecondsOldestFirst());
+        const std::vector<float> simulationMilliseconds =
+            toMilliseconds(history.simulationSecondsOldestFirst());
+        const int frameCount = static_cast<int>(frameMilliseconds.size());
+        const auto frameAxis = static_cast<double>(history.capacity());
+        // Both plots keep the 60 Hz budget in view and stretch when a frame passes it.
+        const double frameTop = std::max(
+            static_cast<double>(TargetFrameMilliseconds) * 2.0,
+            static_cast<double>(worst.frameSeconds) * 1000.0 * 1.1);
+        constexpr ImPlotFlags PlotFlags = ImPlotFlags_NoInputs | ImPlotFlags_NoMenus |
+                                          ImPlotFlags_NoTitle | ImPlotFlags_NoBoxSelect;
 
+        if (ImPlot::BeginPlot("##frame", {-1.0F, PlotHeight}, PlotFlags))
+        {
+            ImPlot::SetupAxes(nullptr, "ms", ImPlotAxisFlags_NoTickLabels, 0);
+            ImPlot::SetupAxesLimits(0.0, frameAxis, 0.0, frameTop, ImPlotCond_Always);
+            ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Horizontal);
+            ImPlot::PlotInfLines(
+                "60 Hz budget",
+                &TargetFrameMilliseconds,
+                1,
+                ImPlotSpec(ImPlotProp_Flags, ImPlotInfLinesFlags_Horizontal));
+            ImPlot::PlotLine("frame", frameMilliseconds.data(), frameCount);
+            ImPlot::PlotLine("simulation", simulationMilliseconds.data(), frameCount);
+            ImPlot::EndPlot();
+        }
         ImGui::Text(
-            "frame %6.2f ms   avg %6.2f   worst %6.2f   budget %.2f",
+            "frame %6.2f ms   avg %6.2f   worst %6.2f",
             latest.frameSeconds * 1000.0F,
             history.averageFrameSeconds() * 1000.0F,
-            worst.frameSeconds * 1000.0F,
-            TargetFrameSeconds * 1000.0F);
+            worst.frameSeconds * 1000.0F);
         ImGui::Text(
             "scene %5.2f ms   render %5.2f   ui %5.2f",
             latest.sceneSeconds * 1000.0F,
             latest.renderSeconds * 1000.0F,
             latest.interfaceSeconds * 1000.0F);
 
-        // Frames faster than the fixed step run no simulation; show the last one that did.
+        // Frames faster than the fixed step run no simulation; the phases come from the
+        // last one that did, and the stack shows every phase's share over the whole history.
         const FrameProfile* simulated = history.latestSimulated();
         if (simulated == nullptr)
         {
@@ -606,12 +626,36 @@ namespace simple_platformer
             simulated->simulationTicks == 1 ? "" : "s",
             simulated->simulationSeconds * 1000.0F,
             simulated->pathSearches);
-        const float total = std::max(simulated->simulationSeconds, 0.000001F);
-        for (const PhaseTiming& phase : simulated->phases)
+
+        double stackTop = static_cast<double>(TargetFrameMilliseconds);
+        for (const float milliseconds : simulationMilliseconds)
         {
-            ImGui::Text("%-18s %5.2f ms", phase.name, phase.seconds * 1000.0F);
-            ImGui::SameLine();
-            ImGui::ProgressBar(phase.seconds / total, {-FLT_MIN, 0.0F}, "");
+            stackTop = std::max(stackTop, static_cast<double>(milliseconds) * 1.1);
+        }
+        if (ImPlot::BeginPlot("##phases", {-1.0F, PlotHeight}, PlotFlags))
+        {
+            ImPlot::SetupAxes(nullptr, "ms", ImPlotAxisFlags_NoTickLabels, 0);
+            ImPlot::SetupAxesLimits(0.0, frameAxis, 0.0, stackTop, ImPlotCond_Always);
+            ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Outside);
+            std::vector<float> frames(frameMilliseconds.size());
+            for (std::size_t index = 0; index < frames.size(); ++index)
+            {
+                frames[index] = static_cast<float>(index);
+            }
+            std::vector<float> lower(frames.size(), 0.0F);
+            for (const PhaseTiming& phase : simulated->phases)
+            {
+                std::vector<float> upper =
+                    toMilliseconds(history.phaseSecondsOldestFirst(phase.name));
+                for (std::size_t index = 0; index < upper.size(); ++index)
+                {
+                    upper[index] += lower[index];
+                }
+                ImPlot::PlotShaded(
+                    phase.name, frames.data(), lower.data(), upper.data(), frameCount);
+                lower = upper;
+            }
+            ImPlot::EndPlot();
         }
         ImGui::End();
     }

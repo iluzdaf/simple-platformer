@@ -1,0 +1,5 @@
+ImPlot, vendored from https://github.com/epezent/implot
+Commit 7eeb9168d2e5e6b14e266d8782ecf7e649dfc3a4 on master, 2026-08-06 (IMPLOT_VERSION "1.1 WIP").
+Files: implot.h, implot_internal.h, implot.cpp, implot_items.cpp, LICENSE, README.md.
+Taken from master rather than the last tagged release because the tag predates the ImGui
+1.91 API it must compile against; the version guards in implot.cpp cover this ImGui.

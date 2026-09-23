@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -74,6 +75,12 @@ TEST_CASE("A frame history rejects impossible measurements", "[timing][profile]"
     FrameProfile negativeTicks;
     negativeTicks.simulationTicks = -1;
     REQUIRE_THROWS_AS(history.push(negativeTicks), std::invalid_argument);
+    FrameProfile negativeCells;
+    negativeCells.pathSearchNodes = -1;
+    REQUIRE_THROWS_AS(history.push(negativeCells), std::invalid_argument);
+    FrameProfile stillTiming;
+    stillTiming.nestedSecondsOfOpenPhases.push_back(0.0F);
+    REQUIRE_THROWS_AS(history.push(stillTiming), std::invalid_argument);
 }
 
 TEST_CASE("Adding to a phase sums repeats and keeps first-seen order", "[timing][profile]")
@@ -140,16 +147,51 @@ TEST_CASE("A frame history totals ticks and path searches across its frames", "[
     FrameProfile first = frameTaking(0.016F);
     first.simulationTicks = 2;
     first.pathSearches = 1;
+    first.pathSearchNodes = 10;
+    first.pathSearchSimulatedTicks = 100;
     FrameProfile second = frameTaking(0.016F);
     second.simulationTicks = 1;
     second.pathSearches = 3;
+    second.pathSearchNodes = 5;
+    second.pathSearchSimulatedTicks = 50;
     history.push(first);
     history.push(second);
     REQUIRE(history.totalSimulationTicks() == 3);
     REQUIRE(history.totalPathSearches() == 4);
+    REQUIRE(history.totalPathSearchNodes() == 15);
+    REQUIRE(history.totalPathSearchSimulatedTicks() == 150);
 
     // A third frame evicts the first.
     history.push(frameTaking(0.007F));
     REQUIRE(history.totalSimulationTicks() == 1);
     REQUIRE(history.totalPathSearches() == 3);
+}
+
+TEST_CASE("Timing a phase charges it less the phases timed inside it", "[timing][profile]")
+{
+    bool ran = false;
+    simple_platformer::timePhase(nullptr, "NPC", "Outer", [&ran] { ran = true; });
+    REQUIRE(ran);
+
+    FrameProfile profile;
+    const auto spin = []
+    {
+        const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds(2);
+        while (std::chrono::steady_clock::now() < until)
+        {
+        }
+    };
+    simple_platformer::timePhase(
+        &profile,
+        "NPC",
+        "Outer",
+        [&] { simple_platformer::timePhase(&profile, "NPC", "Inner", spin); });
+
+    // The outer phase lists first though it finished last, and keeps only its own time.
+    REQUIRE(profile.phases.size() == 2);
+    REQUIRE(std::string(profile.phases[0].name) == "Outer");
+    REQUIRE(std::string(profile.phases[1].name) == "Inner");
+    REQUIRE(profile.phases[1].seconds >= 0.002F);
+    REQUIRE(profile.phases[0].seconds < profile.phases[1].seconds);
+    REQUIRE(profile.nestedSecondsOfOpenPhases.empty());
 }

@@ -1,8 +1,5 @@
 #include "simple_platformer/world/world_simulation.hpp"
 
-#include <chrono>
-#include <functional>
-
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
@@ -18,30 +15,6 @@
 
 namespace simple_platformer
 {
-    namespace
-    {
-        // Runs one phase, and charges its wall-clock time to the profile when there is one.
-        void timePhase(
-            FrameProfile* profile,
-            const char* category,
-            const char* name,
-            const std::function<void()>& phase)
-        {
-            if (profile == nullptr)
-            {
-                phase();
-                return;
-            }
-            const auto start = std::chrono::steady_clock::now();
-            phase();
-            addPhaseSeconds(
-                *profile,
-                category,
-                name,
-                std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count());
-        }
-    }
-
     void updateWorldSimulation(TileMap& map, World& world, float deltaTime, FrameProfile* profile)
     {
         if (world.levelComplete())

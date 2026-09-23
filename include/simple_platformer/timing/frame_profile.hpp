@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <vector>
 
 namespace simple_platformer
@@ -28,9 +29,25 @@ namespace simple_platformer
         float interfaceSeconds = 0.0F;
         // In the order the simulation runs them.
         std::vector<PhaseTiming> phases;
-        // Navigation searches are the simulation's one expensive, occasional job.
+        // Navigation searches are the simulation's one expensive, occasional job: how many
+        // ran, the cells they expanded, and the movement ticks they simulated to build
+        // platformer connections.
         int pathSearches = 0;
+        int pathSearchNodes = 0;
+        int pathSearchSimulatedTicks = 0;
+        // Bookkeeping for timePhase: for each phase being timed right now, outermost
+        // first, the seconds already charged to phases timed inside it. Empty between steps.
+        std::vector<float> nestedSecondsOfOpenPhases;
     };
+
+    // Runs one phase of the step and, when there is a profile, charges its wall-clock time
+    // to it less any phases timed inside it, so sibling phases never count the same time
+    // twice. This is the one place the engine reads a clock.
+    void timePhase(
+        FrameProfile* profile,
+        const char* category,
+        const char* name,
+        const std::function<void()>& phase);
 
     // Adds to the named phase, appending it the first time it is seen. A phase keeps the
     // category it was first charged under.
@@ -60,6 +77,8 @@ namespace simple_platformer
         // Summed over every frame held, for costs per simulation step.
         int totalSimulationTicks() const;
         int totalPathSearches() const;
+        int totalPathSearchNodes() const;
+        int totalPathSearchSimulatedTicks() const;
         std::vector<float> frameSecondsOldestFirst() const;
         std::vector<float> simulationSecondsOldestFirst() const;
         // One phase's cost per frame; zero for frames that did not run it.

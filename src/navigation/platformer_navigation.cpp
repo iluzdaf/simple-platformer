@@ -21,15 +21,22 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/physics/body.hpp"
-#include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
 {
     namespace
     {
-        constexpr float SimulationStepSeconds = static_cast<float>(FixedDeltaSeconds);
         constexpr int MaximumConnectionSimulationTicks = 120;
+
+        void requireStep(float stepSeconds)
+        {
+            if (!isFinitePositive(stepSeconds))
+            {
+                throw std::invalid_argument(
+                    "Navigation simulation step must be finite and positive");
+            }
+        }
 
         bool sameIntentions(const InputIntentions& first, const InputIntentions& second)
         {
@@ -39,14 +46,17 @@ namespace simple_platformer
                    first.primaryAttackPressed == second.primaryAttackPressed;
         }
 
-        void recordSimulationInput(InputProgram& program, const InputIntentions& intentions)
+        void recordSimulationInput(
+            InputProgram& program,
+            const InputIntentions& intentions,
+            float stepSeconds)
         {
             if (!program.empty() && sameIntentions(program.back().intentions, intentions))
             {
-                program.back().duration += SimulationStepSeconds;
+                program.back().duration += stepSeconds;
                 return;
             }
-            program.push_back({SimulationStepSeconds, intentions});
+            program.push_back({stepSeconds, intentions});
         }
 
         bool bodyFits(const TileMap& map, const Aabb& bounds)
@@ -73,7 +83,8 @@ namespace simple_platformer
             GridPosition start,
             GridPosition destinationCell,
             glm::vec2 bodySize,
-            const PlatformerMovementConfig& config)
+            const PlatformerMovementConfig& config,
+            float stepSeconds)
         {
             Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -82,13 +93,13 @@ namespace simple_platformer
 
             for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
             {
-                const InputIntentions intentions = followPlatformerPath(
-                    map.tileSize(), body, movement, follower, SimulationStepSeconds);
+                const InputIntentions intentions =
+                    followPlatformerPath(map.tileSize(), body, movement, follower, stepSeconds);
                 if (pathComplete(follower))
                 {
                     return tick;
                 }
-                updatePlatformerMovement(map, body, movement, intentions, SimulationStepSeconds);
+                updatePlatformerMovement(map, body, movement, intentions, stepSeconds);
             }
             return std::nullopt;
         }
@@ -141,7 +152,8 @@ namespace simple_platformer
             const PlatformerMovementConfig& config,
             Traversal traversal,
             float direction,
-            int jumpHoldTicks)
+            int jumpHoldTicks,
+            float stepSeconds)
         {
             Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -158,8 +170,8 @@ namespace simple_platformer
 
                 const InputIntentions intentions = makeTraversalIntentions(
                     traversal, direction, tick, jumpHoldTicks, landing.has_value());
-                recordSimulationInput(program, intentions);
-                updatePlatformerMovement(map, body, movement, intentions, SimulationStepSeconds);
+                recordSimulationInput(program, intentions, stepSeconds);
+                updatePlatformerMovement(map, body, movement, intentions, stepSeconds);
 
                 leftGround = leftGround || !movement.grounded;
                 if (!leftGround || !movement.grounded)
@@ -215,8 +227,10 @@ namespace simple_platformer
         int tileSize,
         GridPosition cell,
         GridPosition goal,
-        const PlatformerMovementConfig& movement)
+        const PlatformerMovementConfig& movement,
+        float stepSeconds)
     {
+        requireStep(stepSeconds);
         if (!std::isfinite(movement.maximumSpeed) || movement.maximumSpeed < 0.0F)
         {
             throw std::invalid_argument(
@@ -233,7 +247,7 @@ namespace simple_platformer
         // braking, obstacles, and vertical travel keeps this estimate optimistic.
         const float minimumDistance =
             (static_cast<float>(columnDistance) - 0.5F) * static_cast<float>(tileSize);
-        const float maximumDistancePerTick = movement.maximumSpeed * SimulationStepSeconds;
+        const float maximumDistancePerTick = movement.maximumSpeed * stepSeconds;
         return static_cast<int>(std::ceil(minimumDistance / maximumDistancePerTick));
     }
 
@@ -243,17 +257,19 @@ namespace simple_platformer
         GridPosition goal,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
+        float stepSeconds,
         const PlatformerNavigationConfig& navigation)
     {
+        requireStep(stepSeconds);
         if (navigation.jumpStartPenaltyTicks < 0)
         {
             throw std::invalid_argument("A jump start penalty cannot be negative");
         }
         const GridNeighborFunction neighbors =
-            [&map, bodySize, &movement, &navigation](GridPosition cell)
+            [&map, bodySize, &movement, stepSeconds, &navigation](GridPosition cell)
         {
             std::vector<NavigationNeighbor> result =
-                platformerNeighbors(map, cell, bodySize, movement);
+                platformerNeighbors(map, cell, bodySize, movement, stepSeconds);
             for (NavigationNeighbor& neighbor : result)
             {
                 if (neighbor.traversal != Traversal::Jump)
@@ -270,8 +286,8 @@ namespace simple_platformer
             return result;
         };
         const GridHeuristicFunction heuristic =
-            [&map, &movement](GridPosition cell, GridPosition goal)
-        { return platformerTickHeuristic(map.tileSize(), cell, goal, movement); };
+            [&map, &movement, stepSeconds](GridPosition cell, GridPosition goal)
+        { return platformerTickHeuristic(map.tileSize(), cell, goal, movement, stepSeconds); };
 
         // Remove the final argument to compare A* with the default Dijkstra search.
         return findLowestCostPath(start, goal, neighbors, heuristic);
@@ -378,8 +394,10 @@ namespace simple_platformer
         const TileMap& map,
         GridPosition cell,
         glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement)
+        const PlatformerMovementConfig& movement,
+        float stepSeconds)
     {
+        requireStep(stepSeconds);
         if (!canStandAt(map, cell, bodySize))
         {
             return {};
@@ -395,8 +413,8 @@ namespace simple_platformer
                 GridPosition walkDestination = adjacent;
                 while (canStandAt(map, walkDestination, bodySize))
                 {
-                    const std::optional<int> walkCost =
-                        trySimulateWalkCost(map, cell, walkDestination, bodySize, movement);
+                    const std::optional<int> walkCost = trySimulateWalkCost(
+                        map, cell, walkDestination, bodySize, movement, stepSeconds);
                     if (!walkCost.has_value())
                     {
                         // Destinations are checked nearest first. Once a continuous walk
@@ -418,7 +436,8 @@ namespace simple_platformer
                     movement,
                     Traversal::Fall,
                     static_cast<float>(direction),
-                    0);
+                    0,
+                    stepSeconds);
                 if (fall.has_value())
                 {
                     keepCheapest(neighbors, fall.value());
@@ -435,7 +454,8 @@ namespace simple_platformer
                     movement,
                     Traversal::Jump,
                     static_cast<float>(direction),
-                    holdTicks);
+                    holdTicks,
+                    stepSeconds);
                 if (jump.has_value())
                 {
                     keepCheapest(neighbors, jump.value());

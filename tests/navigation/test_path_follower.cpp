@@ -74,7 +74,8 @@ TEST_CASE(
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
-        simple_platformer::platformerNeighbors(map, {2, 2}, bodySize, config);
+        simple_platformer::platformerNeighbors(
+            map, {2, 2}, bodySize, config, tests::FixedStepSeconds);
     const simple_platformer::NavigationNeighbor& jump =
         tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
 
@@ -111,7 +112,8 @@ TEST_CASE(
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
-        simple_platformer::platformerNeighbors(map, {2, 2}, bodySize, config);
+        simple_platformer::platformerNeighbors(
+            map, {2, 2}, bodySize, config, tests::FixedStepSeconds);
     const simple_platformer::NavigationNeighbor& jump =
         tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
 
@@ -157,7 +159,8 @@ TEST_CASE(
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
     const std::vector<simple_platformer::NavigationNeighbor> neighbors =
-        simple_platformer::platformerNeighbors(map, {2, 2}, bodySize, config);
+        simple_platformer::platformerNeighbors(
+            map, {2, 2}, bodySize, config, tests::FixedStepSeconds);
     const simple_platformer::NavigationNeighbor& jump =
         tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
 

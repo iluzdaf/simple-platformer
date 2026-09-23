@@ -161,6 +161,7 @@ add_executable(
     app/game/game.cpp
     app/game/level_composition.cpp
     app/graphics/display_viewport.cpp
+    app/graphics/game_window.cpp
     app/graphics/sprite_renderer.cpp
     app/main.cpp
     app/ui/completion_ui.cpp

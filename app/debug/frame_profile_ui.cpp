@@ -206,10 +206,11 @@ namespace simple_platformer
             ImGui::PopStyleVar(2);
         }
 
-        // Each category with its total, then its phases, all in simulation order so rows
-        // never move while the numbers change. Seconds are multiplied by the scale before
-        // they are shown: a thousand for milliseconds, or a thousand over the tick count
-        // for milliseconds per simulation step.
+        // Each category with its total, then its phases, in the order given: simulation
+        // order for the live history, so rows never move while the numbers change, and by
+        // cost for a picked frame. Seconds are multiplied by the scale before they are
+        // shown: a thousand for milliseconds, or a thousand over the tick count for
+        // milliseconds per simulation step.
         void drawPhaseTable(
             const std::vector<PhaseTiming>& phases,
             const char* heading,
@@ -291,8 +292,8 @@ namespace simple_platformer
             drawPhaseTable(phases, "ms per tick", scale);
         }
 
-        // One picked frame's own costs, whole rather than per step, since a still frame
-        // can be read at leisure.
+        // One picked frame's own costs, whole rather than per step and listed from the
+        // dearest, since a still frame can be read at leisure.
         void drawPickedFrame(const FrameProfile& frame, std::size_t index, std::size_t count)
         {
             ImGui::Text(
@@ -320,7 +321,7 @@ namespace simple_platformer
                 frame.pathSearches,
                 frame.pathSearchNodes,
                 frame.pathSearchSimulatedTicks);
-            drawPhaseTable(frame.phases, "ms", 1000.0F);
+            drawPhaseTable(phasesByCost(frame.phases), "ms", 1000.0F);
         }
     }
 

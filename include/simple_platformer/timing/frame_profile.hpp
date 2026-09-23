@@ -57,6 +57,10 @@ namespace simple_platformer
         const char* name,
         float seconds);
 
+    // The phases by cost, for reading a still frame: categories from the dearest by their
+    // total, each followed by its phases from the dearest. Equal costs keep their order.
+    std::vector<PhaseTiming> phasesByCost(const std::vector<PhaseTiming>& phases);
+
     // The most recent frames, oldest dropped first, for a frame-time plot and its summary.
     class FrameHistory
     {

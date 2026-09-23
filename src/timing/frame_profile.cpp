@@ -68,6 +68,55 @@ namespace simple_platformer
         profile.phases.push_back({category, name, seconds});
     }
 
+    std::vector<PhaseTiming> phasesByCost(const std::vector<PhaseTiming>& phases)
+    {
+        struct CategoryCost
+        {
+            std::string_view name;
+            float seconds = 0.0F;
+        };
+
+        std::vector<CategoryCost> categories;
+        for (const PhaseTiming& phase : phases)
+        {
+            const auto category = std::find_if(
+                categories.begin(),
+                categories.end(),
+                [&](const CategoryCost& cost) { return cost.name == phase.category; });
+            if (category == categories.end())
+            {
+                categories.push_back({phase.category, phase.seconds});
+                continue;
+            }
+            category->seconds += phase.seconds;
+        }
+        std::stable_sort(
+            categories.begin(),
+            categories.end(),
+            [](const CategoryCost& left, const CategoryCost& right)
+            { return left.seconds > right.seconds; });
+
+        std::vector<PhaseTiming> sorted;
+        sorted.reserve(phases.size());
+        for (const CategoryCost& category : categories)
+        {
+            const auto first = sorted.end() - sorted.begin();
+            for (const PhaseTiming& phase : phases)
+            {
+                if (std::string_view(phase.category) == category.name)
+                {
+                    sorted.push_back(phase);
+                }
+            }
+            std::stable_sort(
+                sorted.begin() + first,
+                sorted.end(),
+                [](const PhaseTiming& left, const PhaseTiming& right)
+                { return left.seconds > right.seconds; });
+        }
+        return sorted;
+    }
+
     void timePhase(
         FrameProfile* profile,
         const char* category,

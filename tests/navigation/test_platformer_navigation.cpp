@@ -475,10 +475,16 @@ TEST_CASE(
     REQUIRE(route.steps.back().traversal == simple_platformer::Traversal::Walk);
 
     const simple_platformer::GridNeighborFunction neighbors =
-        [&map, &movement](simple_platformer::GridPosition position)
+        [&map, &movement](
+            simple_platformer::GridPosition position,
+            const simple_platformer::GridNeighborVisitor& visit)
     {
-        return simple_platformer::platformerNeighbors(
-            map, position, {12.0F, 12.0F}, movement, tests::FixedStepSeconds);
+        for (const simple_platformer::NavigationNeighbor& neighbor :
+             simple_platformer::platformerNeighbors(
+                 map, position, {12.0F, 12.0F}, movement, tests::FixedStepSeconds))
+        {
+            visit(neighbor, neighbor.cost);
+        }
     };
     const auto pathWithoutHeuristic =
         simple_platformer::findLowestCostPath({1, 0}, {3, 0}, neighbors);

@@ -75,6 +75,31 @@ TEST_CASE("Kept connections come back in place of simulating a cell again", "[na
     REQUIRE(uncached.simulatedTicks == first.simulatedTicks);
 }
 
+TEST_CASE("Kept connections can be read where the cache holds them", "[navigation][cache]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "########"});
+    const GridPosition cell{3, 1};
+    PlatformerConnectionCache cache;
+    PathSearchStatistics first;
+    PathSearchStatistics second;
+
+    const std::vector<NavigationNeighbor>& kept = simple_platformer::platformerNeighborsKept(
+        map, cell, BodySize, {}, tests::FixedStepSeconds, cache, &first);
+    REQUIRE(first.simulatedTicks > 0);
+    REQUIRE(first.cellsReused == 0);
+    const std::vector<NavigationNeighbor>& again = simple_platformer::platformerNeighborsKept(
+        map, cell, BodySize, {}, tests::FixedStepSeconds, cache, &second);
+    // The same vector, not a copy of it, and nothing simulated to give it.
+    REQUIRE(&again == &kept);
+    REQUIRE(second.simulatedTicks == 0);
+    REQUIRE(second.cellsReused == 1);
+    REQUIRE(&again == cache.find(cell, {BodySize, {}, tests::FixedStepSeconds}));
+    requireSameConnections(
+        kept,
+        simple_platformer::platformerNeighbors(map, cell, BodySize, {}, tests::FixedStepSeconds));
+}
+
 TEST_CASE("Connections are kept apart for each body and step", "[navigation][cache]")
 {
     const simple_platformer::TileMap map =

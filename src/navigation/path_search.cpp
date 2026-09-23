@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <optional>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -41,19 +42,6 @@ namespace simple_platformer
                 throw std::invalid_argument("A path heuristic cannot return a negative cost");
             }
             return estimate;
-        }
-
-        std::optional<std::size_t> findNode(const std::vector<SearchNode>& nodes, GridPosition cell)
-        {
-            const auto node = std::find_if(
-                nodes.begin(),
-                nodes.end(),
-                [cell](const SearchNode& candidate) { return candidate.cell == cell; });
-            if (node == nodes.end())
-            {
-                return std::nullopt;
-            }
-            return static_cast<std::size_t>(node - nodes.begin());
         }
 
         std::optional<std::size_t> cheapestOpenNode(const std::vector<SearchNode>& nodes)
@@ -135,6 +123,8 @@ namespace simple_platformer
 
         std::vector<SearchNode> nodes{
             {start, 0, estimateRemainingCost(heuristic, start, goal), std::nullopt, false}};
+        // Where each cell's node is, so a connection's destination is found without a scan.
+        std::unordered_map<GridPosition, std::size_t, GridPositionHash> nodeIndex{{start, 0}};
         while (true)
         {
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);
@@ -168,37 +158,42 @@ namespace simple_platformer
                 ++statistics->nodesExpanded;
             }
 
-            for (const NavigationNeighbor& neighbor : neighbors(currentCell))
-            {
-                if (neighbor.cost <= 0)
+            // Adding a node may move the others, so nothing above is referenced below.
+            neighbors(
+                currentCell,
+                [&](const NavigationNeighbor& neighbor, int cost)
                 {
-                    throw std::invalid_argument("A navigation connection must have positive cost");
-                }
-                const int nextCost = costFromStart + neighbor.cost;
-                const std::optional<std::size_t> existingIndex =
-                    findNode(nodes, neighbor.destinationCell);
-                if (!existingIndex.has_value())
-                {
-                    nodes.push_back(
-                        {neighbor.destinationCell,
-                         nextCost,
-                         nextCost +
-                             estimateRemainingCost(heuristic, neighbor.destinationCell, goal),
-                         IncomingConnection{currentIndex.value(), neighbor},
-                         false});
-                    continue;
-                }
+                    if (cost <= 0)
+                    {
+                        throw std::invalid_argument(
+                            "A navigation connection must have positive cost");
+                    }
+                    const int nextCost = costFromStart + cost;
+                    const auto existing = nodeIndex.find(neighbor.destinationCell);
+                    if (existing == nodeIndex.end())
+                    {
+                        nodeIndex.emplace(neighbor.destinationCell, nodes.size());
+                        nodes.push_back(
+                            {neighbor.destinationCell,
+                             nextCost,
+                             nextCost +
+                                 estimateRemainingCost(heuristic, neighbor.destinationCell, goal),
+                             IncomingConnection{currentIndex.value(), neighbor},
+                             false});
+                        return;
+                    }
 
-                SearchNode& existing = nodes[existingIndex.value()];
-                if (nextCost < existing.costFromStart)
-                {
-                    existing.costFromStart = nextCost;
-                    existing.estimatedTotalCost =
-                        nextCost + estimateRemainingCost(heuristic, neighbor.destinationCell, goal);
-                    existing.incoming = IncomingConnection{currentIndex.value(), neighbor};
-                    existing.closed = false;
-                }
-            }
+                    SearchNode& known = nodes[existing->second];
+                    if (nextCost < known.costFromStart)
+                    {
+                        known.costFromStart = nextCost;
+                        known.estimatedTotalCost =
+                            nextCost +
+                            estimateRemainingCost(heuristic, neighbor.destinationCell, goal);
+                        known.incoming = IncomingConnection{currentIndex.value(), neighbor};
+                        known.closed = false;
+                    }
+                });
         }
     }
 }

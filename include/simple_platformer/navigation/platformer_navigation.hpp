@@ -75,4 +75,16 @@ namespace simple_platformer
         float stepSeconds,
         PathSearchStatistics* statistics = nullptr,
         PlatformerConnectionCache* cache = nullptr);
+
+    // The same connections as the cache keeps them, simulated and kept first when it does
+    // not yet, and read where they are rather than copied out. The reference holds until
+    // the cache is cleared.
+    const std::vector<NavigationNeighbor>& platformerNeighborsKept(
+        const TileMap& map,
+        GridPosition cell,
+        glm::vec2 bodySize,
+        const PlatformerMovementConfig& movement,
+        float stepSeconds,
+        PlatformerConnectionCache& cache,
+        PathSearchStatistics* statistics = nullptr);
 }

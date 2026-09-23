@@ -465,8 +465,10 @@ in ticks, so a marginal shortcut does not make a grounded NPC hop unnecessarily.
 Setting that penalty to zero selects strictly by simulated travel time.
 
 A cell's connections depend only on the map, the cell, the body's size, its movement
-configuration and the step, and a map never changes within a level, so simulating them
-once per level is enough. `PlatformerConnectionCache` in `navigation/connection_cache`
+configuration and the step, so simulating them once is enough while the map stands. A
+tile broken by a projectile is not yet reflected in the cache: what was kept before the
+break stays until the level ends, and invalidating only what a break touches is the
+next piece of work. `PlatformerConnectionCache` in `navigation/connection_cache`
 keeps the connections leaving each cell, grouped by the body they were simulated for.
 A search handed a cache reads each expanded cell's connections where the cache keeps
 them, simulating and keeping them first when it does not yet; a search without one

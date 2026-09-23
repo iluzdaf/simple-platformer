@@ -297,8 +297,8 @@ namespace simple_platformer
         {
             return std::nullopt;
         }
-        // A search answered before: the connections never change, so neither does the
-        // cheapest route between two cells for one penalty.
+        // A search answered before: while the connections hold, so does the cheapest
+        // route between two cells for one penalty.
         const ConnectionBody body{bodySize, movement, stepSeconds};
         const PathQuery query{start, goal, navigation.jumpStartPenaltyTicks};
         if (cache != nullptr)

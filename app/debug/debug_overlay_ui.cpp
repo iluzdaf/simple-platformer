@@ -463,11 +463,11 @@ namespace simple_platformer
             return seconds;
         }
 
-        // The categories of a frame's phases, in the order the simulation first charged them.
-        std::vector<const char*> categoriesOf(const FrameProfile& frame)
+        // The categories of the phases, in the order the simulation first charged them.
+        std::vector<const char*> categoriesOf(const std::vector<PhaseTiming>& phases)
         {
             std::vector<const char*> categories;
-            for (const PhaseTiming& phase : frame.phases)
+            for (const PhaseTiming& phase : phases)
             {
                 const bool seen = std::any_of(
                     categories.begin(),
@@ -658,9 +658,10 @@ namespace simple_platformer
 
         const FrameProfile& latest = history.latest();
         const FrameProfile& worst = history.worst();
-        // Frames faster than the fixed step run no simulation; the categories and phases
-        // come from the last frame that did, and the stack shows them over the whole history.
-        const FrameProfile* simulated = history.latestSimulated();
+        // The phases come from every frame in the history, so one that runs only now and
+        // then, such as a path search, keeps its row and band instead of coming and going.
+        const std::vector<PhaseTiming> phases = history.phasesSummed();
+        const int ticks = history.totalSimulationTicks();
         const std::vector<float> frameMilliseconds =
             toMilliseconds(history.frameSecondsOldestFirst());
         const int frameCount = static_cast<int>(frameMilliseconds.size());
@@ -677,9 +678,9 @@ namespace simple_platformer
         std::vector<FramePlotSeries> series = {
             {"60 Hz budget", ImPlot::GetColormapColor(0), false},
             {"frame", ImPlot::GetColormapColor(1), false}};
-        if (simulated != nullptr)
+        if (ticks > 0)
         {
-            for (const char* category : categoriesOf(*simulated))
+            for (const char* category : categoriesOf(phases))
             {
                 series.push_back(
                     {category, ImPlot::GetColormapColor(static_cast<int>(series.size())), false});
@@ -700,7 +701,7 @@ namespace simple_platformer
             ImPlot::SetupAxis(ImAxis_Y1, "frame ms");
             ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, frameAxis, ImPlotCond_Always);
             ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, frameTop, ImPlotCond_Always);
-            if (simulated != nullptr)
+            if (ticks > 0)
             {
                 // The simulation is a small fraction of a frame; on the frame axis its
                 // stack would be a hairline, so it has an axis of its own on the right.
@@ -732,7 +733,7 @@ namespace simple_platformer
                     ImPlotSpec(ImPlotProp_LineColor, frame.colour));
             }
 
-            if (simulated != nullptr)
+            if (ticks > 0)
             {
                 ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
                 std::vector<float> frames(frameMilliseconds.size());
@@ -778,7 +779,7 @@ namespace simple_platformer
             latest.sceneSeconds * 1000.0F,
             latest.renderSeconds * 1000.0F,
             latest.interfaceSeconds * 1000.0F);
-        if (simulated == nullptr)
+        if (ticks == 0)
         {
             ImGui::End();
             return;
@@ -787,34 +788,42 @@ namespace simple_platformer
         // The list averages each cost per simulation step over the whole history. One
         // frame's numbers change sixty times a second and a phase of a few microseconds
         // would flicker between 0.00 and 0.01; the stack above already shows the spikes.
-        const int ticks = history.totalSimulationTicks();
-        const auto millisecondsPerTick = [ticks](const std::vector<float>& secondsPerFrame)
-        {
-            const float total =
-                std::accumulate(secondsPerFrame.begin(), secondsPerFrame.end(), 0.0F);
-            return total * 1000.0F / static_cast<float>(ticks);
-        };
+        const auto millisecondsPerTick = [ticks](float seconds)
+        { return seconds * 1000.0F / static_cast<float>(ticks); };
+        const std::vector<float> simulationSeconds = history.simulationSecondsOldestFirst();
         ImGui::Separator();
         ImGui::Text(
             "simulation %6.3f ms per tick over %d ticks",
-            millisecondsPerTick(history.simulationSecondsOldestFirst()),
+            millisecondsPerTick(
+                std::accumulate(simulationSeconds.begin(), simulationSeconds.end(), 0.0F)),
             ticks);
-        ImGui::Text("path searches %d", history.totalPathSearches());
+        ImGui::Text(
+            "path searches %d   cells %d   simulated ticks %d",
+            history.totalPathSearches(),
+            history.totalPathSearchNodes(),
+            history.totalPathSearchSimulatedTicks());
         // Each category with its total, then its phases, all in simulation order so rows
         // never move while the numbers change.
         if (ImGui::BeginTable("phases", 2, ImGuiTableFlags_SizingFixedFit))
         {
             ImGui::TableSetupColumn("phase", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("ms per tick");
-            for (const char* category : categoriesOf(*simulated))
+            for (const char* category : categoriesOf(phases))
             {
+                float categorySeconds = 0.0F;
+                for (const PhaseTiming& phase : phases)
+                {
+                    if (std::string_view(phase.category) == category)
+                    {
+                        categorySeconds += phase.seconds;
+                    }
+                }
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 ImGui::TextUnformatted(category);
                 ImGui::TableNextColumn();
-                ImGui::Text(
-                    "%6.3f ms", millisecondsPerTick(history.categorySecondsOldestFirst(category)));
-                for (const PhaseTiming& phase : simulated->phases)
+                ImGui::Text("%6.3f ms", millisecondsPerTick(categorySeconds));
+                for (const PhaseTiming& phase : phases)
                 {
                     if (std::string_view(phase.category) != category)
                     {
@@ -824,8 +833,7 @@ namespace simple_platformer
                     ImGui::TableNextColumn();
                     ImGui::Text("   %s", phase.name);
                     ImGui::TableNextColumn();
-                    ImGui::Text(
-                        "%6.3f", millisecondsPerTick(history.phaseSecondsOldestFirst(phase.name)));
+                    ImGui::Text("%6.3f", millisecondsPerTick(phase.seconds));
                 }
             }
             ImGui::EndTable();

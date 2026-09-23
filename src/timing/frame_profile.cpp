@@ -1,6 +1,7 @@
 #include "simple_platformer/timing/frame_profile.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
@@ -14,6 +15,19 @@ namespace simple_platformer
 {
     namespace
     {
+        int sumOver(
+            const std::vector<FrameProfile>& frames,
+            std::size_t count,
+            const std::function<int(const FrameProfile&)>& measure)
+        {
+            int total = 0;
+            for (std::size_t index = 0; index < count; ++index)
+            {
+                total += measure(frames[index]);
+            }
+            return total;
+        }
+
         std::vector<float> oldestFirst(
             const std::vector<FrameProfile>& frames,
             std::size_t next,
@@ -54,6 +68,33 @@ namespace simple_platformer
         profile.phases.push_back({category, name, seconds});
     }
 
+    void timePhase(
+        FrameProfile* profile,
+        const char* category,
+        const char* name,
+        const std::function<void()>& phase)
+    {
+        if (profile == nullptr)
+        {
+            phase();
+            return;
+        }
+        // Registered before it runs so it lists ahead of the phases timed inside it.
+        addPhaseSeconds(*profile, category, name, 0.0F);
+        profile->nestedSecondsOfOpenPhases.push_back(0.0F);
+        const auto start = std::chrono::steady_clock::now();
+        phase();
+        const float elapsed =
+            std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count();
+        const float nested = profile->nestedSecondsOfOpenPhases.back();
+        profile->nestedSecondsOfOpenPhases.pop_back();
+        addPhaseSeconds(*profile, category, name, std::max(0.0F, elapsed - nested));
+        if (!profile->nestedSecondsOfOpenPhases.empty())
+        {
+            profile->nestedSecondsOfOpenPhases.back() += elapsed;
+        }
+    }
+
     FrameHistory::FrameHistory(std::size_t capacity)
         : frames(capacity)
     {
@@ -70,10 +111,15 @@ namespace simple_platformer
         requireSeconds(frame.sceneSeconds, "Scene time");
         requireSeconds(frame.renderSeconds, "Render time");
         requireSeconds(frame.interfaceSeconds, "Interface time");
-        if (frame.simulationTicks < 0 || frame.pathSearches < 0)
+        if (frame.simulationTicks < 0 || frame.pathSearches < 0 || frame.pathSearchNodes < 0 ||
+            frame.pathSearchSimulatedTicks < 0)
         {
             throw std::invalid_argument(
-                "A frame cannot run a negative number of steps or searches");
+                "A frame cannot run a negative number of steps, searches, cells or ticks");
+        }
+        if (!frame.nestedSecondsOfOpenPhases.empty())
+        {
+            throw std::invalid_argument("A frame cannot be recorded while a phase is being timed");
         }
         frames[next] = frame;
         next = (next + 1) % frames.size();
@@ -99,17 +145,33 @@ namespace simple_platformer
         return frames[(next + frames.size() - 1) % frames.size()];
     }
 
-    const FrameProfile* FrameHistory::latestSimulated() const
+    std::vector<PhaseTiming> FrameHistory::phasesSummed() const
     {
-        for (std::size_t back = 1; back <= count; ++back)
+        std::vector<PhaseTiming> summed;
+        for (std::size_t index = 0; index < count; ++index)
         {
-            const FrameProfile& frame = frames[(next + frames.size() - back) % frames.size()];
-            if (frame.simulationTicks > 0)
+            // A phase this frame ran that no earlier frame did slots in after the phase
+            // that preceded it here, so the merged list keeps the simulation's order.
+            std::size_t insertAt = 0;
+            for (const PhaseTiming& phase : frames[index].phases)
             {
-                return &frame;
+                std::size_t existing = 0;
+                while (existing < summed.size() &&
+                       std::string_view(summed[existing].name) != phase.name)
+                {
+                    ++existing;
+                }
+                if (existing < summed.size())
+                {
+                    summed[existing].seconds += phase.seconds;
+                    insertAt = existing + 1;
+                    continue;
+                }
+                summed.insert(summed.begin() + static_cast<std::ptrdiff_t>(insertAt), phase);
+                ++insertAt;
             }
         }
-        return nullptr;
+        return summed;
     }
 
     const FrameProfile& FrameHistory::worst() const
@@ -145,22 +207,27 @@ namespace simple_platformer
 
     int FrameHistory::totalSimulationTicks() const
     {
-        int total = 0;
-        for (std::size_t index = 0; index < count; ++index)
-        {
-            total += frames[index].simulationTicks;
-        }
-        return total;
+        return sumOver(
+            frames, count, [](const FrameProfile& frame) { return frame.simulationTicks; });
     }
 
     int FrameHistory::totalPathSearches() const
     {
-        int total = 0;
-        for (std::size_t index = 0; index < count; ++index)
-        {
-            total += frames[index].pathSearches;
-        }
-        return total;
+        return sumOver(frames, count, [](const FrameProfile& frame) { return frame.pathSearches; });
+    }
+
+    int FrameHistory::totalPathSearchNodes() const
+    {
+        return sumOver(
+            frames, count, [](const FrameProfile& frame) { return frame.pathSearchNodes; });
+    }
+
+    int FrameHistory::totalPathSearchSimulatedTicks() const
+    {
+        return sumOver(
+            frames,
+            count,
+            [](const FrameProfile& frame) { return frame.pathSearchSimulatedTicks; });
     }
 
     std::vector<float> FrameHistory::frameSecondsOldestFirst() const
@@ -173,25 +240,6 @@ namespace simple_platformer
     {
         return oldestFirst(
             frames, next, count, [](const FrameProfile& frame) { return frame.simulationSeconds; });
-    }
-
-    std::vector<float> FrameHistory::phaseSecondsOldestFirst(const char* name) const
-    {
-        return oldestFirst(
-            frames,
-            next,
-            count,
-            [name](const FrameProfile& frame)
-            {
-                for (const PhaseTiming& phase : frame.phases)
-                {
-                    if (std::string_view(phase.name) == name)
-                    {
-                        return phase.seconds;
-                    }
-                }
-                return 0.0F;
-            });
     }
 
     std::vector<float> FrameHistory::categorySecondsOldestFirst(const char* category) const

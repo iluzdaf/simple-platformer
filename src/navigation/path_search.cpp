@@ -120,7 +120,8 @@ namespace simple_platformer
         GridPosition start,
         GridPosition goal,
         const GridNeighborFunction& neighbors,
-        const GridHeuristicFunction& heuristic)
+        const GridHeuristicFunction& heuristic,
+        PathSearchStatistics* statistics)
     {
         if (!neighbors)
         {
@@ -150,6 +151,10 @@ namespace simple_platformer
             const GridPosition currentCell = currentNode.cell;
             const int costFromStart = currentNode.costFromStart;
             currentNode.closed = true;
+            if (statistics != nullptr)
+            {
+                ++statistics->nodesExpanded;
+            }
 
             for (const NavigationNeighbor& neighbor : neighbors(currentCell))
             {

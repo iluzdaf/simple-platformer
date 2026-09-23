@@ -553,3 +553,26 @@ TEST_CASE(
             std::invalid_argument);
     }
 }
+
+TEST_CASE("Platformer searches report what they cost", "[navigation][platformer]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
+    const simple_platformer::PlatformerMovementConfig movement;
+
+    simple_platformer::PathSearchStatistics neighborCost;
+    const auto neighbors = simple_platformer::platformerNeighbors(
+        map, {2, 2}, {12.0F, 12.0F}, movement, tests::FixedStepSeconds, &neighborCost);
+    REQUIRE(!neighbors.empty());
+    REQUIRE(neighborCost.nodesExpanded == 0);
+    REQUIRE(neighborCost.simulatedTicks > 0);
+
+    simple_platformer::PathSearchStatistics searchCost;
+    const auto path = simple_platformer::findPlatformerPath(
+        map, {2, 2}, {7, 2}, {12.0F, 12.0F}, movement, tests::FixedStepSeconds, {}, &searchCost);
+    REQUIRE(path.has_value());
+    // The search expands at least its start cell, and simulating that cell's connections
+    // is part of what it cost.
+    REQUIRE(searchCost.nodesExpanded >= 1);
+    REQUIRE(searchCost.simulatedTicks >= neighborCost.simulatedTicks);
+}

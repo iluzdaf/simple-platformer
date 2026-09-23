@@ -17,6 +17,7 @@
 #include "simple_platformer/navigation/flying_navigation.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
@@ -94,23 +95,35 @@ namespace simple_platformer
             }
 
             std::optional<NavigationPath> path;
-            if (actor.flyingMovement.has_value())
-            {
-                path = findFlyingPath(map, start, goal);
-            }
-            else if (actor.platformerMovement.has_value())
-            {
-                path = findPlatformerPath(
-                    map,
-                    start,
-                    goal,
-                    actor.body.bounds.size,
-                    actor.platformerMovement->config,
-                    deltaTime);
-            }
+            PathSearchStatistics statistics;
+            timePhase(
+                profile,
+                "NPC",
+                "Path search",
+                [&]
+                {
+                    if (actor.flyingMovement.has_value())
+                    {
+                        path = findFlyingPath(map, start, goal, &statistics);
+                    }
+                    else if (actor.platformerMovement.has_value())
+                    {
+                        path = findPlatformerPath(
+                            map,
+                            start,
+                            goal,
+                            actor.body.bounds.size,
+                            actor.platformerMovement->config,
+                            deltaTime,
+                            PlatformerNavigationConfig{},
+                            &statistics);
+                    }
+                });
             if (profile != nullptr)
             {
                 ++profile->pathSearches;
+                profile->pathSearchNodes += statistics.nodesExpanded;
+                profile->pathSearchSimulatedTicks += statistics.simulatedTicks;
             }
             follower.destinationCell = goal;
             follower.repathRemaining = follower.repathCooldown;

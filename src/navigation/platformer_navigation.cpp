@@ -29,6 +29,14 @@ namespace simple_platformer
     {
         constexpr int MaximumConnectionSimulationTicks = 120;
 
+        void countSimulatedTick(PathSearchStatistics* statistics)
+        {
+            if (statistics != nullptr)
+            {
+                ++statistics->simulatedTicks;
+            }
+        }
+
         void requireStep(float stepSeconds)
         {
             if (!isFinitePositive(stepSeconds))
@@ -84,7 +92,8 @@ namespace simple_platformer
             GridPosition destinationCell,
             glm::vec2 bodySize,
             const PlatformerMovementConfig& config,
-            float stepSeconds)
+            float stepSeconds,
+            PathSearchStatistics* statistics)
         {
             Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -100,6 +109,7 @@ namespace simple_platformer
                     return tick;
                 }
                 updatePlatformerMovement(map, body, movement, intentions, stepSeconds);
+                countSimulatedTick(statistics);
             }
             return std::nullopt;
         }
@@ -153,7 +163,8 @@ namespace simple_platformer
             Traversal traversal,
             float direction,
             int jumpHoldTicks,
-            float stepSeconds)
+            float stepSeconds,
+            PathSearchStatistics* statistics)
         {
             Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -172,6 +183,7 @@ namespace simple_platformer
                     traversal, direction, tick, jumpHoldTicks, landing.has_value());
                 recordSimulationInput(program, intentions, stepSeconds);
                 updatePlatformerMovement(map, body, movement, intentions, stepSeconds);
+                countSimulatedTick(statistics);
 
                 leftGround = leftGround || !movement.grounded;
                 if (!leftGround || !movement.grounded)
@@ -258,7 +270,8 @@ namespace simple_platformer
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
         float stepSeconds,
-        const PlatformerNavigationConfig& navigation)
+        const PlatformerNavigationConfig& navigation,
+        PathSearchStatistics* statistics)
     {
         requireStep(stepSeconds);
         if (navigation.jumpStartPenaltyTicks < 0)
@@ -266,10 +279,10 @@ namespace simple_platformer
             throw std::invalid_argument("A jump start penalty cannot be negative");
         }
         const GridNeighborFunction neighbors =
-            [&map, bodySize, &movement, stepSeconds, &navigation](GridPosition cell)
+            [&map, bodySize, &movement, stepSeconds, &navigation, statistics](GridPosition cell)
         {
             std::vector<NavigationNeighbor> result =
-                platformerNeighbors(map, cell, bodySize, movement, stepSeconds);
+                platformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics);
             for (NavigationNeighbor& neighbor : result)
             {
                 if (neighbor.traversal != Traversal::Jump)
@@ -290,7 +303,7 @@ namespace simple_platformer
         { return platformerTickHeuristic(map.tileSize(), cell, goal, movement, stepSeconds); };
 
         // Remove the final argument to compare A* with the default Dijkstra search.
-        return findLowestCostPath(start, goal, neighbors, heuristic);
+        return findLowestCostPath(start, goal, neighbors, heuristic, statistics);
     }
 
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize)
@@ -395,7 +408,8 @@ namespace simple_platformer
         GridPosition cell,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
-        float stepSeconds)
+        float stepSeconds,
+        PathSearchStatistics* statistics)
     {
         requireStep(stepSeconds);
         if (!canStandAt(map, cell, bodySize))
@@ -414,7 +428,7 @@ namespace simple_platformer
                 while (canStandAt(map, walkDestination, bodySize))
                 {
                     const std::optional<int> walkCost = trySimulateWalkCost(
-                        map, cell, walkDestination, bodySize, movement, stepSeconds);
+                        map, cell, walkDestination, bodySize, movement, stepSeconds, statistics);
                     if (!walkCost.has_value())
                     {
                         // Destinations are checked nearest first. Once a continuous walk
@@ -437,7 +451,8 @@ namespace simple_platformer
                     Traversal::Fall,
                     static_cast<float>(direction),
                     0,
-                    stepSeconds);
+                    stepSeconds,
+                    statistics);
                 if (fall.has_value())
                 {
                     keepCheapest(neighbors, fall.value());
@@ -455,7 +470,8 @@ namespace simple_platformer
                     Traversal::Jump,
                     static_cast<float>(direction),
                     holdTicks,
-                    stepSeconds);
+                    stepSeconds,
+                    statistics);
                 if (jump.has_value())
                 {
                     keepCheapest(neighbors, jump.value());

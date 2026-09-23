@@ -2,6 +2,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 #include <utility>
@@ -601,6 +602,22 @@ TEST_CASE(
             timed.actors()[index].body.bounds.position ==
             plain.actors()[index].body.bounds.position);
     }
-    // The chasing NPC searched for a path at least once, and the count survived the ticks.
+    // The chasing NPC searched for a path at least once, and the counts survived the ticks.
     REQUIRE(profile.pathSearches >= 1);
+    REQUIRE(profile.pathSearchNodes >= 1);
+    // The search is timed as its own phase, after the behaviour phase it ran inside.
+    const auto behaviour = std::find_if(
+        profile.phases.begin(),
+        profile.phases.end(),
+        [](const simple_platformer::PhaseTiming& phase)
+        { return std::string(phase.name) == "NPC behaviour"; });
+    const auto search = std::find_if(
+        profile.phases.begin(),
+        profile.phases.end(),
+        [](const simple_platformer::PhaseTiming& phase)
+        { return std::string(phase.name) == "Path search"; });
+    REQUIRE(behaviour != profile.phases.end());
+    REQUIRE(search != profile.phases.end());
+    REQUIRE(behaviour < search);
+    REQUIRE(std::string(search->category) == "NPC");
 }

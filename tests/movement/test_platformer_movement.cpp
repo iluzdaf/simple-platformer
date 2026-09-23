@@ -56,6 +56,17 @@ namespace
 
 }
 
+TEST_CASE("Movement configs are equal in every field or not at all", "[movement][platformer]")
+{
+    const simple_platformer::PlatformerMovementConfig config;
+    simple_platformer::PlatformerMovementConfig other;
+    REQUIRE(config == other);
+    REQUIRE_FALSE(config != other);
+    other.jumpBufferDuration += 0.01F;
+    REQUIRE(config != other);
+    REQUIRE_FALSE(config == other);
+}
+
 TEST_CASE("Ground movement accelerates and decelerates", "[movement][platformer]")
 {
     const TileMap map = makeFloorMap();

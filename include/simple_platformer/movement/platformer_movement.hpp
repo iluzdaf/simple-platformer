@@ -29,6 +29,9 @@ namespace simple_platformer
     };
 
     void validatePlatformerMovementConfig(const PlatformerMovementConfig& config);
+    // Equal in every field.
+    bool operator==(const PlatformerMovementConfig& left, const PlatformerMovementConfig& right);
+    bool operator!=(const PlatformerMovementConfig& left, const PlatformerMovementConfig& right);
 
     // The one rule for which way an actor faces: aim decides when it points left or right,
     // otherwise the way the actor is trying to move, otherwise it stays as it was.

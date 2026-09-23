@@ -113,6 +113,24 @@ namespace simple_platformer
         }
     }
 
+    bool operator==(const PlatformerMovementConfig& left, const PlatformerMovementConfig& right)
+    {
+        return left.maximumSpeed == right.maximumSpeed &&
+               left.groundAcceleration == right.groundAcceleration &&
+               left.airAcceleration == right.airAcceleration &&
+               left.groundDeceleration == right.groundDeceleration &&
+               left.jumpSpeed == right.jumpSpeed && left.gravity == right.gravity &&
+               left.jumpReleaseGravity == right.jumpReleaseGravity &&
+               left.maximumFallSpeed == right.maximumFallSpeed &&
+               left.coyoteDuration == right.coyoteDuration &&
+               left.jumpBufferDuration == right.jumpBufferDuration;
+    }
+
+    bool operator!=(const PlatformerMovementConfig& left, const PlatformerMovementConfig& right)
+    {
+        return !(left == right);
+    }
+
     void validatePlatformerMovementConfig(const PlatformerMovementConfig& config)
     {
         const bool invalidConfig =

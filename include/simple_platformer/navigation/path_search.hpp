@@ -17,6 +17,8 @@ namespace simple_platformer
     {
         // Cells whose connections the search asked for.
         int nodesExpanded = 0;
+        // Of those, cells whose connections a cache already held.
+        int cellsReused = 0;
         // Movement ticks simulated to build connections; only platformer searches do this.
         int simulatedTicks = 0;
     };

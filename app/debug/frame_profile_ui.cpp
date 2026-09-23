@@ -287,9 +287,11 @@ namespace simple_platformer
                 std::accumulate(simulationSeconds.begin(), simulationSeconds.end(), 0.0F) * scale,
                 ticks);
             ImGui::Text(
-                "searches %d   remembered %d   cells %d   reused %d   sim ticks %d",
+                "searches %d   remembered %d",
                 history.totalPathSearches(),
-                history.totalPathSearchesRemembered(),
+                history.totalPathSearchesRemembered());
+            ImGui::Text(
+                "cells %d   reused %d   sim ticks %d",
                 history.totalPathSearchNodes(),
                 history.totalPathSearchCellsReused(),
                 history.totalPathSearchSimulatedTicks());
@@ -320,9 +322,9 @@ namespace simple_platformer
                 frame.simulationSeconds * 1000.0F,
                 frame.simulationTicks);
             ImGui::Text(
-                "searches %d   remembered %d   cells %d   reused %d   sim ticks %d",
-                frame.pathSearches,
-                frame.pathSearchesRemembered,
+                "searches %d   remembered %d", frame.pathSearches, frame.pathSearchesRemembered);
+            ImGui::Text(
+                "cells %d   reused %d   sim ticks %d",
                 frame.pathSearchNodes,
                 frame.pathSearchCellsReused,
                 frame.pathSearchSimulatedTicks);

@@ -1,12 +1,8 @@
 #include "application.hpp"
 
 #include <cstdlib>
-#include <iostream>
-#include <memory>
 #include <optional>
 #include <stdexcept>
-
-#include <glad/glad.h>
 
 #include <glm/vec2.hpp>
 
@@ -23,10 +19,10 @@
 #include "debug/frame_profile_ui.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
+#include "graphics/game_window.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "ui/interface_ui.hpp"
 #include "simple_platformer/input/input_state.hpp"
-#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
@@ -36,26 +32,6 @@ namespace simple_platformer
 {
     namespace
     {
-        class GlfwSession
-        {
-        public:
-            GlfwSession()
-            {
-                if (glfwInit() == GLFW_FALSE)
-                {
-                    throw std::runtime_error("GLFW could not start");
-                }
-            }
-
-            ~GlfwSession()
-            {
-                glfwTerminate();
-            }
-
-            GlfwSession(const GlfwSession&) = delete;
-            GlfwSession& operator=(const GlfwSession&) = delete;
-        };
-
         class ImGuiSession
         {
         public:
@@ -183,37 +159,12 @@ namespace simple_platformer
 
     int runApplication()
     {
-        glfwSetErrorCallback([](int, const char* description)
-                             { std::cerr << "GLFW: " << description << '\n'; });
-        const GlfwSession glfw;
-
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-
-        using Window = std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)>;
-        Window window(
-            glfwCreateWindow(960, 540, "Simple Platformer", nullptr, nullptr), glfwDestroyWindow);
-        if (!window)
-        {
-            throw std::runtime_error("GLFW could not create the game window");
-        }
-
-        glfwSetWindowSizeLimits(
-            window.get(), InternalWidth, InternalHeight, GLFW_DONT_CARE, GLFW_DONT_CARE);
-        glfwMakeContextCurrent(window.get());
-        glfwSwapInterval(1);
-        if (gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)) == 0)
-        {
-            throw std::runtime_error("GLAD could not load OpenGL");
-        }
-
+        const GameWindow window("Simple Platformer", {960, 540});
         ApplicationContext context;
-        glfwSetWindowUserPointer(window.get(), &context);
-        glfwSetKeyCallback(window.get(), handleKey);
-        glfwSetMouseButtonCallback(window.get(), handleMouseButton);
-        const ImGuiSession imgui(window.get());
+        glfwSetWindowUserPointer(window.handle(), &context);
+        glfwSetKeyCallback(window.handle(), handleKey);
+        glfwSetMouseButtonCallback(window.handle(), handleMouseButton);
+        const ImGuiSession imgui(window.handle());
 
         SpriteRenderer renderer;
         const int atlas = renderer.loadTexture("assets/sprites.png");
@@ -223,7 +174,7 @@ namespace simple_platformer
         FrameHistory frameHistory;
         Stopwatch frameClock;
 
-        while (glfwWindowShouldClose(window.get()) == GLFW_FALSE)
+        while (!window.shouldClose())
         {
             glfwPollEvents();
             ImGui_ImplOpenGL3_NewFrame();
@@ -244,17 +195,9 @@ namespace simple_platformer
                 context.restartRequested = false;
             }
 
-            int windowWidth = 0;
-            int windowHeight = 0;
-            int framebufferWidth = 0;
-            int framebufferHeight = 0;
-            double cursorX = 0.0;
-            double cursorY = 0.0;
-            glfwGetWindowSize(window.get(), &windowWidth, &windowHeight);
-            glfwGetFramebufferSize(window.get(), &framebufferWidth, &framebufferHeight);
-            glfwGetCursorPos(window.get(), &cursorX, &cursorY);
-            const std::optional<WindowViewport> windowViewport = makeWindowViewport(
-                {windowWidth, windowHeight}, {framebufferWidth, framebufferHeight});
+            const WindowReading reading = window.read();
+            const std::optional<WindowViewport> windowViewport =
+                makeWindowViewport(reading.size, reading.framebufferSize);
 
             FrameProfile profile;
             profile.frameSeconds = frameClock.lapSeconds();
@@ -271,10 +214,8 @@ namespace simple_platformer
             {
                 game.useInventoryItem(*interfaceRequests.useInventorySlot);
             }
-            const std::optional<glm::vec2> internalCursor = windowToInternal(
-                {static_cast<float>(cursorX), static_cast<float>(cursorY)},
-                {windowWidth, windowHeight},
-                {framebufferWidth, framebufferHeight});
+            const std::optional<glm::vec2> internalCursor =
+                windowToInternal(reading.cursor, reading.size, reading.framebufferSize);
             const bool mouseAvailable = internalCursor.has_value() &&
                                         !ImGui::GetIO().WantCaptureMouse && !context.inventoryOpen;
             if (!mouseAvailable)
@@ -325,7 +266,7 @@ namespace simple_platformer
             const RenderScene scene = game.buildScene();
             profile.sceneSeconds = sceneWatch.elapsedSeconds();
             const Stopwatch renderWatch;
-            renderer.render(scene, framebufferWidth, framebufferHeight);
+            renderer.render(scene, reading.framebufferSize.x, reading.framebufferSize.y);
             profile.renderSeconds = renderWatch.elapsedSeconds();
             frameHistory.push(profile);
 
@@ -340,7 +281,7 @@ namespace simple_platformer
             }
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-            glfwSwapBuffers(window.get());
+            window.present();
         }
 
         return EXIT_SUCCESS;

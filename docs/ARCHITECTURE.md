@@ -83,7 +83,8 @@ The application code is grouped by responsibility:
 - `app/content` contains content definitions, JSON loaders, catalogues, and validators;
 - `app/ui` contains player-facing HUD, inventory, and completion UI;
 - `app/debug` builds and presents optional debugging information;
-- `app/graphics` contains display-viewport conversion and OpenGL sprite submission.
+- `app/graphics` contains the game window and its OpenGL context, display-viewport
+  conversion, and OpenGL sprite submission.
 
 `application.cpp` owns the outer loop: window events, input collection, fixed updates,
 UI, and rendering. `Game` owns the current `GameLevel` and camera controller.

@@ -163,7 +163,8 @@ iterators and pointers during a system update.
 - `World` owns elapsed simulation time. It advances once per fixed simulation update and
   provides a shared clock for effects that do not need their own resettable timer.
   Actors store damage timestamps against this clock, while rendering decides how recent
-  damage should look.
+  damage should look. `World::secondsSince` answers how long ago such a stamp was, and
+  rejects one from the future, so the readers only compare the age to their window.
 
 The two actor-position conventions are deliberately named:
 

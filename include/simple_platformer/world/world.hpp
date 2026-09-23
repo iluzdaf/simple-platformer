@@ -36,6 +36,9 @@ namespace simple_platformer
 
         // Elapsed active fixed-step time for this world.
         float simulationTimeSeconds() const;
+        // How long ago a stamp taken from this clock was, or nothing without a stamp. A
+        // stamp ahead of the clock is rejected.
+        std::optional<float> secondsSince(const std::optional<float>& timeSeconds) const;
         // The simulation loop calls this once at the start of each active update.
         void advanceSimulationTime(float deltaTime);
 

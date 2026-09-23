@@ -78,7 +78,9 @@ namespace simple_platformer
             glm::vec2 aimDirection = {1.0F, 0.0F};
             bool showDebugOverlay = false;
             bool inventoryOpen = false;
-            bool inventoryToggled = false;
+            // Set when the inventory opens or closes or the game restarts, so the next
+            // step discards the time and input edges that built up across the change.
+            bool playInterrupted = false;
             bool restartRequested = false;
         };
 
@@ -110,8 +112,7 @@ namespace simple_platformer
             if (key == GLFW_KEY_Q && action == GLFW_PRESS)
             {
                 context->inventoryOpen = !context->inventoryOpen;
-                context->inventoryToggled = true;
-                context->input = {};
+                context->playInterrupted = true;
                 return;
             }
             if (key == GLFW_KEY_R && action == GLFW_PRESS)
@@ -206,16 +207,14 @@ namespace simple_platformer
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            bool gameRestarted = false;
             if (context.restartRequested)
             {
                 if (game.complete())
                 {
                     game.restart();
                     context.inventoryOpen = false;
-                    context.input = {};
                     context.aimDirection = {1.0F, 0.0F};
-                    gameRestarted = true;
+                    context.playInterrupted = true;
                 }
                 context.restartRequested = false;
             }
@@ -233,7 +232,7 @@ namespace simple_platformer
             if (interfaceRequests.toggleInventory)
             {
                 context.inventoryOpen = !context.inventoryOpen;
-                context.inventoryToggled = true;
+                context.playInterrupted = true;
             }
             if (interfaceRequests.useInventorySlot.has_value())
             {
@@ -246,25 +245,27 @@ namespace simple_platformer
             {
                 gameCursor.reset();
             }
-            if (!gameCursor.has_value())
+
+            // What input survives into the step: nothing while paused, across an
+            // interruption, or while ImGui has the keyboard; no attack without the cursor.
+            const bool paused = context.inventoryOpen || game.complete();
+            if (paused || context.playInterrupted || ImGui::GetIO().WantCaptureKeyboard)
+            {
+                context.input = {};
+            }
+            else if (!gameCursor.has_value())
             {
                 context.input.clearButton(InputButton::PrimaryAttack);
             }
 
-            const bool paused = context.inventoryOpen || game.complete();
-            if (paused || context.inventoryToggled || gameRestarted)
+            if (paused || context.playInterrupted)
             {
-                // Discard paused time and input edges, including a UI click on the closing frame.
+                // Time that built up would otherwise be simulated in a burst on resuming.
                 fixedStep.reset();
-                context.input = {};
-                context.inventoryToggled = false;
+                context.playInterrupted = false;
             }
             else
             {
-                if (ImGui::GetIO().WantCaptureKeyboard)
-                {
-                    context.input = {};
-                }
                 const auto step = [&](float deltaTime)
                 {
                     const InputIntentions intentions = playerIntentions(context, game, gameCursor);

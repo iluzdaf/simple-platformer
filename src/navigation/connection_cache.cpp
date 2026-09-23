@@ -1,6 +1,5 @@
 #include "simple_platformer/navigation/connection_cache.hpp"
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -30,26 +29,7 @@ namespace simple_platformer
         return std::hash<std::uint64_t>{}((column << 32U) | row);
     }
 
-    const std::vector<NavigationNeighbor>* PlatformerConnectionCache::find(
-        GridPosition cell,
-        const ConnectionBody& body) const
-    {
-        for (const BodyConnections& kept : bodies)
-        {
-            if (!(kept.body == body))
-            {
-                continue;
-            }
-            const auto connections = kept.cells.find(cell);
-            return connections == kept.cells.end() ? nullptr : &connections->second;
-        }
-        return nullptr;
-    }
-
-    void PlatformerConnectionCache::keep(
-        GridPosition cell,
-        const ConnectionBody& body,
-        std::vector<NavigationNeighbor> connections)
+    void PlatformerConnectionCache::requireValid(const ConnectionBody& body) const
     {
         if (!isFinite(body.size) || body.size.x <= 0.0F || body.size.y <= 0.0F ||
             !isFinitePositive(body.stepSeconds))
@@ -57,16 +37,77 @@ namespace simple_platformer
             throw std::invalid_argument(
                 "Connections are kept for a finite, positive body size and step");
         }
-        auto kept = std::find_if(
-            bodies.begin(),
-            bodies.end(),
-            [&body](const BodyConnections& candidate) { return candidate.body == body; });
-        if (kept == bodies.end())
+    }
+
+    const PlatformerConnectionCache::BodyConnections* PlatformerConnectionCache::findConnectionsFor(
+        const ConnectionBody& body) const
+    {
+        for (const BodyConnections& kept : bodies)
         {
-            bodies.push_back({body, {}});
-            kept = bodies.end() - 1;
+            if (kept.body == body)
+            {
+                return &kept;
+            }
         }
-        kept->cells[cell] = std::move(connections);
+        return nullptr;
+    }
+
+    PlatformerConnectionCache::BodyConnections& PlatformerConnectionCache::connectionsFor(
+        const ConnectionBody& body)
+    {
+        for (BodyConnections& kept : bodies)
+        {
+            if (kept.body == body)
+            {
+                return kept;
+            }
+        }
+        bodies.push_back({body, {}, {}});
+        return bodies.back();
+    }
+
+    const std::vector<NavigationNeighbor>* PlatformerConnectionCache::find(
+        GridPosition cell,
+        const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        if (kept == nullptr)
+        {
+            return nullptr;
+        }
+        const auto connections = kept->cells.find(cell);
+        return connections == kept->cells.end() ? nullptr : &connections->second;
+    }
+
+    void PlatformerConnectionCache::keep(
+        GridPosition cell,
+        const ConnectionBody& body,
+        std::vector<NavigationNeighbor> connections)
+    {
+        requireValid(body);
+        connectionsFor(body).cells[cell] = std::move(connections);
+    }
+
+    const std::vector<GridPosition>* PlatformerConnectionCache::reachableFrom(
+        GridPosition start,
+        const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        if (kept == nullptr)
+        {
+            return nullptr;
+        }
+        const auto cells = kept->reachable.find(start);
+        return cells == kept->reachable.end() ? nullptr : &cells->second;
+    }
+
+    void PlatformerConnectionCache::keepReachable(
+        GridPosition start,
+        const ConnectionBody& body,
+        std::vector<GridPosition> cells)
+    {
+        requireValid(body);
+        connectionsFor(body).reachable[start] = std::move(cells);
     }
 
     void PlatformerConnectionCache::clear()

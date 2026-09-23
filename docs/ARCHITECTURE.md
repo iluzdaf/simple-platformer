@@ -467,9 +467,12 @@ A search handed a cache takes each expanded cell's connections from it when they
 there and keeps them there when they are not; a search without one simulates every
 cell, as the tests of the policies do. The `World` owns the cache for the map it is
 simulated with, since the world is replaced with its level, and the NPC system hands it
-to every platformer search. The profile counts the cells a search reused beside the
-cells it expanded, so the frame panel shows the simulated ticks fall to nothing once
-the level's reachable cells have been found.
+to every platformer search. A search that fails has expanded every cell its start
+leads to, and the cache keeps that set too, per start and body, so a later search from
+there to a goal outside it returns no path without expanding anything; an NPC that can
+see a player it cannot reach retries every quarter second at no cost. The profile
+counts the cells a search reused beside the cells it expanded, so the frame panel shows
+the simulated ticks fall to nothing once the level's reachable cells have been found.
 
 Path following never teleports an actor or writes its velocity. It emits intentions,
 and the ordinary actor movement system performs the motion. End-to-end tests replay

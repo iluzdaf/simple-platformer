@@ -483,9 +483,13 @@ step rather than waiting out its cooldown; a path it does find is still a path. 
 also plans again after any break, since its path may have run through the broken tile.
 `PlatformerConnectionCache` in `navigation/connection_cache`
 keeps the connections leaving each cell, grouped by the body they were simulated for.
-A search handed a cache reads each expanded cell's connections where the cache keeps
-them, simulating and keeping them first when it does not yet; a search without one
-simulates every cell, as the tests of the policies do. The `World` owns the cache for the map it is
+`findPlatformerPath` is two layers. The search itself runs A* over whichever
+connections it is handed and charges each jump its penalty. The cached search around it
+answers from what the cache remembers when it can, hands the search the cache's
+connections, and keeps what the search learns; without a cache the search is handed
+connections simulated for that search alone, as the tests of the policies do. The cache
+and everything built on it can be taken out by removing the wrapper and leaving the
+search. The `World` owns the cache for the map it is
 simulated with, since the world is replaced with its level, and the NPC system hands it
 to every platformer search. The game fills it when a level starts: `warmNpcNavigation`
 keeps every cell of the map for each platformer NPC body in the world, at the step the

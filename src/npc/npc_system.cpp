@@ -59,6 +59,23 @@ namespace simple_platformer
             return patrol.headingToSecond ? patrol.secondFeet : patrol.firstFeet;
         }
 
+        // Whether the follower needs a path to this goal: it has none, or one to another
+        // cell, or has finished its path and been moved off the goal since.
+        bool needsPath(const PathFollower& follower, GridPosition start, GridPosition goal)
+        {
+            const bool destinationChanged = !follower.destinationCell.has_value() ||
+                                            follower.destinationCell.value_or(goal) != goal;
+            const bool displacedAfterCompletion = pathComplete(follower) && start != goal;
+            return destinationChanged || !follower.path.has_value() || displacedAfterCompletion;
+        }
+
+        // Whether a tile has broken since the path was planned. The path may run through
+        // it, so the follower plans again at once, cooldown or not.
+        bool plannedBeforeABreak(const TileMap& map, const PathFollower& follower)
+        {
+            return follower.breaksWhenPlanned != map.brokenCells().size();
+        }
+
         // The search simulates at deltaTime, the step this actor is about to be moved with.
         void requestPath(
             const TileMap& map,
@@ -85,18 +102,8 @@ namespace simple_platformer
                 start = supportedStart.value_or(start);
             }
             const GridPosition goal = cellAtFeet(map.tileSize(), goalFeet);
-            const bool destinationChanged = !follower.destinationCell.has_value() ||
-                                            follower.destinationCell.value_or(goal) != goal;
-            const bool displacedAfterCompletion = pathComplete(follower) && start != goal;
-            // A path planned before a break may run through it, so it is planned again
-            // at once, cooldown or not.
-            const bool mapBrokenSince = follower.breaksWhenPlanned != map.brokenCells().size();
-            if (!destinationChanged && follower.path.has_value() && !displacedAfterCompletion &&
-                !mapBrokenSince)
-            {
-                return;
-            }
-            if (follower.repathRemaining > 0.0F && !mapBrokenSince)
+            if (!plannedBeforeABreak(map, follower) &&
+                (!needsPath(follower, start, goal) || follower.repathRemaining > 0.0F))
             {
                 return;
             }

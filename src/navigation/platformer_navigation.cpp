@@ -382,7 +382,7 @@ namespace simple_platformer
         std::optional<NavigationPath> path = findLowestCostPath(
             start,
             goal,
-            {map.width(), map.height()},
+            map.size(),
             neighbors,
             heuristic,
             statistics,

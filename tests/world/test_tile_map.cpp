@@ -133,6 +133,18 @@ TEST_CASE("Tile maps reject invalid definitions and tile IDs", "[world][tile-map
         std::invalid_argument);
 }
 
+TEST_CASE("A tile map contains the cells of its grid and no others", "[world][tile-map]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "..."});
+    REQUIRE(map.size().width == 3);
+    REQUIRE(map.size().height == 2);
+    REQUIRE(map.contains({0, 0}));
+    REQUIRE(map.contains({2, 1}));
+    REQUIRE_FALSE(map.contains({3, 1}));
+    REQUIRE_FALSE(map.contains({2, 2}));
+    REQUIRE_FALSE(map.contains({-1, 0}));
+}
+
 TEST_CASE("A tile map knows its tile size and measures itself by it", "[world][tile-map]")
 {
     const simple_platformer::TileMap map(32, 3, 2, std::vector<int>(6, 0), {{false, false, {}}});

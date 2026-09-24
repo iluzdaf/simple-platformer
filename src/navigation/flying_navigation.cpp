@@ -32,7 +32,7 @@ namespace simple_platformer
 
         // Call the overload without a heuristic to compare A* with a plain lowest-cost search.
         return findLowestCostPath(
-            start, goal, {map.width(), map.height()}, neighbors, manhattanHeuristic, statistics);
+            start, goal, map.size(), neighbors, manhattanHeuristic, statistics);
     }
 
     std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition cell)

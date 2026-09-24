@@ -43,6 +43,8 @@ namespace simple_platformer
         int tileSize() const;
         int width() const;
         int height() const;
+        // Both, as the grid a search runs over.
+        GridSize size() const;
         float pixelWidth() const;
         float pixelHeight() const;
 

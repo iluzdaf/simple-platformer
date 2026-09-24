@@ -154,14 +154,27 @@ namespace simple_platformer
             std::snprintf(text, sizeof(text), "%-8s%zu", key, value);
             drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         };
-        std::snprintf(
-            text,
-            sizeof(text),
-            "body:   %zu/%zu %gx%g (N)",
-            cache.bodyIndex + 1,
-            cache.bodyCount,
-            static_cast<double>(cache.bodySize.x),
-            static_cast<double>(cache.bodySize.y));
+        if (cache.bodyName.empty())
+        {
+            std::snprintf(
+                text,
+                sizeof(text),
+                "body:   %zu/%zu %gx%g (N)",
+                cache.bodyIndex + 1,
+                cache.bodyCount,
+                static_cast<double>(cache.bodySize.x),
+                static_cast<double>(cache.bodySize.y));
+        }
+        else
+        {
+            std::snprintf(
+                text,
+                sizeof(text),
+                "body:   %s %zu/%zu (N)",
+                cache.bodyName.c_str(),
+                cache.bodyIndex + 1,
+                cache.bodyCount);
+        }
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         // Cells with connections, over every cell kept.
         std::snprintf(text, sizeof(text), "cells:  %zu/%zu", cache.cellsConnected, cache.cellsKept);

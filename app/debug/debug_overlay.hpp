@@ -110,15 +110,13 @@ namespace simple_platformer
     };
 
     // simulationStepSeconds is the fixed step the world is simulated with; predicted jump
-    // arcs are replayed at it so they match what the actor will do. The cursor, in world
-    // coordinates, picks the cell whose cache entry is shown, and the body index which
-    // NPC body's cache to show.
+    // arcs are replayed at it so they match what the actor will do. The navigation view
+    // says which cell and which body the cache is shown for.
     DebugOverlay makeDebugOverlay(
         const World& world,
         const TileMap& map,
         const CameraController& cameraController,
         float atlasWidth,
         float simulationStepSeconds,
-        std::optional<glm::vec2> cursorWorld = std::nullopt,
-        std::size_t navigationBodyIndex = 0);
+        const NavigationDebugView& navigation = {});
 }

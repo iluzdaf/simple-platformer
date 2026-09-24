@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include <glm/vec2.hpp>
@@ -116,8 +117,7 @@ namespace simple_platformer
         const World& world,
         const TileMap& map,
         float simulationStepSeconds,
-        std::optional<glm::vec2> cursorWorld,
-        std::size_t bodyIndex)
+        const NavigationDebugView& view)
     {
         std::vector<ConnectionBody> bodies;
         for (const Actor& actor : world.actors())
@@ -143,11 +143,19 @@ namespace simple_platformer
         {
             return std::nullopt;
         }
-        const std::size_t shown = bodyIndex % bodies.size();
+        const std::size_t shown = view.bodyIndex % bodies.size();
         const ConnectionBody body = bodies[shown];
         const PlatformerConnectionCache& cache = world.platformerConnections();
         NavigationCacheDebugInfo info;
         info.bodySize = body.size;
+        for (const NamedBody& named : view.bodyNames)
+        {
+            if (named.body == body)
+            {
+                info.bodyName = named.name;
+                break;
+            }
+        }
         info.bodyIndex = shown;
         info.bodyCount = bodies.size();
         info.cellsKept = cache.cellsKept(body);
@@ -172,9 +180,9 @@ namespace simple_platformer
                      kept == nullptr ? std::nullopt : std::optional<std::size_t>(kept->size())});
             }
         }
-        if (cursorWorld.has_value())
+        if (view.cursorWorld.has_value())
         {
-            const glm::vec2 cursor = cursorWorld.value_or(glm::vec2{0.0F, 0.0F});
+            const glm::vec2 cursor = view.cursorWorld.value_or(glm::vec2{0.0F, 0.0F});
             if (cursor.x >= 0.0F && cursor.y >= 0.0F && cursor.x < map.pixelWidth() &&
                 cursor.y < map.pixelHeight())
             {

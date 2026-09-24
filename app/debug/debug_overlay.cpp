@@ -161,8 +161,7 @@ namespace simple_platformer
         const CameraController& cameraController,
         float atlasWidth,
         float simulationStepSeconds,
-        std::optional<glm::vec2> cursorWorld,
-        std::size_t navigationBodyIndex)
+        const NavigationDebugView& navigation)
     {
         if (!isFinitePositive(simulationStepSeconds))
         {
@@ -239,8 +238,8 @@ namespace simple_platformer
                 {pickup.body.bounds, world.itemDefinition(pickup.stack.item).name});
         }
 
-        scene.navigationCache = makeNavigationCacheDebugInfo(
-            world, map, simulationStepSeconds, cursorWorld, navigationBodyIndex);
+        scene.navigationCache =
+            makeNavigationCacheDebugInfo(world, map, simulationStepSeconds, navigation);
         return scene;
     }
 }

@@ -139,10 +139,21 @@ namespace simple_platformer
             level.map, player->sprite.value().textureId, currentCamera(), level.world);
     }
 
-    DebugOverlay Game::debugOverlay(float atlasWidth) const
+    DebugOverlay Game::debugOverlay(float atlasWidth, std::optional<glm::vec2> internalCursor) const
     {
+        std::optional<glm::vec2> cursorWorld;
+        if (internalCursor.has_value())
+        {
+            cursorWorld =
+                screenToWorld(currentCamera(), internalCursor.value_or(glm::vec2{0.0F, 0.0F}));
+        }
         return makeDebugOverlay(
-            level.world, level.map, cameraControllerValue(), atlasWidth, simulationStepSeconds);
+            level.world,
+            level.map,
+            cameraControllerValue(),
+            atlasWidth,
+            simulationStepSeconds,
+            cursorWorld);
     }
 
     Health Game::playerHealth() const

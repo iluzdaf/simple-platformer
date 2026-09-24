@@ -1,7 +1,9 @@
 #include "debug_overlay_ui.hpp"
 
+#include "debug_draw.hpp"
 #include "debug_overlay.hpp"
 #include "navigation_debug.hpp"
+#include "navigation_debug_ui.hpp"
 #include "graphics/display_viewport.hpp"
 
 #include <cstddef>
@@ -21,37 +23,6 @@ namespace simple_platformer
 {
     namespace
     {
-        // Debug overlay palette. Adjust these values to tune every overlay colour.
-        constexpr ImU32 CompletedPathColour = IM_COL32(128, 128, 128, 180);
-        constexpr ImU32 FlyingPathColour = IM_COL32(64, 224, 255, 255);
-        constexpr ImU32 WalkingPathColour = IM_COL32(80, 224, 96, 255);
-        constexpr ImU32 FallingPathColour = IM_COL32(255, 160, 64, 255);
-        constexpr ImU32 JumpingPathColour = IM_COL32(224, 80, 255, 255);
-        constexpr ImU32 UnknownPathColour = IM_COL32(255, 255, 255, 255);
-        constexpr ImU32 PathDestinationColour = IM_COL32(255, 255, 255, 230);
-        constexpr ImU32 NextPathGuideColour = IM_COL32(255, 255, 255, 220);
-        constexpr ImU32 SensorRangeColour = IM_COL32(160, 96, 255, 110);
-        constexpr ImU32 VisibleTargetColour = IM_COL32(80, 255, 96, 230);
-        constexpr ImU32 RememberedTargetColour = IM_COL32(255, 224, 64, 240);
-        constexpr ImU32 PatrolRouteColour = IM_COL32(255, 192, 64, 190);
-        constexpr ImU32 PatrolPointColour = IM_COL32(255, 224, 128, 255);
-        constexpr ImU32 ActivePatrolPointColour = IM_COL32(255, 255, 255, 255);
-        constexpr ImU32 WorldLabelColour = IM_COL32(255, 255, 255, 255);
-        constexpr ImU32 ProjectileColour = IM_COL32(255, 160, 64, 255);
-        constexpr ImU32 TextHeadingColour = IM_COL32(255, 255, 255, 255);
-        constexpr ImU32 TextDetailColour = IM_COL32(224, 224, 224, 255);
-        constexpr ImU32 CameraBoundsColour = IM_COL32(64, 224, 255, 255);
-        constexpr ImU32 CameraDeadZoneColour = IM_COL32(64, 64, 64, 255);
-        constexpr ImU32 BiteHitboxColour = IM_COL32(255, 64, 224, 255);
-        constexpr ImU32 SpriteBoundsColour = IM_COL32(64, 64, 64, 255);
-        constexpr ImU32 ColliderBoundsColour = IM_COL32(255, 64, 64, 255);
-        constexpr ImU32 PickupColour = IM_COL32(96, 255, 160, 255);
-        // The connection cache's cells: kept with connections, kept with none, and missing,
-        // which after a break means dropped and not yet simulated again.
-        constexpr ImU32 NavigationKeptColour = IM_COL32(64, 160, 255, 90);
-        constexpr ImU32 NavigationEmptyColour = IM_COL32(128, 128, 128, 70);
-        constexpr ImU32 NavigationMissingColour = IM_COL32(255, 96, 32, 220);
-
         constexpr float ActorTextGap = 4.0F;
 
         const char* nameOf(AnimationName animation)
@@ -124,60 +95,6 @@ namespace simple_platformer
             return "Actor";
         }
 
-        ImVec2 screenPosition(
-            glm::vec2 worldPosition,
-            const DebugOverlay& scene,
-            const WindowViewport& viewport)
-        {
-            return {
-                viewport.topLeft.x +
-                    (worldPosition.x - scene.cameraBounds.position.x) * viewport.scale.x,
-                viewport.topLeft.y +
-                    (worldPosition.y - scene.cameraBounds.position.y) * viewport.scale.y};
-        }
-
-        // A cell of the connection cache: a filled cell while its connections are kept,
-        // with their count, and an outlined one while they are missing.
-        void drawNavigationCell(
-            ImDrawList& drawList,
-            const NavigationCellDebugInfo& cell,
-            const DebugOverlay& scene,
-            const WindowViewport& viewport)
-        {
-            const ImVec2 minimum = screenPosition(cell.bounds.position, scene, viewport);
-            const ImVec2 maximum = {
-                minimum.x + cell.bounds.size.x * viewport.scale.x,
-                minimum.y + cell.bounds.size.y * viewport.scale.y};
-            if (!cell.connections.has_value())
-            {
-                drawList.AddRect(minimum, maximum, NavigationMissingColour, 0.0F, 0, 2.0F);
-                return;
-            }
-            const ImU32 colour =
-                *cell.connections == 0 ? NavigationEmptyColour : NavigationKeptColour;
-            drawList.AddRectFilled(minimum, maximum, colour);
-            if (*cell.connections > 0)
-            {
-                char count[8];
-                std::snprintf(count, sizeof(count), "%zu", *cell.connections);
-                drawList.AddText({minimum.x + 1.0F, minimum.y}, WorldLabelColour, count);
-            }
-        }
-
-        void drawWorldBounds(
-            ImDrawList& drawList,
-            const Aabb& bounds,
-            const DebugOverlay& scene,
-            const WindowViewport& viewport,
-            ImU32 colour)
-        {
-            const ImVec2 minimum = screenPosition(bounds.position, scene, viewport);
-            const ImVec2 maximum = {
-                minimum.x + bounds.size.x * viewport.scale.x,
-                minimum.y + bounds.size.y * viewport.scale.y};
-            drawList.AddRect(minimum, maximum, colour, 0.0F, 0, 2.0F);
-        }
-
         ImU32 pathColour(const PathConnectionDebugInfo& connection)
         {
             if (connection.completed)
@@ -215,8 +132,9 @@ namespace simple_platformer
             for (std::size_t index = 0; index < follower.connections.size(); ++index)
             {
                 const PathConnectionDebugInfo& connection = follower.connections[index];
-                const ImVec2 from = screenPosition(connection.fromFeet, scene, viewport);
-                const ImVec2 to = screenPosition(connection.toFeet, scene, viewport);
+                const ImVec2 from =
+                    screenPosition(connection.fromFeet, scene.cameraBounds, viewport);
+                const ImVec2 to = screenPosition(connection.toFeet, scene.cameraBounds, viewport);
                 const ImU32 colour = pathColour(connection);
                 const float thickness = connection.next ? 3.0F : 2.0F;
                 if (connection.sampledFeet.size() >= 2)
@@ -226,8 +144,11 @@ namespace simple_platformer
                     {
                         drawList.AddLine(
                             screenPosition(
-                                connection.sampledFeet[sampleIndex - 1], scene, viewport),
-                            screenPosition(connection.sampledFeet[sampleIndex], scene, viewport),
+                                connection.sampledFeet[sampleIndex - 1],
+                                scene.cameraBounds,
+                                viewport),
+                            screenPosition(
+                                connection.sampledFeet[sampleIndex], scene.cameraBounds, viewport),
                             colour,
                             thickness);
                     }
@@ -253,11 +174,11 @@ namespace simple_platformer
                             ? (connection.fromFeet + connection.toFeet) * 0.5F
                             : connection.sampledFeet[connection.sampledFeet.size() / 2];
                     const ImVec2 labelPosition =
-                        screenPosition(labelWorldPosition, scene, viewport);
+                        screenPosition(labelWorldPosition, scene.cameraBounds, viewport);
                     const char* traversalName = nameOf(connection.traversal);
                     drawShadowedText(drawList, labelPosition, colour, traversalName);
                     drawList.AddLine(
-                        screenPosition(feetOf(actor.collider), scene, viewport),
+                        screenPosition(feetOf(actor.collider), scene.cameraBounds, viewport),
                         to,
                         NextPathGuideColour);
                 }
@@ -267,7 +188,7 @@ namespace simple_platformer
             {
                 constexpr float DestinationRadius = 6.0F;
                 const ImVec2 destination =
-                    screenPosition(follower.destinationFeet.value(), scene, viewport);
+                    screenPosition(follower.destinationFeet.value(), scene.cameraBounds, viewport);
                 drawList.AddCircle(destination, DestinationRadius, PathDestinationColour, 16, 2.0F);
                 drawList.AddText(
                     {destination.x + DestinationRadius + 2.0F,
@@ -289,7 +210,8 @@ namespace simple_platformer
             }
 
             const SensorDebugInfo& sensor = actor.sensor.value();
-            const ImVec2 observer = screenPosition(sensor.observerCenter, scene, viewport);
+            const ImVec2 observer =
+                screenPosition(sensor.observerCenter, scene.cameraBounds, viewport);
             drawList.AddCircle(
                 observer, sensor.noticeDistance * viewport.scale.x, SensorRangeColour, 48, 1.0F);
 
@@ -297,7 +219,8 @@ namespace simple_platformer
             {
                 drawList.AddLine(
                     observer,
-                    screenPosition(sensor.visibleTargetCenter.value(), scene, viewport),
+                    screenPosition(
+                        sensor.visibleTargetCenter.value(), scene.cameraBounds, viewport),
                     VisibleTargetColour,
                     2.0F);
             }
@@ -305,8 +228,8 @@ namespace simple_platformer
             if (sensor.rememberedTargetFeet.has_value())
             {
                 constexpr float MarkerRadius = 4.0F;
-                const ImVec2 remembered =
-                    screenPosition(sensor.rememberedTargetFeet.value(), scene, viewport);
+                const ImVec2 remembered = screenPosition(
+                    sensor.rememberedTargetFeet.value(), scene.cameraBounds, viewport);
                 drawList.AddLine(observer, remembered, RememberedTargetColour, 1.5F);
                 drawList.AddLine(
                     {remembered.x - MarkerRadius, remembered.y - MarkerRadius},
@@ -341,8 +264,8 @@ namespace simple_platformer
             constexpr float PointRadius = 4.0F;
             constexpr float ActivePointRadius = 7.0F;
             const PatrolDebugInfo& patrol = actor.patrol.value();
-            const ImVec2 first = screenPosition(patrol.firstFeet, scene, viewport);
-            const ImVec2 second = screenPosition(patrol.secondFeet, scene, viewport);
+            const ImVec2 first = screenPosition(patrol.firstFeet, scene.cameraBounds, viewport);
+            const ImVec2 second = screenPosition(patrol.secondFeet, scene.cameraBounds, viewport);
             drawList.AddLine(first, second, PatrolRouteColour, 2.0F);
             drawList.AddCircleFilled(first, PointRadius, PatrolPointColour);
             drawList.AddCircleFilled(second, PointRadius, PatrolPointColour);
@@ -380,7 +303,7 @@ namespace simple_platformer
         {
             const glm::vec2 labelWorldPosition =
                 actor.sprite.has_value() ? actor.sprite->bounds.position : actor.collider.position;
-            ImVec2 labelPosition = screenPosition(labelWorldPosition, scene, viewport);
+            ImVec2 labelPosition = screenPosition(labelWorldPosition, scene.cameraBounds, viewport);
             const float lineHeight = ImGui::GetTextLineHeight();
             const std::string actorLabel = labelFor(actor);
             drawList.AddText(labelPosition, WorldLabelColour, actorLabel.c_str());
@@ -403,9 +326,11 @@ namespace simple_platformer
             const DebugOverlay& scene,
             const WindowViewport& viewport)
         {
-            drawWorldBounds(drawList, projectile.bounds, scene, viewport, ProjectileColour);
+            drawWorldBounds(
+                drawList, projectile.bounds, scene.cameraBounds, viewport, ProjectileColour);
 
-            ImVec2 labelPosition = screenPosition(projectile.bounds.position, scene, viewport);
+            ImVec2 labelPosition =
+                screenPosition(projectile.bounds.position, scene.cameraBounds, viewport);
             labelPosition.y += projectile.bounds.size.y * viewport.scale.y + 2.0F;
             char label[64]{};
             if (projectile.owner.has_value())
@@ -487,11 +412,16 @@ namespace simple_platformer
 
         if (viewport.has_value())
         {
-            drawWorldBounds(*drawList, scene.cameraBounds, scene, *viewport, CameraBoundsColour);
             drawWorldBounds(
-                *drawList, scene.cameraDeadZone, scene, *viewport, CameraDeadZoneColour);
+                *drawList, scene.cameraBounds, scene.cameraBounds, *viewport, CameraBoundsColour);
+            drawWorldBounds(
+                *drawList,
+                scene.cameraDeadZone,
+                scene.cameraBounds,
+                *viewport,
+                CameraDeadZoneColour);
             drawList->AddText(
-                screenPosition(scene.cameraDeadZone.position, scene, *viewport),
+                screenPosition(scene.cameraDeadZone.position, scene.cameraBounds, *viewport),
                 CameraDeadZoneColour,
                 "camera dead zone");
         }
@@ -528,16 +458,25 @@ namespace simple_platformer
             if (actor.biteHitbox.has_value())
             {
                 drawWorldBounds(
-                    *drawList, actor.biteHitbox.value(), scene, *viewport, BiteHitboxColour);
+                    *drawList,
+                    actor.biteHitbox.value(),
+                    scene.cameraBounds,
+                    *viewport,
+                    BiteHitboxColour);
             }
 
             if (actor.sprite.has_value())
             {
                 drawWorldBounds(
-                    *drawList, actor.sprite->bounds, scene, *viewport, SpriteBoundsColour);
+                    *drawList,
+                    actor.sprite->bounds,
+                    scene.cameraBounds,
+                    *viewport,
+                    SpriteBoundsColour);
             }
             drawActorWorldLabel(*drawList, actor, scene, *viewport);
-            drawWorldBounds(*drawList, actor.collider, scene, *viewport, ColliderBoundsColour);
+            drawWorldBounds(
+                *drawList, actor.collider, scene.cameraBounds, *viewport, ColliderBoundsColour);
         }
 
         if (viewport.has_value())
@@ -548,16 +487,18 @@ namespace simple_platformer
             }
             if (scene.navigationCache.has_value())
             {
-                for (const NavigationCellDebugInfo& cell : scene.navigationCache->cells)
-                {
-                    drawNavigationCell(*drawList, cell, scene, *viewport);
-                }
+                drawNavigationCache(
+                    *drawList,
+                    scene.navigationCache.value_or(NavigationCacheDebugInfo{}),
+                    scene.cameraBounds,
+                    *viewport);
             }
             for (const PickupDebugInfo& pickup : scene.pickups)
             {
-                drawWorldBounds(*drawList, pickup.bounds, scene, *viewport, PickupColour);
+                drawWorldBounds(
+                    *drawList, pickup.bounds, scene.cameraBounds, *viewport, PickupColour);
                 drawList->AddText(
-                    screenPosition(pickup.bounds.position, scene, *viewport),
+                    screenPosition(pickup.bounds.position, scene.cameraBounds, *viewport),
                     PickupColour,
                     pickup.itemName.c_str());
             }

@@ -143,9 +143,11 @@ enable_project_warnings(simple_platformer_core)
 add_executable(
     simple_platformer
     app/application.cpp
+    app/debug/debug_draw.cpp
     app/debug/debug_overlay.cpp
     app/debug/debug_overlay_ui.cpp
     app/debug/navigation_debug.cpp
+    app/debug/navigation_debug_ui.cpp
     app/debug/frame_profile_ui.cpp
     app/debug/frame_selection.cpp
     app/content/actor_catalog.cpp

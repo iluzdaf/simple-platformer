@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -131,6 +132,23 @@ namespace simple_platformer
         }
         const auto connections = kept->cells.find(cell);
         return connections == kept->cells.end() ? nullptr : &connections->second.connections;
+    }
+
+    std::optional<CellRange> PlatformerConnectionCache::footprintKept(
+        GridPosition cell,
+        const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        if (kept == nullptr)
+        {
+            return std::nullopt;
+        }
+        const auto connections = kept->cells.find(cell);
+        if (connections == kept->cells.end())
+        {
+            return std::nullopt;
+        }
+        return connections->second.footprint;
     }
 
     const std::vector<NavigationNeighbor>& PlatformerConnectionCache::keep(

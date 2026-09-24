@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -64,6 +65,8 @@ namespace simple_platformer
         // The connections kept for this cell and body, or nothing while none have been.
         const std::vector<NavigationNeighbor>* find(GridPosition cell, const ConnectionBody& body)
             const;
+        // The footprint kept with them, for showing why a break drops the cell.
+        std::optional<CellRange> footprintKept(GridPosition cell, const ConnectionBody& body) const;
         // Keeps these as the cell's connections for the body, replacing any kept before,
         // and returns them where they are kept. The footprint is every cell their
         // simulation swept: a break inside it drops them.

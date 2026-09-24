@@ -1,12 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <optional>
 #include <vector>
 
 #include <glm/vec2.hpp>
 
 #include "debug/navigation_debug.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -79,4 +81,66 @@ TEST_CASE(
         cells.end(),
         [](const simple_platformer::NavigationCellDebugInfo& cell)
         { return cell.connections.has_value(); }));
+}
+
+TEST_CASE(
+    "Navigation debug data shows the cache's entry for the cursor cell",
+    "[app][debug][navigation]")
+{
+    // A floor with a step up at the right, so the cursor cell has walks and jumps.
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "......##", "########"});
+    simple_platformer::World world;
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .atFeet({8.0F, 32.0F})
+                       .walking()
+                       .thinking({64.0F, 1.0F}));
+    const auto infoAt = [&](std::optional<glm::vec2> cursor)
+    {
+        return simple_platformer::makeNavigationCacheDebugInfo(
+                   world, map, tests::FixedStepSeconds, cursor)
+            .value_or(simple_platformer::NavigationCacheDebugInfo{});
+    };
+
+    // No cursor, or one off the map, shows no cell; an unkept cell shows its bounds only.
+    REQUIRE_FALSE(infoAt(std::nullopt).cursorCell.has_value());
+    REQUIRE_FALSE(infoAt(glm::vec2{-1.0F, 20.0F}).cursorCell.has_value());
+    const simple_platformer::CursorCellDebugInfo unkept =
+        infoAt(glm::vec2{40.0F, 20.0F})
+            .cursorCell.value_or(simple_platformer::CursorCellDebugInfo{});
+    REQUIRE(unkept.bounds.position == glm::vec2{32.0F, 16.0F});
+    REQUIRE_FALSE(unkept.footprint.has_value());
+    REQUIRE(unkept.connections.empty());
+
+    // Kept, the cell shows its footprint and every connection, jumps along their arcs.
+    simple_platformer::warmNpcNavigation(map, world, tests::FixedStepSeconds);
+    const simple_platformer::CursorCellDebugInfo kept =
+        infoAt(glm::vec2{40.0F, 20.0F})
+            .cursorCell.value_or(simple_platformer::CursorCellDebugInfo{});
+    REQUIRE(kept.footprint.has_value());
+    const simple_platformer::Aabb footprint = kept.footprint.value_or(simple_platformer::Aabb{});
+    REQUIRE(footprint.position.x <= 32.0F);
+    REQUIRE(footprint.position.x + footprint.size.x >= 48.0F);
+    REQUIRE_FALSE(kept.connections.empty());
+    bool sawWalk = false;
+    bool sawArc = false;
+    for (const simple_platformer::CachedConnectionDebugInfo& connection : kept.connections)
+    {
+        REQUIRE(connection.fromFeet == glm::vec2{40.0F, 32.0F});
+        REQUIRE(connection.cost > 0);
+        if (connection.traversal == simple_platformer::Traversal::Walk)
+        {
+            sawWalk = true;
+            REQUIRE(connection.sampledFeet.empty());
+        }
+        else
+        {
+            sawArc = true;
+            REQUIRE(connection.sampledFeet.size() > 1);
+            REQUIRE(connection.sampledFeet.front() == connection.fromFeet);
+        }
+    }
+    REQUIRE(sawWalk);
+    REQUIRE(sawArc);
+    REQUIRE(kept.reachable.empty());
 }

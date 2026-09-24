@@ -679,7 +679,11 @@ F1 toggles the debug overlay. The overlay can show actor details, sprite and col
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,
 navigation paths, and the connection cache's cells for the first platformer NPC's body:
 filled with their connection count while kept, outlined while missing, which after a
-break is what the break dropped and no search has simulated again yet. Debug data is built separately from its ImGui presentation so it can
+break is what the break dropped and no search has simulated again yet. For the cell
+under the cursor it also outlines the footprint the cell's simulation swept, which is
+why a break inside it drops the cell, draws each connection to where it lands with jumps
+and falls along their replayed arcs, and shades the cells a failed search found
+reachable from it. Debug data is built separately from its ImGui presentation so it can
 be tested without a window.
 
 The overlay also shows a frame panel, drawn by `app/debug/frame_profile_ui`. The

@@ -18,6 +18,7 @@
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
@@ -215,6 +216,17 @@ namespace simple_platformer
         requests.useItem(level.world.playerId(), slot);
         // UI requests are applied while paused without advancing movement, combat or timers.
         applyWorldRequests(level.world, requests);
+    }
+
+    bool Game::breakTileAt(glm::vec2 internalPosition)
+    {
+        const glm::vec2 world = screenToWorld(currentCamera(), internalPosition);
+        if (world.x < 0.0F || world.y < 0.0F || world.x >= level.map.pixelWidth() ||
+            world.y >= level.map.pixelHeight())
+        {
+            return false;
+        }
+        return level.map.breakTile(worldToGrid(level.map.tileSize(), world));
     }
 
     void Game::restart()

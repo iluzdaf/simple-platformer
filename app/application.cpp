@@ -38,6 +38,8 @@ namespace simple_platformer
             bool showDebugOverlay = false;
             // Which NPC body's navigation the overlay shows; N moves to the next.
             std::size_t debugBodyIndex = 0;
+            // B with the overlay open breaks the tile under the cursor, as a shot would.
+            bool breakTileRequested = false;
             bool inventoryOpen = false;
             // Set when the inventory opens or closes or the game restarts, so the next
             // step discards the time and input edges that built up across the change.
@@ -95,6 +97,11 @@ namespace simple_platformer
             if (key == GLFW_KEY_N && action == GLFW_PRESS)
             {
                 ++context->debugBodyIndex;
+                return;
+            }
+            if (key == GLFW_KEY_B && action == GLFW_PRESS && context->showDebugOverlay)
+            {
+                context->breakTileRequested = true;
                 return;
             }
 
@@ -209,6 +216,14 @@ namespace simple_platformer
             }
             const std::optional<glm::vec2> internalCursor =
                 windowToInternal(reading.cursor, reading.size, reading.framebufferSize);
+            if (context.breakTileRequested)
+            {
+                if (internalCursor.has_value())
+                {
+                    game.breakTileAt(*internalCursor);
+                }
+                context.breakTileRequested = false;
+            }
             // The game has the cursor while it is over the image and no UI wants the mouse.
             std::optional<glm::vec2> gameCursor = internalCursor;
             if (ImGui::GetIO().WantCaptureMouse || context.inventoryOpen)

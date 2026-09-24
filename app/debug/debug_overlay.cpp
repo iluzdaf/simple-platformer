@@ -18,7 +18,6 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
@@ -77,28 +76,18 @@ namespace simple_platformer
             const NavigationStep& step,
             float stepSeconds)
         {
-            if ((step.traversal != Traversal::Jump && step.traversal != Traversal::Fall) ||
-                step.inputs.empty() || !actor.platformerMovement.has_value())
+            if (!actor.platformerMovement.has_value())
             {
                 return {};
             }
-
-            Body body;
-            body.bounds = boxInCell(map.tileSize(), start, actor.body.bounds.size);
-            PlatformerMovement movement{actor.platformerMovement->config, true, 0.0F, 0.0F};
-            std::vector<glm::vec2> sampledFeet;
-            sampledFeet.push_back(feetOf(body.bounds));
-
-            for (const InputStep& input : step.inputs)
-            {
-                const long ticks = std::lround(input.duration / stepSeconds);
-                for (long tick = 0; tick < ticks; ++tick)
-                {
-                    updatePlatformerMovement(map, body, movement, input.intentions, stepSeconds);
-                    sampledFeet.push_back(feetOf(body.bounds));
-                }
-            }
-            return sampledFeet;
+            return sampleAirborneProgram(
+                map,
+                start,
+                actor.body.bounds.size,
+                actor.platformerMovement.value().config,
+                step.traversal,
+                step.inputs,
+                stepSeconds);
         }
 
         PathFollowerDebugInfo pathFollowerDebugInfo(
@@ -171,7 +160,8 @@ namespace simple_platformer
         const TileMap& map,
         const CameraController& cameraController,
         float atlasWidth,
-        float simulationStepSeconds)
+        float simulationStepSeconds,
+        std::optional<glm::vec2> cursorWorld)
     {
         if (!isFinitePositive(simulationStepSeconds))
         {
@@ -248,7 +238,8 @@ namespace simple_platformer
                 {pickup.body.bounds, world.itemDefinition(pickup.stack.item).name});
         }
 
-        scene.navigationCache = makeNavigationCacheDebugInfo(world, map, simulationStepSeconds);
+        scene.navigationCache =
+            makeNavigationCacheDebugInfo(world, map, simulationStepSeconds, cursorWorld);
         return scene;
     }
 }

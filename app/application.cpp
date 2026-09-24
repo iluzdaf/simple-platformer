@@ -199,9 +199,10 @@ namespace simple_platformer
             {
                 game.useInventoryItem(*interfaceRequests.useInventorySlot);
             }
-            // The game has the cursor while it is over the image and no UI wants the mouse.
-            std::optional<glm::vec2> gameCursor =
+            const std::optional<glm::vec2> internalCursor =
                 windowToInternal(reading.cursor, reading.size, reading.framebufferSize);
+            // The game has the cursor while it is over the image and no UI wants the mouse.
+            std::optional<glm::vec2> gameCursor = internalCursor;
             if (ImGui::GetIO().WantCaptureMouse || context.inventoryOpen)
             {
                 gameCursor.reset();
@@ -249,7 +250,8 @@ namespace simple_platformer
             if (context.showDebugOverlay)
             {
                 drawDebugOverlay(
-                    game.debugOverlay(static_cast<float>(atlasTexture.width)), windowViewport);
+                    game.debugOverlay(static_cast<float>(atlasTexture.width), internalCursor),
+                    windowViewport);
                 drawFrameProfile(frameHistory, frameSelection);
             }
             imgui.render();

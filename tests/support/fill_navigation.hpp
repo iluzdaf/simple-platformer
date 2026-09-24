@@ -1,6 +1,7 @@
 #pragma once
 
 #include "simple_platformer/navigation/navigation_fill.hpp"
+#include "simple_platformer/world/world.hpp"
 #include "support/fixed_step.hpp"
 
 namespace tests
@@ -11,8 +12,12 @@ namespace tests
         const simple_platformer::TileMap& map,
         simple_platformer::World& world)
     {
-        simple_platformer::queueWorldNavigation(map, world, FixedStepSeconds);
-        while (simple_platformer::fillWorldNavigation(map, world, FixedStepSeconds).cells > 0)
+        simple_platformer::PlatformerConnectionCache& cache = world.platformerConnections();
+        simple_platformer::queueNavigation(
+            map, simple_platformer::platformerBodiesIn(world, FixedStepSeconds), cache);
+        while (simple_platformer::fillNavigation(
+                   map, cache, simple_platformer::NavigationFillTicksPerStep)
+                   .cells > 0)
         {
         }
     }

@@ -74,7 +74,10 @@ namespace simple_platformer
         }
         cameraController =
             makeCameraController(level.map, playerActor->body.bounds, {80.0F, 45.0F});
-        queueWorldNavigation(level.map, level.world, simulationStepSeconds);
+        queueNavigation(
+            level.map,
+            platformerBodiesIn(level.world, simulationStepSeconds),
+            level.world.platformerConnections());
     }
 
     void Game::update(const InputIntentions& intentions, float deltaTime, FrameProfile* profile)

@@ -506,10 +506,11 @@ fills.
 ### Filling the cache
 
 The cache is filled through a queue per body, never all at once during play, by
-`navigation/navigation_fill`, which knows the world but nothing of NPC behaviour. When
-a level starts, `queueWorldNavigation` queues every cell of the map for each
-platformer NPC body in the world, and every simulation step begins with a fill phase,
-`fillWorldNavigation`, that simulates and keeps queued cells one at a time until a
+`navigation/navigation_fill`, whose functions take a map, bodies and a cache like the
+rest of the subject. When a level starts, the game gathers the platformer NPC bodies
+in its world with `platformerBodiesIn` and `queueNavigation` queues every cell of the
+map for each; every simulation step begins with a fill phase, `fillNavigation`, that
+simulates and keeps queued cells for each body the cache knows, one at a time, until a
 budget of movement ticks is spent. The budget is shared out evenly among the bodies
 with cells waiting, and keeping a cell is charged a few ticks over what it simulated,
 so the many cells that cannot be stood on are spread out like the rest. A level

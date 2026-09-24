@@ -148,7 +148,8 @@ TEST_CASE(
     REQUIRE(broken.cellsPending == 15 - broken.cellsKept);
     for (std::size_t step = 0; step < broken.cellsPending && infoFor(0).cellsPending > 0; ++step)
     {
-        simple_platformer::fillWorldNavigation(map, world, tests::FixedStepSeconds);
+        simple_platformer::fillNavigation(
+            map, world.platformerConnections(), simple_platformer::NavigationFillTicksPerStep);
     }
     REQUIRE(infoFor(0).cellsPending == 0);
 }

@@ -122,6 +122,8 @@ namespace simple_platformer
         void clear();
         // Cells whose connections are kept, over every body.
         std::size_t size() const;
+        // Every body anything has been kept or queued for, in the order first met.
+        std::vector<ConnectionBody> bodiesKept() const;
 
         // Counts for the debug overlay. The first five are for one body; the rest are
         // over every body since the cache was cleared. Every cell asked about is kept,

@@ -200,15 +200,18 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
     // The fill keeps the dropped cells again over the steps that follow, charged to
     // the profile, and the next search goes through. The cell over the hole, which
     // nothing can stand on now, is kept as having no connections.
-    simple_platformer::FrameProfile filled;
+    int filledTicks = 0;
     const std::size_t pending = world.platformerConnections().cellsPending(body);
     for (std::size_t step = 0;
          step < pending && world.platformerConnections().cellsPending(body) > 0;
          ++step)
     {
-        simple_platformer::fillWorldNavigation(map, world, tests::FixedStepSeconds, &filled);
+        filledTicks +=
+            simple_platformer::fillNavigation(
+                map, world.platformerConnections(), simple_platformer::NavigationFillTicksPerStep)
+                .simulatedTicks;
     }
-    REQUIRE(filled.navigationFillTicks > 0);
+    REQUIRE(filledTicks > 0);
     REQUIRE(world.platformerConnections().cellsPending(body) == 0);
     const std::vector<simple_platformer::NavigationNeighbor>* overTheHole =
         world.platformerConnections().find({2, 1}, body);

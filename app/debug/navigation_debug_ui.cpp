@@ -145,38 +145,34 @@ namespace simple_platformer
         const NavigationCacheDebugInfo& cache,
         ImVec2& position)
     {
+        // One value a line, keyed like the actor text, so every line fits the column.
         constexpr float Indentation = 12.0F;
         drawTextLine(drawList, position, "navigation cache", TextHeadingColour);
-        char text[64];
+        char text[48];
+        const auto line = [&](const char* key, std::size_t value)
+        {
+            std::snprintf(text, sizeof(text), "%-8s%zu", key, value);
+            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+        };
         std::snprintf(
             text,
             sizeof(text),
-            "body:   %zu of %zu  %gx%g  (N)",
+            "body:   %zu/%zu %gx%g (N)",
             cache.bodyIndex + 1,
             cache.bodyCount,
             static_cast<double>(cache.bodySize.x),
             static_cast<double>(cache.bodySize.y));
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        std::snprintf(
-            text,
-            sizeof(text),
-            "kept:   %zu cells  %zu sets  %zu paths",
-            cache.cellsKept,
-            cache.reachableSetsKept,
-            cache.pathsKept);
-        drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        std::snprintf(
-            text,
-            sizeof(text),
-            "so far: %zu breaks  %zu dropped  %zu kept",
-            cache.breaksApplied,
-            cache.cellsDropped,
-            cache.cellsKeptSoFar);
-        drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+        line("cells:", cache.cellsKept);
+        line("sets:", cache.reachableSetsKept);
+        line("paths:", cache.pathsKept);
+        line("breaks:", cache.breaksApplied);
+        line("dropped:", cache.cellsDropped);
+        line("kept:", cache.cellsKeptSoFar);
     }
 
     float navigationTotalsHeight()
     {
-        return 4.0F * ImGui::GetTextLineHeight();
+        return 8.0F * ImGui::GetTextLineHeight();
     }
 }

@@ -11,6 +11,8 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 
+#include "debug/navigation_debug.hpp"
+
 namespace simple_platformer
 {
     class World;
@@ -102,6 +104,7 @@ namespace simple_platformer
         std::vector<ActorDebugInfo> actors;
         std::vector<ProjectileDebugInfo> projectiles;
         std::vector<PickupDebugInfo> pickups;
+        std::optional<NavigationCacheDebugInfo> navigationCache;
         Aabb cameraBounds;
         Aabb cameraDeadZone;
     };

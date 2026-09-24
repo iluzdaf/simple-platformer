@@ -676,8 +676,10 @@ built before the simulation and hands back what the player asked for as
 `InterfaceRequests`, which the loop applies, so a click on the bag pauses the same frame
 instead of firing a shot and building the interface never changes the game.
 F1 toggles the debug overlay. The overlay can show actor details, sprite and collision
-bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing, and
-navigation paths. Debug data is built separately from its ImGui presentation so it can
+bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,
+navigation paths, and the connection cache's cells for the first platformer NPC's body:
+filled with their connection count while kept, outlined while missing, which after a
+break is what the break dropped and no search has simulated again yet. Debug data is built separately from its ImGui presentation so it can
 be tested without a window.
 
 The overlay also shows a frame panel, drawn by `app/debug/frame_profile_ui`. The

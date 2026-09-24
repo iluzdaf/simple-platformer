@@ -1,7 +1,10 @@
 #include "debug_overlay.hpp"
 
+#include "navigation_debug.hpp"
+
 #include <cmath>
 #include <cstddef>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -245,6 +248,7 @@ namespace simple_platformer
                 {pickup.body.bounds, world.itemDefinition(pickup.stack.item).name});
         }
 
+        scene.navigationCache = makeNavigationCacheDebugInfo(world, map, simulationStepSeconds);
         return scene;
     }
 }

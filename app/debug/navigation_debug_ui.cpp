@@ -163,7 +163,9 @@ namespace simple_platformer
             static_cast<double>(cache.bodySize.x),
             static_cast<double>(cache.bodySize.y));
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        line("cells:", cache.cellsKept);
+        // Cells with connections, over every cell kept.
+        std::snprintf(text, sizeof(text), "cells:  %zu/%zu", cache.cellsConnected, cache.cellsKept);
+        drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         line("sets:", cache.reachableSetsKept);
         line("paths:", cache.pathsKept);
         line("breaks:", cache.breaksApplied);

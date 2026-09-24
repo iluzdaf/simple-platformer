@@ -67,8 +67,9 @@ namespace simple_platformer
         glm::vec2 bodySize = {0.0F, 0.0F};
         std::size_t bodyIndex = 0;
         std::size_t bodyCount = 0;
-        // For this body.
+        // For this body: every cell kept, standable or not, and those with connections.
         std::size_t cellsKept = 0;
+        std::size_t cellsConnected = 0;
         std::size_t reachableSetsKept = 0;
         std::size_t pathsKept = 0;
         // Over every body since the level started.

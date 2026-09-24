@@ -363,6 +363,17 @@ namespace simple_platformer
         return keepsSoFar;
     }
 
+    std::vector<ConnectionBody> PlatformerConnectionCache::bodiesKept() const
+    {
+        std::vector<ConnectionBody> known;
+        known.reserve(bodies.size());
+        for (const BodyConnections& kept : bodies)
+        {
+            known.push_back(kept.body);
+        }
+        return known;
+    }
+
     std::size_t PlatformerConnectionCache::size() const
     {
         std::size_t total = 0;

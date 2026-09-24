@@ -105,6 +105,7 @@ add_library(
     src/navigation/path_search.cpp
     src/navigation/flying_navigation.cpp
     src/navigation/input_program.cpp
+    src/navigation/navigation_fill.cpp
     src/navigation/path_follower.cpp
     src/navigation/platformer_navigation.cpp
     src/npc/npc_senses.cpp
@@ -395,6 +396,7 @@ if(BUILD_TESTING)
         tests/navigation/test_path_search.cpp
         tests/navigation/test_flying_navigation.cpp
         tests/navigation/test_input_program.cpp
+        tests/navigation/test_navigation_fill.cpp
         tests/navigation/test_path_follower.cpp
         tests/navigation/test_platformer_navigation.cpp
         tests/npc/test_npc_senses.cpp

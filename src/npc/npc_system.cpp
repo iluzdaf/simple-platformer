@@ -15,7 +15,6 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/flying_navigation.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -79,7 +78,7 @@ namespace simple_platformer
         // The search simulates at deltaTime, the step this actor is about to be moved with.
         void requestPath(
             const TileMap& map,
-            PlatformerConnectionCache& connections,
+            World& world,
             const Actor& actor,
             PathFollower& follower,
             glm::vec2 goalFeet,
@@ -131,7 +130,7 @@ namespace simple_platformer
                             deltaTime,
                             PlatformerNavigationConfig{},
                             &statistics,
-                            &connections);
+                            &world.platformerConnections());
                     }
                 });
             if (profile != nullptr)
@@ -161,14 +160,14 @@ namespace simple_platformer
 
         void followDestination(
             const TileMap& map,
-            PlatformerConnectionCache& connections,
+            World& world,
             Actor& actor,
             PathFollower& follower,
             glm::vec2 destinationFeet,
             float deltaTime,
             FrameProfile* profile)
         {
-            requestPath(map, connections, actor, follower, destinationFeet, deltaTime, profile);
+            requestPath(map, world, actor, follower, destinationFeet, deltaTime, profile);
             if (actor.flyingMovement.has_value())
             {
                 actor.intentions = followFlyingPath(
@@ -238,7 +237,7 @@ namespace simple_platformer
 
         void updatePatrolState(
             const TileMap& map,
-            PlatformerConnectionCache& connections,
+            World& world,
             Actor& actor,
             PathFollower& follower,
             float deltaTime,
@@ -250,7 +249,7 @@ namespace simple_platformer
             }
             Patrol& patrol = *actor.patrol;
             followDestination(
-                map, connections, actor, follower, patrolDestination(patrol), deltaTime, profile);
+                map, world, actor, follower, patrolDestination(patrol), deltaTime, profile);
             if (pathComplete(follower))
             {
                 patrol.headingToSecond = !patrol.headingToSecond;
@@ -260,7 +259,7 @@ namespace simple_platformer
 
         void updateChaseState(
             const TileMap& map,
-            PlatformerConnectionCache& connections,
+            World& world,
             Actor& actor,
             NpcBrain& brain,
             PathFollower& follower,
@@ -301,8 +300,7 @@ namespace simple_platformer
                 }
                 destinationFeet = feetInCell(map.tileSize(), chaseCell.value());
             }
-            followDestination(
-                map, connections, actor, follower, destinationFeet, deltaTime, profile);
+            followDestination(map, world, actor, follower, destinationFeet, deltaTime, profile);
         }
 
         void updateNpcState(
@@ -326,19 +324,10 @@ namespace simple_platformer
             case NpcState::Idle:
                 break;
             case NpcState::Patrol:
-                updatePatrolState(
-                    map, world.platformerConnections(), actor, follower, deltaTime, profile);
+                updatePatrolState(map, world, actor, follower, deltaTime, profile);
                 break;
             case NpcState::Chase:
-                updateChaseState(
-                    map,
-                    world.platformerConnections(),
-                    actor,
-                    brain,
-                    follower,
-                    target,
-                    deltaTime,
-                    profile);
+                updateChaseState(map, world, actor, brain, follower, target, deltaTime, profile);
                 break;
             case NpcState::Bite:
                 if (!actor.bite.has_value())
@@ -380,75 +369,5 @@ namespace simple_platformer
                 brain.stateElapsed += deltaTime;
             }
         }
-    }
-
-    namespace
-    {
-        // The distinct platformer NPC bodies in the world, in the order first met.
-        std::vector<ConnectionBody> platformerNpcBodies(const World& world, float stepSeconds)
-        {
-            std::vector<ConnectionBody> bodies;
-            for (const Actor& actor : world.actors())
-            {
-                if (!actor.pathFollower.has_value() || !actor.platformerMovement.has_value())
-                {
-                    continue;
-                }
-                const ConnectionBody body{
-                    actor.body.bounds.size, actor.platformerMovement->config, stepSeconds};
-                const bool known = std::any_of(
-                    bodies.begin(),
-                    bodies.end(),
-                    [&body](const ConnectionBody& kept) { return kept == body; });
-                if (!known)
-                {
-                    bodies.push_back(body);
-                }
-            }
-            return bodies;
-        }
-    }
-
-    void queueNpcNavigation(const TileMap& map, World& world, float stepSeconds)
-    {
-        requireSeconds(stepSeconds, "NPC navigation step");
-        for (const ConnectionBody& body : platformerNpcBodies(world, stepSeconds))
-        {
-            queueAllPlatformerConnections(
-                map, body.size, body.movement, body.stepSeconds, world.platformerConnections());
-        }
-    }
-
-    FillWork fillNpcNavigation(
-        const TileMap& map,
-        World& world,
-        float stepSeconds,
-        FrameProfile* profile)
-    {
-        requireSeconds(stepSeconds, "NPC navigation step");
-        PlatformerConnectionCache& cache = world.platformerConnections();
-        cache.syncWith(map);
-        const std::vector<ConnectionBody> bodies = platformerNpcBodies(world, stepSeconds);
-        // The step's budget is shared among the bodies with cells waiting; the others
-        // are asked anyway, since a fill with nothing waiting costs nothing.
-        const auto waiting = static_cast<int>(std::count_if(
-            bodies.begin(),
-            bodies.end(),
-            [&cache](const ConnectionBody& body) { return cache.cellsPending(body) > 0; }));
-        const int budgetEach = NavigationFillTicksPerStep / std::max(1, waiting);
-        FillWork total;
-        for (const ConnectionBody& body : bodies)
-        {
-            const FillWork work = fillPlatformerConnections(
-                map, body.size, body.movement, body.stepSeconds, cache, budgetEach);
-            total.cells += work.cells;
-            total.simulatedTicks += work.simulatedTicks;
-            total.budgetSpent += work.budgetSpent;
-        }
-        if (profile != nullptr)
-        {
-            profile->navigationFillTicks += total.simulatedTicks;
-        }
-        return total;
     }
 }

@@ -131,6 +131,10 @@ TEST_CASE("Connections are kept apart for each body and step", "[navigation][cac
     REQUIRE(statistics.cellsReused == 0);
     REQUIRE(statistics.simulatedTicks > 0);
     REQUIRE(cache.size() == 2);
+    // The cache lists the bodies it knows in the order first met.
+    REQUIRE(cache.bodiesKept().size() == 2);
+    REQUIRE(cache.bodiesKept()[0] == body);
+    REQUIRE(cache.bodiesKept()[1] == taller);
 
     cache.clear();
     REQUIRE(cache.size() == 0);

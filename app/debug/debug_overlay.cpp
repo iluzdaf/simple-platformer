@@ -153,6 +153,33 @@ namespace simple_platformer
             }
             return info;
         }
+
+        // The bounds of the cell under the cursor when its tile can break, for the hint
+        // that B breaks it; nothing off the map or over a tile that cannot.
+        std::optional<Aabb> breakableCellUnderCursor(
+            const TileMap& map,
+            std::optional<glm::vec2> cursorWorld)
+        {
+            if (!cursorWorld.has_value())
+            {
+                return std::nullopt;
+            }
+            const glm::vec2 cursor = cursorWorld.value_or(glm::vec2{0.0F, 0.0F});
+            if (cursor.x < 0.0F || cursor.y < 0.0F || cursor.x >= map.pixelWidth() ||
+                cursor.y >= map.pixelHeight())
+            {
+                return std::nullopt;
+            }
+            const GridPosition cell = worldToGrid(map.tileSize(), cursor);
+            if (!map.definitionAt(cell).breaksIntoTileId.has_value())
+            {
+                return std::nullopt;
+            }
+            const auto tileSize = static_cast<float>(map.tileSize());
+            return Aabb{
+                {static_cast<float>(cell.x) * tileSize, static_cast<float>(cell.y) * tileSize},
+                {tileSize, tileSize}};
+        }
     }
 
     DebugOverlay makeDebugOverlay(
@@ -240,23 +267,7 @@ namespace simple_platformer
 
         scene.navigationCache =
             makeNavigationCacheDebugInfo(world, map, simulationStepSeconds, navigation);
-        if (navigation.cursorWorld.has_value())
-        {
-            const glm::vec2 cursor = navigation.cursorWorld.value_or(glm::vec2{0.0F, 0.0F});
-            if (cursor.x >= 0.0F && cursor.y >= 0.0F && cursor.x < map.pixelWidth() &&
-                cursor.y < map.pixelHeight())
-            {
-                const GridPosition cell = worldToGrid(map.tileSize(), cursor);
-                if (map.definitionAt(cell).breaksIntoTileId.has_value())
-                {
-                    const auto tileSize = static_cast<float>(map.tileSize());
-                    scene.breakableCellUnderCursor = Aabb{
-                        {static_cast<float>(cell.x) * tileSize,
-                         static_cast<float>(cell.y) * tileSize},
-                        {tileSize, tileSize}};
-                }
-            }
-        }
+        scene.breakableCellUnderCursor = breakableCellUnderCursor(map, navigation.cursorWorld);
         return scene;
     }
 }

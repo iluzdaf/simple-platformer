@@ -133,6 +133,7 @@ TEST_CASE(
     const simple_platformer::NavigationCacheDebugInfo warmed = infoFor(0);
     REQUIRE(warmed.cellsKept == 15);
     REQUIRE(warmed.cellsConnected == 5);
+    REQUIRE(warmed.walksKept > 0);
     REQUIRE(warmed.cellsKeptSoFar == 30);
     REQUIRE(warmed.breaksApplied == 0);
     REQUIRE(warmed.cellsDropped == 0);

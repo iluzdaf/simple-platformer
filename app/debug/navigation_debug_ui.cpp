@@ -176,6 +176,7 @@ namespace simple_platformer
         std::snprintf(text, sizeof(text), "cells:  %zu/%zu", cache.cellsConnected, cache.cellsKept);
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         line("pending:", cache.cellsPending);
+        line("walks:", cache.walksKept);
         line("sets:", cache.reachableSetsKept);
         line("paths:", cache.pathsKept);
         line("breaks:", cache.breaksApplied);
@@ -185,6 +186,6 @@ namespace simple_platformer
 
     float navigationTotalsHeight()
     {
-        return 10.0F * ImGui::GetTextLineHeight();
+        return 11.0F * ImGui::GetTextLineHeight();
     }
 }

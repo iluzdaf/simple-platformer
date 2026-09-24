@@ -43,14 +43,24 @@ namespace simple_platformer
         std::size_t operator()(const PathQuery& query) const;
     };
 
+    // What a walk of some number of cells along a floor cost when it was simulated, and
+    // the cells its simulation swept, as offsets from the cell it started in. No cost
+    // when the body could not reach the cell and stop within the simulation limit.
+    struct RememberedWalk
+    {
+        std::optional<int> cost;
+        CellRange sweep;
+    };
+
     // What platformer searches learn about one map, kept so nothing is worked out twice:
-    // the connections leaving each cell, the cells reachable from each start a search
-    // failed from, and the path found for each query. All of it depends only on the
-    // map, the body and the step, so a cache serves one map. When a tile of that map
-    // breaks, the cache drops only what the break can have changed: each cell's
-    // connections come with the footprint their simulation swept, and a broken tile
-    // inside a footprint drops that cell, the reachable sets that held it, and every
-    // remembered path, since a new opening can make a cheaper route anywhere. What is
+    // the connections leaving each cell, the cost of a walk of each length, the cells
+    // reachable from each start a search failed from, and the path found for each
+    // query. All of it depends only on the map, the body and the step, so a cache
+    // serves one map. When a tile of that map breaks, the cache drops only what the
+    // break can have changed: each cell's connections come with the footprint their
+    // simulation swept, and a broken tile inside a footprint drops that cell, the
+    // reachable sets that held it, and every remembered path, since a new opening can
+    // make a cheaper route anywhere. Walks stay, since no tile decided them. What is
     // learned for one body is kept apart from another's. Every keep requires a body
     // with a finite, positive size and step.
     class PlatformerConnectionCache
@@ -84,6 +94,12 @@ namespace simple_platformer
             const ConnectionBody& body,
             std::vector<NavigationNeighbor> connections,
             const CellRange& footprint);
+        // A walk of this many cells along a floor, negative for leftwards, starts and
+        // ends at rest on flat ground, so it costs the same and sweeps the same cells
+        // from any cell of any floor: it is simulated once per body and kept here. The
+        // record kept, or nothing while none has been.
+        const RememberedWalk* walkKept(int columns, const ConnectionBody& body) const;
+        void keepWalk(int columns, const ConnectionBody& body, const RememberedWalk& walk);
         // The cells a body can reach from this start, learned from a search that failed
         // there, or nothing while none has. A goal outside the set has no path, so a
         // search for one need not run.
@@ -109,6 +125,7 @@ namespace simple_platformer
         // kept with at least one connection.
         std::size_t cellsKept(const ConnectionBody& body) const;
         std::size_t cellsConnected(const ConnectionBody& body) const;
+        std::size_t walksKept(const ConnectionBody& body) const;
         std::size_t reachableSetsKept(const ConnectionBody& body) const;
         std::size_t pathsKept(const ConnectionBody& body) const;
         std::size_t breaksApplied() const;
@@ -131,6 +148,7 @@ namespace simple_platformer
         {
             ConnectionBody body;
             CellConnections cells;
+            std::unordered_map<int, RememberedWalk> walks;
             ReachableCells reachable;
             PathsFound paths;
             std::vector<GridPosition> pending;

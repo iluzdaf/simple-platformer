@@ -4,10 +4,12 @@
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
@@ -20,12 +22,14 @@
 
 namespace
 {
+    using simple_platformer::CellRange;
     using simple_platformer::ConnectionBody;
     using simple_platformer::GridPosition;
     using simple_platformer::NavigationNeighbor;
     using simple_platformer::PathSearchStatistics;
     using simple_platformer::PlatformerConnectionCache;
     using simple_platformer::PlatformerMovementConfig;
+    using simple_platformer::RememberedWalk;
 
     constexpr glm::vec2 BodySize{12.0F, 12.0F};
 
@@ -180,7 +184,10 @@ TEST_CASE(
         simple_platformer::findPlatformerPath(
             map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &filling, &cache);
     REQUIRE(filled.has_value());
-    REQUIRE(filling.simulatedTicks == uncached.simulatedTicks);
+    // Filling simulates every cell it expands, though fewer ticks than a search without
+    // a cache, which cannot remember a walk from one cell to the next.
+    REQUIRE(filling.simulatedTicks > 0);
+    REQUIRE(filling.simulatedTicks < uncached.simulatedTicks);
     REQUIRE(filling.cellsReused == 0);
 
     // A search from the next cell over expands only cells the first one kept.
@@ -346,6 +353,91 @@ TEST_CASE("A found path answers the same search again without expanding", "[navi
 
     cache.clear();
     REQUIRE(cache.pathKept(query, body) == nullptr);
+}
+
+TEST_CASE("A walk is remembered per length and body, and a break leaves it", "[navigation][cache]")
+{
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    const ConnectionBody taller{{12.0F, 20.0F}, {}, tests::FixedStepSeconds};
+    REQUIRE(cache.walkKept(3, body) == nullptr);
+    REQUIRE(cache.walksKept(body) == 0);
+
+    cache.keepWalk(3, body, {35, {{-1, -1}, {4, 1}}});
+    cache.keepWalk(-3, body, {36, {{-4, -1}, {1, 1}}});
+    cache.keepWalk(12, body, {std::nullopt, {{-1, -1}, {13, 1}}});
+    REQUIRE(cache.walksKept(body) == 3);
+    REQUIRE(cache.walksKept(taller) == 0);
+    REQUIRE(cache.walkKept(3, taller) == nullptr);
+    const RememberedWalk* rightwards = cache.walkKept(3, body);
+    REQUIRE(rightwards != nullptr);
+    REQUIRE(rightwards->cost.value_or(0) == 35);
+    REQUIRE(rightwards->sweep.last == GridPosition{4, 1});
+    // Leftwards is its own length, and a walk past the limit is remembered as such.
+    REQUIRE(cache.walkKept(-3, body)->cost.value_or(0) == 36);
+    REQUIRE_FALSE(cache.walkKept(12, body)->cost.has_value());
+
+    // Keeping again replaces; a break changes nothing, since no tile decided a walk.
+    cache.keepWalk(3, body, {34, {{-1, -1}, {4, 1}}});
+    REQUIRE(cache.walkKept(3, body)->cost.value_or(0) == 34);
+    cache.keep({0, 1}, body, {}, {{-2, 0}, {6, 2}});
+    cache.invalidate({2, 1});
+    REQUIRE(cache.cellsKept(body) == 0);
+    REQUIRE(cache.walksKept(body) == 3);
+
+    cache.clear();
+    REQUIRE(cache.walksKept(body) == 0);
+    REQUIRE_THROWS_AS(
+        cache.keepWalk(1, {{0.0F, 12.0F}, {}, tests::FixedStepSeconds}, {1, {}}),
+        std::invalid_argument);
+}
+
+TEST_CASE("Remembered walks change nothing but the ticks simulated", "[navigation][cache]")
+{
+    // A floor long enough that a walk along it runs past the simulation limit.
+    const std::string open(40, '.');
+    const std::string floor(40, '#');
+    const simple_platformer::TileMap map = tests::TileMapBuilder({open, open, floor});
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    const GridPosition first{20, 1};
+    const GridPosition second{25, 1};
+
+    // The first cell simulates every length it can walk, and the one it cannot.
+    PathSearchStatistics firstCost;
+    simple_platformer::platformerNeighborsKept(
+        map, first, BodySize, {}, tests::FixedStepSeconds, cache, &firstCost);
+    const std::size_t walks = cache.walksKept(body);
+    REQUIRE(walks > 0);
+    bool pastTheLimit = false;
+    for (int columns = -map.width(); columns <= map.width(); ++columns)
+    {
+        const RememberedWalk* walk = cache.walkKept(columns, body);
+        pastTheLimit = pastTheLimit || (walk != nullptr && !walk->cost.has_value());
+    }
+    REQUIRE(pastTheLimit);
+
+    // Another cell of the floor walks the same lengths, so it simulates only its jumps
+    // and falls and remembers no new walk, yet its connections and footprint are the
+    // ones it would have simulated alone.
+    PathSearchStatistics secondCost;
+    const std::vector<NavigationNeighbor>& remembered = simple_platformer::platformerNeighborsKept(
+        map, second, BodySize, {}, tests::FixedStepSeconds, cache, &secondCost);
+    REQUIRE(secondCost.simulatedTicks < firstCost.simulatedTicks);
+    REQUIRE(cache.walksKept(body) == walks);
+    PlatformerConnectionCache alone;
+    const std::vector<NavigationNeighbor>& simulated = simple_platformer::platformerNeighborsKept(
+        map, second, BodySize, {}, tests::FixedStepSeconds, alone);
+    requireSameConnections(remembered, simulated);
+    const CellRange rememberedFootprint = cache.footprintKept(second, body).value_or(CellRange{});
+    const CellRange simulatedFootprint = alone.footprintKept(second, body).value_or(CellRange{});
+    REQUIRE(rememberedFootprint.first == simulatedFootprint.first);
+    REQUIRE(rememberedFootprint.last == simulatedFootprint.last);
+    // Without a cache there is nothing to remember, so every walk is simulated.
+    PathSearchStatistics aloneCost;
+    simple_platformer::platformerNeighbors(
+        map, second, BodySize, {}, tests::FixedStepSeconds, &aloneCost);
+    REQUIRE(aloneCost.simulatedTicks == firstCost.simulatedTicks);
 }
 
 TEST_CASE("Reachable cells are kept per start and body until cleared", "[navigation][cache]")

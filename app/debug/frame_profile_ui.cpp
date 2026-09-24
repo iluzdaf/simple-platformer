@@ -1,5 +1,6 @@
 #include "frame_profile_ui.hpp"
 
+#include "frame_axes.hpp"
 #include "frame_selection.hpp"
 
 #include <algorithm>
@@ -34,15 +35,8 @@ namespace simple_platformer
         constexpr ImU32 HoveredFrameColour = IM_COL32(255, 255, 255, 90);
         constexpr ImU32 PickedFrameColour = IM_COL32(255, 255, 255, 230);
 
-        // Frame plot scales. The frame axis keeps the 60 Hz budget in view, showing at
-        // least this many budgets, and stretches to this much headroom over the worst frame.
+        // The budget line. The axes' floors and headroom are FrameAxes' tunables.
         constexpr float TargetFrameMilliseconds = static_cast<float>(FixedDeltaSeconds) * 1000.0F;
-        constexpr double FrameAxisBudgets = 2.0;
-        constexpr double FrameAxisHeadroom = 1.1;
-        // The stack's scale is a display choice, not a budget: an ordinary frame of this
-        // project simulates in a fraction of it, and a slow frame goes off the top rather
-        // than rescaling the axis under the reader. Raise it if the simulation grows.
-        constexpr float SimulationAxisMilliseconds = 0.06F;
 
         std::vector<float> toMilliseconds(std::vector<float> seconds)
         {
@@ -339,7 +333,7 @@ namespace simple_platformer
         }
     }
 
-    void drawFrameProfile(const FrameHistory& live, FrameSelection& selection)
+    void drawFrameProfile(const FrameHistory& live, FrameSelection& selection, FrameAxes& axes)
     {
         const FrameHistory& history = selection.kept() != nullptr ? *selection.kept() : live;
         if (history.size() == 0)
@@ -367,7 +361,6 @@ namespace simple_platformer
             return;
         }
 
-        const FrameProfile& worst = history.worst();
         // The phases come from every frame in the history, so one that runs only now and
         // then, such as a path search, keeps its row and band instead of coming and going.
         const std::vector<PhaseTiming> phases = history.phasesSummed();
@@ -376,9 +369,7 @@ namespace simple_platformer
             toMilliseconds(history.frameSecondsOldestFirst());
         const int frameCount = static_cast<int>(frameMilliseconds.size());
         const auto frameAxis = static_cast<double>(history.capacity());
-        const double frameTop = std::max(
-            static_cast<double>(TargetFrameMilliseconds) * FrameAxisBudgets,
-            static_cast<double>(worst.frameSeconds) * 1000.0 * FrameAxisHeadroom);
+        axes.widenTo(live);
         constexpr ImPlotFlags PlotFlags = ImPlotFlags_NoInputs | ImPlotFlags_NoMenus |
                                           ImPlotFlags_NoTitle | ImPlotFlags_NoBoxSelect |
                                           ImPlotFlags_NoLegend;
@@ -412,14 +403,21 @@ namespace simple_platformer
             ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoTickLabels);
             ImPlot::SetupAxis(ImAxis_Y1, "frame ms");
             ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, frameAxis, ImPlotCond_Always);
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, frameTop, ImPlotCond_Always);
+            ImPlot::SetupAxisLimits(
+                ImAxis_Y1,
+                0.0,
+                static_cast<double>(axes.frameTopMilliseconds()),
+                ImPlotCond_Always);
             if (ticks > 0)
             {
                 // The simulation is a small fraction of a frame; on the frame axis its
                 // stack would be a hairline, so it has an axis of its own on the right.
                 ImPlot::SetupAxis(ImAxis_Y2, "simulation ms", ImPlotAxisFlags_Opposite);
                 ImPlot::SetupAxisLimits(
-                    ImAxis_Y2, 0.0, SimulationAxisMilliseconds, ImPlotCond_Always);
+                    ImAxis_Y2,
+                    0.0,
+                    static_cast<double>(axes.simulationTopMilliseconds()),
+                    ImPlotCond_Always);
             }
 
             if (!budget.hidden)

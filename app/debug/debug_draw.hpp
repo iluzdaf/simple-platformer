@@ -48,4 +48,12 @@ namespace simple_platformer
         const Aabb& cameraBounds,
         const WindowViewport& viewport,
         ImU32 colour);
+
+    // One line of the text column, moving the position down a line.
+    void drawTextLine(
+        ImDrawList& drawList,
+        ImVec2& position,
+        const char* text,
+        ImU32 colour,
+        float indentation = 0.0F);
 }

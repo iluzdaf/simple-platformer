@@ -349,17 +349,6 @@ namespace simple_platformer
             drawList.AddText(labelPosition, ProjectileColour, label);
         }
 
-        void drawTextLine(
-            ImDrawList& drawList,
-            ImVec2& position,
-            const char* text,
-            ImU32 colour,
-            float indentation = 0.0F)
-        {
-            drawList.AddText({position.x + indentation, position.y}, colour, text);
-            position.y += ImGui::GetTextLineHeight();
-        }
-
         void drawActorText(ImDrawList& drawList, const ActorDebugInfo& actor, ImVec2& position)
         {
             constexpr float Indentation = 12.0F;
@@ -477,6 +466,15 @@ namespace simple_platformer
             drawActorWorldLabel(*drawList, actor, scene, *viewport);
             drawWorldBounds(
                 *drawList, actor.collider, scene.cameraBounds, *viewport, ColliderBoundsColour);
+        }
+
+        if (scene.navigationCache.has_value() && actorTextHasSpace &&
+            actorTextPosition.y + navigationTotalsHeight() <= actorTextBottom)
+        {
+            drawNavigationTotals(
+                *drawList,
+                scene.navigationCache.value_or(NavigationCacheDebugInfo{}),
+                actorTextPosition);
         }
 
         if (viewport.has_value())

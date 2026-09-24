@@ -68,6 +68,19 @@ namespace simple_platformer
         profile.phases.push_back({category, name, seconds});
     }
 
+    void addNestedPhaseSeconds(
+        FrameProfile& profile,
+        const char* category,
+        const char* name,
+        float seconds)
+    {
+        addPhaseSeconds(profile, category, name, seconds);
+        if (!profile.nestedSecondsOfOpenPhases.empty())
+        {
+            profile.nestedSecondsOfOpenPhases.back() += seconds;
+        }
+    }
+
     std::vector<PhaseTiming> phasesByCost(const std::vector<PhaseTiming>& phases)
     {
         struct CategoryCost

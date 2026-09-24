@@ -42,7 +42,26 @@ namespace simple_platformer
                 }
             });
         phase("NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
-        phase("NPC", "NPC behaviour", [&] { updateNpcBehaviour(map, world, deltaTime, profile); });
+        phase(
+            "NPC",
+            "NPC behaviour",
+            [&]
+            {
+                NpcBehaviourCost cost;
+                updateNpcBehaviour(map, world, deltaTime, profile != nullptr ? &cost : nullptr);
+                if (profile == nullptr || cost.pathSearches == 0)
+                {
+                    return;
+                }
+                // The searches ran inside this phase; charged as their own, it keeps the rest.
+                addNestedPhaseSeconds(*profile, "NPC", "Path search", cost.searchSeconds);
+                profile->pathSearches += cost.pathSearches;
+                profile->pathSearchesRemembered += cost.searches.pathsRemembered;
+                profile->pathSearchesDeferred += cost.searches.deferred;
+                profile->pathSearchNodes += cost.searches.nodesExpanded;
+                profile->pathSearchCellsReused += cost.searches.cellsReused;
+                profile->pathSearchSimulatedTicks += cost.searches.simulatedTicks;
+            });
         phase("Movement", "Actor movement", [&] { updateActorMovement(map, world, deltaTime); });
         phase("Movement", "Pickup movement", [&] { updatePickupMovement(map, world, deltaTime); });
         WorldRequests requests;

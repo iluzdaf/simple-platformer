@@ -662,7 +662,8 @@ TEST_CASE("Queuing every cell fills the cache over the calls that follow", "[nav
         map, BodySize, {}, tests::FixedStepSeconds, cache, 1000000);
     REQUIRE(static_cast<std::size_t>(rest.cells) == cells - 2);
     REQUIRE(rest.simulatedTicks > 0);
-    REQUIRE(rest.budgetSpent == rest.simulatedTicks + rest.cells * simple_platformer::KeepCostTicks);
+    REQUIRE(
+        rest.budgetSpent == rest.simulatedTicks + rest.cells * simple_platformer::KeepCostTicks);
     REQUIRE(cache.size() == cells);
     // Queuing again with every cell kept queues nothing.
     simple_platformer::queueAllPlatformerConnections(

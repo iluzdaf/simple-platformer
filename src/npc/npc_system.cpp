@@ -428,21 +428,16 @@ namespace simple_platformer
         requireSeconds(stepSeconds, "NPC navigation step");
         PlatformerConnectionCache& cache = world.platformerConnections();
         cache.syncWith(map);
-        std::vector<ConnectionBody> waiting;
-        for (const ConnectionBody& body : platformerNpcBodies(world, stepSeconds))
-        {
-            if (cache.cellsPending(body) > 0)
-            {
-                waiting.push_back(body);
-            }
-        }
+        const std::vector<ConnectionBody> bodies = platformerNpcBodies(world, stepSeconds);
+        // The step's budget is shared among the bodies with cells waiting; the others
+        // are asked anyway, since a fill with nothing waiting costs nothing.
+        const auto waiting = static_cast<int>(std::count_if(
+            bodies.begin(),
+            bodies.end(),
+            [&cache](const ConnectionBody& body) { return cache.cellsPending(body) > 0; }));
+        const int budgetEach = NavigationFillTicksPerStep / std::max(1, waiting);
         FillWork total;
-        if (waiting.empty())
-        {
-            return total;
-        }
-        const int budgetEach = NavigationFillTicksPerStep / static_cast<int>(waiting.size());
-        for (const ConnectionBody& body : waiting)
+        for (const ConnectionBody& body : bodies)
         {
             const FillWork work = fillPlatformerConnections(
                 map, body.size, body.movement, body.stepSeconds, cache, budgetEach);

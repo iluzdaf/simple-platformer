@@ -232,6 +232,32 @@ TEST_CASE("A frame history totals ticks and path searches across its frames", "[
     REQUIRE(history.totalPathSearches() == 3);
 }
 
+TEST_CASE(
+    "Seconds a system measured itself charge the phase they ran inside less",
+    "[timing][profile]")
+{
+    FrameProfile profile;
+    simple_platformer::timePhase(
+        &profile,
+        "NPC",
+        "Outer",
+        [&profile]
+        {
+            simple_platformer::addNestedPhaseSeconds(profile, "NPC", "Inner", 0.25F);
+            simple_platformer::addNestedPhaseSeconds(profile, "NPC", "Inner", 0.25F);
+        });
+    REQUIRE(profile.phases.size() == 2);
+    REQUIRE(std::string(profile.phases[0].name) == "Outer");
+    REQUIRE(std::string(profile.phases[1].name) == "Inner");
+    REQUIRE(profile.phases[1].seconds == 0.5F);
+    // The outer phase took far less than the half second charged inside it, so it keeps
+    // nothing, never a negative time.
+    REQUIRE(profile.phases[0].seconds == 0.0F);
+    // Outside any phase, the seconds are simply added.
+    simple_platformer::addNestedPhaseSeconds(profile, "NPC", "Inner", 0.25F);
+    REQUIRE(profile.phases[1].seconds == 0.75F);
+}
+
 TEST_CASE("Timing a phase charges it less the phases timed inside it", "[timing][profile]")
 {
     bool ran = false;

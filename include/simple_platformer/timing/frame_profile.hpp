@@ -63,6 +63,15 @@ namespace simple_platformer
         const char* name,
         float seconds);
 
+    // Charges seconds a system measured itself, inside the phase being timed, as if
+    // timePhase had timed them there: the open phase is charged that much less, so it
+    // keeps only its own time.
+    void addNestedPhaseSeconds(
+        FrameProfile& profile,
+        const char* category,
+        const char* name,
+        float seconds);
+
     // The phases by cost, for reading a still frame: categories from the dearest by their
     // total, each followed by its phases from the dearest. Equal costs keep their order.
     std::vector<PhaseTiming> phasesByCost(const std::vector<PhaseTiming>& phases);

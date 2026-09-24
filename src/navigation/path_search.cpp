@@ -192,6 +192,11 @@ namespace simple_platformer
             }
         };
 
+        // The search: take the open node with the lowest estimated total, cost so far
+        // plus the heuristic's guess of the rest. If it is the goal, the path is found.
+        // Otherwise close it and relax every connection leaving it, which opens or
+        // improves its neighbours, and go again. With a heuristic that never
+        // overestimates, a node's cost is final by the time it is the cheapest open one.
         while (true)
         {
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);

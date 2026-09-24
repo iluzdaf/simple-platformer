@@ -381,9 +381,13 @@ TEST_CASE("A break drops only the cells whose footprint holds it", "[navigation]
     cache.keepPath(query, body, {{9, 1}, {}});
 
     REQUIRE(cache.cellsKept(body) == 2);
+    REQUIRE(cache.cellsConnected(body) == 0);
+    cache.keep(
+        {9, 1}, body, {{{10, 1}, simple_platformer::Traversal::Walk, 1, {}}}, {{8, 0}, {10, 2}});
+    REQUIRE(cache.cellsConnected(body) == 1);
     REQUIRE(cache.reachableSetsKept(body) == 2);
     REQUIRE(cache.pathsKept(body) == 1);
-    REQUIRE(cache.cellsKeptSoFar() == 2);
+    REQUIRE(cache.cellsKeptSoFar() == 3);
 
     cache.invalidate({5, 1});
 
@@ -402,7 +406,7 @@ TEST_CASE("A break drops only the cells whose footprint holds it", "[navigation]
 
     // Keeping counts up; clearing forgets the counts with the rest.
     cache.keep({0, 1}, body, {}, {{0, 0}, {6, 2}});
-    REQUIRE(cache.cellsKeptSoFar() == 3);
+    REQUIRE(cache.cellsKeptSoFar() == 4);
     cache.clear();
     REQUIRE(cache.cellsKeptSoFar() == 0);
     REQUIRE(cache.cellsDroppedSoFar() == 0);

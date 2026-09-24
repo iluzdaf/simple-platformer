@@ -72,46 +72,6 @@ namespace simple_platformer
             }
         }
 
-        // What the cache holds and has done, in the bottom left corner, where neither
-        // the frame panel nor the actor text sits.
-        void drawNavigationTotals(ImDrawList& drawList, const NavigationCacheDebugInfo& cache)
-        {
-            constexpr float Margin = 8.0F;
-            char lines[3][96];
-            std::snprintf(
-                lines[0],
-                sizeof(lines[0]),
-                "navigation cache  body %zu of %zu  %gx%g  (N for next)",
-                cache.bodyIndex + 1,
-                cache.bodyCount,
-                static_cast<double>(cache.bodySize.x),
-                static_cast<double>(cache.bodySize.y));
-            std::snprintf(
-                lines[1],
-                sizeof(lines[1]),
-                "cells %zu  reachable sets %zu  paths %zu",
-                cache.cellsKept,
-                cache.reachableSetsKept,
-                cache.pathsKept);
-            std::snprintf(
-                lines[2],
-                sizeof(lines[2]),
-                "breaks %zu  cells dropped %zu  cells kept so far %zu",
-                cache.breaksApplied,
-                cache.cellsDropped,
-                cache.cellsKeptSoFar);
-            const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-            const float lineHeight = ImGui::GetTextLineHeight();
-            ImVec2 position = {
-                mainViewport->WorkPos.x + Margin,
-                mainViewport->WorkPos.y + mainViewport->WorkSize.y - Margin - 3.0F * lineHeight};
-            for (const char* line : lines)
-            {
-                drawList.AddText(position, TextDetailColour, line);
-                position.y += lineHeight;
-            }
-        }
-
         // The cursor cell: its reachable cells shaded, its footprint outlined, and each
         // connection drawn to where it lands, jumps and falls along their arcs.
         void drawCursorCell(
@@ -178,6 +138,52 @@ namespace simple_platformer
             drawCursorCell(
                 drawList, cache.cursorCell.value_or(CursorCellDebugInfo{}), cameraBounds, viewport);
         }
-        drawNavigationTotals(drawList, cache);
+    }
+
+    void drawNavigationTotals(
+        ImDrawList& drawList,
+        const NavigationCacheDebugInfo& cache,
+        ImVec2& position)
+    {
+        // One value a line, keyed like the actor text, so every line fits the column.
+        constexpr float Indentation = 12.0F;
+        drawTextLine(drawList, position, "navigation cache", TextHeadingColour);
+        char text[48];
+        const auto line = [&](const char* key, std::size_t value)
+        {
+            std::snprintf(text, sizeof(text), "%-8s%zu", key, value);
+            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+        };
+        if (cache.bodyName.empty())
+        {
+            std::snprintf(
+                text,
+                sizeof(text),
+                "body:   %gx%g",
+                static_cast<double>(cache.bodySize.x),
+                static_cast<double>(cache.bodySize.y));
+        }
+        else
+        {
+            std::snprintf(text, sizeof(text), "body:   %s", cache.bodyName.c_str());
+        }
+        drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+        // The index and the key on a line of their own, since a name can fill the last.
+        std::snprintf(
+            text, sizeof(text), "shown:  %zu/%zu (N)", cache.bodyIndex + 1, cache.bodyCount);
+        drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+        // Cells with connections, over every cell kept.
+        std::snprintf(text, sizeof(text), "cells:  %zu/%zu", cache.cellsConnected, cache.cellsKept);
+        drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+        line("sets:", cache.reachableSetsKept);
+        line("paths:", cache.pathsKept);
+        line("breaks:", cache.breaksApplied);
+        line("dropped:", cache.cellsDropped);
+        line("kept:", cache.cellsKeptSoFar);
+    }
+
+    float navigationTotalsHeight()
+    {
+        return 9.0F * ImGui::GetTextLineHeight();
     }
 }

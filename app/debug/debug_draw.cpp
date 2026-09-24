@@ -32,4 +32,15 @@ namespace simple_platformer
             minimum.y + bounds.size.y * viewport.scale.y};
         drawList.AddRect(minimum, maximum, colour, 0.0F, 0, 2.0F);
     }
+
+    void drawTextLine(
+        ImDrawList& drawList,
+        ImVec2& position,
+        const char* text,
+        ImU32 colour,
+        float indentation)
+    {
+        drawList.AddText({position.x + indentation, position.y}, colour, text);
+        position.y += ImGui::GetTextLineHeight();
+    }
 }

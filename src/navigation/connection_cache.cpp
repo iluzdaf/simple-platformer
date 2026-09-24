@@ -223,6 +223,19 @@ namespace simple_platformer
         return kept == nullptr ? 0 : kept->cells.size();
     }
 
+    std::size_t PlatformerConnectionCache::cellsConnected(const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        if (kept == nullptr)
+        {
+            return 0;
+        }
+        return static_cast<std::size_t>(std::count_if(
+            kept->cells.begin(),
+            kept->cells.end(),
+            [](const auto& entry) { return !entry.second.connections.empty(); }));
+    }
+
     std::size_t PlatformerConnectionCache::reachableSetsKept(const ConnectionBody& body) const
     {
         const BodyConnections* kept = findConnectionsFor(body);

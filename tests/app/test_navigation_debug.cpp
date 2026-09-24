@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include <glm/vec2.hpp>
@@ -102,17 +103,28 @@ TEST_CASE(
                        .thinking({64.0F, 1.0F}));
     const auto infoFor = [&](std::size_t bodyIndex)
     {
+        simple_platformer::NavigationDebugView view;
+        view.bodyIndex = bodyIndex;
+        view.bodyNames = {
+            {"soldier", {{12.0F, 20.0F}, {}, tests::FixedStepSeconds}},
+            {"zombie", {{12.0F, 12.0F}, {}, tests::FixedStepSeconds}}};
         return simple_platformer::makeNavigationCacheDebugInfo(
-                   world, map, tests::FixedStepSeconds, std::nullopt, bodyIndex)
+                   world, map, tests::FixedStepSeconds, view)
             .value_or(simple_platformer::NavigationCacheDebugInfo{});
     };
 
-    // The index picks a body in the order first found, and wraps.
+    // The index picks a body in the order first found, and wraps; a body is named from
+    // the list given, and unnamed without one.
+    REQUIRE(simple_platformer::makeNavigationCacheDebugInfo(world, map, tests::FixedStepSeconds)
+                .value_or(simple_platformer::NavigationCacheDebugInfo{})
+                .bodyName.empty());
     REQUIRE(infoFor(0).bodyCount == 2);
     REQUIRE(infoFor(0).bodyIndex == 0);
     REQUIRE(infoFor(0).bodySize == glm::vec2{12.0F, 12.0F});
+    REQUIRE(infoFor(0).bodyName == "zombie");
     REQUIRE(infoFor(1).bodyIndex == 1);
     REQUIRE(infoFor(1).bodySize == glm::vec2{12.0F, 20.0F});
+    REQUIRE(infoFor(1).bodyName == "soldier");
     REQUIRE(infoFor(2).bodyIndex == 0);
 
     // The totals follow the cache through a warm-up and a break.
@@ -120,6 +132,7 @@ TEST_CASE(
     simple_platformer::warmNpcNavigation(map, world, tests::FixedStepSeconds);
     const simple_platformer::NavigationCacheDebugInfo warmed = infoFor(0);
     REQUIRE(warmed.cellsKept == 15);
+    REQUIRE(warmed.cellsConnected == 5);
     REQUIRE(warmed.cellsKeptSoFar == 30);
     REQUIRE(warmed.breaksApplied == 0);
     REQUIRE(warmed.cellsDropped == 0);
@@ -146,8 +159,10 @@ TEST_CASE(
                        .thinking({64.0F, 1.0F}));
     const auto infoAt = [&](std::optional<glm::vec2> cursor)
     {
+        simple_platformer::NavigationDebugView view;
+        view.cursorWorld = cursor;
         return simple_platformer::makeNavigationCacheDebugInfo(
-                   world, map, tests::FixedStepSeconds, cursor)
+                   world, map, tests::FixedStepSeconds, view)
             .value_or(simple_platformer::NavigationCacheDebugInfo{});
     };
 

@@ -1,6 +1,8 @@
 #include "game.hpp"
 
 #include "debug/debug_overlay.hpp"
+#include "content/actor_catalog.hpp"
+#include "debug/navigation_debug.hpp"
 #include "level_composition.hpp"
 #include "content/level_catalog.hpp"
 #include "content/game_catalogs.hpp"
@@ -16,6 +18,7 @@
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/render/camera.hpp"
@@ -144,11 +147,24 @@ namespace simple_platformer
         std::optional<glm::vec2> internalCursor,
         std::size_t navigationBodyIndex) const
     {
-        std::optional<glm::vec2> cursorWorld;
+        NavigationDebugView navigation;
         if (internalCursor.has_value())
         {
-            cursorWorld =
+            navigation.cursorWorld =
                 screenToWorld(currentCamera(), internalCursor.value_or(glm::vec2{0.0F, 0.0F}));
+        }
+        navigation.bodyIndex = navigationBodyIndex;
+        // Every NPC definition that walks names the body the cache would key it by.
+        for (const auto& [name, definition] : catalogs.actors.definitions)
+        {
+            if (definition.platformer.has_value() && definition.senses.has_value())
+            {
+                navigation.bodyNames.push_back(
+                    {name,
+                     {definition.bodySize,
+                      definition.platformer.value_or(PlatformerMovementConfig{}),
+                      simulationStepSeconds}});
+            }
         }
         return makeDebugOverlay(
             level.world,
@@ -156,8 +172,7 @@ namespace simple_platformer
             cameraControllerValue(),
             atlasWidth,
             simulationStepSeconds,
-            cursorWorld,
-            navigationBodyIndex);
+            navigation);
     }
 
     Health Game::playerHealth() const

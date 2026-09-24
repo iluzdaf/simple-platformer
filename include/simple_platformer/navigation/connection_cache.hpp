@@ -94,9 +94,12 @@ namespace simple_platformer
         // Cells whose connections are kept, over every body.
         std::size_t size() const;
 
-        // Counts for the debug overlay. The first three are for one body; the rest are
+        // Counts for the debug overlay. The first four are for one body; the rest are
         // over every body since the cache was cleared, with cells kept including warm-up.
+        // Every cell asked about is kept, standable or not; the connected ones are those
+        // kept with at least one connection.
         std::size_t cellsKept(const ConnectionBody& body) const;
+        std::size_t cellsConnected(const ConnectionBody& body) const;
         std::size_t reachableSetsKept(const ConnectionBody& body) const;
         std::size_t pathsKept(const ConnectionBody& body) const;
         std::size_t breaksApplied() const;

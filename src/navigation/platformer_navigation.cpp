@@ -417,7 +417,7 @@ namespace simple_platformer
             }
 
             // The connections are read where the cache keeps them. A cell a break dropped
-            // waits for the refill rather than being simulated here, so the search goes on
+            // waits for the fill rather than being simulated here, so the search goes on
             // without its connections.
             bool incomplete = false;
             const ConnectionSource connectionsOf =
@@ -449,7 +449,7 @@ namespace simple_platformer
 
             // A search that went without some cell's connections has learned nothing the
             // cache may keep: a path it found still leads to the goal, but no path means
-            // the caller asks again once the refill has caught up.
+            // the caller asks again once the fill has caught up.
             if (incomplete)
             {
                 if (!path.has_value() && statistics != nullptr)
@@ -772,7 +772,7 @@ namespace simple_platformer
         }
     }
 
-    RefillWork refillPlatformerConnections(
+    FillWork fillPlatformerConnections(
         const TileMap& map,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
@@ -783,12 +783,12 @@ namespace simple_platformer
         requireStep(stepSeconds);
         if (tickBudget < 0)
         {
-            throw std::invalid_argument("A refill budget cannot be negative");
+            throw std::invalid_argument("A fill budget cannot be negative");
         }
         cache.syncWith(map);
         const ConnectionBody body{bodySize, movement, stepSeconds};
-        RefillWork work;
-        while (work.simulatedTicks < tickBudget)
+        FillWork work;
+        while (work.budgetSpent < tickBudget)
         {
             const std::optional<GridPosition> next = cache.nextPending(body);
             if (!next.has_value())
@@ -806,8 +806,28 @@ namespace simple_platformer
                 &statistics);
             ++work.cells;
             work.simulatedTicks += statistics.simulatedTicks;
+            work.budgetSpent += statistics.simulatedTicks + KeepCostTicks;
         }
         return work;
+    }
+
+    void queueAllPlatformerConnections(
+        const TileMap& map,
+        glm::vec2 bodySize,
+        const PlatformerMovementConfig& movement,
+        float stepSeconds,
+        PlatformerConnectionCache& cache)
+    {
+        requireStep(stepSeconds);
+        cache.syncWith(map);
+        const ConnectionBody body{bodySize, movement, stepSeconds};
+        for (int row = 0; row < map.height(); ++row)
+        {
+            for (int column = 0; column < map.width(); ++column)
+            {
+                cache.queue({column, row}, body);
+            }
+        }
     }
 
     void keepAllPlatformerConnections(

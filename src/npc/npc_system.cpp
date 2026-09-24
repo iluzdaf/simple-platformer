@@ -145,7 +145,7 @@ namespace simple_platformer
             }
             follower.destinationCell = goal;
             follower.breaksWhenPlanned = map.brokenCells().size();
-            // A deferred search is asked again next step, once the refill has caught up.
+            // A deferred search is asked again next step, once the fill has caught up.
             follower.repathRemaining = statistics.deferred > 0 ? 0.0F : follower.repathCooldown;
             if (path.has_value())
             {
@@ -409,36 +409,46 @@ namespace simple_platformer
         }
     }
 
-    void warmNpcNavigation(const TileMap& map, World& world, float stepSeconds)
+    void queueNpcNavigation(const TileMap& map, World& world, float stepSeconds)
     {
         requireSeconds(stepSeconds, "NPC navigation step");
         for (const ConnectionBody& body : platformerNpcBodies(world, stepSeconds))
         {
-            keepAllPlatformerConnections(
+            queueAllPlatformerConnections(
                 map, body.size, body.movement, body.stepSeconds, world.platformerConnections());
         }
     }
 
-    void refillNpcNavigation(
+    FillWork fillNpcNavigation(
         const TileMap& map,
         World& world,
         float stepSeconds,
         FrameProfile* profile)
     {
         requireSeconds(stepSeconds, "NPC navigation step");
-        for (const ConnectionBody& body : platformerNpcBodies(world, stepSeconds))
+        PlatformerConnectionCache& cache = world.platformerConnections();
+        cache.syncWith(map);
+        const std::vector<ConnectionBody> bodies = platformerNpcBodies(world, stepSeconds);
+        // The step's budget is shared among the bodies with cells waiting; the others
+        // are asked anyway, since a fill with nothing waiting costs nothing.
+        const auto waiting = static_cast<int>(std::count_if(
+            bodies.begin(),
+            bodies.end(),
+            [&cache](const ConnectionBody& body) { return cache.cellsPending(body) > 0; }));
+        const int budgetEach = NavigationFillTicksPerStep / std::max(1, waiting);
+        FillWork total;
+        for (const ConnectionBody& body : bodies)
         {
-            const RefillWork work = refillPlatformerConnections(
-                map,
-                body.size,
-                body.movement,
-                body.stepSeconds,
-                world.platformerConnections(),
-                NavigationRefillTicksPerStep);
-            if (profile != nullptr)
-            {
-                profile->navigationRefillTicks += work.simulatedTicks;
-            }
+            const FillWork work = fillPlatformerConnections(
+                map, body.size, body.movement, body.stepSeconds, cache, budgetEach);
+            total.cells += work.cells;
+            total.simulatedTicks += work.simulatedTicks;
+            total.budgetSpent += work.budgetSpent;
         }
+        if (profile != nullptr)
+        {
+            profile->navigationFillTicks += total.simulatedTicks;
+        }
+        return total;
     }
 }

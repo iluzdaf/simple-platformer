@@ -124,7 +124,9 @@ configured. Omit `-R "Pickup"` to run the complete suite.
 | Toggle the debug overlay | F1 |
 | Close the window | Escape |
 
-The debug overlay shows colliders, NPC sensing, patrol points, and navigation paths.
+The debug overlay shows colliders, NPC sensing, patrol points, navigation paths, and
+the navigation cache's cells for one NPC body: N shows the next body's, and B breaks a
+breakable tile under the cursor.
 The hearts at the top-left show the player's current and maximum health.
 
 Find each level's key and reach its bunker door to unlock the exit. Each door consumes

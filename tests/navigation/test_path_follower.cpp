@@ -18,7 +18,7 @@
 #include "support/fixed_step.hpp"
 #include "support/neighbor_with.hpp"
 
-TEST_CASE("A flying path follower produces intentions for its next step", "[navigation][path]")
+TEST_CASE("A flying path follower produces intentions for its next step", "[navigation][follower]")
 {
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
@@ -49,7 +49,9 @@ TEST_CASE("A flying path follower produces intentions for its next step", "[navi
     REQUIRE(simple_platformer::pathComplete(follower));
 }
 
-TEST_CASE("A flying path follower uses the exact remaining waypoint distance", "[navigation][path]")
+TEST_CASE(
+    "A flying path follower uses the exact remaining waypoint distance",
+    "[navigation][follower]")
 {
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
@@ -67,7 +69,7 @@ TEST_CASE("A flying path follower uses the exact remaining waypoint distance", "
 
 TEST_CASE(
     "A platformer path follower executes a generated jump through movement and collision",
-    "[navigation][path][integration]")
+    "[navigation][follower]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
@@ -105,7 +107,7 @@ TEST_CASE(
 
 TEST_CASE(
     "A platformer path follower approaches and brakes without moving the body directly",
-    "[navigation][path][integration]")
+    "[navigation][follower]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
@@ -152,7 +154,7 @@ TEST_CASE(
 
 TEST_CASE(
     "A platformer path follower brakes between a walk and a generated jump",
-    "[navigation][path][integration]")
+    "[navigation][follower]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});

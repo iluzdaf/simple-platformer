@@ -1,5 +1,7 @@
 #include "debug_overlay.hpp"
 
+#include "navigation_debug.hpp"
+
 #include <cmath>
 #include <cstddef>
 #include <optional>
@@ -16,11 +18,9 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
@@ -166,57 +166,6 @@ namespace simple_platformer
         }
     }
 
-    namespace
-    {
-        // The cache's cells for the first platformer NPC's body, or nothing without one.
-        std::optional<NavigationCacheDebugInfo> navigationCacheDebugInfo(
-            const World& world,
-            const TileMap& map,
-            float simulationStepSeconds)
-        {
-            std::optional<ConnectionBody> found;
-            for (const Actor& actor : world.actors())
-            {
-                if (actor.pathFollower.has_value() && actor.platformerMovement.has_value())
-                {
-                    found = ConnectionBody{
-                        actor.body.bounds.size,
-                        actor.platformerMovement.value().config,
-                        simulationStepSeconds};
-                    break;
-                }
-            }
-            if (!found.has_value())
-            {
-                return std::nullopt;
-            }
-            const ConnectionBody body = found.value_or(ConnectionBody{});
-            const PlatformerConnectionCache& cache = world.platformerConnections();
-            const auto tileSize = static_cast<float>(map.tileSize());
-            NavigationCacheDebugInfo info;
-            info.bodySize = body.size;
-            for (int row = 0; row < map.height(); ++row)
-            {
-                for (int column = 0; column < map.width(); ++column)
-                {
-                    const GridPosition cell{column, row};
-                    if (!canStandAt(map, cell, body.size))
-                    {
-                        continue;
-                    }
-                    const std::vector<NavigationNeighbor>* kept = cache.find(cell, body);
-                    info.cells.push_back(
-                        {{{static_cast<float>(column) * tileSize,
-                           static_cast<float>(row) * tileSize},
-                          {tileSize, tileSize}},
-                         kept == nullptr ? std::nullopt
-                                         : std::optional<std::size_t>(kept->size())});
-                }
-            }
-            return info;
-        }
-    }
-
     DebugOverlay makeDebugOverlay(
         const World& world,
         const TileMap& map,
@@ -299,7 +248,7 @@ namespace simple_platformer
                 {pickup.body.bounds, world.itemDefinition(pickup.stack.item).name});
         }
 
-        scene.navigationCache = navigationCacheDebugInfo(world, map, simulationStepSeconds);
+        scene.navigationCache = makeNavigationCacheDebugInfo(world, map, simulationStepSeconds);
         return scene;
     }
 }

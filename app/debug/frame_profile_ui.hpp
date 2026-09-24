@@ -2,6 +2,7 @@
 
 namespace simple_platformer
 {
+    class FrameAxes;
     class FrameHistory;
     class FrameSelection;
 
@@ -9,6 +10,7 @@ namespace simple_platformer
     // rest of the overlay it lets clicks through to the game; only its legend and its
     // plot take them. A press on the plot picks the frame under the cursor and holding it
     // scrubs: the panel then shows the history as it was and the picked frame's own
-    // costs, until the picked frame is clicked again.
-    void drawFrameProfile(const FrameHistory& live, FrameSelection& selection);
+    // costs, until the picked frame is clicked again. The axes grow at once to the worst
+    // live frame and come down a full history after it has left.
+    void drawFrameProfile(const FrameHistory& live, FrameSelection& selection, FrameAxes& axes);
 }

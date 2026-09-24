@@ -13,6 +13,7 @@
 
 #include "content/level_catalog.hpp"
 #include "debug/debug_overlay_ui.hpp"
+#include "debug/frame_axes.hpp"
 #include "debug/frame_profile_ui.hpp"
 #include "debug/frame_selection.hpp"
 #include "game/game.hpp"
@@ -176,6 +177,7 @@ namespace simple_platformer
             static_cast<float>(fixedStep.stepSeconds()));
         FrameHistory frameHistory;
         FrameSelection frameSelection;
+        FrameAxes frameAxes;
         Stopwatch frameClock;
 
         while (!window.shouldClose())
@@ -278,7 +280,7 @@ namespace simple_platformer
                         internalCursor,
                         context.debugBodyIndex),
                     windowViewport);
-                drawFrameProfile(frameHistory, frameSelection);
+                drawFrameProfile(frameHistory, frameSelection, frameAxes);
             }
             imgui.render();
             window.present();

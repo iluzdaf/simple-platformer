@@ -380,16 +380,33 @@ TEST_CASE("A break drops only the cells whose footprint holds it", "[navigation]
     const simple_platformer::PathQuery query{{9, 1}, {9, 1}, 0};
     cache.keepPath(query, body, {{9, 1}, {}});
 
+    REQUIRE(cache.cellsKept(body) == 2);
+    REQUIRE(cache.reachableSetsKept(body) == 2);
+    REQUIRE(cache.pathsKept(body) == 1);
+    REQUIRE(cache.cellsKeptSoFar() == 2);
+
     cache.invalidate({5, 1});
 
     REQUIRE(cache.find({0, 1}, body) == nullptr);
     REQUIRE(cache.find({9, 1}, body) != nullptr);
     REQUIRE(cache.size() == 1);
+    REQUIRE(cache.cellsKept(body) == 1);
+    REQUIRE(cache.reachableSetsKept(body) == 1);
+    REQUIRE(cache.pathsKept(body) == 0);
+    REQUIRE(cache.cellsDroppedSoFar() == 1);
     // A reachable set that held the dropped cell goes; one that did not stays.
     REQUIRE(cache.reachableFrom({0, 1}, body) == nullptr);
     REQUIRE(cache.reachableFrom({9, 1}, body) != nullptr);
     // Every remembered path goes, since a new opening can make a cheaper route anywhere.
     REQUIRE(cache.pathKept(query, body) == nullptr);
+
+    // Keeping counts up; clearing forgets the counts with the rest.
+    cache.keep({0, 1}, body, {}, {{0, 0}, {6, 2}});
+    REQUIRE(cache.cellsKeptSoFar() == 3);
+    cache.clear();
+    REQUIRE(cache.cellsKeptSoFar() == 0);
+    REQUIRE(cache.cellsDroppedSoFar() == 0);
+    REQUIRE(cache.breaksApplied() == 0);
 }
 
 TEST_CASE("Syncing with the map applies each break once", "[navigation][cache]")
@@ -406,6 +423,7 @@ TEST_CASE("Syncing with the map applies each break once", "[navigation][cache]")
     REQUIRE(map.breakTile({3, 1}));
     cache.syncWith(map);
     REQUIRE(cache.find({3, 0}, body) == nullptr);
+    REQUIRE(cache.breaksApplied() == 1);
 
     // Kept again after the break, the cell stays through later syncs of the same log.
     cache.keep({3, 0}, body, {}, {{2, 0}, {4, 1}});

@@ -59,11 +59,22 @@ namespace simple_platformer
         std::optional<std::size_t> connections;
     };
 
-    // The connection cache's view of the map for one platformer NPC body, the first in
-    // the world: every cell that body can stand in. Absent without such an NPC.
+    // The connection cache's view of the map for one platformer NPC body: every cell that
+    // body can stand in, and what the cache has kept and done so far. Absent without such
+    // an NPC. The bodies are the distinct ones in the world, in the order first found.
     struct NavigationCacheDebugInfo
     {
         glm::vec2 bodySize = {0.0F, 0.0F};
+        std::size_t bodyIndex = 0;
+        std::size_t bodyCount = 0;
+        // For this body.
+        std::size_t cellsKept = 0;
+        std::size_t reachableSetsKept = 0;
+        std::size_t pathsKept = 0;
+        // Over every body since the level started.
+        std::size_t breaksApplied = 0;
+        std::size_t cellsDropped = 0;
+        std::size_t cellsKeptSoFar = 0;
         std::vector<NavigationCellDebugInfo> cells;
         // Present while the cursor is over the map.
         std::optional<CursorCellDebugInfo> cursorCell;
@@ -71,10 +82,12 @@ namespace simple_platformer
 
     // Built from the map and the world's connection cache, without ImGui, so it can be
     // tested. The step is the one the world is simulated with, which is part of the
-    // body the cache keys on.
+    // body the cache keys on. The body index picks which body to show and wraps, so a
+    // key can cycle it without knowing how many there are.
     std::optional<NavigationCacheDebugInfo> makeNavigationCacheDebugInfo(
         const World& world,
         const TileMap& map,
         float simulationStepSeconds,
-        std::optional<glm::vec2> cursorWorld = std::nullopt);
+        std::optional<glm::vec2> cursorWorld = std::nullopt,
+        std::size_t bodyIndex = 0);
 }

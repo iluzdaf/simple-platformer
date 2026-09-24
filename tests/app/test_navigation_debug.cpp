@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <optional>
 #include <vector>
 
@@ -81,6 +82,54 @@ TEST_CASE(
         cells.end(),
         [](const simple_platformer::NavigationCellDebugInfo& cell)
         { return cell.connections.has_value(); }));
+}
+
+TEST_CASE(
+    "Navigation debug data shows one body at a time and its cache's totals",
+    "[app][debug][navigation]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", ".....", "##g##"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    simple_platformer::World world;
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .atFeet({8.0F, 32.0F})
+                       .walking()
+                       .thinking({64.0F, 1.0F}));
+    world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
+                       .atFeet({40.0F, 32.0F})
+                       .walking()
+                       .thinking({64.0F, 1.0F}));
+    const auto infoFor = [&](std::size_t bodyIndex)
+    {
+        return simple_platformer::makeNavigationCacheDebugInfo(
+                   world, map, tests::FixedStepSeconds, std::nullopt, bodyIndex)
+            .value_or(simple_platformer::NavigationCacheDebugInfo{});
+    };
+
+    // The index picks a body in the order first found, and wraps.
+    REQUIRE(infoFor(0).bodyCount == 2);
+    REQUIRE(infoFor(0).bodyIndex == 0);
+    REQUIRE(infoFor(0).bodySize == glm::vec2{12.0F, 12.0F});
+    REQUIRE(infoFor(1).bodyIndex == 1);
+    REQUIRE(infoFor(1).bodySize == glm::vec2{12.0F, 20.0F});
+    REQUIRE(infoFor(2).bodyIndex == 0);
+
+    // The totals follow the cache through a warm-up and a break.
+    REQUIRE(infoFor(0).cellsKept == 0);
+    simple_platformer::warmNpcNavigation(map, world, tests::FixedStepSeconds);
+    const simple_platformer::NavigationCacheDebugInfo warmed = infoFor(0);
+    REQUIRE(warmed.cellsKept == 15);
+    REQUIRE(warmed.cellsKeptSoFar == 30);
+    REQUIRE(warmed.breaksApplied == 0);
+    REQUIRE(warmed.cellsDropped == 0);
+
+    REQUIRE(map.breakTile({2, 2}));
+    world.platformerConnections().syncWith(map);
+    const simple_platformer::NavigationCacheDebugInfo broken = infoFor(0);
+    REQUIRE(broken.breaksApplied == 1);
+    REQUIRE(broken.cellsDropped > 0);
+    REQUIRE(broken.cellsKept < 15);
 }
 
 TEST_CASE(

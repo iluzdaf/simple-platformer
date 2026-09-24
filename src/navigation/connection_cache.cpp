@@ -82,9 +82,9 @@ namespace simple_platformer
     void PlatformerConnectionCache::syncWith(const TileMap& map)
     {
         const std::vector<GridPosition>& broken = map.brokenCells();
-        for (; breaksApplied < broken.size(); ++breaksApplied)
+        for (; breaksSeen < broken.size(); ++breaksSeen)
         {
-            invalidate(broken[breaksApplied]);
+            invalidate(broken[breaksSeen]);
         }
     }
 
@@ -98,6 +98,7 @@ namespace simple_platformer
                 if (contains(entry->second.footprint, brokenCell))
                 {
                     dropped.push_back(entry->first);
+                    ++dropsSoFar;
                     entry = kept.cells.erase(entry);
                 }
                 else
@@ -160,6 +161,7 @@ namespace simple_platformer
         requireValid(body);
         KeptConnections& kept = connectionsFor(body).cells[cell];
         kept = {std::move(connections), footprint};
+        ++keepsSoFar;
         return kept.connections;
     }
 
@@ -210,7 +212,42 @@ namespace simple_platformer
     void PlatformerConnectionCache::clear()
     {
         bodies.clear();
-        breaksApplied = 0;
+        breaksSeen = 0;
+        dropsSoFar = 0;
+        keepsSoFar = 0;
+    }
+
+    std::size_t PlatformerConnectionCache::cellsKept(const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        return kept == nullptr ? 0 : kept->cells.size();
+    }
+
+    std::size_t PlatformerConnectionCache::reachableSetsKept(const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        return kept == nullptr ? 0 : kept->reachable.size();
+    }
+
+    std::size_t PlatformerConnectionCache::pathsKept(const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        return kept == nullptr ? 0 : kept->paths.size();
+    }
+
+    std::size_t PlatformerConnectionCache::breaksApplied() const
+    {
+        return breaksSeen;
+    }
+
+    std::size_t PlatformerConnectionCache::cellsDroppedSoFar() const
+    {
+        return dropsSoFar;
+    }
+
+    std::size_t PlatformerConnectionCache::cellsKeptSoFar() const
+    {
+        return keepsSoFar;
     }
 
     std::size_t PlatformerConnectionCache::size() const

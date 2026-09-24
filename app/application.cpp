@@ -1,5 +1,6 @@
 #include "application.hpp"
 
+#include <cstddef>
 #include <cstdlib>
 #include <optional>
 
@@ -35,6 +36,8 @@ namespace simple_platformer
             InputState input;
             glm::vec2 aimDirection = {1.0F, 0.0F};
             bool showDebugOverlay = false;
+            // Which NPC body's navigation the overlay shows; N moves to the next.
+            std::size_t debugBodyIndex = 0;
             bool inventoryOpen = false;
             // Set when the inventory opens or closes or the game restarts, so the next
             // step discards the time and input edges that built up across the change.
@@ -87,6 +90,11 @@ namespace simple_platformer
             if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
             {
                 context->showDebugOverlay = !context->showDebugOverlay;
+                return;
+            }
+            if (key == GLFW_KEY_N && action == GLFW_PRESS)
+            {
+                ++context->debugBodyIndex;
                 return;
             }
 
@@ -250,7 +258,10 @@ namespace simple_platformer
             if (context.showDebugOverlay)
             {
                 drawDebugOverlay(
-                    game.debugOverlay(static_cast<float>(atlasTexture.width), internalCursor),
+                    game.debugOverlay(
+                        static_cast<float>(atlasTexture.width),
+                        internalCursor,
+                        context.debugBodyIndex),
                     windowViewport);
                 drawFrameProfile(frameHistory, frameSelection);
             }

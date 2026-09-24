@@ -72,6 +72,46 @@ namespace simple_platformer
             }
         }
 
+        // What the cache holds and has done, in the bottom left corner, where neither
+        // the frame panel nor the actor text sits.
+        void drawNavigationTotals(ImDrawList& drawList, const NavigationCacheDebugInfo& cache)
+        {
+            constexpr float Margin = 8.0F;
+            char lines[3][96];
+            std::snprintf(
+                lines[0],
+                sizeof(lines[0]),
+                "navigation cache  body %zu of %zu  %gx%g  (N for next)",
+                cache.bodyIndex + 1,
+                cache.bodyCount,
+                static_cast<double>(cache.bodySize.x),
+                static_cast<double>(cache.bodySize.y));
+            std::snprintf(
+                lines[1],
+                sizeof(lines[1]),
+                "cells %zu  reachable sets %zu  paths %zu",
+                cache.cellsKept,
+                cache.reachableSetsKept,
+                cache.pathsKept);
+            std::snprintf(
+                lines[2],
+                sizeof(lines[2]),
+                "breaks %zu  cells dropped %zu  cells kept so far %zu",
+                cache.breaksApplied,
+                cache.cellsDropped,
+                cache.cellsKeptSoFar);
+            const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+            const float lineHeight = ImGui::GetTextLineHeight();
+            ImVec2 position = {
+                mainViewport->WorkPos.x + Margin,
+                mainViewport->WorkPos.y + mainViewport->WorkSize.y - Margin - 3.0F * lineHeight};
+            for (const char* line : lines)
+            {
+                drawList.AddText(position, TextDetailColour, line);
+                position.y += lineHeight;
+            }
+        }
+
         // The cursor cell: its reachable cells shaded, its footprint outlined, and each
         // connection drawn to where it lands, jumps and falls along their arcs.
         void drawCursorCell(
@@ -138,5 +178,6 @@ namespace simple_platformer
             drawCursorCell(
                 drawList, cache.cursorCell.value_or(CursorCellDebugInfo{}), cameraBounds, viewport);
         }
+        drawNavigationTotals(drawList, cache);
     }
 }

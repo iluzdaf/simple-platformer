@@ -39,8 +39,12 @@ namespace simple_platformer
         glm::vec2 playerAimDirection(glm::vec2 screenPosition) const;
         RenderScene buildScene() const;
         // The atlas width comes from whoever loaded the texture; the game knows only its id.
-        // The cursor, in internal pixels, picks the cell whose navigation is shown.
-        DebugOverlay debugOverlay(float atlasWidth, std::optional<glm::vec2> internalCursor) const;
+        // The cursor, in internal pixels, picks the cell whose navigation is shown, and the
+        // body index which NPC body's navigation.
+        DebugOverlay debugOverlay(
+            float atlasWidth,
+            std::optional<glm::vec2> internalCursor,
+            std::size_t navigationBodyIndex) const;
         Health playerHealth() const;
         // Use these references immediately. Changing or restarting the level replaces the World,
         // so do not store a returned reference for later.

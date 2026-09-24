@@ -105,6 +105,8 @@ namespace simple_platformer
         std::vector<ProjectileDebugInfo> projectiles;
         std::vector<PickupDebugInfo> pickups;
         std::optional<NavigationCacheDebugInfo> navigationCache;
+        // The cell under the cursor when its tile can break, for the hint that B breaks it.
+        std::optional<Aabb> breakableCellUnderCursor;
         Aabb cameraBounds;
         Aabb cameraDeadZone;
     };

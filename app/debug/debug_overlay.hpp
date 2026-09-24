@@ -97,11 +97,28 @@ namespace simple_platformer
         std::string itemName;
     };
 
+    // One cell a body can stand in, as the connection cache sees it: how many connections
+    // it keeps for the cell, or nothing while it keeps none, as after a break drops them.
+    struct NavigationCellDebugInfo
+    {
+        Aabb bounds;
+        std::optional<std::size_t> connections;
+    };
+
+    // The connection cache's view of the map for one platformer NPC body, the first in
+    // the world: every cell that body can stand in. Absent without such an NPC.
+    struct NavigationCacheDebugInfo
+    {
+        glm::vec2 bodySize = {0.0F, 0.0F};
+        std::vector<NavigationCellDebugInfo> cells;
+    };
+
     struct DebugOverlay
     {
         std::vector<ActorDebugInfo> actors;
         std::vector<ProjectileDebugInfo> projectiles;
         std::vector<PickupDebugInfo> pickups;
+        std::optional<NavigationCacheDebugInfo> navigationCache;
         Aabb cameraBounds;
         Aabb cameraDeadZone;
     };

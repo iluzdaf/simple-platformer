@@ -45,6 +45,11 @@ namespace simple_platformer
         constexpr ImU32 SpriteBoundsColour = IM_COL32(64, 64, 64, 255);
         constexpr ImU32 ColliderBoundsColour = IM_COL32(255, 64, 64, 255);
         constexpr ImU32 PickupColour = IM_COL32(96, 255, 160, 255);
+        // The connection cache's cells: kept with connections, kept with none, and missing,
+        // which after a break means dropped and not yet simulated again.
+        constexpr ImU32 NavigationKeptColour = IM_COL32(64, 160, 255, 90);
+        constexpr ImU32 NavigationEmptyColour = IM_COL32(128, 128, 128, 70);
+        constexpr ImU32 NavigationMissingColour = IM_COL32(255, 96, 32, 220);
 
         constexpr float ActorTextGap = 4.0F;
 
@@ -128,6 +133,34 @@ namespace simple_platformer
                     (worldPosition.x - scene.cameraBounds.position.x) * viewport.scale.x,
                 viewport.topLeft.y +
                     (worldPosition.y - scene.cameraBounds.position.y) * viewport.scale.y};
+        }
+
+        // A cell of the connection cache: a filled cell while its connections are kept,
+        // with their count, and an outlined one while they are missing.
+        void drawNavigationCell(
+            ImDrawList& drawList,
+            const NavigationCellDebugInfo& cell,
+            const DebugOverlay& scene,
+            const WindowViewport& viewport)
+        {
+            const ImVec2 minimum = screenPosition(cell.bounds.position, scene, viewport);
+            const ImVec2 maximum = {
+                minimum.x + cell.bounds.size.x * viewport.scale.x,
+                minimum.y + cell.bounds.size.y * viewport.scale.y};
+            if (!cell.connections.has_value())
+            {
+                drawList.AddRect(minimum, maximum, NavigationMissingColour, 0.0F, 0, 2.0F);
+                return;
+            }
+            const ImU32 colour =
+                *cell.connections == 0 ? NavigationEmptyColour : NavigationKeptColour;
+            drawList.AddRectFilled(minimum, maximum, colour);
+            if (*cell.connections > 0)
+            {
+                char count[8];
+                std::snprintf(count, sizeof(count), "%zu", *cell.connections);
+                drawList.AddText({minimum.x + 1.0F, minimum.y}, WorldLabelColour, count);
+            }
         }
 
         void drawWorldBounds(
@@ -511,6 +544,13 @@ namespace simple_platformer
             for (const ProjectileDebugInfo& projectile : scene.projectiles)
             {
                 drawProjectile(*drawList, projectile, scene, *viewport);
+            }
+            if (scene.navigationCache.has_value())
+            {
+                for (const NavigationCellDebugInfo& cell : scene.navigationCache->cells)
+                {
+                    drawNavigationCell(*drawList, cell, scene, *viewport);
+                }
             }
             for (const PickupDebugInfo& pickup : scene.pickups)
             {

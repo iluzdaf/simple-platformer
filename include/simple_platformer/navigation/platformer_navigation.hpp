@@ -42,7 +42,10 @@ namespace simple_platformer
     // cell's connections from it, simulating and keeping them first when it lacks them;
     // answers a query it has answered before with the path it kept; and when a search
     // from the start has failed before, answers without searching unless the goal is
-    // among the cells that start reaches.
+    // among the cells that start reaches. A cell a break dropped that the refill has not
+    // reached is not simulated: the search moves it to the front of the refill queue and,
+    // if it found no path without it, reports itself deferred in the statistics and
+    // keeps nothing, so the caller asks again once the refill has caught up.
     std::optional<NavigationPath> findPlatformerPath(
         const TileMap& map,
         GridPosition start,
@@ -83,6 +86,24 @@ namespace simple_platformer
         float stepSeconds,
         PathSearchStatistics* statistics = nullptr,
         PlatformerConnectionCache* cache = nullptr);
+
+    // What one refill call did: the cells it kept again and the movement ticks that took.
+    struct RefillWork
+    {
+        int cells = 0;
+        int simulatedTicks = 0;
+    };
+
+    // Simulates and keeps again the cells a break dropped for this body, in the cache's
+    // order, until at least this many movement ticks have been simulated or none are
+    // left; a cell is never split, so a call may run one cell past the budget.
+    RefillWork refillPlatformerConnections(
+        const TileMap& map,
+        glm::vec2 bodySize,
+        const PlatformerMovementConfig& movement,
+        float stepSeconds,
+        PlatformerConnectionCache& cache,
+        int tickBudget);
 
     // Keeps the connections leaving every cell of the map for this body, simulating any the
     // cache lacks. Cells already kept are left as they are, so calling it again fills only

@@ -287,14 +287,18 @@ namespace simple_platformer
                 std::accumulate(simulationSeconds.begin(), simulationSeconds.end(), 0.0F) * scale,
                 ticks);
             ImGui::Text(
-                "searches %d   remembered %d",
+                "searches %d   remembered %d   deferred %d",
                 history.totalPathSearches(),
-                history.totalPathSearchesRemembered());
+                history.totalPathSearchesRemembered(),
+                history.totalPathSearchesDeferred());
             ImGui::Text(
-                "cells %d   reused %d   sim ticks %d",
+                "cells %d   reused %d",
                 history.totalPathSearchNodes(),
-                history.totalPathSearchCellsReused(),
-                history.totalPathSearchSimulatedTicks());
+                history.totalPathSearchCellsReused());
+            ImGui::Text(
+                "sim ticks %d   refill ticks %d",
+                history.totalPathSearchSimulatedTicks(),
+                history.totalNavigationRefillTicks());
             drawPhaseTable(phases, "ms per tick", scale);
         }
 
@@ -322,12 +326,15 @@ namespace simple_platformer
                 frame.simulationSeconds * 1000.0F,
                 frame.simulationTicks);
             ImGui::Text(
-                "searches %d   remembered %d", frame.pathSearches, frame.pathSearchesRemembered);
+                "searches %d   remembered %d   deferred %d",
+                frame.pathSearches,
+                frame.pathSearchesRemembered,
+                frame.pathSearchesDeferred);
+            ImGui::Text("cells %d   reused %d", frame.pathSearchNodes, frame.pathSearchCellsReused);
             ImGui::Text(
-                "cells %d   reused %d   sim ticks %d",
-                frame.pathSearchNodes,
-                frame.pathSearchCellsReused,
-                frame.pathSearchSimulatedTicks);
+                "sim ticks %d   refill ticks %d",
+                frame.pathSearchSimulatedTicks,
+                frame.navigationRefillTicks);
             drawPhaseTable(phasesByCost(frame.phases), "ms", 1000.0F);
         }
     }

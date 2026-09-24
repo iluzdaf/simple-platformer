@@ -472,9 +472,16 @@ swept or read, grown a tile all round for the tiles collision and support look a
 the body; a broken tile inside a footprint drops that cell, along with any reachable set
 that held it and every remembered path, since a new opening can make a cheaper route
 anywhere. The map logs the cells it breaks, and the cache syncs with the log whenever it
-is read with the map to hand, so no other system has to tell it. Dropped cells are
-simulated again on demand by the next search that expands them; spreading that work over
-ticks under a budget is the next piece of work. `PlatformerConnectionCache` in `navigation/connection_cache`
+is read with the map to hand, so no other system has to tell it. The cells a break drops
+join a refill queue per body, and every simulation step begins with a refill phase that
+simulates and keeps them again, a cell at a time, until a budget of movement ticks is
+spent, so a break costs a little on each of the steps that follow instead of everything
+on one. A search that expands a cell still in the queue does not simulate it: it moves
+the cell to the front of the queue, searches on without its connections, and if it finds
+no path that way reports itself deferred and keeps nothing, so the NPC asks again next
+step rather than waiting out its cooldown; a path it does find is still a path. An NPC
+also plans again after any break, since its path may have run through the broken tile.
+`PlatformerConnectionCache` in `navigation/connection_cache`
 keeps the connections leaving each cell, grouped by the body they were simulated for.
 A search handed a cache reads each expanded cell's connections where the cache keeps
 them, simulating and keeping them first when it does not yet; a search without one
@@ -679,8 +686,9 @@ F1 toggles the debug overlay. The overlay can show actor details, sprite and col
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,
 navigation paths, and the connection cache's cells for one platformer NPC body, N moving
 to the next: filled with their connection count while kept, outlined while missing, which
-after a break is what the break dropped and no search has simulated again yet, with the
-cache's totals under the actor text, including the cells dropped and kept so far. With
+after a break is what the break dropped and the refill has not reached yet, with the
+cache's totals under the actor text, including the cells waiting for the refill and the
+cells dropped and kept so far. With
 the overlay open, a tile under the cursor that can break is labelled, and B breaks it as
 a shot would, so what a break does to the cache can be tried without one. For the cell
 under the cursor it also outlines the footprint the cell's simulation swept, which is
@@ -693,7 +701,7 @@ The overlay also shows a frame panel, drawn by `app/debug/frame_profile_ui`. The
 application times each frame with a `Stopwatch` from `timing/stopwatch`, how many fixed
 steps it ran, and how long simulation, scene building, rendering, and the interface
 took, and records them in a `FrameHistory` from `timing/frame_profile`.
-The panel is one ImPlot plot over the recent frames with two vertical axes: frame time against the 60 Hz budget line on the left, and the simulation's phases on the right, stacked by category (NPC, Movement, Combat, World) on a fixed scale so a slow frame shows as a spike that may leave the top rather than rescaling the stack. Hiding a category in the legend restacks the rest. Under the plot it prints the latest breakdown, the average, the worst frame, and every phase under its category as an average cost per simulation step over the history, since one frame's numbers change too fast to read. The panel's window is invisible to the mouse, so clicks over it reach the game like the rest of the overlay; its legend and its plot are small windows of their own and the two places a click lands. A press on the plot picks the frame under the cursor and holding the button scrubs along the frames: a `FrameSelection` from `app/debug/frame_selection` keeps a copy of the history as it was, the plot holds still with the picked frame marked, and the summary shows that frame's own costs, its phases in milliseconds rather than per step and listed by cost, the dearest category first and each category's dearest phase first, until the picked frame is clicked again. The selection is data without ImGui, so what a press or a drag picks and what it keeps are tested. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a category and a short name, and the NPC system times each path search as a phase of its own, so the behaviour phase keeps only its own time, and counts the searches it ran, the cells they expanded, how many of those the connection cache already held, and the movement ticks they simulated; the stack shows which category widened in a slow frame. `Stopwatch` is the one place the engine reads a clock; `timePhase` in `timing/frame_profile` times with it, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
+The panel is one ImPlot plot over the recent frames with two vertical axes: frame time against the 60 Hz budget line on the left, and the simulation's phases on the right, stacked by category (NPC, Movement, Combat, World) on a fixed scale so a slow frame shows as a spike that may leave the top rather than rescaling the stack. Hiding a category in the legend restacks the rest. Under the plot it prints the latest breakdown, the average, the worst frame, and every phase under its category as an average cost per simulation step over the history, since one frame's numbers change too fast to read. The panel's window is invisible to the mouse, so clicks over it reach the game like the rest of the overlay; its legend and its plot are small windows of their own and the two places a click lands. A press on the plot picks the frame under the cursor and holding the button scrubs along the frames: a `FrameSelection` from `app/debug/frame_selection` keeps a copy of the history as it was, the plot holds still with the picked frame marked, and the summary shows that frame's own costs, its phases in milliseconds rather than per step and listed by cost, the dearest category first and each category's dearest phase first, until the picked frame is clicked again. The selection is data without ImGui, so what a press or a drag picks and what it keeps are tested. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a category and a short name, and the NPC system times each path search as a phase of its own, so the behaviour phase keeps only its own time, and counts the searches it ran, how many of those waited for a refill, the cells they expanded, how many of those the connection cache already held, the movement ticks they simulated, and the ticks the refill phase simulated; the stack shows which category widened in a slow frame. `Stopwatch` is the one place the engine reads a clock; `timePhase` in `timing/frame_profile` times with it, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
 meaningful from a release build.
 
 The inventory UI is an example presentation, not an engine rule. It derives its rows

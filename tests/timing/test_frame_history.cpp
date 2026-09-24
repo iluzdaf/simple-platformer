@@ -201,24 +201,30 @@ TEST_CASE("A frame history totals ticks and path searches across its frames", "[
     first.simulationTicks = 2;
     first.pathSearches = 1;
     first.pathSearchesRemembered = 1;
+    first.pathSearchesDeferred = 1;
     first.pathSearchNodes = 10;
     first.pathSearchCellsReused = 4;
     first.pathSearchSimulatedTicks = 100;
+    first.navigationRefillTicks = 30;
     FrameProfile second = frameTaking(0.016F);
     second.simulationTicks = 1;
     second.pathSearches = 3;
     second.pathSearchesRemembered = 2;
+    second.pathSearchesDeferred = 0;
     second.pathSearchNodes = 5;
     second.pathSearchCellsReused = 5;
     second.pathSearchSimulatedTicks = 50;
+    second.navigationRefillTicks = 20;
     history.push(first);
     history.push(second);
     REQUIRE(history.totalSimulationTicks() == 3);
     REQUIRE(history.totalPathSearches() == 4);
     REQUIRE(history.totalPathSearchesRemembered() == 3);
+    REQUIRE(history.totalPathSearchesDeferred() == 1);
     REQUIRE(history.totalPathSearchNodes() == 15);
     REQUIRE(history.totalPathSearchCellsReused() == 9);
     REQUIRE(history.totalPathSearchSimulatedTicks() == 150);
+    REQUIRE(history.totalNavigationRefillTicks() == 50);
 
     // A third frame evicts the first.
     history.push(frameTaking(0.007F));

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstddef>
+#include <deque>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <glm/vec2.hpp>
@@ -70,12 +72,14 @@ namespace simple_platformer
         // the cache that has the map to hand syncs first, so nothing has to remember to.
         void syncWith(const TileMap& map);
         // Drops what a break of this cell can have changed, as syncWith does per break.
-        // Every cell dropped joins the body's refill queue.
+        // Every cell dropped joins the body's fill queue.
         void invalidate(GridPosition brokenCell);
 
-        // The cells a break dropped that have not been kept again, in the order to
-        // simulate them; keeping a cell takes it off. A search that needs one before its
-        // turn moves it to the front.
+        // The cells waiting to be kept, in the order to simulate them: every cell of the
+        // map when a level starts, and the cells a break dropped after. Keeping a cell
+        // takes it off. A search that needs one before its turn moves it to the front.
+        // Queuing a cell that is kept or waiting already changes nothing.
+        void queue(GridPosition cell, const ConnectionBody& body);
         std::size_t cellsPending(const ConnectionBody& body) const;
         bool isPending(GridPosition cell, const ConnectionBody& body) const;
         std::optional<GridPosition> nextPending(const ConnectionBody& body) const;
@@ -151,7 +155,9 @@ namespace simple_platformer
             std::unordered_map<int, RememberedWalk> walks;
             ReachableCells reachable;
             PathsFound paths;
-            std::vector<GridPosition> pending;
+            // The queue, and the same cells as a set so membership is a lookup.
+            std::deque<GridPosition> pending;
+            std::unordered_set<GridPosition, GridPositionHash> waiting;
         };
 
         void requireValid(const ConnectionBody& body) const;

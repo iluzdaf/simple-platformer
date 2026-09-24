@@ -88,7 +88,9 @@ namespace simple_platformer
                 return kept;
             }
         }
-        bodies.push_back({body, {}, {}, {}, {}, {}});
+        BodyConnections fresh;
+        fresh.body = body;
+        bodies.push_back(std::move(fresh));
         return bodies.back();
     }
 
@@ -112,6 +114,7 @@ namespace simple_platformer
                 {
                     dropped.push_back(entry->first);
                     kept.pending.push_back(entry->first);
+                    kept.waiting.insert(entry->first);
                     ++dropsSoFar;
                     entry = kept.cells.erase(entry);
                 }
@@ -174,10 +177,9 @@ namespace simple_platformer
     {
         requireValid(body);
         BodyConnections& forBody = connectionsFor(body);
-        const auto pending = std::find(forBody.pending.begin(), forBody.pending.end(), cell);
-        if (pending != forBody.pending.end())
+        if (forBody.waiting.erase(cell) > 0)
         {
-            forBody.pending.erase(pending);
+            forBody.pending.erase(std::find(forBody.pending.begin(), forBody.pending.end(), cell));
         }
         KeptConnections& kept = forBody.cells[cell];
         kept = {std::move(connections), footprint};
@@ -259,6 +261,18 @@ namespace simple_platformer
         keepsSoFar = 0;
     }
 
+    void PlatformerConnectionCache::queue(GridPosition cell, const ConnectionBody& body)
+    {
+        requireValid(body);
+        BodyConnections& forBody = connectionsFor(body);
+        if (forBody.cells.count(cell) > 0 || forBody.waiting.count(cell) > 0)
+        {
+            return;
+        }
+        forBody.pending.push_back(cell);
+        forBody.waiting.insert(cell);
+    }
+
     std::size_t PlatformerConnectionCache::cellsPending(const ConnectionBody& body) const
     {
         const BodyConnections* kept = findConnectionsFor(body);
@@ -268,8 +282,7 @@ namespace simple_platformer
     bool PlatformerConnectionCache::isPending(GridPosition cell, const ConnectionBody& body) const
     {
         const BodyConnections* kept = findConnectionsFor(body);
-        return kept != nullptr &&
-               std::find(kept->pending.begin(), kept->pending.end(), cell) != kept->pending.end();
+        return kept != nullptr && kept->waiting.count(cell) > 0;
     }
 
     std::optional<GridPosition> PlatformerConnectionCache::nextPending(
@@ -290,11 +303,12 @@ namespace simple_platformer
         {
             return;
         }
-        const auto pending = std::find(kept->pending.begin(), kept->pending.end(), cell);
-        if (pending != kept->pending.end() && pending != kept->pending.begin())
+        if (kept->waiting.count(cell) == 0 || kept->pending.front() == cell)
         {
-            std::rotate(kept->pending.begin(), pending, std::next(pending));
+            return;
         }
+        kept->pending.erase(std::find(kept->pending.begin(), kept->pending.end(), cell));
+        kept->pending.push_front(cell);
     }
 
     std::size_t PlatformerConnectionCache::cellsKept(const ConnectionBody& body) const

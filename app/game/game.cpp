@@ -74,7 +74,7 @@ namespace simple_platformer
         }
         cameraController =
             makeCameraController(level.map, playerActor->body.bounds, {80.0F, 45.0F});
-        warmNpcNavigation(level.map, level.world, simulationStepSeconds);
+        queueNpcNavigation(level.map, level.world, simulationStepSeconds);
     }
 
     void Game::update(const InputIntentions& intentions, float deltaTime, FrameProfile* profile)

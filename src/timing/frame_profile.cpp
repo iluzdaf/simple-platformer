@@ -162,7 +162,7 @@ namespace simple_platformer
         if (frame.simulationTicks < 0 || frame.pathSearches < 0 ||
             frame.pathSearchesRemembered < 0 || frame.pathSearchesDeferred < 0 ||
             frame.pathSearchNodes < 0 || frame.pathSearchCellsReused < 0 ||
-            frame.pathSearchSimulatedTicks < 0 || frame.navigationRefillTicks < 0)
+            frame.pathSearchSimulatedTicks < 0 || frame.navigationFillTicks < 0)
         {
             throw std::invalid_argument(
                 "A frame cannot run a negative number of steps, searches, cells or ticks");
@@ -308,10 +308,10 @@ namespace simple_platformer
             [](const FrameProfile& frame) { return frame.pathSearchSimulatedTicks; });
     }
 
-    int FrameHistory::totalNavigationRefillTicks() const
+    int FrameHistory::totalNavigationFillTicks() const
     {
         return sumOver(
-            frames, count, [](const FrameProfile& frame) { return frame.navigationRefillTicks; });
+            frames, count, [](const FrameProfile& frame) { return frame.navigationFillTicks; });
     }
 
     std::vector<float> FrameHistory::frameSecondsOldestFirst() const

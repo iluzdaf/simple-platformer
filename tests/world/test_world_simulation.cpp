@@ -536,7 +536,7 @@ TEST_CASE(
     simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds, &profile);
 
     const std::vector<std::pair<const char*, const char*>> expected{
-        {"NPC", "Navigation refill"},
+        {"NPC", "Navigation fill"},
         {"NPC", "NPC senses"},
         {"NPC", "NPC behaviour"},
         {"Movement", "Actor movement"},

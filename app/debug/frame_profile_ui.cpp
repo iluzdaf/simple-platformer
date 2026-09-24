@@ -290,9 +290,9 @@ namespace simple_platformer
                 history.totalPathSearchNodes(),
                 history.totalPathSearchCellsReused());
             ImGui::Text(
-                "sim ticks %d   refill ticks %d",
+                "sim ticks %d   fill ticks %d",
                 history.totalPathSearchSimulatedTicks(),
-                history.totalNavigationRefillTicks());
+                history.totalNavigationFillTicks());
             drawPhaseTable(phases, "ms per tick", scale);
         }
 
@@ -326,9 +326,9 @@ namespace simple_platformer
                 frame.pathSearchesDeferred);
             ImGui::Text("cells %d   reused %d", frame.pathSearchNodes, frame.pathSearchCellsReused);
             ImGui::Text(
-                "sim ticks %d   refill ticks %d",
+                "sim ticks %d   fill ticks %d",
                 frame.pathSearchSimulatedTicks,
-                frame.navigationRefillTicks);
+                frame.navigationFillTicks);
             drawPhaseTable(phasesByCost(frame.phases), "ms", 1000.0F);
         }
     }

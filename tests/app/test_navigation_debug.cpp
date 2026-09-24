@@ -15,6 +15,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
+#include "support/fill_navigation.hpp"
 #include "support/fixed_step.hpp"
 #include "support/tile_map_builder.hpp"
 
@@ -52,8 +53,8 @@ TEST_CASE(
         [](const simple_platformer::NavigationCellDebugInfo& cell)
         { return !cell.connections.has_value(); }));
 
-    // Warmed, every cell has its connections counted.
-    simple_platformer::warmNpcNavigation(map, world, tests::FixedStepSeconds);
+    // Filled, every cell has its connections counted.
+    tests::fillNavigation(map, world);
     cells = cellsOf();
     REQUIRE(std::all_of(
         cells.begin(),
@@ -127,16 +128,16 @@ TEST_CASE(
     REQUIRE(infoFor(1).bodyName == "soldier");
     REQUIRE(infoFor(2).bodyIndex == 0);
 
-    // The totals follow the cache through a warm-up and a break.
+    // The totals follow the cache through a fill and a break.
     REQUIRE(infoFor(0).cellsKept == 0);
-    simple_platformer::warmNpcNavigation(map, world, tests::FixedStepSeconds);
-    const simple_platformer::NavigationCacheDebugInfo warmed = infoFor(0);
-    REQUIRE(warmed.cellsKept == 15);
-    REQUIRE(warmed.cellsConnected == 5);
-    REQUIRE(warmed.walksKept > 0);
-    REQUIRE(warmed.cellsKeptSoFar == 30);
-    REQUIRE(warmed.breaksApplied == 0);
-    REQUIRE(warmed.cellsDropped == 0);
+    tests::fillNavigation(map, world);
+    const simple_platformer::NavigationCacheDebugInfo filled = infoFor(0);
+    REQUIRE(filled.cellsKept == 15);
+    REQUIRE(filled.cellsConnected == 5);
+    REQUIRE(filled.walksKept > 0);
+    REQUIRE(filled.cellsKeptSoFar == 30);
+    REQUIRE(filled.breaksApplied == 0);
+    REQUIRE(filled.cellsDropped == 0);
 
     REQUIRE(map.breakTile({2, 2}));
     world.platformerConnections().syncWith(map);
@@ -147,7 +148,7 @@ TEST_CASE(
     REQUIRE(broken.cellsPending == 15 - broken.cellsKept);
     for (std::size_t step = 0; step < broken.cellsPending && infoFor(0).cellsPending > 0; ++step)
     {
-        simple_platformer::refillNpcNavigation(map, world, tests::FixedStepSeconds);
+        simple_platformer::fillNpcNavigation(map, world, tests::FixedStepSeconds);
     }
     REQUIRE(infoFor(0).cellsPending == 0);
 }
@@ -184,7 +185,7 @@ TEST_CASE(
     REQUIRE(unkept.connections.empty());
 
     // Kept, the cell shows its footprint and every connection, jumps along their arcs.
-    simple_platformer::warmNpcNavigation(map, world, tests::FixedStepSeconds);
+    tests::fillNavigation(map, world);
     const simple_platformer::CursorCellDebugInfo kept =
         infoAt(glm::vec2{40.0F, 20.0F})
             .cursorCell.value_or(simple_platformer::CursorCellDebugInfo{});

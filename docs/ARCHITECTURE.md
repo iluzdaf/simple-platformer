@@ -472,15 +472,21 @@ swept or read, grown a tile all round for the tiles collision and support look a
 the body; a broken tile inside a footprint drops that cell, along with any reachable set
 that held it and every remembered path, since a new opening can make a cheaper route
 anywhere. The map logs the cells it breaks, and the cache syncs with the log whenever it
-is read with the map to hand, so no other system has to tell it. The cells a break drops
-join a refill queue per body, and every simulation step begins with a refill phase that
-simulates and keeps them again, a cell at a time, until a budget of movement ticks is
-spent, so a break costs a little on each of the steps that follow instead of everything
-on one. A search that expands a cell still in the queue does not simulate it: it moves
-the cell to the front of the queue, searches on without its connections, and if it finds
-no path that way reports itself deferred and keeps nothing, so the NPC asks again next
-step rather than waiting out its cooldown; a path it does find is still a path. An NPC
-also plans again after any break, since its path may have run through the broken tile.
+is read with the map to hand, so no other system has to tell it. The cache is filled
+through a queue per body. When a level starts, `queueNpcNavigation` queues every cell of
+the map for each platformer NPC body in the world, and the cells a break drops join the
+same queue after; every simulation step begins with a fill phase that simulates and
+keeps queued cells, one at a time, until a budget of movement ticks is spent, shared out
+evenly among the bodies with cells waiting, so a level start or a break costs a little on
+each of the steps that follow instead of everything on one, and a level starts at once
+however many NPCs it has. Keeping a cell is charged a few ticks of the budget over what
+it simulated, so the many cells that cannot be stood on are spread out like the rest. A search that expands a
+cell still in the queue does not simulate it: it moves the cell to the front of the
+queue, searches on without its connections, and if it finds no path that way reports
+itself deferred and keeps nothing, so the NPC asks again next step rather than waiting
+out its cooldown; a path it does find is still a path. The first searches of a level
+wait this way for the cells they need, which the fill then takes first. An NPC also
+plans again after any break, since its path may have run through the broken tile.
 `PlatformerConnectionCache` in `navigation/connection_cache`
 keeps the connections leaving each cell, grouped by the body they were simulated for.
 It also keeps the cost of a walk of each length for each body. A walk starts and ends
@@ -496,10 +502,8 @@ connections simulated for that search alone, as the tests of the policies do. Th
 and everything built on it can be taken out by removing the wrapper and leaving the
 search. The `World` owns the cache for the map it is
 simulated with, since the world is replaced with its level, and the NPC system hands it
-to every platformer search. The game fills it when a level starts: `warmNpcNavigation`
-keeps every cell of the map for each platformer NPC body in the world, at the step the
-game is simulated with, which takes a few milliseconds per shipped level in a release
-build, so the first chase simulates nothing during play. A search that fails has expanded every cell its start
+to every platformer search. `keepAllPlatformerConnections` keeps every cell of the map
+at once, which the tests use to start from a full cache; the game queues instead. A search that fails has expanded every cell its start
 leads to, and the cache keeps that set too, per start and body, so a later search from
 there to a goal outside it returns no path without expanding anything; an NPC that can
 see a player it cannot reach retries every quarter second at no cost. A search that

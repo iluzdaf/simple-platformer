@@ -42,10 +42,10 @@ namespace simple_platformer
     // cell's connections from it, simulating and keeping them first when it lacks them;
     // answers a query it has answered before with the path it kept; and when a search
     // from the start has failed before, answers without searching unless the goal is
-    // among the cells that start reaches. A cell a break dropped that the refill has not
-    // reached is not simulated: the search moves it to the front of the refill queue and,
+    // among the cells that start reaches. A cell a break dropped that the fill has not
+    // reached is not simulated: the search moves it to the front of the fill queue and,
     // if it found no path without it, reports itself deferred in the statistics and
-    // keeps nothing, so the caller asks again once the refill has caught up.
+    // keeps nothing, so the caller asks again once the fill has caught up.
     std::optional<NavigationPath> findPlatformerPath(
         const TileMap& map,
         GridPosition start,
@@ -87,17 +87,24 @@ namespace simple_platformer
         PathSearchStatistics* statistics = nullptr,
         PlatformerConnectionCache* cache = nullptr);
 
-    // What one refill call did: the cells it kept again and the movement ticks that took.
-    struct RefillWork
+    // What keeping a cell costs a fill's budget besides the ticks it simulated: the
+    // bookkeeping, worth about this many ticks, so a run of cells that cannot be stood
+    // on is spread over steps like the rest.
+    constexpr int KeepCostTicks = 3;
+
+    // What one fill call did: the cells it kept, the movement ticks that took, and the
+    // budget it spent, which is the ticks plus the keep cost of each cell.
+    struct FillWork
     {
         int cells = 0;
         int simulatedTicks = 0;
+        int budgetSpent = 0;
     };
 
-    // Simulates and keeps again the cells a break dropped for this body, in the cache's
-    // order, until at least this many movement ticks have been simulated or none are
-    // left; a cell is never split, so a call may run one cell past the budget.
-    RefillWork refillPlatformerConnections(
+    // Simulates and keeps the cells waiting in the cache's queue for this body, in its
+    // order, until the budget is spent or none are left. A cell is never split, so a
+    // call may run one cell past the budget.
+    FillWork fillPlatformerConnections(
         const TileMap& map,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
@@ -105,9 +112,19 @@ namespace simple_platformer
         PlatformerConnectionCache& cache,
         int tickBudget);
 
-    // Keeps the connections leaving every cell of the map for this body, simulating any the
-    // cache lacks. Cells already kept are left as they are, so calling it again fills only
-    // what has since been emptied.
+    // Queues every cell of the map the cache lacks for this body, so fills keep them over
+    // the calls that follow. Cells kept or waiting already are left as they are.
+    void queueAllPlatformerConnections(
+        const TileMap& map,
+        glm::vec2 bodySize,
+        const PlatformerMovementConfig& movement,
+        float stepSeconds,
+        PlatformerConnectionCache& cache);
+
+    // Keeps the connections leaving every cell of the map for this body at once,
+    // simulating any the cache lacks. Cells already kept are left as they are, so calling
+    // it again fills only what has since been emptied. Tests use it to start from a full
+    // cache; the game queues the cells and fills them over its steps instead.
     void keepAllPlatformerConnections(
         const TileMap& map,
         glm::vec2 bodySize,

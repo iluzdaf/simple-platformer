@@ -368,12 +368,137 @@ TEST_CASE("Reachable cells are kept per start and body until cleared", "[navigat
     REQUIRE_THROWS_AS(cache.keepReachable({0, 0}, stopped, {}), std::invalid_argument);
 }
 
+TEST_CASE("A break drops only the cells whose footprint holds it", "[navigation][cache]")
+{
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    // Two cells: one swept the tile at (5, 1), the other never came near it.
+    cache.keep({0, 1}, body, {}, {{0, 0}, {6, 2}});
+    cache.keep({9, 1}, body, {}, {{8, 0}, {10, 2}});
+    cache.keepReachable({0, 1}, body, {{0, 1}, {1, 1}});
+    cache.keepReachable({9, 1}, body, {{9, 1}});
+    const simple_platformer::PathQuery query{{9, 1}, {9, 1}, 0};
+    cache.keepPath(query, body, {{9, 1}, {}});
+
+    cache.invalidate({5, 1});
+
+    REQUIRE(cache.find({0, 1}, body) == nullptr);
+    REQUIRE(cache.find({9, 1}, body) != nullptr);
+    REQUIRE(cache.size() == 1);
+    // A reachable set that held the dropped cell goes; one that did not stays.
+    REQUIRE(cache.reachableFrom({0, 1}, body) == nullptr);
+    REQUIRE(cache.reachableFrom({9, 1}, body) != nullptr);
+    // Every remembered path goes, since a new opening can make a cheaper route anywhere.
+    REQUIRE(cache.pathKept(query, body) == nullptr);
+}
+
+TEST_CASE("Syncing with the map applies each break once", "[navigation][cache]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "###g####"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    cache.keep({3, 0}, body, {}, {{2, 0}, {4, 1}});
+    cache.syncWith(map);
+    REQUIRE(cache.find({3, 0}, body) != nullptr);
+
+    REQUIRE(map.breakTile({3, 1}));
+    cache.syncWith(map);
+    REQUIRE(cache.find({3, 0}, body) == nullptr);
+
+    // Kept again after the break, the cell stays through later syncs of the same log.
+    cache.keep({3, 0}, body, {}, {{2, 0}, {4, 1}});
+    cache.syncWith(map);
+    REQUIRE(cache.find({3, 0}, body) != nullptr);
+}
+
+TEST_CASE("A broken wall opens a route the next search finds", "[navigation][cache]")
+{
+    // A corridor one cell tall with a breakable wall across it: no jump gets over.
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"########", "#..g...#", "########"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    const GridPosition start{1, 1};
+    const GridPosition goal{5, 1};
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    simple_platformer::keepAllPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache);
+
+    PathSearchStatistics blocked;
+    REQUIRE_FALSE(simple_platformer::findPlatformerPath(
+                      map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &blocked, &cache)
+                      .has_value());
+    REQUIRE(blocked.simulatedTicks == 0);
+    REQUIRE(cache.reachableFrom(start, body) != nullptr);
+
+    REQUIRE(map.breakTile({3, 1}));
+
+    PathSearchStatistics opened;
+    const std::optional<simple_platformer::NavigationPath> path =
+        simple_platformer::findPlatformerPath(
+            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &opened, &cache);
+    REQUIRE(path.has_value());
+    // The cells beside the wall were simulated again; the failed search's set is gone.
+    REQUIRE(opened.simulatedTicks > 0);
+    REQUIRE(opened.pathsRemembered == 0);
+}
+
+TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cache]")
+{
+    // An upper floor with a breakable tile, over a lower floor that catches a fall.
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........................",
+                               "###g####################",
+                               "........................",
+                               "########################"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    simple_platformer::keepAllPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache);
+    const auto walksTo = [](const std::vector<NavigationNeighbor>& connections, GridPosition cell)
+    {
+        return std::any_of(
+            connections.begin(),
+            connections.end(),
+            [cell](const NavigationNeighbor& neighbor)
+            {
+                return neighbor.traversal == simple_platformer::Traversal::Walk &&
+                       neighbor.destinationCell == cell;
+            });
+    };
+    REQUIRE(walksTo(*cache.find({1, 0}, body), {6, 0}));
+    const std::vector<NavigationNeighbor>* farAway = cache.find({23, 0}, body);
+    REQUIRE(farAway != nullptr);
+
+    REQUIRE(map.breakTile({3, 1}));
+
+    // The walk across the hole is gone, and a fall into it has appeared.
+    const std::vector<NavigationNeighbor>& afterBreak = simple_platformer::platformerNeighborsKept(
+        map, {1, 0}, BodySize, {}, tests::FixedStepSeconds, cache);
+    REQUIRE_FALSE(walksTo(afterBreak, {6, 0}));
+    const std::vector<NavigationNeighbor>& fromTheEdge = simple_platformer::platformerNeighborsKept(
+        map, {2, 0}, BodySize, {}, tests::FixedStepSeconds, cache);
+    REQUIRE(std::any_of(
+        fromTheEdge.begin(),
+        fromTheEdge.end(),
+        [](const NavigationNeighbor& neighbor)
+        {
+            return neighbor.traversal == simple_platformer::Traversal::Fall &&
+                   neighbor.destinationCell == GridPosition{3, 2};
+        }));
+    // A cell whose simulations never came near the hole was left as it was.
+    REQUIRE(cache.find({23, 0}, body) == farAway);
+}
+
 TEST_CASE("Connections are kept only for a valid body", "[navigation][cache][validation]")
 {
     PlatformerConnectionCache cache;
     ConnectionBody flat{{12.0F, 0.0F}, {}, tests::FixedStepSeconds};
-    REQUIRE_THROWS_AS(cache.keep({0, 0}, flat, {}), std::invalid_argument);
+    REQUIRE_THROWS_AS(cache.keep({0, 0}, flat, {}, {{0, 0}, {0, 0}}), std::invalid_argument);
     ConnectionBody stopped{BodySize, {}, 0.0F};
-    REQUIRE_THROWS_AS(cache.keep({0, 0}, stopped, {}), std::invalid_argument);
+    REQUIRE_THROWS_AS(cache.keep({0, 0}, stopped, {}, {{0, 0}, {0, 0}}), std::invalid_argument);
     REQUIRE(cache.size() == 0);
 }

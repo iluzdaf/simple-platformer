@@ -111,6 +111,11 @@ namespace simple_platformer
         return mapHeight;
     }
 
+    GridSize TileMap::size() const
+    {
+        return {mapWidth, mapHeight};
+    }
+
     int TileMap::tileSize() const
     {
         return cellSize;
@@ -128,7 +133,7 @@ namespace simple_platformer
 
     bool TileMap::contains(GridPosition cell) const
     {
-        return cell.x >= 0 && cell.x < mapWidth && cell.y >= 0 && cell.y < mapHeight;
+        return simple_platformer::contains(size(), cell);
     }
 
     int TileMap::tileAt(GridPosition cell) const
@@ -186,7 +191,13 @@ namespace simple_platformer
         }
 
         tileIds[indexOf(cell)] = *broken;
+        brokenCellLog.push_back(cell);
         return true;
+    }
+
+    const std::vector<GridPosition>& TileMap::brokenCells() const
+    {
+        return brokenCellLog;
     }
 
     std::size_t TileMap::indexOf(GridPosition cell) const

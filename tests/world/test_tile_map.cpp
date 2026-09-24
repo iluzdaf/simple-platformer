@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 
@@ -87,6 +88,20 @@ TEST_CASE("Breaking a tile replaces it with what its definition breaks into", "[
     REQUIRE(map.blocksMovement({1, 0}));
 }
 
+TEST_CASE("A tile map logs the cells it broke, in order", "[world][tile-map]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"gg#"}).where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    REQUIRE(map.brokenCells().empty());
+
+    REQUIRE(map.breakTile({1, 0}));
+    REQUIRE(map.breakTile({0, 0}));
+    // Neither an empty cell nor a solid one that declares nothing to break into is logged.
+    REQUIRE_FALSE(map.breakTile({1, 0}));
+    REQUIRE_FALSE(map.breakTile({2, 0}));
+    REQUIRE(map.brokenCells() == std::vector<simple_platformer::GridPosition>{{1, 0}, {0, 0}});
+}
+
 TEST_CASE("Breaking reports failure outside the map instead of throwing", "[world][tile-map]")
 {
     // Map boundaries block movement, so a cast can report a cell that is not in the map.
@@ -116,6 +131,18 @@ TEST_CASE("Tile maps reject invalid definitions and tile IDs", "[world][tile-map
             {2},
             std::vector<TileDefinition>{{false, false, {}}, {true, true, {}}}),
         std::invalid_argument);
+}
+
+TEST_CASE("A tile map contains the cells of its grid and no others", "[world][tile-map]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "..."});
+    REQUIRE(map.size().width == 3);
+    REQUIRE(map.size().height == 2);
+    REQUIRE(map.contains({0, 0}));
+    REQUIRE(map.contains({2, 1}));
+    REQUIRE_FALSE(map.contains({3, 1}));
+    REQUIRE_FALSE(map.contains({2, 2}));
+    REQUIRE_FALSE(map.contains({-1, 0}));
 }
 
 TEST_CASE("A tile map knows its tile size and measures itself by it", "[world][tile-map]")

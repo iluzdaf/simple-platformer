@@ -72,6 +72,15 @@ namespace simple_platformer
             program.push_back({stepSeconds, intentions});
         }
 
+        // Grows the footprint to the cells around the bounds, one tile out on every side,
+        // since collision and support read the tiles beside the body as well as under it.
+        void sweep(CellRange& footprint, int tileSize, const Aabb& bounds)
+        {
+            const glm::vec2 margin{static_cast<float>(tileSize), static_cast<float>(tileSize)};
+            const Aabb around{bounds.position - margin, bounds.size + 2.0F * margin};
+            footprint = unionOf(footprint, cellsCovered(tileSize, around));
+        }
+
         // No cell the bounds cover blocks movement.
         bool bodyFits(const TileMap& map, const Aabb& bounds)
         {
@@ -99,7 +108,8 @@ namespace simple_platformer
             glm::vec2 bodySize,
             const PlatformerMovementConfig& config,
             float stepSeconds,
-            PathSearchStatistics* statistics)
+            PathSearchStatistics* statistics,
+            CellRange& footprint)
         {
             Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -115,6 +125,7 @@ namespace simple_platformer
                     return tick;
                 }
                 updatePlatformerMovement(map, body, movement, intentions, stepSeconds);
+                sweep(footprint, map.tileSize(), body.bounds);
                 countSimulatedTick(statistics);
             }
             return std::nullopt;
@@ -175,7 +186,8 @@ namespace simple_platformer
             float direction,
             int jumpHoldTicks,
             float stepSeconds,
-            PathSearchStatistics* statistics)
+            PathSearchStatistics* statistics,
+            CellRange& footprint)
         {
             Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
             PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -194,6 +206,7 @@ namespace simple_platformer
                     traversal, direction, tick, jumpHoldTicks, landing.has_value());
                 recordSimulationInput(program, intentions, stepSeconds);
                 updatePlatformerMovement(map, body, movement, intentions, stepSeconds);
+                sweep(footprint, map.tileSize(), body.bounds);
                 countSimulatedTick(statistics);
 
                 leftGround = leftGround || !movement.grounded;
@@ -303,6 +316,7 @@ namespace simple_platformer
         const PathQuery query{start, goal, navigation.jumpStartPenaltyTicks};
         if (cache != nullptr)
         {
+            cache->syncWith(map);
             const NavigationPath* kept = cache->pathKept(query, body);
             if (kept != nullptr)
             {
@@ -368,7 +382,7 @@ namespace simple_platformer
         std::optional<NavigationPath> path = findLowestCostPath(
             start,
             goal,
-            {map.width(), map.height()},
+            map.size(),
             neighbors,
             heuristic,
             statistics,
@@ -527,9 +541,17 @@ namespace simple_platformer
 
     namespace
     {
-        // Every connection leaving a cell, simulated with the real movement code. A cell
-        // that cannot be stood on has none.
-        std::vector<NavigationNeighbor> simulatePlatformerNeighbors(
+        struct SimulatedConnections
+        {
+            std::vector<NavigationNeighbor> connections;
+            // Every cell the simulations swept or read, as one rectangle.
+            CellRange footprint;
+        };
+
+        // Every connection leaving a cell, simulated with the real movement code, with the
+        // footprint of the cells that decided them. A cell that cannot be stood on has
+        // no connections, and a footprint of itself and its surroundings.
+        SimulatedConnections simulatePlatformerNeighbors(
             const TileMap& map,
             GridPosition cell,
             glm::vec2 bodySize,
@@ -537,20 +559,30 @@ namespace simple_platformer
             float stepSeconds,
             PathSearchStatistics* statistics)
         {
-            std::vector<NavigationNeighbor> neighbors;
-            if (!canStandAt(map, cell, bodySize))
+            const int tileSize = map.tileSize();
+            SimulatedConnections result{
+                {}, cellsCovered(tileSize, boxInCell(tileSize, cell, bodySize))};
+            std::vector<NavigationNeighbor>& neighbors = result.connections;
+            CellRange& footprint = result.footprint;
+            // Standing reads the cell, what it covers and what is under it.
+            const auto standable = [&](GridPosition candidate)
             {
-                return neighbors;
+                sweep(footprint, tileSize, boxInCell(tileSize, candidate, bodySize));
+                return canStandAt(map, candidate, bodySize);
+            };
+            if (!standable(cell))
+            {
+                return result;
             }
 
             constexpr std::array<int, 2> Directions{-1, 1};
             for (const int direction : Directions)
             {
                 const GridPosition adjacent{cell.x + direction, cell.y};
-                if (canStandAt(map, adjacent, bodySize))
+                if (standable(adjacent))
                 {
                     GridPosition walkDestination = adjacent;
-                    while (canStandAt(map, walkDestination, bodySize))
+                    while (standable(walkDestination))
                     {
                         const std::optional<int> walkCost = trySimulateWalkCost(
                             map,
@@ -559,7 +591,8 @@ namespace simple_platformer
                             bodySize,
                             movement,
                             stepSeconds,
-                            statistics);
+                            statistics,
+                            footprint);
                         if (!walkCost.has_value())
                         {
                             // Destinations are checked nearest first. Once a continuous walk
@@ -583,7 +616,8 @@ namespace simple_platformer
                         static_cast<float>(direction),
                         0,
                         stepSeconds,
-                        statistics);
+                        statistics,
+                        footprint);
                     if (fall.has_value())
                     {
                         keepCheapest(neighbors, fall.value());
@@ -602,14 +636,15 @@ namespace simple_platformer
                         static_cast<float>(direction),
                         holdTicks,
                         stepSeconds,
-                        statistics);
+                        statistics,
+                        footprint);
                     if (jump.has_value())
                     {
                         keepCheapest(neighbors, jump.value());
                     }
                 }
             }
-            return neighbors;
+            return result;
         }
     }
 
@@ -620,6 +655,7 @@ namespace simple_platformer
         float stepSeconds,
         PlatformerConnectionCache& cache)
     {
+        cache.syncWith(map);
         for (int row = 0; row < map.height(); ++row)
         {
             for (int column = 0; column < map.width(); ++column)
@@ -639,6 +675,7 @@ namespace simple_platformer
         PathSearchStatistics* statistics)
     {
         requireStep(stepSeconds);
+        cache.syncWith(map);
         const ConnectionBody body{bodySize, movement, stepSeconds};
         const std::vector<NavigationNeighbor>* kept = cache.find(cell, body);
         if (kept != nullptr)
@@ -649,10 +686,9 @@ namespace simple_platformer
             }
             return *kept;
         }
-        return cache.keep(
-            cell,
-            body,
-            simulatePlatformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics));
+        SimulatedConnections simulated =
+            simulatePlatformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics);
+        return cache.keep(cell, body, std::move(simulated.connections), simulated.footprint);
     }
 
     std::vector<NavigationNeighbor> platformerNeighbors(
@@ -670,6 +706,7 @@ namespace simple_platformer
             return platformerNeighborsKept(
                 map, cell, bodySize, movement, stepSeconds, *cache, statistics);
         }
-        return simulatePlatformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics);
+        return simulatePlatformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics)
+            .connections;
     }
 }

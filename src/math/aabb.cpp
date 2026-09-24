@@ -1,5 +1,7 @@
 #include "simple_platformer/math/aabb.hpp"
 
+#include <algorithm>
+
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/coordinates.hpp"
@@ -42,5 +44,18 @@ namespace simple_platformer
                first.position.x + first.size.x > second.position.x &&
                first.position.y < second.position.y + second.size.y &&
                first.position.y + first.size.y > second.position.y;
+    }
+
+    bool contains(const CellRange& range, GridPosition cell)
+    {
+        return cell.x >= range.first.x && cell.x <= range.last.x && cell.y >= range.first.y &&
+               cell.y <= range.last.y;
+    }
+
+    CellRange unionOf(const CellRange& left, const CellRange& right)
+    {
+        return {
+            {std::min(left.first.x, right.first.x), std::min(left.first.y, right.first.y)},
+            {std::max(left.last.x, right.last.x), std::max(left.last.y, right.last.y)}};
     }
 }

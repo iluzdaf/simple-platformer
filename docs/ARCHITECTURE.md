@@ -465,10 +465,16 @@ in ticks, so a marginal shortcut does not make a grounded NPC hop unnecessarily.
 Setting that penalty to zero selects strictly by simulated travel time.
 
 A cell's connections depend only on the map, the cell, the body's size, its movement
-configuration and the step, so simulating them once is enough while the map stands. A
-tile broken by a projectile is not yet reflected in the cache: what was kept before the
-break stays until the level ends, and invalidating only what a break touches is the
-next piece of work. `PlatformerConnectionCache` in `navigation/connection_cache`
+configuration and the step, so simulating them once is enough while the map stands. When
+a projectile breaks a tile, the cache drops only what the break can have changed. Each
+cell's connections are kept with a footprint, the rectangle of cells their simulation
+swept or read, grown a tile all round for the tiles collision and support look at beside
+the body; a broken tile inside a footprint drops that cell, along with any reachable set
+that held it and every remembered path, since a new opening can make a cheaper route
+anywhere. The map logs the cells it breaks, and the cache syncs with the log whenever it
+is read with the map to hand, so no other system has to tell it. Dropped cells are
+simulated again on demand by the next search that expands them; spreading that work over
+ticks under a budget is the next piece of work. `PlatformerConnectionCache` in `navigation/connection_cache`
 keeps the connections leaving each cell, grouped by the body they were simulated for.
 A search handed a cache reads each expanded cell's connections where the cache keeps
 them, simulating and keeping them first when it does not yet; a search without one

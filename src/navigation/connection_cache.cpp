@@ -1,16 +1,20 @@
 #include "simple_platformer/navigation/connection_cache.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <iterator>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
 {
@@ -74,6 +78,48 @@ namespace simple_platformer
         return bodies.back();
     }
 
+    void PlatformerConnectionCache::syncWith(const TileMap& map)
+    {
+        const std::vector<GridPosition>& broken = map.brokenCells();
+        for (; breaksApplied < broken.size(); ++breaksApplied)
+        {
+            invalidate(broken[breaksApplied]);
+        }
+    }
+
+    void PlatformerConnectionCache::invalidate(GridPosition brokenCell)
+    {
+        for (BodyConnections& kept : bodies)
+        {
+            std::vector<GridPosition> dropped;
+            for (auto entry = kept.cells.begin(); entry != kept.cells.end();)
+            {
+                if (contains(entry->second.footprint, brokenCell))
+                {
+                    dropped.push_back(entry->first);
+                    entry = kept.cells.erase(entry);
+                }
+                else
+                {
+                    ++entry;
+                }
+            }
+            // A reachable set is the closure of its cells' connections, so it holds only
+            // while none of its cells has changed.
+            for (auto set = kept.reachable.begin(); set != kept.reachable.end();)
+            {
+                const std::vector<GridPosition>& cells = set->second;
+                const bool touched = std::any_of(
+                    dropped.begin(),
+                    dropped.end(),
+                    [&cells](GridPosition cell)
+                    { return std::find(cells.begin(), cells.end(), cell) != cells.end(); });
+                set = touched ? kept.reachable.erase(set) : std::next(set);
+            }
+            kept.paths.clear();
+        }
+    }
+
     const std::vector<NavigationNeighbor>* PlatformerConnectionCache::find(
         GridPosition cell,
         const ConnectionBody& body) const
@@ -84,18 +130,19 @@ namespace simple_platformer
             return nullptr;
         }
         const auto connections = kept->cells.find(cell);
-        return connections == kept->cells.end() ? nullptr : &connections->second;
+        return connections == kept->cells.end() ? nullptr : &connections->second.connections;
     }
 
     const std::vector<NavigationNeighbor>& PlatformerConnectionCache::keep(
         GridPosition cell,
         const ConnectionBody& body,
-        std::vector<NavigationNeighbor> connections)
+        std::vector<NavigationNeighbor> connections,
+        const CellRange& footprint)
     {
         requireValid(body);
-        std::vector<NavigationNeighbor>& kept = connectionsFor(body).cells[cell];
-        kept = std::move(connections);
-        return kept;
+        KeptConnections& kept = connectionsFor(body).cells[cell];
+        kept = {std::move(connections), footprint};
+        return kept.connections;
     }
 
     const std::vector<GridPosition>* PlatformerConnectionCache::reachableFrom(
@@ -145,6 +192,7 @@ namespace simple_platformer
     void PlatformerConnectionCache::clear()
     {
         bodies.clear();
+        breaksApplied = 0;
     }
 
     std::size_t PlatformerConnectionCache::size() const

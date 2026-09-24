@@ -486,8 +486,8 @@ TEST_CASE(
             visit(neighbor, neighbor.cost);
         }
     };
-    const auto pathWithoutHeuristic = simple_platformer::findLowestCostPath(
-        {1, 0}, {3, 0}, {map.width(), map.height()}, neighbors);
+    const auto pathWithoutHeuristic =
+        simple_platformer::findLowestCostPath({1, 0}, {3, 0}, map.size(), neighbors);
     REQUIRE(pathWithoutHeuristic.has_value());
     const simple_platformer::NavigationPath routeWithoutHeuristic =
         pathWithoutHeuristic.value_or(simple_platformer::NavigationPath{});

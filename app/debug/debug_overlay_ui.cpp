@@ -349,6 +349,22 @@ namespace simple_platformer
             drawList.AddText(labelPosition, ProjectileColour, label);
         }
 
+        // Outlines the breakable cell under the cursor and names the key that breaks it.
+        void drawBreakableCellHint(
+            ImDrawList& drawList,
+            const Aabb& cell,
+            const DebugOverlay& scene,
+            const WindowViewport& viewport)
+        {
+            drawWorldBounds(drawList, cell, scene.cameraBounds, viewport, WorldLabelColour);
+            const ImVec2 above = screenPosition(cell.position, scene.cameraBounds, viewport);
+            drawShadowedText(
+                drawList,
+                {above.x, above.y - ImGui::GetTextLineHeight()},
+                WorldLabelColour,
+                "B to break");
+        }
+
         void drawActorText(ImDrawList& drawList, const ActorDebugInfo& actor, ImVec2& position)
         {
             constexpr float Indentation = 12.0F;
@@ -493,14 +509,8 @@ namespace simple_platformer
             }
             if (scene.breakableCellUnderCursor.has_value())
             {
-                const Aabb cell = scene.breakableCellUnderCursor.value_or(Aabb{});
-                drawWorldBounds(*drawList, cell, scene.cameraBounds, *viewport, WorldLabelColour);
-                const ImVec2 above = screenPosition(cell.position, scene.cameraBounds, *viewport);
-                drawShadowedText(
-                    *drawList,
-                    {above.x, above.y - ImGui::GetTextLineHeight()},
-                    WorldLabelColour,
-                    "B to break");
+                drawBreakableCellHint(
+                    *drawList, scene.breakableCellUnderCursor.value_or(Aabb{}), scene, *viewport);
             }
             for (const PickupDebugInfo& pickup : scene.pickups)
             {

@@ -21,7 +21,7 @@ namespace simple_platformer
     // dropped: a few cells a step, so a break costs a little on each of the steps that
     // follow instead of everything on one. A cell is never split, so a step may run one
     // cell past it.
-    constexpr int NavigationRefillTicksPerStep = 500;
+    constexpr int NavigationRefillTicksPerStep = 250;
 
     // Simulates and keeps again some of the cells a break dropped, for each platformer
     // NPC body in the world, within the budget. Runs every step before the NPCs think;

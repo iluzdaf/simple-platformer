@@ -483,6 +483,11 @@ step rather than waiting out its cooldown; a path it does find is still a path. 
 also plans again after any break, since its path may have run through the broken tile.
 `PlatformerConnectionCache` in `navigation/connection_cache`
 keeps the connections leaving each cell, grouped by the body they were simulated for.
+It also keeps the cost of a walk of each length for each body. A walk starts and ends
+at rest on flat ground, so its cost and the cells it sweeps depend on the distance and
+the body alone, not on which cells it crosses, and each length is simulated once; a
+break leaves the walks kept, since no tile decided them. Walks were most of the
+simulation, so a cell's simulation is now mostly its jumps and falls.
 `findPlatformerPath` is two layers. The search itself runs A* over whichever
 connections it is handed and charges each jump its penalty. The cached search around it
 answers from what the cache remembers when it can, hands the search the cache's

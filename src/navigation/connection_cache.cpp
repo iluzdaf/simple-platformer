@@ -88,7 +88,7 @@ namespace simple_platformer
                 return kept;
             }
         }
-        bodies.push_back({body, {}, {}, {}, {}});
+        bodies.push_back({body, {}, {}, {}, {}, {}});
         return bodies.back();
     }
 
@@ -183,6 +183,28 @@ namespace simple_platformer
         kept = {std::move(connections), footprint};
         ++keepsSoFar;
         return kept.connections;
+    }
+
+    const RememberedWalk* PlatformerConnectionCache::walkKept(
+        int columns,
+        const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        if (kept == nullptr)
+        {
+            return nullptr;
+        }
+        const auto walk = kept->walks.find(columns);
+        return walk == kept->walks.end() ? nullptr : &walk->second;
+    }
+
+    void PlatformerConnectionCache::keepWalk(
+        int columns,
+        const ConnectionBody& body,
+        const RememberedWalk& walk)
+    {
+        requireValid(body);
+        connectionsFor(body).walks[columns] = walk;
     }
 
     const std::vector<GridPosition>* PlatformerConnectionCache::reachableFrom(
@@ -292,6 +314,12 @@ namespace simple_platformer
             kept->cells.begin(),
             kept->cells.end(),
             [](const auto& entry) { return !entry.second.connections.empty(); }));
+    }
+
+    std::size_t PlatformerConnectionCache::walksKept(const ConnectionBody& body) const
+    {
+        const BodyConnections* kept = findConnectionsFor(body);
+        return kept == nullptr ? 0 : kept->walks.size();
     }
 
     std::size_t PlatformerConnectionCache::reachableSetsKept(const ConnectionBody& body) const

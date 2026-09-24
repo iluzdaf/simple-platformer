@@ -93,6 +93,8 @@ namespace simple_platformer
         std::size_t cellsConnected = 0;
         // Cells a break dropped that the refill has not kept again.
         std::size_t cellsPending = 0;
+        // Walk lengths whose cost has been simulated once for this body.
+        std::size_t walksKept = 0;
         std::size_t reachableSetsKept = 0;
         std::size_t pathsKept = 0;
         // Over every body since the level started.

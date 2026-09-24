@@ -100,9 +100,48 @@ namespace simple_platformer
         }
 
         // Simulates a complete start-to-stop walk using the real path follower, movement,
-        // and collision code. Returns its fixed-update cost, or nullopt when the actor
-        // cannot reach and stop at the destination within the connection simulation limit.
-        std::optional<int> trySimulateWalkCost(
+        // and collision code. Returns its fixed-update cost, or no cost when the actor
+        // cannot reach and stop at the destination within the connection simulation
+        // limit, with the cells it swept as offsets from the start.
+        RememberedWalk simulateWalk(
+            const TileMap& map,
+            GridPosition start,
+            GridPosition destinationCell,
+            glm::vec2 bodySize,
+            const PlatformerMovementConfig& config,
+            float stepSeconds,
+            PathSearchStatistics* statistics)
+        {
+            const int tileSize = map.tileSize();
+            Body body{boxInCell(tileSize, start, bodySize), {0.0F, 0.0F}};
+            PlatformerMovement movement{config, true, 0.0F, 0.0F};
+            PathFollower follower;
+            setPath(follower, {start, {{destinationCell, Traversal::Walk, {}}}}, destinationCell);
+
+            RememberedWalk walk{std::nullopt, cellsCovered(tileSize, body.bounds)};
+            for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
+            {
+                const InputIntentions intentions =
+                    followPlatformerPath(tileSize, body, movement, follower, stepSeconds);
+                if (pathComplete(follower))
+                {
+                    walk.cost = tick;
+                    break;
+                }
+                updatePlatformerMovement(map, body, movement, intentions, stepSeconds);
+                sweep(walk.sweep, tileSize, body.bounds);
+                countSimulatedTick(statistics);
+            }
+            walk.sweep = {
+                {walk.sweep.first.x - start.x, walk.sweep.first.y - start.y},
+                {walk.sweep.last.x - start.x, walk.sweep.last.y - start.y}};
+            return walk;
+        }
+
+        // The walk from a cell to another along its floor. A walk starts and ends at rest
+        // on flat ground, so its cost and sweep depend on the distance and the body alone:
+        // with a cache, each distance is simulated once and remembered.
+        RememberedWalk walkBetween(
             const TileMap& map,
             GridPosition start,
             GridPosition destinationCell,
@@ -110,26 +149,25 @@ namespace simple_platformer
             const PlatformerMovementConfig& config,
             float stepSeconds,
             PathSearchStatistics* statistics,
-            CellRange& footprint)
+            PlatformerConnectionCache* cache)
         {
-            Body body{boxInCell(map.tileSize(), start, bodySize), {0.0F, 0.0F}};
-            PlatformerMovement movement{config, true, 0.0F, 0.0F};
-            PathFollower follower;
-            setPath(follower, {start, {{destinationCell, Traversal::Walk, {}}}}, destinationCell);
-
-            for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
+            const int columns = destinationCell.x - start.x;
+            const ConnectionBody body{bodySize, config, stepSeconds};
+            if (cache != nullptr)
             {
-                const InputIntentions intentions =
-                    followPlatformerPath(map.tileSize(), body, movement, follower, stepSeconds);
-                if (pathComplete(follower))
+                const RememberedWalk* remembered = cache->walkKept(columns, body);
+                if (remembered != nullptr)
                 {
-                    return tick;
+                    return *remembered;
                 }
-                updatePlatformerMovement(map, body, movement, intentions, stepSeconds);
-                sweep(footprint, map.tileSize(), body.bounds);
-                countSimulatedTick(statistics);
             }
-            return std::nullopt;
+            const RememberedWalk walk = simulateWalk(
+                map, start, destinationCell, bodySize, config, stepSeconds, statistics);
+            if (cache != nullptr)
+            {
+                cache->keepWalk(columns, body, walk);
+            }
+            return walk;
         }
 
         // Whether the bounds have reached the map's edge in the direction travelled, past
@@ -630,14 +668,16 @@ namespace simple_platformer
 
         // Every connection leaving a cell, simulated with the real movement code, with the
         // footprint of the cells that decided them. A cell that cannot be stood on has
-        // no connections, and a footprint of itself and its surroundings.
+        // no connections, and a footprint of itself and its surroundings. With a cache,
+        // walks are remembered per distance rather than simulated again.
         SimulatedConnections simulatePlatformerNeighbors(
             const TileMap& map,
             GridPosition cell,
             glm::vec2 bodySize,
             const PlatformerMovementConfig& movement,
             float stepSeconds,
-            PathSearchStatistics* statistics)
+            PathSearchStatistics* statistics,
+            PlatformerConnectionCache* cache)
         {
             const int tileSize = map.tileSize();
             SimulatedConnections result{
@@ -664,7 +704,7 @@ namespace simple_platformer
                     GridPosition walkDestination = adjacent;
                     while (standable(walkDestination))
                     {
-                        const std::optional<int> walkCost = trySimulateWalkCost(
+                        const RememberedWalk walk = walkBetween(
                             map,
                             cell,
                             walkDestination,
@@ -672,8 +712,12 @@ namespace simple_platformer
                             movement,
                             stepSeconds,
                             statistics,
-                            footprint);
-                        if (!walkCost.has_value())
+                            cache);
+                        footprint = unionOf(
+                            footprint,
+                            {{cell.x + walk.sweep.first.x, cell.y + walk.sweep.first.y},
+                             {cell.x + walk.sweep.last.x, cell.y + walk.sweep.last.y}});
+                        if (!walk.cost.has_value())
                         {
                             // Destinations are checked nearest first. Once a continuous walk
                             // exceeds the simulation limit, farther destinations are excluded.
@@ -681,7 +725,7 @@ namespace simple_platformer
                         }
 
                         neighbors.push_back(
-                            {walkDestination, Traversal::Walk, walkCost.value_or(1), {}});
+                            {walkDestination, Traversal::Walk, walk.cost.value_or(1), {}});
                         walkDestination.x += direction;
                     }
                 }
@@ -804,8 +848,8 @@ namespace simple_platformer
             }
             return *kept;
         }
-        SimulatedConnections simulated =
-            simulatePlatformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics);
+        SimulatedConnections simulated = simulatePlatformerNeighbors(
+            map, cell, bodySize, movement, stepSeconds, statistics, &cache);
         return cache.keep(cell, body, std::move(simulated.connections), simulated.footprint);
     }
 
@@ -824,7 +868,8 @@ namespace simple_platformer
             return platformerNeighborsKept(
                 map, cell, bodySize, movement, stepSeconds, *cache, statistics);
         }
-        return simulatePlatformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics)
+        return simulatePlatformerNeighbors(
+                   map, cell, bodySize, movement, stepSeconds, statistics, nullptr)
             .connections;
     }
 }

@@ -161,6 +161,7 @@ namespace simple_platformer
         info.cellsKept = cache.cellsKept(body);
         info.cellsConnected = cache.cellsConnected(body);
         info.cellsPending = cache.cellsPending(body);
+        info.walksKept = cache.walksKept(body);
         info.reachableSetsKept = cache.reachableSetsKept(body);
         info.pathsKept = cache.pathsKept(body);
         info.breaksApplied = cache.breaksApplied();

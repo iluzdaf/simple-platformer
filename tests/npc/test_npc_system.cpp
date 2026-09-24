@@ -13,6 +13,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
+#include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
@@ -162,73 +163,6 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
     REQUIRE(third.pathSearchNodes == 0);
 }
 
-TEST_CASE("Queued navigation keeps every cell for each walking NPC body", "[npc][navigation]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
-    simple_platformer::World world;
-    const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
-    // Two walkers of one body, one of another, and a flyer, which needs no connections.
-    for (const float x : {24.0F, 40.0F})
-    {
-        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                           .atFeet({x, 32.0F})
-                           .walking()
-                           .thinking({64.0F, 1.0F}));
-    }
-    const auto tallId = world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
-                                           .atFeet({56.0F, 32.0F})
-                                           .walking()
-                                           .thinking({64.0F, 1.0F}));
-    world.addActor(makeNpc({8.0F, 16.0F}));
-
-    const std::size_t cells =
-        static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height());
-    const simple_platformer::ConnectionBody tall{
-        {12.0F, 20.0F}, simple_platformer::PlatformerMovementConfig{}, tests::FixedStepSeconds};
-    const simple_platformer::ConnectionBody small{
-        {12.0F, 12.0F}, simple_platformer::PlatformerMovementConfig{}, tests::FixedStepSeconds};
-    // Queuing keeps nothing yet; the fills that follow keep every cell for both bodies,
-    // sharing each step's budget between them.
-    simple_platformer::queueNpcNavigation(map, world, tests::FixedStepSeconds);
-    REQUIRE(world.platformerConnections().size() == 0);
-    REQUIRE(world.platformerConnections().cellsPending(tall) == cells);
-    REQUIRE(world.platformerConnections().cellsPending(small) == cells);
-    const simple_platformer::FillWork firstStep =
-        simple_platformer::fillNpcNavigation(map, world, tests::FixedStepSeconds);
-    REQUIRE(firstStep.cells > 0);
-    REQUIRE(world.platformerConnections().cellsPending(tall) < cells);
-    REQUIRE(world.platformerConnections().cellsPending(small) < cells);
-    int kept = firstStep.cells;
-    for (std::size_t step = 0; step < 2 * cells; ++step)
-    {
-        const simple_platformer::FillWork work =
-            simple_platformer::fillNpcNavigation(map, world, tests::FixedStepSeconds);
-        kept += work.cells;
-        if (work.cells == 0)
-        {
-            break;
-        }
-    }
-    REQUIRE(static_cast<std::size_t>(kept) == 2 * cells);
-    REQUIRE(world.platformerConnections().size() == 2 * cells);
-    REQUIRE(world.platformerConnections().cellsPending(tall) == 0);
-    REQUIRE(world.platformerConnections().find({2, 1}, tall) != nullptr);
-
-    // The first chase then simulates nothing.
-    tests::platformerMovement(world, tallId).grounded = true;
-    brain(world, tallId).target = playerId;
-    brain(world, tallId).lastSeenTargetFeet = {8.0F, 32.0F};
-    brain(world, tallId).targetVisible = false;
-    simple_platformer::FrameProfile profile;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &profile);
-    REQUIRE(profile.pathSearches == 1);
-    REQUIRE(profile.pathSearchSimulatedTicks == 0);
-    REQUIRE(profile.pathSearchCellsReused == profile.pathSearchNodes);
-
-    REQUIRE_THROWS_AS(
-        simple_platformer::queueNpcNavigation(map, world, 0.0F), std::invalid_argument);
-}
-
 TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[npc][navigation]")
 {
     simple_platformer::TileMap map =
@@ -272,7 +206,7 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
          step < pending && world.platformerConnections().cellsPending(body) > 0;
          ++step)
     {
-        simple_platformer::fillNpcNavigation(map, world, tests::FixedStepSeconds, &filled);
+        simple_platformer::fillWorldNavigation(map, world, tests::FixedStepSeconds, &filled);
     }
     REQUIRE(filled.navigationFillTicks > 0);
     REQUIRE(world.platformerConnections().cellsPending(body) == 0);
@@ -285,9 +219,6 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
     REQUIRE(searched.pathSearches == 1);
     REQUIRE(searched.pathSearchesDeferred == 0);
     REQUIRE(pathFollower(world, npcId).repathRemaining > 0.0F);
-
-    REQUIRE_THROWS_AS(
-        simple_platformer::fillNpcNavigation(map, world, 0.0F), std::invalid_argument);
 }
 
 TEST_CASE("An NPC plans its path again after a break, cooldown or not", "[npc][navigation]")

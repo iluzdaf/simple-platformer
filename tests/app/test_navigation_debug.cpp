@@ -11,7 +11,7 @@
 #include "debug/navigation_debug.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/npc/npc_system.hpp"
+#include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
@@ -148,7 +148,7 @@ TEST_CASE(
     REQUIRE(broken.cellsPending == 15 - broken.cellsKept);
     for (std::size_t step = 0; step < broken.cellsPending && infoFor(0).cellsPending > 0; ++step)
     {
-        simple_platformer::fillNpcNavigation(map, world, tests::FixedStepSeconds);
+        simple_platformer::fillWorldNavigation(map, world, tests::FixedStepSeconds);
     }
     REQUIRE(infoFor(0).cellsPending == 0);
 }

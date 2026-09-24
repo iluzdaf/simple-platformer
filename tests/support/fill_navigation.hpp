@@ -1,6 +1,6 @@
 #pragma once
 
-#include "simple_platformer/npc/npc_system.hpp"
+#include "simple_platformer/navigation/navigation_fill.hpp"
 #include "support/fixed_step.hpp"
 
 namespace tests
@@ -11,8 +11,8 @@ namespace tests
         const simple_platformer::TileMap& map,
         simple_platformer::World& world)
     {
-        simple_platformer::queueNpcNavigation(map, world, FixedStepSeconds);
-        while (simple_platformer::fillNpcNavigation(map, world, FixedStepSeconds).cells > 0)
+        simple_platformer::queueWorldNavigation(map, world, FixedStepSeconds);
+        while (simple_platformer::fillWorldNavigation(map, world, FixedStepSeconds).cells > 0)
         {
         }
     }

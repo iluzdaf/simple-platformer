@@ -5,6 +5,7 @@
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/projectile_system.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
+#include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/level_exit.hpp"
@@ -27,7 +28,8 @@ namespace simple_platformer
         const auto phase = [&](const char* category, const char* name, auto&& run)
         { timePhase(profile, category, name, run); };
 
-        phase("NPC", "Navigation fill", [&] { fillNpcNavigation(map, world, deltaTime, profile); });
+        phase(
+            "NPC", "Navigation fill", [&] { fillWorldNavigation(map, world, deltaTime, profile); });
         phase("NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
         phase("NPC", "NPC behaviour", [&] { updateNpcBehaviour(map, world, deltaTime, profile); });
         phase("Movement", "Actor movement", [&] { updateActorMovement(map, world, deltaTime); });

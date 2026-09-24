@@ -21,7 +21,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/math/validation.hpp"
-#include "simple_platformer/npc/npc_system.hpp"
+#include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/presentation.hpp"
 #include "simple_platformer/render/render_scene.hpp"
@@ -74,7 +74,7 @@ namespace simple_platformer
         }
         cameraController =
             makeCameraController(level.map, playerActor->body.bounds, {80.0F, 45.0F});
-        queueNpcNavigation(level.map, level.world, simulationStepSeconds);
+        queueWorldNavigation(level.map, level.world, simulationStepSeconds);
     }
 
     void Game::update(const InputIntentions& intentions, float deltaTime, FrameProfile* profile)

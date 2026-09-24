@@ -492,13 +492,14 @@ searches learn, per body:
 
 The `World` owns the cache for the map it is simulated with, since the world is
 replaced with its level, and the NPC system hands it to every platformer search.
-`findPlatformerPath` is two layers. The search itself runs A* over whichever
-connections it is handed and charges each jump its penalty. The cached search around
-it answers from what the cache remembers when it can, hands the search the cache's
-connections, and keeps what the search learns; without a cache the search is handed
-connections simulated for that search alone, as the tests of the policies do. The
-cache and everything built on it can be taken out by removing the wrapper and leaving
-the search. The profile counts the searches answered from memory, the cells reused
+`findPlatformerPath` runs one search whether or not it has a cache: A* over
+whichever connections it is handed, charging each jump its penalty. What the cache
+adds sits around that search in three helpers. Before it, the cache may answer the
+query outright from what it remembers. During it, the search is handed the cache's
+connections instead of ones simulated for that search alone, which is what the tests
+of the policies get. After it, the cache keeps what the search learned. The cache and
+everything built on it can be taken out by removing those three helpers and the
+branches that call them. The profile counts the searches answered from memory, the cells reused
 and the ticks simulated, so the frame panel shows the cost fall away as the cache
 fills.
 

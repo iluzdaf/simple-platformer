@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include "simple_platformer/timing/fixed_step.hpp"
 
 namespace simple_platformer
@@ -15,20 +17,32 @@ namespace simple_platformer
     constexpr float AxisHeadroom = 1.1F;
 
     // The tops of the plot's two vertical axes: frame time on the left, the simulation's
-    // stack on the right. Each starts at its floor, grows to fit the worst frame seen
-    // with headroom, and never shrinks, so a spike stretches the plot once and the scale
-    // then holds still under the reader.
+    // stack on the right. Each starts at its floor and grows at once to fit the worst
+    // frame in the history with headroom, so a spike is never cut off. It comes down
+    // again only slowly: after the spike has left the history, the axis holds for
+    // another full turn of the history before fitting what is left, so the scale does
+    // not jump about under the reader.
     class FrameAxes
     {
     public:
-        // Widens either axis the frames of this history have outgrown.
-        void widenTo(const FrameHistory& history);
+        // Fits the axes to this history's frames, growing at once and shrinking late.
+        void fitTo(const FrameHistory& history);
 
         float frameTopMilliseconds() const;
         float simulationTopMilliseconds() const;
 
     private:
-        float frameTop = FrameAxisFloorMilliseconds;
-        float simulationTop = SimulationAxisFloorMilliseconds;
+        struct Axis
+        {
+            float floor;
+            float top;
+            // Frames in a row for which the top has been more than the history needed.
+            std::size_t framesUnneeded = 0;
+        };
+
+        static void fit(Axis& axis, float worstSeconds, std::size_t capacity);
+
+        Axis frame{FrameAxisFloorMilliseconds, FrameAxisFloorMilliseconds};
+        Axis simulation{SimulationAxisFloorMilliseconds, SimulationAxisFloorMilliseconds};
     };
 }

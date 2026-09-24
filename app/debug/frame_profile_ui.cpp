@@ -369,7 +369,7 @@ namespace simple_platformer
             toMilliseconds(history.frameSecondsOldestFirst());
         const int frameCount = static_cast<int>(frameMilliseconds.size());
         const auto frameAxis = static_cast<double>(history.capacity());
-        axes.widenTo(live);
+        axes.fitTo(live);
         constexpr ImPlotFlags PlotFlags = ImPlotFlags_NoInputs | ImPlotFlags_NoMenus |
                                           ImPlotFlags_NoTitle | ImPlotFlags_NoBoxSelect |
                                           ImPlotFlags_NoLegend;

@@ -159,22 +159,18 @@ namespace simple_platformer
             std::snprintf(
                 text,
                 sizeof(text),
-                "body:   %zu/%zu %gx%g (N)",
-                cache.bodyIndex + 1,
-                cache.bodyCount,
+                "body:   %gx%g",
                 static_cast<double>(cache.bodySize.x),
                 static_cast<double>(cache.bodySize.y));
         }
         else
         {
-            std::snprintf(
-                text,
-                sizeof(text),
-                "body:   %s %zu/%zu (N)",
-                cache.bodyName.c_str(),
-                cache.bodyIndex + 1,
-                cache.bodyCount);
+            std::snprintf(text, sizeof(text), "body:   %s", cache.bodyName.c_str());
         }
+        drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+        // The index and the key on a line of their own, since a name can fill the last.
+        std::snprintf(
+            text, sizeof(text), "shown:  %zu/%zu (N)", cache.bodyIndex + 1, cache.bodyCount);
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         // Cells with connections, over every cell kept.
         std::snprintf(text, sizeof(text), "cells:  %zu/%zu", cache.cellsConnected, cache.cellsKept);
@@ -188,6 +184,6 @@ namespace simple_platformer
 
     float navigationTotalsHeight()
     {
-        return 8.0F * ImGui::GetTextLineHeight();
+        return 9.0F * ImGui::GetTextLineHeight();
     }
 }

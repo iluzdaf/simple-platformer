@@ -339,9 +339,17 @@ namespace simple_platformer
         // With a cache, the connections are read where the cache keeps them; without one
         // they are simulated for this search alone. Either way a jump is charged its cost
         // and the start penalty.
+        bool incomplete = false;
         const GridNeighborFunction neighbors =
-            [&map, bodySize, &movement, stepSeconds, &navigation, statistics, cache](
-                GridPosition cell, const GridNeighborVisitor& visit)
+            [&map,
+             bodySize,
+             &movement,
+             stepSeconds,
+             &navigation,
+             statistics,
+             cache,
+             &body,
+             &incomplete](GridPosition cell, const GridNeighborVisitor& visit)
         {
             const auto charge = [&](const NavigationNeighbor& neighbor)
             {
@@ -359,6 +367,14 @@ namespace simple_platformer
             };
             if (cache != nullptr)
             {
+                // A cell a break dropped waits for the refill rather than being simulated
+                // here, so the search goes on without its connections.
+                if (cache->isPending(cell, body))
+                {
+                    cache->prioritise(cell, body);
+                    incomplete = true;
+                    return;
+                }
                 for (const NavigationNeighbor& neighbor : platformerNeighborsKept(
                          map, cell, bodySize, movement, stepSeconds, *cache, statistics))
                 {
@@ -389,6 +405,17 @@ namespace simple_platformer
             cache != nullptr ? &reached : nullptr);
         if (cache != nullptr)
         {
+            // A search that went without some cell's connections has learned nothing the
+            // cache may keep: a path it found still leads to the goal, but no path means
+            // the caller asks again once the refill has caught up.
+            if (incomplete)
+            {
+                if (!path.has_value() && statistics != nullptr)
+                {
+                    ++statistics->deferred;
+                }
+                return path;
+            }
             if (path.has_value())
             {
                 cache->keepPath(query, body, *path);
@@ -646,6 +673,44 @@ namespace simple_platformer
             }
             return result;
         }
+    }
+
+    RefillWork refillPlatformerConnections(
+        const TileMap& map,
+        glm::vec2 bodySize,
+        const PlatformerMovementConfig& movement,
+        float stepSeconds,
+        PlatformerConnectionCache& cache,
+        int tickBudget)
+    {
+        requireStep(stepSeconds);
+        if (tickBudget < 0)
+        {
+            throw std::invalid_argument("A refill budget cannot be negative");
+        }
+        cache.syncWith(map);
+        const ConnectionBody body{bodySize, movement, stepSeconds};
+        RefillWork work;
+        while (work.simulatedTicks < tickBudget)
+        {
+            const std::optional<GridPosition> next = cache.nextPending(body);
+            if (!next.has_value())
+            {
+                break;
+            }
+            PathSearchStatistics statistics;
+            platformerNeighborsKept(
+                map,
+                next.value_or(GridPosition{}),
+                bodySize,
+                movement,
+                stepSeconds,
+                cache,
+                &statistics);
+            ++work.cells;
+            work.simulatedTicks += statistics.simulatedTicks;
+        }
+        return work;
     }
 
     void keepAllPlatformerConnections(

@@ -160,6 +160,7 @@ namespace simple_platformer
         info.bodyCount = bodies.size();
         info.cellsKept = cache.cellsKept(body);
         info.cellsConnected = cache.cellsConnected(body);
+        info.cellsPending = cache.cellsPending(body);
         info.reachableSetsKept = cache.reachableSetsKept(body);
         info.pathsKept = cache.pathsKept(body);
         info.breaksApplied = cache.breaksApplied();

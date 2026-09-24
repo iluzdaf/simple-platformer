@@ -88,11 +88,15 @@ namespace simple_platformer
             const bool destinationChanged = !follower.destinationCell.has_value() ||
                                             follower.destinationCell.value_or(goal) != goal;
             const bool displacedAfterCompletion = pathComplete(follower) && start != goal;
-            if (!destinationChanged && follower.path.has_value() && !displacedAfterCompletion)
+            // A path planned before a break may run through it, so it is planned again
+            // at once, cooldown or not.
+            const bool mapBrokenSince = follower.breaksWhenPlanned != map.brokenCells().size();
+            if (!destinationChanged && follower.path.has_value() && !displacedAfterCompletion &&
+                !mapBrokenSince)
             {
                 return;
             }
-            if (follower.repathRemaining > 0.0F)
+            if (follower.repathRemaining > 0.0F && !mapBrokenSince)
             {
                 return;
             }
@@ -127,12 +131,15 @@ namespace simple_platformer
             {
                 ++profile->pathSearches;
                 profile->pathSearchesRemembered += statistics.pathsRemembered;
+                profile->pathSearchesDeferred += statistics.deferred;
                 profile->pathSearchNodes += statistics.nodesExpanded;
                 profile->pathSearchCellsReused += statistics.cellsReused;
                 profile->pathSearchSimulatedTicks += statistics.simulatedTicks;
             }
             follower.destinationCell = goal;
-            follower.repathRemaining = follower.repathCooldown;
+            follower.breaksWhenPlanned = map.brokenCells().size();
+            // A deferred search is asked again next step, once the refill has caught up.
+            follower.repathRemaining = statistics.deferred > 0 ? 0.0F : follower.repathCooldown;
             if (path.has_value())
             {
                 setPath(follower, path.value(), goal);
@@ -368,31 +375,63 @@ namespace simple_platformer
         }
     }
 
+    namespace
+    {
+        // The distinct platformer NPC bodies in the world, in the order first met.
+        std::vector<ConnectionBody> platformerNpcBodies(const World& world, float stepSeconds)
+        {
+            std::vector<ConnectionBody> bodies;
+            for (const Actor& actor : world.actors())
+            {
+                if (!actor.pathFollower.has_value() || !actor.platformerMovement.has_value())
+                {
+                    continue;
+                }
+                const ConnectionBody body{
+                    actor.body.bounds.size, actor.platformerMovement->config, stepSeconds};
+                const bool known = std::any_of(
+                    bodies.begin(),
+                    bodies.end(),
+                    [&body](const ConnectionBody& kept) { return kept == body; });
+                if (!known)
+                {
+                    bodies.push_back(body);
+                }
+            }
+            return bodies;
+        }
+    }
+
     void warmNpcNavigation(const TileMap& map, World& world, float stepSeconds)
     {
         requireSeconds(stepSeconds, "NPC navigation step");
-        std::vector<ConnectionBody> bodies;
-        for (const Actor& actor : world.actors())
-        {
-            if (!actor.pathFollower.has_value() || !actor.platformerMovement.has_value())
-            {
-                continue;
-            }
-            const ConnectionBody body{
-                actor.body.bounds.size, actor.platformerMovement->config, stepSeconds};
-            const bool known = std::any_of(
-                bodies.begin(),
-                bodies.end(),
-                [&body](const ConnectionBody& kept) { return kept == body; });
-            if (!known)
-            {
-                bodies.push_back(body);
-            }
-        }
-        for (const ConnectionBody& body : bodies)
+        for (const ConnectionBody& body : platformerNpcBodies(world, stepSeconds))
         {
             keepAllPlatformerConnections(
                 map, body.size, body.movement, body.stepSeconds, world.platformerConnections());
+        }
+    }
+
+    void refillNpcNavigation(
+        const TileMap& map,
+        World& world,
+        float stepSeconds,
+        FrameProfile* profile)
+    {
+        requireSeconds(stepSeconds, "NPC navigation step");
+        for (const ConnectionBody& body : platformerNpcBodies(world, stepSeconds))
+        {
+            const RefillWork work = refillPlatformerConnections(
+                map,
+                body.size,
+                body.movement,
+                body.stepSeconds,
+                world.platformerConnections(),
+                NavigationRefillTicksPerStep);
+            if (profile != nullptr)
+            {
+                profile->navigationRefillTicks += work.simulatedTicks;
+            }
         }
     }
 }

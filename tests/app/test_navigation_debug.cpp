@@ -143,6 +143,12 @@ TEST_CASE(
     REQUIRE(broken.breaksApplied == 1);
     REQUIRE(broken.cellsDropped > 0);
     REQUIRE(broken.cellsKept < 15);
+    REQUIRE(broken.cellsPending == 15 - broken.cellsKept);
+    for (std::size_t step = 0; step < broken.cellsPending && infoFor(0).cellsPending > 0; ++step)
+    {
+        simple_platformer::refillNpcNavigation(map, world, tests::FixedStepSeconds);
+    }
+    REQUIRE(infoFor(0).cellsPending == 0);
 }
 
 TEST_CASE(

@@ -413,6 +413,43 @@ TEST_CASE("A break drops only the cells whose footprint holds it", "[navigation]
     REQUIRE(cache.breaksApplied() == 0);
 }
 
+TEST_CASE("A break queues the cells it dropped until they are kept again", "[navigation][cache]")
+{
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    const ConnectionBody other{{12.0F, 20.0F}, {}, tests::FixedStepSeconds};
+    REQUIRE(cache.cellsPending(body) == 0);
+    REQUIRE_FALSE(cache.nextPending(body).has_value());
+    // Three cells swept the tile at (5, 1), for the one body; one for the other.
+    cache.keep({0, 1}, body, {}, {{0, 0}, {6, 2}});
+    cache.keep({1, 1}, body, {}, {{0, 0}, {6, 2}});
+    cache.keep({2, 1}, body, {}, {{0, 0}, {6, 2}});
+    cache.keep({0, 1}, other, {}, {{0, 0}, {6, 2}});
+
+    cache.invalidate({5, 1});
+
+    REQUIRE(cache.cellsPending(body) == 3);
+    REQUIRE(cache.cellsPending(other) == 1);
+    REQUIRE(cache.isPending({1, 1}, body));
+    REQUIRE_FALSE(cache.isPending({1, 1}, other));
+    REQUIRE(cache.nextPending(body).has_value());
+
+    // A cell moved to the front comes next; keeping a cell takes it off the queue.
+    cache.prioritise({1, 1}, body);
+    REQUIRE(cache.nextPending(body).value_or(GridPosition{}) == GridPosition{1, 1});
+    cache.keep({1, 1}, body, {}, {{0, 0}, {6, 2}});
+    REQUIRE(cache.cellsPending(body) == 2);
+    REQUIRE_FALSE(cache.isPending({1, 1}, body));
+    REQUIRE(cache.nextPending(body).value_or(GridPosition{1, 1}) != GridPosition{1, 1});
+    // A cell that is not waiting, or a body never kept, changes nothing.
+    cache.prioritise({1, 1}, body);
+    cache.prioritise({0, 1}, {{1.0F, 1.0F}, {}, tests::FixedStepSeconds});
+    REQUIRE(cache.cellsPending(body) == 2);
+
+    cache.clear();
+    REQUIRE(cache.cellsPending(body) == 0);
+}
+
 TEST_CASE("Syncing with the map applies each break once", "[navigation][cache]")
 {
     simple_platformer::TileMap map =
@@ -435,7 +472,7 @@ TEST_CASE("Syncing with the map applies each break once", "[navigation][cache]")
     REQUIRE(cache.find({3, 0}, body) != nullptr);
 }
 
-TEST_CASE("A broken wall opens a route the next search finds", "[navigation][cache]")
+TEST_CASE("A broken wall opens a route once the refill has caught up", "[navigation][cache]")
 {
     // A corridor one cell tall with a breakable wall across it: no jump gets over.
     simple_platformer::TileMap map =
@@ -447,24 +484,89 @@ TEST_CASE("A broken wall opens a route the next search finds", "[navigation][cac
     const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
     simple_platformer::keepAllPlatformerConnections(
         map, BodySize, {}, tests::FixedStepSeconds, cache);
+    const auto search = [&](PathSearchStatistics& statistics)
+    {
+        return simple_platformer::findPlatformerPath(
+            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &statistics, &cache);
+    };
 
     PathSearchStatistics blocked;
-    REQUIRE_FALSE(simple_platformer::findPlatformerPath(
-                      map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &blocked, &cache)
-                      .has_value());
+    REQUIRE_FALSE(search(blocked).has_value());
     REQUIRE(blocked.simulatedTicks == 0);
     REQUIRE(cache.reachableFrom(start, body) != nullptr);
 
     REQUIRE(map.breakTile({3, 1}));
 
+    // The search meets the dropped start and waits rather than simulate it: nothing is
+    // simulated or kept, and the start is first in line for the refill.
+    PathSearchStatistics waiting;
+    REQUIRE_FALSE(search(waiting).has_value());
+    REQUIRE(waiting.deferred == 1);
+    REQUIRE(waiting.simulatedTicks == 0);
+    REQUIRE(cache.find(start, body) == nullptr);
+    REQUIRE(cache.reachableFrom(start, body) == nullptr);
+    REQUIRE(cache.nextPending(body).value_or(GridPosition{}) == start);
+    const std::size_t pending = cache.cellsPending(body);
+    REQUIRE(pending > 0);
+
+    // A refill with ticks to spare keeps every dropped cell; the search then finds the
+    // route through the gap without simulating.
+    const simple_platformer::RefillWork work = simple_platformer::refillPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache, 1000000);
+    REQUIRE(work.cells == static_cast<int>(pending));
+    REQUIRE(work.simulatedTicks > 0);
+    REQUIRE(cache.cellsPending(body) == 0);
     PathSearchStatistics opened;
-    const std::optional<simple_platformer::NavigationPath> path =
-        simple_platformer::findPlatformerPath(
-            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &opened, &cache);
-    REQUIRE(path.has_value());
-    // The cells beside the wall were simulated again; the failed search's set is gone.
-    REQUIRE(opened.simulatedTicks > 0);
+    REQUIRE(search(opened).has_value());
+    REQUIRE(opened.deferred == 0);
+    REQUIRE(opened.simulatedTicks == 0);
     REQUIRE(opened.pathsRemembered == 0);
+}
+
+TEST_CASE("A refill keeps one cell at a time until its budget is spent", "[navigation][cache]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........................",
+                               "###g####################",
+                               "........................",
+                               "########################"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    simple_platformer::keepAllPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache);
+    const auto refill = [&](int tickBudget)
+    {
+        return simple_platformer::refillPlatformerConnections(
+            map, BodySize, {}, tests::FixedStepSeconds, cache, tickBudget);
+    };
+
+    // A refill syncs with the map itself, like a search.
+    REQUIRE(map.breakTile({3, 1}));
+    REQUIRE(refill(0).cells == 0);
+    const std::size_t pending = cache.cellsPending(body);
+    REQUIRE(pending > 1);
+
+    // A one-tick budget stops after the first cell that simulates anything.
+    const simple_platformer::RefillWork first = refill(1);
+    REQUIRE(first.cells >= 1);
+    REQUIRE(first.simulatedTicks >= 1);
+    REQUIRE(cache.cellsPending(body) == pending - static_cast<std::size_t>(first.cells));
+    REQUIRE(
+        cache.cellsKeptSoFar() == static_cast<std::size_t>(map.width() * map.height()) +
+                                      static_cast<std::size_t>(first.cells));
+
+    // The rest go with ticks to spare, and a refill with nothing waiting does nothing.
+    const simple_platformer::RefillWork rest = refill(1000000);
+    REQUIRE(
+        static_cast<std::size_t>(rest.cells) == pending - static_cast<std::size_t>(first.cells));
+    REQUIRE(cache.cellsPending(body) == 0);
+    REQUIRE(refill(1000000).cells == 0);
+
+    REQUIRE_THROWS_AS(refill(-1), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::refillPlatformerConnections(map, BodySize, {}, 0.0F, cache, 1),
+        std::invalid_argument);
 }
 
 TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cache]")

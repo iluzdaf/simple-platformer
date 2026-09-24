@@ -60,7 +60,16 @@ namespace simple_platformer
         // the cache that has the map to hand syncs first, so nothing has to remember to.
         void syncWith(const TileMap& map);
         // Drops what a break of this cell can have changed, as syncWith does per break.
+        // Every cell dropped joins the body's refill queue.
         void invalidate(GridPosition brokenCell);
+
+        // The cells a break dropped that have not been kept again, in the order to
+        // simulate them; keeping a cell takes it off. A search that needs one before its
+        // turn moves it to the front.
+        std::size_t cellsPending(const ConnectionBody& body) const;
+        bool isPending(GridPosition cell, const ConnectionBody& body) const;
+        std::optional<GridPosition> nextPending(const ConnectionBody& body) const;
+        void prioritise(GridPosition cell, const ConnectionBody& body);
 
         // The connections kept for this cell and body, or nothing while none have been.
         const std::vector<NavigationNeighbor>* find(GridPosition cell, const ConnectionBody& body)
@@ -124,10 +133,12 @@ namespace simple_platformer
             CellConnections cells;
             ReachableCells reachable;
             PathsFound paths;
+            std::vector<GridPosition> pending;
         };
 
         void requireValid(const ConnectionBody& body) const;
         BodyConnections& connectionsFor(const ConnectionBody& body);
+        BodyConnections* findConnectionsFor(const ConnectionBody& body);
         const BodyConnections* findConnectionsFor(const ConnectionBody& body) const;
 
         std::vector<BodyConnections> bodies;

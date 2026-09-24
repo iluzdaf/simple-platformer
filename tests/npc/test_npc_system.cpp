@@ -13,6 +13,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
@@ -201,7 +202,7 @@ TEST_CASE("Warming navigation keeps every cell for each walking NPC body", "[npc
         simple_platformer::warmNpcNavigation(map, world, 0.0F), std::invalid_argument);
 }
 
-TEST_CASE("An NPC's search after a break sees the map as it is", "[npc][navigation]")
+TEST_CASE("An NPC's search after a break waits for the refill and asks again", "[npc][navigation]")
 {
     simple_platformer::TileMap map =
         tests::TileMapBuilder({".....", ".....", "##g##"})
@@ -222,15 +223,79 @@ TEST_CASE("An NPC's search after a break sees the map as it is", "[npc][navigati
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {72.0F, 32.0F};
     brain(world, npcId).targetVisible = false;
-    simple_platformer::FrameProfile profile;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &profile);
+    simple_platformer::FrameProfile waiting;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &waiting);
 
-    // The search synced with the map first: the cells the break touched were dropped
-    // and simulated again, and the cell over the hole, which nothing can stand on now,
-    // is no longer kept as a cell with connections.
-    REQUIRE(profile.pathSearches == 1);
-    REQUIRE(profile.pathSearchSimulatedTicks > 0);
-    REQUIRE(world.platformerConnections().find({2, 1}, body) == nullptr);
+    // The search synced with the map first, so the cells the break touched were dropped;
+    // it met one and gave up rather than simulate it, and the NPC asks again next step
+    // instead of waiting out its cooldown.
+    REQUIRE(waiting.pathSearches == 1);
+    REQUIRE(waiting.pathSearchesDeferred == 1);
+    REQUIRE(waiting.pathSearchSimulatedTicks == 0);
+    REQUIRE(world.platformerConnections().cellsPending(body) > 0);
+    REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
+    REQUIRE(pathFollower(world, npcId).repathRemaining == 0.0F);
+
+    // The refill keeps the dropped cells again over the steps that follow, charged to
+    // the profile, and the next search goes through. The cell over the hole, which
+    // nothing can stand on now, is kept as having no connections.
+    simple_platformer::FrameProfile refilled;
+    const std::size_t pending = world.platformerConnections().cellsPending(body);
+    for (std::size_t step = 0;
+         step < pending && world.platformerConnections().cellsPending(body) > 0;
+         ++step)
+    {
+        simple_platformer::refillNpcNavigation(map, world, tests::FixedStepSeconds, &refilled);
+    }
+    REQUIRE(refilled.navigationRefillTicks > 0);
+    REQUIRE(world.platformerConnections().cellsPending(body) == 0);
+    const std::vector<simple_platformer::NavigationNeighbor>* overTheHole =
+        world.platformerConnections().find({2, 1}, body);
+    REQUIRE(overTheHole != nullptr);
+    REQUIRE(overTheHole->empty());
+    simple_platformer::FrameProfile searched;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &searched);
+    REQUIRE(searched.pathSearches == 1);
+    REQUIRE(searched.pathSearchesDeferred == 0);
+    REQUIRE(pathFollower(world, npcId).repathRemaining > 0.0F);
+
+    REQUIRE_THROWS_AS(
+        simple_platformer::refillNpcNavigation(map, world, 0.0F), std::invalid_argument);
+}
+
+TEST_CASE("An NPC plans its path again after a break, cooldown or not", "[npc][navigation]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"..........", "..........", "#######g##"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    simple_platformer::World world;
+    const auto playerId = world.addActor(makePlayer({40.0F, 32.0F}));
+    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                                          .atFeet({8.0F, 32.0F})
+                                          .walking()
+                                          .thinking({64.0F, 1.0F}));
+    simple_platformer::warmNpcNavigation(map, world, tests::FixedStepSeconds);
+    tests::platformerMovement(world, npcId).grounded = true;
+    brain(world, npcId).target = playerId;
+    brain(world, npcId).lastSeenTargetFeet = {40.0F, 32.0F};
+    brain(world, npcId).targetVisible = false;
+    simple_platformer::FrameProfile planned;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &planned);
+    REQUIRE(planned.pathSearches == 1);
+    REQUIRE(pathFollower(world, npcId).path.has_value());
+    REQUIRE(pathFollower(world, npcId).repathRemaining > 0.0F);
+
+    // With the path planned and the map as it was, the next step searches nothing.
+    simple_platformer::FrameProfile settled;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &settled);
+    REQUIRE(settled.pathSearches == 0);
+
+    // A break may have cut the path, so it is planned again before the cooldown is up.
+    REQUIRE(map.breakTile({7, 2}));
+    simple_platformer::FrameProfile broken;
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &broken);
+    REQUIRE(broken.pathSearches == 1);
+    REQUIRE(pathFollower(world, npcId).breaksWhenPlanned == 1);
 }
 
 TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][fsm]")

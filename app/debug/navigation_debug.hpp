@@ -91,6 +91,8 @@ namespace simple_platformer
         // For this body: every cell kept, standable or not, and those with connections.
         std::size_t cellsKept = 0;
         std::size_t cellsConnected = 0;
+        // Cells a break dropped that the refill has not kept again.
+        std::size_t cellsPending = 0;
         std::size_t reachableSetsKept = 0;
         std::size_t pathsKept = 0;
         // Over every body since the level started.

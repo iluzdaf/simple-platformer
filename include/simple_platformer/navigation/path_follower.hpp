@@ -33,6 +33,9 @@ namespace simple_platformer
         // How long after a search before another may run, and how long of that is left.
         float repathCooldown = 0.25F;
         float repathRemaining = 0.0F;
+        // How many tiles the map had broken when the path was planned, so a break after
+        // that, which the path may run through, has it planned again.
+        std::size_t breaksWhenPlanned = 0;
     };
 
     // Starts following the path, which must end in the destination cell.

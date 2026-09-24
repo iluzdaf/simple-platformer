@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -291,12 +292,16 @@ namespace simple_platformer
 
     namespace
     {
+        // Hands the search the connections leaving a cell, one at a time.
+        using ConnectionVisitor = std::function<void(const NavigationNeighbor& neighbor)>;
+        using ConnectionSource =
+            std::function<void(GridPosition cell, const ConnectionVisitor& visit)>;
+
         // The search itself, over whichever connections it is handed: a cell's
-        // connections come from connectionsOf, called with the cell and a visitor to hand
-        // each one to; a jump is charged its cost and the start penalty. With reached, the
-        // cells expanded are collected there. The plain search hands it connections
-        // simulated for this search alone; the cached search hands it the cache's.
-        template <typename ConnectionSource>
+        // connections come from connectionsOf; a jump is charged its cost and the start
+        // penalty. With reached, the cells expanded are collected there. The plain search
+        // hands it connections simulated for this search alone; the cached search hands
+        // it the cache's.
         std::optional<NavigationPath> searchPlatformerPath(
             const TileMap& map,
             GridPosition start,
@@ -377,7 +382,8 @@ namespace simple_platformer
             // waits for the refill rather than being simulated here, so the search goes on
             // without its connections.
             bool incomplete = false;
-            const auto connectionsOf = [&](GridPosition cell, const auto& visit)
+            const ConnectionSource connectionsOf =
+                [&](GridPosition cell, const ConnectionVisitor& visit)
             {
                 if (cache.isPending(cell, body))
                 {
@@ -454,7 +460,8 @@ namespace simple_platformer
                 map, start, goal, bodySize, movement, stepSeconds, navigation, statistics, *cache);
         }
         // Without a cache, every cell's connections are simulated for this search alone.
-        const auto connectionsOf = [&](GridPosition cell, const auto& visit)
+        const ConnectionSource connectionsOf =
+            [&](GridPosition cell, const ConnectionVisitor& visit)
         {
             for (const NavigationNeighbor& neighbor :
                  platformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics))

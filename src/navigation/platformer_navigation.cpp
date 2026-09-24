@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -289,6 +290,149 @@ namespace simple_platformer
         return static_cast<int>(std::ceil(minimumDistance / maximumDistancePerTick));
     }
 
+    namespace
+    {
+        // Hands the search the connections leaving a cell, one at a time.
+        using ConnectionVisitor = std::function<void(const NavigationNeighbor& neighbor)>;
+        using ConnectionSource =
+            std::function<void(GridPosition cell, const ConnectionVisitor& visit)>;
+
+        // The search itself, over whichever connections it is handed: a cell's
+        // connections come from connectionsOf; a jump is charged its cost and the start
+        // penalty. With reached, the cells expanded are collected there. The plain search
+        // hands it connections simulated for this search alone; the cached search hands
+        // it the cache's.
+        std::optional<NavigationPath> searchPlatformerPath(
+            const TileMap& map,
+            GridPosition start,
+            GridPosition goal,
+            const PlatformerMovementConfig& movement,
+            float stepSeconds,
+            const PlatformerNavigationConfig& navigation,
+            const ConnectionSource& connectionsOf,
+            PathSearchStatistics* statistics,
+            std::vector<GridPosition>* reached)
+        {
+            const GridNeighborFunction neighbors =
+                [&navigation, &connectionsOf](GridPosition cell, const GridNeighborVisitor& visit)
+            {
+                connectionsOf(
+                    cell,
+                    [&](const NavigationNeighbor& neighbor)
+                    {
+                        if (neighbor.traversal != Traversal::Jump)
+                        {
+                            visit(neighbor, neighbor.cost);
+                            return;
+                        }
+                        if (neighbor.cost >
+                            std::numeric_limits<int>::max() - navigation.jumpStartPenaltyTicks)
+                        {
+                            throw std::overflow_error("A navigation connection cost is too large");
+                        }
+                        visit(neighbor, neighbor.cost + navigation.jumpStartPenaltyTicks);
+                    });
+            };
+            const GridHeuristicFunction heuristic =
+                [&map, &movement, stepSeconds](GridPosition cell, GridPosition goal)
+            { return platformerTickHeuristic(map.tileSize(), cell, goal, movement, stepSeconds); };
+            // Call the overload without a heuristic to compare A* with a plain lowest-cost
+            // search.
+            return findLowestCostPath(
+                start, goal, map.size(), neighbors, heuristic, statistics, reached);
+        }
+
+        // The search with a cache: answered from what the cache remembers when it can,
+        // run over the cache's connections otherwise, and what it learns kept for the next.
+        std::optional<NavigationPath> findCachedPlatformerPath(
+            const TileMap& map,
+            GridPosition start,
+            GridPosition goal,
+            glm::vec2 bodySize,
+            const PlatformerMovementConfig& movement,
+            float stepSeconds,
+            const PlatformerNavigationConfig& navigation,
+            PathSearchStatistics* statistics,
+            PlatformerConnectionCache& cache)
+        {
+            cache.syncWith(map);
+            const ConnectionBody body{bodySize, movement, stepSeconds};
+            const PathQuery query{start, goal, navigation.jumpStartPenaltyTicks};
+            // A search answered before: while the connections hold, so does the cheapest
+            // route between two cells for one penalty.
+            const NavigationPath* kept = cache.pathKept(query, body);
+            if (kept != nullptr)
+            {
+                if (statistics != nullptr)
+                {
+                    ++statistics->pathsRemembered;
+                }
+                return *kept;
+            }
+            // A search that failed from this start has already found every cell it leads
+            // to, so a goal outside them has no path and there is nothing to search.
+            const std::vector<GridPosition>* reachable = cache.reachableFrom(start, body);
+            if (reachable != nullptr &&
+                std::find(reachable->begin(), reachable->end(), goal) == reachable->end())
+            {
+                return std::nullopt;
+            }
+
+            // The connections are read where the cache keeps them. A cell a break dropped
+            // waits for the refill rather than being simulated here, so the search goes on
+            // without its connections.
+            bool incomplete = false;
+            const ConnectionSource connectionsOf =
+                [&](GridPosition cell, const ConnectionVisitor& visit)
+            {
+                if (cache.isPending(cell, body))
+                {
+                    cache.prioritise(cell, body);
+                    incomplete = true;
+                    return;
+                }
+                for (const NavigationNeighbor& neighbor : platformerNeighborsKept(
+                         map, cell, bodySize, movement, stepSeconds, cache, statistics))
+                {
+                    visit(neighbor);
+                }
+            };
+            std::vector<GridPosition> reached;
+            std::optional<NavigationPath> path = searchPlatformerPath(
+                map,
+                start,
+                goal,
+                movement,
+                stepSeconds,
+                navigation,
+                connectionsOf,
+                statistics,
+                &reached);
+
+            // A search that went without some cell's connections has learned nothing the
+            // cache may keep: a path it found still leads to the goal, but no path means
+            // the caller asks again once the refill has caught up.
+            if (incomplete)
+            {
+                if (!path.has_value() && statistics != nullptr)
+                {
+                    ++statistics->deferred;
+                }
+                return path;
+            }
+            // What a failed search learns is kept; a found path too.
+            if (path.has_value())
+            {
+                cache.keepPath(query, body, *path);
+            }
+            else
+            {
+                cache.keepReachable(start, body, std::move(reached));
+            }
+            return path;
+        }
+    }
+
     std::optional<NavigationPath> findPlatformerPath(
         const TileMap& map,
         GridPosition start,
@@ -310,122 +454,31 @@ namespace simple_platformer
         {
             return std::nullopt;
         }
-        // A search answered before: while the connections hold, so does the cheapest
-        // route between two cells for one penalty.
-        const ConnectionBody body{bodySize, movement, stepSeconds};
-        const PathQuery query{start, goal, navigation.jumpStartPenaltyTicks};
         if (cache != nullptr)
         {
-            cache->syncWith(map);
-            const NavigationPath* kept = cache->pathKept(query, body);
-            if (kept != nullptr)
-            {
-                if (statistics != nullptr)
-                {
-                    ++statistics->pathsRemembered;
-                }
-                return *kept;
-            }
-            // A search that failed from this start has already found every cell it leads
-            // to, so a goal outside them has no path and there is nothing to search.
-            const std::vector<GridPosition>* reachable = cache->reachableFrom(start, body);
-            if (reachable != nullptr &&
-                std::find(reachable->begin(), reachable->end(), goal) == reachable->end())
-            {
-                return std::nullopt;
-            }
+            return findCachedPlatformerPath(
+                map, start, goal, bodySize, movement, stepSeconds, navigation, statistics, *cache);
         }
-
-        // With a cache, the connections are read where the cache keeps them; without one
-        // they are simulated for this search alone. Either way a jump is charged its cost
-        // and the start penalty.
-        bool incomplete = false;
-        const GridNeighborFunction neighbors =
-            [&map,
-             bodySize,
-             &movement,
-             stepSeconds,
-             &navigation,
-             statistics,
-             cache,
-             &body,
-             &incomplete](GridPosition cell, const GridNeighborVisitor& visit)
+        // Without a cache, every cell's connections are simulated for this search alone.
+        const ConnectionSource connectionsOf =
+            [&](GridPosition cell, const ConnectionVisitor& visit)
         {
-            const auto charge = [&](const NavigationNeighbor& neighbor)
-            {
-                if (neighbor.traversal != Traversal::Jump)
-                {
-                    visit(neighbor, neighbor.cost);
-                    return;
-                }
-                if (neighbor.cost >
-                    std::numeric_limits<int>::max() - navigation.jumpStartPenaltyTicks)
-                {
-                    throw std::overflow_error("A navigation connection cost is too large");
-                }
-                visit(neighbor, neighbor.cost + navigation.jumpStartPenaltyTicks);
-            };
-            if (cache != nullptr)
-            {
-                // A cell a break dropped waits for the refill rather than being simulated
-                // here, so the search goes on without its connections.
-                if (cache->isPending(cell, body))
-                {
-                    cache->prioritise(cell, body);
-                    incomplete = true;
-                    return;
-                }
-                for (const NavigationNeighbor& neighbor : platformerNeighborsKept(
-                         map, cell, bodySize, movement, stepSeconds, *cache, statistics))
-                {
-                    charge(neighbor);
-                }
-                return;
-            }
             for (const NavigationNeighbor& neighbor :
                  platformerNeighbors(map, cell, bodySize, movement, stepSeconds, statistics))
             {
-                charge(neighbor);
+                visit(neighbor);
             }
         };
-        const GridHeuristicFunction heuristic =
-            [&map, &movement, stepSeconds](GridPosition cell, GridPosition goal)
-        { return platformerTickHeuristic(map.tileSize(), cell, goal, movement, stepSeconds); };
-
-        // What a failed search learns is kept; a found path too.
-        std::vector<GridPosition> reached;
-        // Call the overload without a heuristic to compare A* with a plain lowest-cost search.
-        std::optional<NavigationPath> path = findLowestCostPath(
+        return searchPlatformerPath(
+            map,
             start,
             goal,
-            map.size(),
-            neighbors,
-            heuristic,
+            movement,
+            stepSeconds,
+            navigation,
+            connectionsOf,
             statistics,
-            cache != nullptr ? &reached : nullptr);
-        if (cache != nullptr)
-        {
-            // A search that went without some cell's connections has learned nothing the
-            // cache may keep: a path it found still leads to the goal, but no path means
-            // the caller asks again once the refill has caught up.
-            if (incomplete)
-            {
-                if (!path.has_value() && statistics != nullptr)
-                {
-                    ++statistics->deferred;
-                }
-                return path;
-            }
-            if (path.has_value())
-            {
-                cache->keepPath(query, body, *path);
-            }
-            else
-            {
-                cache->keepReachable(start, body, std::move(reached));
-            }
-        }
-        return path;
+            nullptr);
     }
 
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize)

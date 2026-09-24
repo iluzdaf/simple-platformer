@@ -1,5 +1,6 @@
 #include "navigation_debug.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <optional>
@@ -115,28 +116,46 @@ namespace simple_platformer
         const World& world,
         const TileMap& map,
         float simulationStepSeconds,
-        std::optional<glm::vec2> cursorWorld)
+        std::optional<glm::vec2> cursorWorld,
+        std::size_t bodyIndex)
     {
-        std::optional<ConnectionBody> found;
+        std::vector<ConnectionBody> bodies;
         for (const Actor& actor : world.actors())
         {
-            if (actor.pathFollower.has_value() && actor.platformerMovement.has_value())
+            if (!actor.pathFollower.has_value() || !actor.platformerMovement.has_value())
             {
-                found = ConnectionBody{
-                    actor.body.bounds.size,
-                    actor.platformerMovement.value().config,
-                    simulationStepSeconds};
-                break;
+                continue;
+            }
+            const ConnectionBody candidate{
+                actor.body.bounds.size,
+                actor.platformerMovement.value().config,
+                simulationStepSeconds};
+            const bool known = std::any_of(
+                bodies.begin(),
+                bodies.end(),
+                [&candidate](const ConnectionBody& body) { return body == candidate; });
+            if (!known)
+            {
+                bodies.push_back(candidate);
             }
         }
-        if (!found.has_value())
+        if (bodies.empty())
         {
             return std::nullopt;
         }
-        const ConnectionBody body = found.value_or(ConnectionBody{});
+        const std::size_t shown = bodyIndex % bodies.size();
+        const ConnectionBody body = bodies[shown];
         const PlatformerConnectionCache& cache = world.platformerConnections();
         NavigationCacheDebugInfo info;
         info.bodySize = body.size;
+        info.bodyIndex = shown;
+        info.bodyCount = bodies.size();
+        info.cellsKept = cache.cellsKept(body);
+        info.reachableSetsKept = cache.reachableSetsKept(body);
+        info.pathsKept = cache.pathsKept(body);
+        info.breaksApplied = cache.breaksApplied();
+        info.cellsDropped = cache.cellsDroppedSoFar();
+        info.cellsKeptSoFar = cache.cellsKeptSoFar();
         for (int row = 0; row < map.height(); ++row)
         {
             for (int column = 0; column < map.width(); ++column)

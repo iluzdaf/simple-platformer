@@ -94,6 +94,15 @@ namespace simple_platformer
         // Cells whose connections are kept, over every body.
         std::size_t size() const;
 
+        // Counts for the debug overlay. The first three are for one body; the rest are
+        // over every body since the cache was cleared, with cells kept including warm-up.
+        std::size_t cellsKept(const ConnectionBody& body) const;
+        std::size_t reachableSetsKept(const ConnectionBody& body) const;
+        std::size_t pathsKept(const ConnectionBody& body) const;
+        std::size_t breaksApplied() const;
+        std::size_t cellsDroppedSoFar() const;
+        std::size_t cellsKeptSoFar() const;
+
     private:
         struct KeptConnections
         {
@@ -119,7 +128,10 @@ namespace simple_platformer
         const BodyConnections* findConnectionsFor(const ConnectionBody& body) const;
 
         std::vector<BodyConnections> bodies;
-        // How many of the map's breaks have been applied.
-        std::size_t breaksApplied = 0;
+        // How many of the map's breaks have been applied, and what they and the keeps
+        // have added up to since the cache was cleared.
+        std::size_t breaksSeen = 0;
+        std::size_t dropsSoFar = 0;
+        std::size_t keepsSoFar = 0;
     };
 }

@@ -677,9 +677,10 @@ built before the simulation and hands back what the player asked for as
 instead of firing a shot and building the interface never changes the game.
 F1 toggles the debug overlay. The overlay can show actor details, sprite and collision
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,
-navigation paths, and the connection cache's cells for the first platformer NPC's body:
-filled with their connection count while kept, outlined while missing, which after a
-break is what the break dropped and no search has simulated again yet. For the cell
+navigation paths, and the connection cache's cells for one platformer NPC body, N moving
+to the next: filled with their connection count while kept, outlined while missing, which
+after a break is what the break dropped and no search has simulated again yet, with the
+cache's totals in the bottom corner, including the cells dropped and kept so far. For the cell
 under the cursor it also outlines the footprint the cell's simulation swept, which is
 why a break inside it drops the cell, draws each connection to where it lands with jumps
 and falls along their replayed arcs, and shades the cells a failed search found

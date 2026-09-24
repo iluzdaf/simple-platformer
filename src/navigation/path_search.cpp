@@ -151,8 +151,10 @@ namespace simple_platformer
             static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height), NoNode);
         nodeAt[slotOf(start)] = 0;
 
-        // Relaxes one connection leaving the cell being expanded. Built once: a callback
-        // built for every cell would be allocated for every cell.
+        // Relaxes one connection leaving the cell being expanded: a cell's best known cost
+        // starts at infinity, before any connection reaches it, and each connection found
+        // can only lower it. Built once: a callback built for every cell would be
+        // allocated for every cell.
         std::size_t expandedIndex = 0;
         int costFromStart = 0;
         const GridNeighborVisitor relax = [&](const NavigationNeighbor& neighbor, int cost)

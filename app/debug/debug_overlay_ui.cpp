@@ -1,6 +1,7 @@
 #include "debug_overlay_ui.hpp"
 
 #include "debug_overlay.hpp"
+#include "navigation_debug.hpp"
 #include "graphics/display_viewport.hpp"
 
 #include <cstddef>

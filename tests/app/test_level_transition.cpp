@@ -52,6 +52,17 @@ namespace
     }
 }
 
+TEST_CASE("Breaking a tile under a position breaks nothing that cannot break", "[app][debug]")
+{
+    simple_platformer::Game game(
+        0,
+        simple_platformer::loadLevelCatalog("tests/fixtures/levels.json"),
+        tests::FixedStepSeconds);
+    // Off the map, and on the fixture's tiles, none of which breaks.
+    REQUIRE_FALSE(game.breakTileAt({-100.0F, -100.0F}));
+    REQUIRE_FALSE(game.breakTileAt({8.0F, 8.0F}));
+}
+
 TEST_CASE(
     "The game carries progress across levels and restarts after the final exit",
     "[app][level-transition]")

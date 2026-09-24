@@ -240,6 +240,23 @@ namespace simple_platformer
 
         scene.navigationCache =
             makeNavigationCacheDebugInfo(world, map, simulationStepSeconds, navigation);
+        if (navigation.cursorWorld.has_value())
+        {
+            const glm::vec2 cursor = navigation.cursorWorld.value_or(glm::vec2{0.0F, 0.0F});
+            if (cursor.x >= 0.0F && cursor.y >= 0.0F && cursor.x < map.pixelWidth() &&
+                cursor.y < map.pixelHeight())
+            {
+                const GridPosition cell = worldToGrid(map.tileSize(), cursor);
+                if (map.definitionAt(cell).breaksIntoTileId.has_value())
+                {
+                    const auto tileSize = static_cast<float>(map.tileSize());
+                    scene.breakableCellUnderCursor = Aabb{
+                        {static_cast<float>(cell.x) * tileSize,
+                         static_cast<float>(cell.y) * tileSize},
+                        {tileSize, tileSize}};
+                }
+            }
+        }
         return scene;
     }
 }

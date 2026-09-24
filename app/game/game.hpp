@@ -51,6 +51,9 @@ namespace simple_platformer
         const Inventory& playerInventory() const;
         const ItemDefinition& itemDefinition(int id) const;
         void useInventoryItem(std::size_t slot);
+        // Breaks the tile under this internal position as a projectile would, for trying a
+        // break without one. Reports whether a tile broke.
+        bool breakTileAt(glm::vec2 internalPosition);
         void restart();
         int levelNumber() const;
         bool complete() const;

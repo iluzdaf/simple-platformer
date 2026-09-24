@@ -680,7 +680,9 @@ bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensi
 navigation paths, and the connection cache's cells for one platformer NPC body, N moving
 to the next: filled with their connection count while kept, outlined while missing, which
 after a break is what the break dropped and no search has simulated again yet, with the
-cache's totals under the actor text, including the cells dropped and kept so far. For the cell
+cache's totals under the actor text, including the cells dropped and kept so far. With
+the overlay open, a tile under the cursor that can break is labelled, and B breaks it as
+a shot would, so what a break does to the cache can be tried without one. For the cell
 under the cursor it also outlines the footprint the cell's simulation swept, which is
 why a break inside it drops the cell, draws each connection to where it lands with jumps
 and falls along their replayed arcs, and shades the cells a failed search found

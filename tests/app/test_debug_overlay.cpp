@@ -8,6 +8,7 @@
 #include <glm/vec2.hpp>
 
 #include "debug/debug_overlay.hpp"
+#include "debug/navigation_debug.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -61,6 +62,32 @@ TEST_CASE("Debug overlay data supports actors without presentation components", 
     REQUIRE_FALSE(debug.actors.front().sensor.has_value());
     REQUIRE_FALSE(debug.actors.front().patrol.has_value());
     REQUIRE_FALSE(debug.actors.front().biteHitbox.has_value());
+}
+
+TEST_CASE("Debug overlay data marks a breakable tile under the cursor", "[app][debug]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"..", "#g"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    const simple_platformer::World world;
+    const simple_platformer::CameraController cameraController{
+        {{0.0F, 0.0F}, simple_platformer::InternalViewportSize}, {80.0F, 40.0F}};
+    const auto overlayWithCursor = [&](std::optional<glm::vec2> cursor)
+    {
+        simple_platformer::NavigationDebugView view;
+        view.cursorWorld = cursor;
+        return simple_platformer::makeDebugOverlay(
+            world, map, cameraController, 128.0F, tests::FixedStepSeconds, view);
+    };
+
+    REQUIRE_FALSE(overlayWithCursor(std::nullopt).breakableCellUnderCursor.has_value());
+    // The solid tile does not break; the glass one does, and is marked by its cell.
+    REQUIRE_FALSE(overlayWithCursor(glm::vec2{4.0F, 20.0F}).breakableCellUnderCursor.has_value());
+    const std::optional<simple_platformer::Aabb> glass =
+        overlayWithCursor(glm::vec2{20.0F, 20.0F}).breakableCellUnderCursor;
+    REQUIRE(glass.has_value());
+    REQUIRE(glass.value_or(simple_platformer::Aabb{}).position == glm::vec2{16.0F, 16.0F});
+    REQUIRE(glass.value_or(simple_platformer::Aabb{}).size == glm::vec2{16.0F, 16.0F});
 }
 
 TEST_CASE("Debug overlay data describes NPC patrol points", "[app][debug]")

@@ -491,6 +491,17 @@ namespace simple_platformer
                     scene.cameraBounds,
                     *viewport);
             }
+            if (scene.breakableCellUnderCursor.has_value())
+            {
+                const Aabb cell = scene.breakableCellUnderCursor.value_or(Aabb{});
+                drawWorldBounds(*drawList, cell, scene.cameraBounds, *viewport, WorldLabelColour);
+                const ImVec2 above = screenPosition(cell.position, scene.cameraBounds, *viewport);
+                drawShadowedText(
+                    *drawList,
+                    {above.x, above.y - ImGui::GetTextLineHeight()},
+                    WorldLabelColour,
+                    "B to break");
+            }
             for (const PickupDebugInfo& pickup : scene.pickups)
             {
                 drawWorldBounds(

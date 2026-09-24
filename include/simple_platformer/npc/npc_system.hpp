@@ -17,11 +17,6 @@ namespace simple_platformer
     };
 
     // Chooses each NPC's state and the intentions that act on it, searching the world's
-    // navigation for paths as needed. With a cost, reports what the searches cost;
-    // without one, no clock is read.
-    void updateNpcBehaviour(
-        const TileMap& map,
-        World& world,
-        float deltaTime,
-        NpcBehaviourCost* cost = nullptr);
+    // navigation for paths as needed, and reports what the searches cost.
+    NpcBehaviourCost updateNpcBehaviour(const TileMap& map, World& world, float deltaTime);
 }

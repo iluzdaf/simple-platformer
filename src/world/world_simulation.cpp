@@ -47,8 +47,7 @@ namespace simple_platformer
             "NPC behaviour",
             [&]
             {
-                NpcBehaviourCost cost;
-                updateNpcBehaviour(map, world, deltaTime, profile != nullptr ? &cost : nullptr);
+                const NpcBehaviourCost cost = updateNpcBehaviour(map, world, deltaTime);
                 if (profile == nullptr || cost.pathSearches == 0)
                 {
                     return;

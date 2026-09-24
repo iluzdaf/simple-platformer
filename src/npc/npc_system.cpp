@@ -37,7 +37,7 @@ namespace simple_platformer
             const TileMap& map;
             World& world;
             float deltaTime;
-            NpcBehaviourCost* cost;
+            NpcBehaviourCost& cost;
         };
 
         void changeState(NpcBrain& brain, NpcState state)
@@ -118,11 +118,7 @@ namespace simple_platformer
 
             std::optional<NavigationPath> path;
             PathSearchStatistics statistics;
-            std::optional<Stopwatch> stopwatch;
-            if (update.cost != nullptr)
-            {
-                stopwatch.emplace();
-            }
+            const Stopwatch stopwatch;
             if (actor.flyingMovement.has_value())
             {
                 path = findFlyingPath(map, start, goal, &statistics);
@@ -140,17 +136,14 @@ namespace simple_platformer
                     &statistics,
                     &update.world.platformerConnections());
             }
-            if (update.cost != nullptr)
-            {
-                NpcBehaviourCost& cost = *update.cost;
-                ++cost.pathSearches;
-                cost.searches.nodesExpanded += statistics.nodesExpanded;
-                cost.searches.cellsReused += statistics.cellsReused;
-                cost.searches.pathsRemembered += statistics.pathsRemembered;
-                cost.searches.deferred += statistics.deferred;
-                cost.searches.simulatedTicks += statistics.simulatedTicks;
-                cost.searchSeconds += stopwatch.value_or(Stopwatch{}).elapsedSeconds();
-            }
+            NpcBehaviourCost& cost = update.cost;
+            ++cost.pathSearches;
+            cost.searches.nodesExpanded += statistics.nodesExpanded;
+            cost.searches.cellsReused += statistics.cellsReused;
+            cost.searches.pathsRemembered += statistics.pathsRemembered;
+            cost.searches.deferred += statistics.deferred;
+            cost.searches.simulatedTicks += statistics.simulatedTicks;
+            cost.searchSeconds += stopwatch.elapsedSeconds();
             follower.destinationCell = goal;
             follower.breaksWhenPlanned = map.brokenCells().size();
             // A deferred search is asked again next step, once the fill has caught up.
@@ -332,13 +325,10 @@ namespace simple_platformer
         }
     }
 
-    void updateNpcBehaviour(
-        const TileMap& map,
-        World& world,
-        float deltaTime,
-        NpcBehaviourCost* cost)
+    NpcBehaviourCost updateNpcBehaviour(const TileMap& map, World& world, float deltaTime)
     {
         requireSeconds(deltaTime, "NPC behaviour time step");
+        NpcBehaviourCost cost;
         const NpcUpdate update{map, world, deltaTime, cost};
 
         for (Actor& actor : world.actors())
@@ -362,5 +352,6 @@ namespace simple_platformer
                 brain.stateElapsed += deltaTime;
             }
         }
+        return cost;
     }
 }

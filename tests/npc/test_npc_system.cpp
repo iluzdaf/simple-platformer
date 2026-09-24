@@ -136,8 +136,8 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
     brain(world, npcId).targetVisible = false;
     REQUIRE(world.platformerConnections().size() == 0);
 
-    simple_platformer::NpcBehaviourCost first;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &first);
+    const simple_platformer::NpcBehaviourCost first =
+        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
     REQUIRE(first.pathSearches == 1);
     REQUIRE(first.searches.cellsReused == 0);
     REQUIRE(first.searches.simulatedTicks > 0);
@@ -146,8 +146,8 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
     // A search to a new destination reuses what the first one simulated.
     brain(world, npcId).lastSeenTargetFeet = {24.0F, 32.0F};
     pathFollower(world, npcId).repathRemaining = 0.0F;
-    simple_platformer::NpcBehaviourCost second;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &second);
+    const simple_platformer::NpcBehaviourCost second =
+        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
     REQUIRE(second.pathSearches == 1);
     REQUIRE(second.searches.cellsReused > 0);
     REQUIRE(second.searches.simulatedTicks == 0);
@@ -155,8 +155,8 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
     // Back to the first destination, the path is remembered and nothing is expanded.
     brain(world, npcId).lastSeenTargetFeet = {8.0F, 32.0F};
     pathFollower(world, npcId).repathRemaining = 0.0F;
-    simple_platformer::NpcBehaviourCost third;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &third);
+    const simple_platformer::NpcBehaviourCost third =
+        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
     REQUIRE(third.pathSearches == 1);
     REQUIRE(third.searches.pathsRemembered == 1);
     REQUIRE(third.searches.nodesExpanded == 0);
@@ -183,8 +183,8 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {72.0F, 32.0F};
     brain(world, npcId).targetVisible = false;
-    simple_platformer::NpcBehaviourCost waiting;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &waiting);
+    const simple_platformer::NpcBehaviourCost waiting =
+        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
 
     // The search synced with the map first, so the cells the break touched were dropped;
     // it met one and gave up rather than simulate it, and the NPC asks again next step
@@ -216,8 +216,8 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
         world.platformerConnections().find({2, 1}, body);
     REQUIRE(overTheHole != nullptr);
     REQUIRE(overTheHole->empty());
-    simple_platformer::NpcBehaviourCost searched;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &searched);
+    const simple_platformer::NpcBehaviourCost searched =
+        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
     REQUIRE(searched.pathSearches == 1);
     REQUIRE(searched.searches.deferred == 0);
     REQUIRE(pathFollower(world, npcId).repathRemaining > 0.0F);
@@ -239,21 +239,21 @@ TEST_CASE("An NPC plans its path again after a break, cooldown or not", "[npc][n
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {40.0F, 32.0F};
     brain(world, npcId).targetVisible = false;
-    simple_platformer::NpcBehaviourCost planned;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &planned);
+    const simple_platformer::NpcBehaviourCost planned =
+        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
     REQUIRE(planned.pathSearches == 1);
     REQUIRE(pathFollower(world, npcId).path.has_value());
     REQUIRE(pathFollower(world, npcId).repathRemaining > 0.0F);
 
     // With the path planned and the map as it was, the next step searches nothing.
-    simple_platformer::NpcBehaviourCost settled;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &settled);
+    const simple_platformer::NpcBehaviourCost settled =
+        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
     REQUIRE(settled.pathSearches == 0);
 
     // A break may have cut the path, so it is planned again before the cooldown is up.
     REQUIRE(map.breakTile({7, 2}));
-    simple_platformer::NpcBehaviourCost broken;
-    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &broken);
+    const simple_platformer::NpcBehaviourCost broken =
+        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
     REQUIRE(broken.pathSearches == 1);
     REQUIRE(pathFollower(world, npcId).breaksWhenPlanned == 1);
 }

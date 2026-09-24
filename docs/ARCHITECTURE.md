@@ -19,7 +19,7 @@ Use this as a reference when working on a particular feature:
 | Gameplay systems | [Input and movement](#input-and-movement) | Intentions, platformer and flying movement. |
 | | [Tile map, collision, and validation](#tile-map-collision-and-validation) | Terrain and sweeps. |
 | | [NPC behaviour](#npc-behaviour) | Sensing, memory, and the explicit state machine. |
-| | [Navigation](#navigation) | Path search, following, and simulated jumps. |
+| | [Navigation](#navigation) | Path search, following, simulated jumps, and the connection cache. |
 | | [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle) | Attacks and death. |
 | | [Inventory, pickups, and levels](#inventory-pickups-and-levels) | The level loop and the [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the file-by-file authoring reference. |
 | Presentation and practice | [Presentation](#presentation) | Animation, rendering, camera, and UI. |
@@ -427,103 +427,127 @@ this case.
 
 ## Navigation
 
-Navigation is intentionally the most advanced subsystem. It separates a generic
-lowest-cost search from movement-specific neighbour policies.
+Navigation is intentionally the most advanced subsystem, and [START_HERE.md](START_HERE.md)
+reads it last. It separates a generic lowest-cost search from the movement-specific
+policies that tell the search how cells connect, and it never moves an actor itself: a
+path is turned into intentions, and the ordinary movement systems do the moving. This
+section reads in the order the code builds up: the search, the two policies, then the
+cache that keeps what platformer searches learn and the fill and breaks that change it.
 
-`path_search` accepts connections with positive costs and an optional heuristic.
-Supplying zero produces Dijkstra-style lowest-cost search. A policy hands the search
-each cell's connections by visiting them where they are, each with the cost the search
-should charge, so a policy reading a cache need not copy them out; only the
-connections the search follows are copied, into the path. A search is told the size of
-its grid and keeps a slot per cell, so a connection's destination is found without
-hashing or scanning. Flying navigation uses
-ordinary walkable grid neighbours and can use Manhattan distance. Platformer
-navigation uses fixed simulation ticks as the common connection cost and a conservative
-tick estimate as its heuristic.
+### The search
+
+`path_search` is A* over a grid. A policy hands it each cell's connections by visiting
+them where they are, each with the cost the search should charge, so a policy reading
+a cache need not copy them out; only the connections the search follows are copied,
+into the path. Every cost must be at least one, and the heuristic must never
+overestimate; a heuristic of zero gives Dijkstra's search, which the tests use to
+check the heuristic changes nothing but the work. The search is told the size of its
+grid and keeps a slot per cell, so a connection's destination is found without hashing
+or scanning. When it fails it can hand back every cell it reached, which is every cell
+the start leads to.
 
 ### Flying paths
 
-Flying navigation treats cells that allow movement as nodes connected in four directions.
-The path follower steers toward successive cell destinations while collision keeps the
-body outside platforms. Arrival uses body-aware tolerances so a smaller bat does not
-remain stuck against a platform corner.
+Flying navigation treats every cell that allows movement as a node joined to its four
+neighbours at a cost of one, with Manhattan distance as the heuristic. The path
+follower steers straight at each step's cell while collision keeps the body outside
+platforms. Arrival uses body-aware tolerances so a smaller bat does not remain stuck
+against a platform corner.
 
-### Platformer paths
+### Platformer connections
 
-Platformer nodes are standable grid positions. Connections have an action: Walk, Fall,
-or Jump. Jump and fall connections also store an `InputProgram`, a sequence of
-intentions and tick counts that can be replayed by the path follower.
+Platformer nodes are standable cells: the cell and what the body covers standing in
+it block nothing, and the cell below blocks movement. Connections are a walk, a fall
+or a jump. Each is found by simulating it with the real platformer movement and
+collision code at the step the caller passes in, which the NPC system takes from the
+tick it is running, so a predicted jump and the real one run the same physics; the
+debug overlay replays recorded jumps at the application's step for the same reason. A
+walk goes to every cell along the floor either way, from a standstill to a stop. A
+fall or a jump is accepted only when it lands on another standable cell and stops
+there, and records the intentions it was simulated with as an `InputProgram` for the
+follower to replay. Costs are the movement ticks the simulation took, and the
+heuristic is the ticks the body would need at top speed across the columns between,
+which never overestimates. The search adds a jump-start penalty, also in ticks, so a
+marginal shortcut does not make a grounded NPC hop; setting it to zero selects
+strictly by simulated travel time.
 
-Neighbour generation reuses the real platformer movement and collision functions at
-the step the caller passes in, which the NPC system takes from the tick it is running,
-so a predicted jump and the real one run the same physics; the debug overlay replays
-recorded jumps at the application's step for the same reason. A simulated jump is
-accepted only when it lands on another standable cell. Walk connections scan continuously walkable cells and include braking at their
-destination. Raw connection durations are measured in simulation ticks. The
-high-level platformer search can add a configurable jump-start penalty, also expressed
-in ticks, so a marginal shortcut does not make a grounded NPC hop unnecessarily.
-Setting that penalty to zero selects strictly by simulated travel time.
+### The connection cache
 
 A cell's connections depend only on the map, the cell, the body's size, its movement
-configuration and the step, so simulating them once is enough while the map stands. When
-a projectile breaks a tile, the cache drops only what the break can have changed. Each
-cell's connections are kept with a footprint, the rectangle of cells their simulation
-swept or read, grown a tile all round for the tiles collision and support look at beside
-the body; a broken tile inside a footprint drops that cell, along with any reachable set
-that held it and every remembered path, since a new opening can make a cheaper route
-anywhere. The map logs the cells it breaks, and the cache syncs with the log whenever it
-is read with the map to hand, so no other system has to tell it. The cache is filled
-through a queue per body. When a level starts, `queueNpcNavigation` queues every cell of
-the map for each platformer NPC body in the world, and the cells a break drops join the
-same queue after; every simulation step begins with a fill phase that simulates and
-keeps queued cells, one at a time, until a budget of movement ticks is spent, shared out
-evenly among the bodies with cells waiting, so a level start or a break costs a little on
-each of the steps that follow instead of everything on one, and a level starts at once
-however many NPCs it has. Keeping a cell is charged a few ticks of the budget over what
-it simulated, so the many cells that cannot be stood on are spread out like the rest. A search that expands a
-cell still in the queue does not simulate it: it moves the cell to the front of the
-queue, searches on without its connections, and if it finds no path that way reports
-itself deferred and keeps nothing, so the NPC asks again next step rather than waiting
-out its cooldown; a path it does find is still a path. The first searches of a level
-wait this way for the cells they need, which the fill then takes first. An NPC also
-plans again after any break, since its path may have run through the broken tile.
-`PlatformerConnectionCache` in `navigation/connection_cache`
-keeps the connections leaving each cell, grouped by the body they were simulated for.
-It also keeps the cost of a walk of each length for each body. A walk starts and ends
-at rest on flat ground, so its cost and the cells it sweeps depend on the distance and
-the body alone, not on which cells it crosses, and each length is simulated once; a
-break leaves the walks kept, since no tile decided them. Walks were most of the
-simulation, so a cell's simulation is now mostly its jumps and falls.
+configuration and the step, so simulating them once is enough while the map stands.
+`PlatformerConnectionCache` in `navigation/connection_cache` keeps what platformer
+searches learn, per body:
+
+- the connections leaving each cell, with the footprint their simulation swept;
+- the cost of a walk of each length, since a walk starts and ends at rest on flat
+  ground and so costs the same and sweeps the same cells from any cell of any floor;
+  walks were most of the simulation, so a cell's simulation is now mostly its jumps
+  and falls;
+- the cells reachable from each start a search failed from, so a later search from
+  there to a goal outside them returns no path without expanding anything, and an NPC
+  that can see a player it cannot reach retries every quarter second at no cost;
+- the path found for each query of start, goal and penalty, since while the
+  connections hold so does the cheapest route: a patrol searches each of its legs
+  once, and a chase back to a cell it has been to costs a lookup.
+
+The `World` owns the cache for the map it is simulated with, since the world is
+replaced with its level, and the NPC system hands it to every platformer search.
 `findPlatformerPath` is two layers. The search itself runs A* over whichever
-connections it is handed and charges each jump its penalty. The cached search around it
-answers from what the cache remembers when it can, hands the search the cache's
+connections it is handed and charges each jump its penalty. The cached search around
+it answers from what the cache remembers when it can, hands the search the cache's
 connections, and keeps what the search learns; without a cache the search is handed
-connections simulated for that search alone, as the tests of the policies do. The cache
-and everything built on it can be taken out by removing the wrapper and leaving the
-search. The `World` owns the cache for the map it is
-simulated with, since the world is replaced with its level, and the NPC system hands it
-to every platformer search. `keepAllPlatformerConnections` keeps every cell of the map
-at once, which the tests use to start from a full cache; the game queues instead. A search that fails has expanded every cell its start
-leads to, and the cache keeps that set too, per start and body, so a later search from
-there to a goal outside it returns no path without expanding anything; an NPC that can
-see a player it cannot reach retries every quarter second at no cost. A search that
-succeeds is kept as well, by start, goal, body and jump penalty, since the connections
-never change and so neither does the cheapest route: a patrol searches each of its
-legs once, and a chase back to a cell it has been to costs a lookup. The profile counts
-the searches answered this way beside the ones that ran. The profile
-counts the cells a search reused beside the cells it expanded, so the frame panel shows
-the simulated ticks fall to nothing once the level's reachable cells have been found.
+connections simulated for that search alone, as the tests of the policies do. The
+cache and everything built on it can be taken out by removing the wrapper and leaving
+the search. The profile counts the searches answered from memory, the cells reused
+and the ticks simulated, so the frame panel shows the cost fall away as the cache
+fills.
+
+### Filling the cache
+
+The cache is filled through a queue per body, never all at once during play. When a
+level starts, `queueNpcNavigation` queues every cell of the map for each platformer
+NPC body in the world, and every simulation step begins with a fill phase,
+`fillNpcNavigation`, that simulates and keeps queued cells one at a time until a
+budget of movement ticks is spent. The budget is shared out evenly among the bodies
+with cells waiting, and keeping a cell is charged a few ticks over what it simulated,
+so the many cells that cannot be stood on are spread out like the rest. A level
+therefore starts at once however many NPCs it has, and its cells are all kept within
+a second or two. A search that expands a cell still in the queue does not simulate it:
+it moves the cell to the front of the queue, searches on without its connections, and
+if it finds no path that way reports itself deferred and keeps nothing, so the NPC
+asks again next step rather than waiting out its cooldown; a path it does find is
+still a path. The first searches of a level wait this way for the cells they need,
+which the fill then takes first. `keepAllPlatformerConnections` keeps every cell of
+the map at once, which the tests use to start from a full cache.
+
+### Breaks
+
+When a projectile breaks a tile, the cache drops only what the break can have
+changed. Each cell's connections are kept with a footprint, the rectangle of cells
+their simulation swept or read, grown a tile all round for the tiles collision and
+support look at beside the body; a broken tile inside a footprint drops that cell,
+along with any reachable set that held it and every remembered path, since a new
+opening can make a cheaper route anywhere. Walks stay, since no tile decided them.
+The map logs the cells it breaks, and the cache syncs with the log whenever it is
+read with the map to hand, so no other system has to tell it. The cells a break drops
+join the fill queue, and searches that need them wait as they do at a level start. An
+NPC also plans again after any break, since its path may have run through the broken
+tile.
+
+### Following a path
 
 Path following never teleports an actor or writes its velocity. It emits intentions,
-and the ordinary actor movement system performs the motion. End-to-end tests replay
-generated input programs through the real simulation so navigation cannot quietly
-drift away from runtime movement.
+and the ordinary actor movement system performs the motion: a flyer steers at each
+step's cell; a platformer walks to a walk's cell and brakes there, and for a jump or a
+fall first stops at the takeoff, then replays the recorded inputs. End-to-end tests
+replay generated input programs through the real simulation so navigation cannot
+quietly drift away from runtime movement.
 
-One limitation is deliberate. Ground navigation naturally uses actor feet, while a flying
-actor is easier to reason about from its centre. The current API keeps feet-based
-destinations for both so the navigation data model stays uniform, at the cost of a slightly
-awkward fit for flying actors. An explicitly named navigation anchor is
-[future work](FUTURE_WORK.md).
+One limitation is deliberate. Ground navigation naturally uses actor feet, while a
+flying actor is easier to reason about from its centre. The current API keeps
+feet-based destinations for both so the navigation data model stays uniform, at the
+cost of a slightly awkward fit for flying actors. An explicitly named navigation
+anchor is [future work](FUTURE_WORK.md).
 
 ## Combat, projectiles, and life cycle
 
@@ -699,8 +723,8 @@ F1 toggles the debug overlay. The overlay can show actor details, sprite and col
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,
 navigation paths, and the connection cache's cells for one platformer NPC body, N moving
 to the next: filled with their connection count while kept, outlined while missing, which
-after a break is what the break dropped and the refill has not reached yet, with the
-cache's totals under the actor text, including the cells waiting for the refill and the
+after a break is what the break dropped and the fill has not reached yet, with the
+cache's totals under the actor text, including the cells waiting for the fill and the
 cells dropped and kept so far. With
 the overlay open, a tile under the cursor that can break is labelled, and B breaks it as
 a shot would, so what a break does to the cache can be tried without one. For the cell
@@ -714,7 +738,7 @@ The overlay also shows a frame panel, drawn by `app/debug/frame_profile_ui`. The
 application times each frame with a `Stopwatch` from `timing/stopwatch`, how many fixed
 steps it ran, and how long simulation, scene building, rendering, and the interface
 took, and records them in a `FrameHistory` from `timing/frame_profile`.
-The panel is one ImPlot plot over the recent frames with two vertical axes: frame time against the 60 Hz budget line on the left, and the simulation's phases on the right, stacked by category (NPC, Movement, Combat, World). Each axis starts at a floor, the frame axis at two budgets so the budget line stays in the lower half, and grows at once to fit the worst frame in the history with some headroom, so a spike is never cut off; it comes down slowly, holding for a full turn of the history after the spike has left before fitting what remains, so the scale does not jump about under the reader. `FrameAxes` in `app/debug/frame_axes` keeps the tops and is data without ImGui, so the floors, the growth and the late shrinking are tested. Hiding a category in the legend restacks the rest. Under the plot it prints the latest breakdown, the average, the worst frame, and every phase under its category as an average cost per simulation step over the history, since one frame's numbers change too fast to read. The panel's window is invisible to the mouse, so clicks over it reach the game like the rest of the overlay; its legend and its plot are small windows of their own and the two places a click lands. A press on the plot picks the frame under the cursor and holding the button scrubs along the frames: a `FrameSelection` from `app/debug/frame_selection` keeps a copy of the history as it was, the plot holds still with the picked frame marked, and the summary shows that frame's own costs, its phases in milliseconds rather than per step and listed by cost, the dearest category first and each category's dearest phase first, until the picked frame is clicked again. The selection is data without ImGui, so what a press or a drag picks and what it keeps are tested. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a category and a short name, and the NPC system times each path search as a phase of its own, so the behaviour phase keeps only its own time, and counts the searches it ran, how many of those waited for a refill, the cells they expanded, how many of those the connection cache already held, the movement ticks they simulated, and the ticks the refill phase simulated; the stack shows which category widened in a slow frame. `Stopwatch` is the one place the engine reads a clock; `timePhase` in `timing/frame_profile` times with it, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
+The panel is one ImPlot plot over the recent frames with two vertical axes: frame time against the 60 Hz budget line on the left, and the simulation's phases on the right, stacked by category (NPC, Movement, Combat, World). Each axis starts at a floor, the frame axis at two budgets so the budget line stays in the lower half, and grows at once to fit the worst frame in the history with some headroom, so a spike is never cut off; it comes down slowly, holding for a full turn of the history after the spike has left before fitting what remains, so the scale does not jump about under the reader. `FrameAxes` in `app/debug/frame_axes` keeps the tops and is data without ImGui, so the floors, the growth and the late shrinking are tested. Hiding a category in the legend restacks the rest. Under the plot it prints the latest breakdown, the average, the worst frame, and every phase under its category as an average cost per simulation step over the history, since one frame's numbers change too fast to read. The panel's window is invisible to the mouse, so clicks over it reach the game like the rest of the overlay; its legend and its plot are small windows of their own and the two places a click lands. A press on the plot picks the frame under the cursor and holding the button scrubs along the frames: a `FrameSelection` from `app/debug/frame_selection` keeps a copy of the history as it was, the plot holds still with the picked frame marked, and the summary shows that frame's own costs, its phases in milliseconds rather than per step and listed by cost, the dearest category first and each category's dearest phase first, until the picked frame is clicked again. The selection is data without ImGui, so what a press or a drag picks and what it keeps are tested. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a category and a short name, and the NPC system times each path search as a phase of its own, so the behaviour phase keeps only its own time, and counts the searches it ran, how many of those waited for a fill, the cells they expanded, how many of those the connection cache already held, the movement ticks they simulated, and the ticks the fill phase simulated; the stack shows which category widened in a slow frame. `Stopwatch` is the one place the engine reads a clock; `timePhase` in `timing/frame_profile` times with it, and only when asked; with no profile nothing is timed, and tests build profiles by hand. Timings are only
 meaningful from a release build.
 
 The inventory UI is an example presentation, not an engine rule. It derives its rows
@@ -859,8 +883,8 @@ implementation. Important coverage includes:
 - arbitrary body sizes, four-sided tile collision, corners, and map boundaries;
 - camera dead-zone following, clamping, centring, and pixel rounding;
 - NPC sensing, memory, FSM transitions, continuous patrol, and edge recovery;
-- lowest-cost search, heuristics, flying paths, standability, falls, and replayed jump
-  programs;
+- lowest-cost search, heuristics, flying paths, standability, falls, replayed jump
+  programs, the connection cache, breaks and the fill;
 - bite and ranged attack phases;
 - swept projectiles, teams, damage, death, removal, and respawn;
 - inventory stacking and capacity, automatic pickup, item use, exit requirements, and

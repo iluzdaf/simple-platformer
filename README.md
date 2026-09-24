@@ -58,11 +58,8 @@ build/mac-release/simple_platformer
 ```
 
 In the game, F1 opens the debug overlay, whose frame panel plots the last two seconds of
-frame times against the 60 Hz budget, stacks the simulation's cost by category on a second
-axis, and breaks the latest frame into simulation, scene building, rendering, and
-interface time, with every simulation phase listed under its category. Pressing on the plot
-holds it still on that frame and shows its costs, dragging scrubs along the frames, and
-clicking the picked frame again resumes. On Windows the matching presets are
+frame times against the 60 Hz budget and stacks the simulation's cost by category; see
+[Debug overlay](#debug-overlay) for its controls. On Windows the matching presets are
 `windows-release` for building and testing.
 
 ## Windows: create and use the Visual Studio solution
@@ -124,11 +121,30 @@ configured. Omit `-R "Pickup"` to run the complete suite.
 | Toggle the debug overlay | F1 |
 | Close the window | Escape |
 
-The debug overlay shows colliders, NPC sensing, patrol points, and navigation paths.
 The hearts at the top-left show the player's current and maximum health.
 
 Find each level's key and reach its bunker door to unlock the exit. Each door consumes
 one key; the third exit completes the example campaign.
+
+## Debug overlay
+
+F1 opens the overlay. It draws colliders, NPC sensing, patrol points, navigation paths,
+and the navigation cache's cells for one NPC body, and shows a frame panel that plots
+the last two seconds of frame times against the 60 Hz budget, stacks the simulation's
+cost by category on a second axis, and breaks the latest frame into simulation, scene
+building, rendering, and interface time, with every simulation phase listed under its
+category.
+
+| Action | Controls |
+| --- | --- |
+| Show the navigation cache for the next NPC body | N |
+| Break a breakable tile under the cursor | B, while the tile is labelled |
+| Hold the frame plot on a frame and show its costs | Press on the plot |
+| Scrub along the frames | Drag on the plot |
+| Resume the live plot | Click the picked frame again |
+| Hide or show a category of the stack | Click it in the plot's legend |
+
+Timings are only meaningful from a release build.
 
 ## Continuous integration
 

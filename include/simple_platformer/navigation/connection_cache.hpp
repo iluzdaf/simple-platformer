@@ -75,8 +75,8 @@ namespace simple_platformer
         // Every cell dropped joins the body's fill queue.
         void invalidate(GridPosition brokenCell);
 
-        // The cells waiting to be kept, in the order to simulate them: every cell of the
-        // map when a level starts, and the cells a break dropped after. Keeping a cell
+        // The cells waiting to be kept, in the order the fill takes them: every cell of
+        // the map when a level starts, and the cells a break drops after. Keeping a cell
         // takes it off. A search that needs one before its turn moves it to the front.
         // Queuing a cell that is kept or waiting already changes nothing.
         void queue(GridPosition cell, const ConnectionBody& body);
@@ -123,10 +123,10 @@ namespace simple_platformer
         // Cells whose connections are kept, over every body.
         std::size_t size() const;
 
-        // Counts for the debug overlay. The first four are for one body; the rest are
-        // over every body since the cache was cleared, with cells kept including warm-up.
-        // Every cell asked about is kept, standable or not; the connected ones are those
-        // kept with at least one connection.
+        // Counts for the debug overlay. The first five are for one body; the rest are
+        // over every body since the cache was cleared. Every cell asked about is kept,
+        // standable or not; the connected ones are those kept with at least one
+        // connection.
         std::size_t cellsKept(const ConnectionBody& body) const;
         std::size_t cellsConnected(const ConnectionBody& body) const;
         std::size_t walksKept(const ConnectionBody& body) const;

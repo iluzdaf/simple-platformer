@@ -28,8 +28,8 @@ namespace simple_platformer
         int cellsReused = 0;
         // Searches answered with a path kept from an earlier one, expanding nothing.
         int pathsRemembered = 0;
-        // Searches that met a cell a break dropped and the fill had not reached, found
-        // no path without it, and gave up rather than simulate; the caller asks again.
+        // Searches that met a cell still waiting for the fill, found no path without it,
+        // and gave up rather than simulate; the caller asks again.
         int deferred = 0;
         // Movement ticks simulated to build connections; only platformer searches do this.
         int simulatedTicks = 0;

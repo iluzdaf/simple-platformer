@@ -32,7 +32,7 @@ TEST_CASE("Flying neighbors stay inside the map and avoid solid cells", "[naviga
     REQUIRE(simple_platformer::flyingNeighbors(map, {1, 0}).size() == 2);
 }
 
-TEST_CASE("Flying path search uses the flying navigation policy", "[navigation][flying]")
+TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", ".##.", "...."});
 

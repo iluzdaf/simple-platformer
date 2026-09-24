@@ -46,18 +46,34 @@ namespace
             REQUIRE(left[index].inputs.size() == right[index].inputs.size());
         }
     }
+
+    void requireSameSteps(
+        const std::optional<simple_platformer::NavigationPath>& left,
+        const std::optional<simple_platformer::NavigationPath>& right)
+    {
+        const std::vector<simple_platformer::NavigationStep> leftSteps =
+            left.value_or(simple_platformer::NavigationPath{}).steps;
+        const std::vector<simple_platformer::NavigationStep> rightSteps =
+            right.value_or(simple_platformer::NavigationPath{}).steps;
+        REQUIRE(leftSteps.size() == rightSteps.size());
+        for (std::size_t index = 0; index < leftSteps.size(); ++index)
+        {
+            REQUIRE(leftSteps[index].destinationCell == rightSteps[index].destinationCell);
+            REQUIRE(leftSteps[index].traversal == rightSteps[index].traversal);
+        }
+    }
 }
 
-TEST_CASE("Kept connections come back in place of simulating a cell again", "[navigation][cache]")
+TEST_CASE("A cell is simulated once and read from the cache after", "[navigation][cache]")
 {
     // A ledge with a drop and a gap: walks, a fall and jumps leave the middle cell.
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "........", "........", "###..###", "########"});
     const GridPosition cell{1, 2};
     PlatformerConnectionCache cache;
-    PathSearchStatistics first;
-    PathSearchStatistics second;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
 
+    PathSearchStatistics first;
     const std::vector<NavigationNeighbor> simulated = simple_platformer::platformerNeighbors(
         map, cell, BodySize, {}, tests::FixedStepSeconds, &first, &cache);
     REQUIRE_FALSE(simulated.empty());
@@ -65,69 +81,26 @@ TEST_CASE("Kept connections come back in place of simulating a cell again", "[na
     REQUIRE(first.cellsReused == 0);
     REQUIRE(cache.size() == 1);
 
-    const std::vector<NavigationNeighbor> kept = simple_platformer::platformerNeighbors(
+    // Read again, by copy or in place, nothing is simulated and the cell counts as reused.
+    PathSearchStatistics second;
+    const std::vector<NavigationNeighbor> copied = simple_platformer::platformerNeighbors(
         map, cell, BodySize, {}, tests::FixedStepSeconds, &second, &cache);
     REQUIRE(second.simulatedTicks == 0);
     REQUIRE(second.cellsReused == 1);
+    requireSameConnections(copied, simulated);
+    PathSearchStatistics third;
+    const std::vector<NavigationNeighbor>& inPlace = simple_platformer::platformerNeighborsKept(
+        map, cell, BodySize, {}, tests::FixedStepSeconds, cache, &third);
+    REQUIRE(third.simulatedTicks == 0);
+    REQUIRE(third.cellsReused == 1);
+    REQUIRE(&inPlace == cache.find(cell, body));
     REQUIRE(cache.size() == 1);
-    requireSameConnections(kept, simulated);
 
-    // Without a cache every call simulates, as before.
+    // Without a cache every call simulates.
     PathSearchStatistics uncached;
     simple_platformer::platformerNeighbors(
         map, cell, BodySize, {}, tests::FixedStepSeconds, &uncached);
     REQUIRE(uncached.simulatedTicks == first.simulatedTicks);
-}
-
-TEST_CASE("Kept connections can be read where the cache holds them", "[navigation][cache]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"........", "........", "########"});
-    const GridPosition cell{3, 1};
-    PlatformerConnectionCache cache;
-    PathSearchStatistics first;
-    PathSearchStatistics second;
-
-    const std::vector<NavigationNeighbor>& kept = simple_platformer::platformerNeighborsKept(
-        map, cell, BodySize, {}, tests::FixedStepSeconds, cache, &first);
-    REQUIRE(first.simulatedTicks > 0);
-    REQUIRE(first.cellsReused == 0);
-    const std::vector<NavigationNeighbor>& again = simple_platformer::platformerNeighborsKept(
-        map, cell, BodySize, {}, tests::FixedStepSeconds, cache, &second);
-    // The same vector, not a copy of it, and nothing simulated to give it.
-    REQUIRE(&again == &kept);
-    REQUIRE(second.simulatedTicks == 0);
-    REQUIRE(second.cellsReused == 1);
-    REQUIRE(&again == cache.find(cell, {BodySize, {}, tests::FixedStepSeconds}));
-    requireSameConnections(
-        kept,
-        simple_platformer::platformerNeighbors(map, cell, BodySize, {}, tests::FixedStepSeconds));
-}
-
-TEST_CASE("Keeping every cell leaves a search nothing to simulate", "[navigation][cache]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"........", "........", "........", "###..###", "########"});
-    PlatformerConnectionCache cache;
-    simple_platformer::keepAllPlatformerConnections(
-        map, BodySize, {}, tests::FixedStepSeconds, cache);
-    REQUIRE(
-        cache.size() ==
-        static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height()));
-
-    PathSearchStatistics statistics;
-    REQUIRE(simple_platformer::findPlatformerPath(
-                map, {0, 2}, {7, 2}, BodySize, {}, tests::FixedStepSeconds, {}, &statistics, &cache)
-                .has_value());
-    REQUIRE(statistics.simulatedTicks == 0);
-    REQUIRE(statistics.cellsReused == statistics.nodesExpanded);
-
-    // Keeping again changes nothing.
-    simple_platformer::keepAllPlatformerConnections(
-        map, BodySize, {}, tests::FixedStepSeconds, cache);
-    REQUIRE(
-        cache.size() ==
-        static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height()));
 }
 
 TEST_CASE("Connections are kept apart for each body and step", "[navigation][cache]")
@@ -164,6 +137,22 @@ TEST_CASE("Connections are kept apart for each body and step", "[navigation][cac
     REQUIRE(cache.find(cell, body) == nullptr);
 }
 
+TEST_CASE("A cell that cannot be stood on is kept as having no connections", "[navigation][cache]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "########"});
+    PlatformerConnectionCache cache;
+    PathSearchStatistics statistics;
+    // In the air.
+    REQUIRE(simple_platformer::platformerNeighbors(
+                map, {3, 0}, BodySize, {}, tests::FixedStepSeconds, &statistics, &cache)
+                .empty());
+    REQUIRE(cache.size() == 1);
+    simple_platformer::platformerNeighbors(
+        map, {3, 0}, BodySize, {}, tests::FixedStepSeconds, &statistics, &cache);
+    REQUIRE(statistics.cellsReused == 1);
+}
+
 TEST_CASE(
     "A search through a cache finds the same path, then simulates nothing",
     "[navigation][cache]")
@@ -184,6 +173,7 @@ TEST_CASE(
         simple_platformer::findPlatformerPath(
             map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &filling, &cache);
     REQUIRE(filled.has_value());
+    requireSameSteps(filled, expected);
     // Filling simulates every cell it expands, though fewer ticks than a search without
     // a cache, which cannot remember a walk from one cell to the next.
     REQUIRE(filling.simulatedTicks > 0);
@@ -201,37 +191,11 @@ TEST_CASE(
         simple_platformer::findPlatformerPath(
             map, nextStart, goal, BodySize, {}, tests::FixedStepSeconds, {}, &reusing, &cache);
     REQUIRE(reused.has_value());
+    requireSameSteps(reused, expectedNext);
     REQUIRE(reusing.simulatedTicks == 0);
     REQUIRE(reusing.nodesExpanded == uncachedNext.nodesExpanded);
     REQUIRE(reusing.cellsReused == reusing.nodesExpanded);
     REQUIRE(reusing.pathsRemembered == 0);
-
-    const std::vector<simple_platformer::NavigationStep> expectedSteps =
-        expectedNext.value_or(simple_platformer::NavigationPath{}).steps;
-    const std::vector<simple_platformer::NavigationStep> reusedSteps =
-        reused.value_or(simple_platformer::NavigationPath{}).steps;
-    REQUIRE(reusedSteps.size() == expectedSteps.size());
-    for (std::size_t index = 0; index < expectedSteps.size(); ++index)
-    {
-        REQUIRE(reusedSteps[index].destinationCell == expectedSteps[index].destinationCell);
-        REQUIRE(reusedSteps[index].traversal == expectedSteps[index].traversal);
-    }
-}
-
-TEST_CASE("A cell that cannot be stood on is kept as having no connections", "[navigation][cache]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"........", "........", "########"});
-    PlatformerConnectionCache cache;
-    PathSearchStatistics statistics;
-    // In the air.
-    REQUIRE(simple_platformer::platformerNeighbors(
-                map, {3, 0}, BodySize, {}, tests::FixedStepSeconds, &statistics, &cache)
-                .empty());
-    REQUIRE(cache.size() == 1);
-    simple_platformer::platformerNeighbors(
-        map, {3, 0}, BodySize, {}, tests::FixedStepSeconds, &statistics, &cache);
-    REQUIRE(statistics.cellsReused == 1);
 }
 
 TEST_CASE("What a failed search learned spares the next one", "[navigation][cache]")
@@ -265,6 +229,11 @@ TEST_CASE("What a failed search learned spares the next one", "[navigation][cach
     REQUIRE(std::find(reachable->begin(), reachable->end(), start) != reachable->end());
     REQUIRE(std::find(reachable->begin(), reachable->end(), farRight) != reachable->end());
     REQUIRE(std::find(reachable->begin(), reachable->end(), ledge) == reachable->end());
+    // The set is kept per body, and is not a cell's connections.
+    ConnectionBody taller = body;
+    taller.size.y = 20.0F;
+    REQUIRE(cache.reachableFrom(start, taller) == nullptr);
+    REQUIRE(cache.reachableSetsKept(body) == 1);
 
     // The same failure again costs no expansion at all.
     PathSearchStatistics spared;
@@ -292,12 +261,15 @@ TEST_CASE("What a failed search learned spares the next one", "[navigation][cach
     REQUIRE(offMap.nodesExpanded == 0);
     REQUIRE(fresh.reachableFrom(start, body) == nullptr);
 
-    // Without a cache the failure is searched every time, as before.
+    // Without a cache the failure is searched every time.
     PathSearchStatistics uncached;
     REQUIRE_FALSE(simple_platformer::findPlatformerPath(
                       map, start, ledge, BodySize, {}, tests::FixedStepSeconds, {}, &uncached)
                       .has_value());
     REQUIRE(uncached.nodesExpanded == failing.nodesExpanded);
+
+    cache.clear();
+    REQUIRE(cache.reachableFrom(start, body) == nullptr);
 }
 
 TEST_CASE("A found path answers the same search again without expanding", "[navigation][cache]")
@@ -325,20 +297,10 @@ TEST_CASE("A found path answers the same search again without expanding", "[navi
         simple_platformer::findPlatformerPath(
             map, start, goal, BodySize, {}, tests::FixedStepSeconds, {30}, &second, &cache);
     REQUIRE(remembered.has_value());
+    requireSameSteps(remembered, found);
     REQUIRE(second.nodesExpanded == 0);
     REQUIRE(second.cellsReused == 0);
     REQUIRE(second.pathsRemembered == 1);
-    const std::vector<simple_platformer::NavigationStep> foundSteps =
-        found.value_or(simple_platformer::NavigationPath{}).steps;
-    const std::vector<simple_platformer::NavigationStep> rememberedSteps =
-        remembered.value_or(simple_platformer::NavigationPath{}).steps;
-    REQUIRE(rememberedSteps.size() == foundSteps.size());
-    for (std::size_t index = 0; index < foundSteps.size(); ++index)
-    {
-        REQUIRE(rememberedSteps[index].destinationCell == foundSteps[index].destinationCell);
-        REQUIRE(rememberedSteps[index].traversal == foundSteps[index].traversal);
-        REQUIRE(rememberedSteps[index].inputs.size() == foundSteps[index].inputs.size());
-    }
 
     // Another goal, or another penalty, is a new search.
     PathSearchStatistics elsewhere;
@@ -387,9 +349,6 @@ TEST_CASE("A walk is remembered per length and body, and a break leaves it", "[n
 
     cache.clear();
     REQUIRE(cache.walksKept(body) == 0);
-    REQUIRE_THROWS_AS(
-        cache.keepWalk(1, {{0.0F, 12.0F}, {}, tests::FixedStepSeconds}, {1, {}}),
-        std::invalid_argument);
 }
 
 TEST_CASE("Remembered walks change nothing but the ticks simulated", "[navigation][cache]")
@@ -440,26 +399,6 @@ TEST_CASE("Remembered walks change nothing but the ticks simulated", "[navigatio
     REQUIRE(aloneCost.simulatedTicks == firstCost.simulatedTicks);
 }
 
-TEST_CASE("Reachable cells are kept per start and body until cleared", "[navigation][cache]")
-{
-    PlatformerConnectionCache cache;
-    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
-    cache.keepReachable({0, 0}, body, {{0, 0}, {1, 0}});
-    REQUIRE(cache.reachableFrom({0, 0}, body) != nullptr);
-    REQUIRE(cache.reachableFrom({0, 0}, body)->size() == 2);
-    REQUIRE(cache.reachableFrom({1, 0}, body) == nullptr);
-    ConnectionBody taller = body;
-    taller.size.y = 20.0F;
-    REQUIRE(cache.reachableFrom({0, 0}, taller) == nullptr);
-    // Reachable cells are not connections.
-    REQUIRE(cache.size() == 0);
-
-    cache.clear();
-    REQUIRE(cache.reachableFrom({0, 0}, body) == nullptr);
-    ConnectionBody stopped{BodySize, {}, 0.0F};
-    REQUIRE_THROWS_AS(cache.keepReachable({0, 0}, stopped, {}), std::invalid_argument);
-}
-
 TEST_CASE("A break drops only the cells whose footprint holds it", "[navigation][cache]")
 {
     PlatformerConnectionCache cache;
@@ -505,38 +444,46 @@ TEST_CASE("A break drops only the cells whose footprint holds it", "[navigation]
     REQUIRE(cache.breaksApplied() == 0);
 }
 
-TEST_CASE("A break queues the cells it dropped until they are kept again", "[navigation][cache]")
+TEST_CASE("Dropped and queued cells wait in one queue, each once", "[navigation][cache]")
 {
     PlatformerConnectionCache cache;
     const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
     const ConnectionBody other{{12.0F, 20.0F}, {}, tests::FixedStepSeconds};
     REQUIRE(cache.cellsPending(body) == 0);
     REQUIRE_FALSE(cache.nextPending(body).has_value());
+
     // Three cells swept the tile at (5, 1), for the one body; one for the other.
     cache.keep({0, 1}, body, {}, {{0, 0}, {6, 2}});
     cache.keep({1, 1}, body, {}, {{0, 0}, {6, 2}});
     cache.keep({2, 1}, body, {}, {{0, 0}, {6, 2}});
     cache.keep({0, 1}, other, {}, {{0, 0}, {6, 2}});
-
     cache.invalidate({5, 1});
-
     REQUIRE(cache.cellsPending(body) == 3);
     REQUIRE(cache.cellsPending(other) == 1);
     REQUIRE(cache.isPending({1, 1}, body));
     REQUIRE_FALSE(cache.isPending({1, 1}, other));
-    REQUIRE(cache.nextPending(body).has_value());
+
+    // A queued cell joins behind them; one already kept or waiting is not queued again.
+    cache.queue({7, 1}, body);
+    cache.queue({7, 1}, body);
+    cache.queue({1, 1}, body);
+    cache.keep({8, 1}, body, {}, {{8, 0}, {8, 2}});
+    cache.queue({8, 1}, body);
+    REQUIRE(cache.cellsPending(body) == 4);
+    REQUIRE(cache.isPending({7, 1}, body));
+    REQUIRE_FALSE(cache.isPending({8, 1}, body));
 
     // A cell moved to the front comes next; keeping a cell takes it off the queue.
     cache.prioritise({1, 1}, body);
     REQUIRE(cache.nextPending(body).value_or(GridPosition{}) == GridPosition{1, 1});
     cache.keep({1, 1}, body, {}, {{0, 0}, {6, 2}});
-    REQUIRE(cache.cellsPending(body) == 2);
+    REQUIRE(cache.cellsPending(body) == 3);
     REQUIRE_FALSE(cache.isPending({1, 1}, body));
     REQUIRE(cache.nextPending(body).value_or(GridPosition{1, 1}) != GridPosition{1, 1});
-    // A cell that is not waiting, or a body never kept, changes nothing.
+    // Moving a cell that is not waiting, or one of a body never kept, changes nothing.
     cache.prioritise({1, 1}, body);
     cache.prioritise({0, 1}, {{1.0F, 1.0F}, {}, tests::FixedStepSeconds});
-    REQUIRE(cache.cellsPending(body) == 2);
+    REQUIRE(cache.cellsPending(body) == 3);
 
     cache.clear();
     REQUIRE(cache.cellsPending(body) == 0);
@@ -564,6 +511,62 @@ TEST_CASE("Syncing with the map applies each break once", "[navigation][cache]")
     REQUIRE(cache.find({3, 0}, body) != nullptr);
 }
 
+TEST_CASE("A fill keeps queued cells until its budget is spent", "[navigation][cache]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "###..###", "########"});
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    const std::size_t cells =
+        static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height());
+    const auto fill = [&](int tickBudget)
+    {
+        return simple_platformer::fillPlatformerConnections(
+            map, BodySize, {}, tests::FixedStepSeconds, cache, tickBudget);
+    };
+
+    // Queuing every cell keeps nothing yet.
+    simple_platformer::queueAllPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache);
+    REQUIRE(cache.size() == 0);
+    REQUIRE(cache.cellsPending(body) == cells);
+    REQUIRE(fill(0).cells == 0);
+
+    // A cell with nothing to simulate still costs the budget its keep, so a budget of
+    // two keeps keeps two cells however empty the first are, and a budget of one tick
+    // stops after the first cell whatever it cost.
+    const simple_platformer::FillWork two = fill(2 * simple_platformer::KeepCostTicks);
+    REQUIRE(two.cells == 2);
+    REQUIRE(two.simulatedTicks == 0);
+    REQUIRE(two.budgetSpent == 2 * simple_platformer::KeepCostTicks);
+    REQUIRE(fill(1).cells == 1);
+    REQUIRE(cache.cellsPending(body) == cells - 3);
+    REQUIRE(cache.cellsKeptSoFar() == 3);
+
+    // The rest go with ticks to spare, and a fill with nothing waiting does nothing.
+    const simple_platformer::FillWork rest = fill(1000000);
+    REQUIRE(static_cast<std::size_t>(rest.cells) == cells - 3);
+    REQUIRE(rest.simulatedTicks > 0);
+    REQUIRE(
+        rest.budgetSpent == rest.simulatedTicks + rest.cells * simple_platformer::KeepCostTicks);
+    REQUIRE(cache.size() == cells);
+    REQUIRE(cache.cellsPending(body) == 0);
+    REQUIRE(fill(1000000).cells == 0);
+
+    // Queuing again with every cell kept queues nothing.
+    simple_platformer::queueAllPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache);
+    REQUIRE(cache.cellsPending(body) == 0);
+
+    REQUIRE_THROWS_AS(fill(-1), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::fillPlatformerConnections(map, BodySize, {}, 0.0F, cache, 1),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::queueAllPlatformerConnections(map, BodySize, {}, 0.0F, cache),
+        std::invalid_argument);
+}
+
 TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigation][cache]")
 {
     // A corridor one cell tall with a breakable wall across it: no jump gets over.
@@ -589,8 +592,8 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
 
     REQUIRE(map.breakTile({3, 1}));
 
-    // The search meets the dropped start and waits rather than simulate it: nothing is
-    // simulated or kept, and the start is first in line for the fill.
+    // The search syncs with the map, meets the dropped start and waits rather than
+    // simulate it: nothing is simulated or kept, and the start is first in line.
     PathSearchStatistics waiting;
     REQUIRE_FALSE(search(waiting).has_value());
     REQUIRE(waiting.deferred == 1);
@@ -613,110 +616,6 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
     REQUIRE(opened.deferred == 0);
     REQUIRE(opened.simulatedTicks == 0);
     REQUIRE(opened.pathsRemembered == 0);
-}
-
-TEST_CASE("Queued cells wait like dropped ones, each once", "[navigation][cache]")
-{
-    PlatformerConnectionCache cache;
-    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
-    cache.keep({0, 0}, body, {}, {{0, 0}, {0, 0}});
-    cache.queue({1, 0}, body);
-    cache.queue({2, 0}, body);
-    cache.queue({1, 0}, body);
-    // A cell already kept is not queued.
-    cache.queue({0, 0}, body);
-    REQUIRE(cache.cellsPending(body) == 2);
-    REQUIRE(cache.isPending({1, 0}, body));
-    REQUIRE_FALSE(cache.isPending({0, 0}, body));
-    REQUIRE(cache.nextPending(body).value_or(GridPosition{}) == GridPosition{1, 0});
-    cache.keep({1, 0}, body, {}, {{1, 0}, {1, 0}});
-    REQUIRE(cache.cellsPending(body) == 1);
-    REQUIRE(cache.nextPending(body).value_or(GridPosition{}) == GridPosition{2, 0});
-    REQUIRE_THROWS_AS(
-        cache.queue({3, 0}, {{0.0F, 12.0F}, {}, tests::FixedStepSeconds}), std::invalid_argument);
-}
-
-TEST_CASE("Queuing every cell fills the cache over the calls that follow", "[navigation][cache]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"........", "........", "###..###", "########"});
-    PlatformerConnectionCache cache;
-    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
-    const std::size_t cells =
-        static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height());
-    simple_platformer::queueAllPlatformerConnections(
-        map, BodySize, {}, tests::FixedStepSeconds, cache);
-    REQUIRE(cache.size() == 0);
-    REQUIRE(cache.cellsPending(body) == cells);
-
-    // A cell with nothing to simulate still costs the budget its keep, so a budget of
-    // two keeps keeps two cells however empty the first are.
-    const simple_platformer::FillWork two = simple_platformer::fillPlatformerConnections(
-        map, BodySize, {}, tests::FixedStepSeconds, cache, 2 * simple_platformer::KeepCostTicks);
-    REQUIRE(two.cells == 2);
-    REQUIRE(two.simulatedTicks == 0);
-    REQUIRE(two.budgetSpent == 2 * simple_platformer::KeepCostTicks);
-    REQUIRE(cache.cellsPending(body) == cells - 2);
-
-    const simple_platformer::FillWork rest = simple_platformer::fillPlatformerConnections(
-        map, BodySize, {}, tests::FixedStepSeconds, cache, 1000000);
-    REQUIRE(static_cast<std::size_t>(rest.cells) == cells - 2);
-    REQUIRE(rest.simulatedTicks > 0);
-    REQUIRE(
-        rest.budgetSpent == rest.simulatedTicks + rest.cells * simple_platformer::KeepCostTicks);
-    REQUIRE(cache.size() == cells);
-    // Queuing again with every cell kept queues nothing.
-    simple_platformer::queueAllPlatformerConnections(
-        map, BodySize, {}, tests::FixedStepSeconds, cache);
-    REQUIRE(cache.cellsPending(body) == 0);
-    REQUIRE_THROWS_AS(
-        simple_platformer::queueAllPlatformerConnections(map, BodySize, {}, 0.0F, cache),
-        std::invalid_argument);
-}
-
-TEST_CASE("A fill keeps one cell at a time until its budget is spent", "[navigation][cache]")
-{
-    simple_platformer::TileMap map =
-        tests::TileMapBuilder({"........................",
-                               "###g####################",
-                               "........................",
-                               "########################"})
-            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
-    PlatformerConnectionCache cache;
-    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
-    simple_platformer::keepAllPlatformerConnections(
-        map, BodySize, {}, tests::FixedStepSeconds, cache);
-    const auto fill = [&](int tickBudget)
-    {
-        return simple_platformer::fillPlatformerConnections(
-            map, BodySize, {}, tests::FixedStepSeconds, cache, tickBudget);
-    };
-
-    // A fill syncs with the map itself, like a search.
-    REQUIRE(map.breakTile({3, 1}));
-    REQUIRE(fill(0).cells == 0);
-    const std::size_t pending = cache.cellsPending(body);
-    REQUIRE(pending > 1);
-
-    // A one-tick budget stops after the first cell, whatever it simulated.
-    const simple_platformer::FillWork first = fill(1);
-    REQUIRE(first.cells == 1);
-    REQUIRE(cache.cellsPending(body) == pending - static_cast<std::size_t>(first.cells));
-    REQUIRE(
-        cache.cellsKeptSoFar() == static_cast<std::size_t>(map.width() * map.height()) +
-                                      static_cast<std::size_t>(first.cells));
-
-    // The rest go with ticks to spare, and a fill with nothing waiting does nothing.
-    const simple_platformer::FillWork rest = fill(1000000);
-    REQUIRE(
-        static_cast<std::size_t>(rest.cells) == pending - static_cast<std::size_t>(first.cells));
-    REQUIRE(cache.cellsPending(body) == 0);
-    REQUIRE(fill(1000000).cells == 0);
-
-    REQUIRE_THROWS_AS(fill(-1), std::invalid_argument);
-    REQUIRE_THROWS_AS(
-        simple_platformer::fillPlatformerConnections(map, BodySize, {}, 0.0F, cache, 1),
-        std::invalid_argument);
 }
 
 TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cache]")
@@ -767,12 +666,16 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
     REQUIRE(cache.find({23, 0}, body) == farAway);
 }
 
-TEST_CASE("Connections are kept only for a valid body", "[navigation][cache][validation]")
+TEST_CASE("The cache keeps nothing for an invalid body", "[navigation][cache][validation]")
 {
     PlatformerConnectionCache cache;
-    ConnectionBody flat{{12.0F, 0.0F}, {}, tests::FixedStepSeconds};
+    const ConnectionBody flat{{12.0F, 0.0F}, {}, tests::FixedStepSeconds};
+    const ConnectionBody stopped{BodySize, {}, 0.0F};
     REQUIRE_THROWS_AS(cache.keep({0, 0}, flat, {}, {{0, 0}, {0, 0}}), std::invalid_argument);
-    ConnectionBody stopped{BodySize, {}, 0.0F};
     REQUIRE_THROWS_AS(cache.keep({0, 0}, stopped, {}, {{0, 0}, {0, 0}}), std::invalid_argument);
+    REQUIRE_THROWS_AS(cache.keepWalk(1, flat, {1, {}}), std::invalid_argument);
+    REQUIRE_THROWS_AS(cache.keepReachable({0, 0}, stopped, {}), std::invalid_argument);
+    REQUIRE_THROWS_AS(cache.keepPath({{0, 0}, {1, 0}, 0}, flat, {}), std::invalid_argument);
+    REQUIRE_THROWS_AS(cache.queue({0, 0}, stopped), std::invalid_argument);
     REQUIRE(cache.size() == 0);
 }

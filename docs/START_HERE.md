@@ -248,10 +248,16 @@ machine and ordinary movement. Then read:
 3. [`path_follower.cpp`](../src/navigation/path_follower.cpp) for turning a path into
    intentions;
 4. [`platformer_navigation.cpp`](../src/navigation/platformer_navigation.cpp) for the
-   advanced walk, fall, and simulated-jump policy.
+   advanced walk, fall, and simulated-jump policy, and the search that reads a cache;
+5. [`connection_cache.cpp`](../src/navigation/connection_cache.cpp) for what platformer
+   searches remember, and how a broken tile or the fill phase changes it.
 
 The platformer navigation code reuses the real movement and collision functions. It is
-valuable, but it is not the best first example of the engine's general style.
+valuable, but it is not the best first example of the engine's general style. With the
+overlay open, N shows the cache's cells for each NPC body in turn and B breaks the tile
+under the cursor, so what the cache keeps and what a break drops can be watched in
+the game. [Navigation](ARCHITECTURE.md#navigation) in the architecture document
+explains each piece in the order the code builds them up.
 
 ### 8. Complete the level loop
 

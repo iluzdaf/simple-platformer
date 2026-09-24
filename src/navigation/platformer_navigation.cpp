@@ -374,8 +374,6 @@ namespace simple_platformer
             const GridHeuristicFunction heuristic =
                 [&map, &movement, stepSeconds](GridPosition cell, GridPosition goal)
             { return platformerTickHeuristic(map.tileSize(), cell, goal, movement, stepSeconds); };
-            // Call the overload without a heuristic to compare A* with a plain lowest-cost
-            // search.
             return findLowestCostPath(
                 start, goal, map.size(), neighbors, heuristic, statistics, reached);
         }
@@ -416,9 +414,9 @@ namespace simple_platformer
                 return std::nullopt;
             }
 
-            // The connections are read where the cache keeps them. A cell a break dropped
-            // waits for the fill rather than being simulated here, so the search goes on
-            // without its connections.
+            // The connections are read where the cache keeps them. A cell still waiting
+            // for the fill is not simulated here: the search goes on without its
+            // connections, and the fill takes the cell next.
             bool incomplete = false;
             const ConnectionSource connectionsOf =
                 [&](GridPosition cell, const ConnectionVisitor& visit)

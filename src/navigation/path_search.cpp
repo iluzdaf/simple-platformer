@@ -151,8 +151,10 @@ namespace simple_platformer
             static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height), NoNode);
         nodeAt[slotOf(start)] = 0;
 
-        // Relaxes one connection leaving the cell being expanded. Built once: a callback
-        // built for every cell would be allocated for every cell.
+        // Relaxes one connection leaving the cell being expanded: a cell's best known cost
+        // starts at infinity, before any connection reaches it, and each connection found
+        // can only lower it. Built once: a callback built for every cell would be
+        // allocated for every cell.
         std::size_t expandedIndex = 0;
         int costFromStart = 0;
         const GridNeighborVisitor relax = [&](const NavigationNeighbor& neighbor, int cost)
@@ -190,6 +192,11 @@ namespace simple_platformer
             }
         };
 
+        // The search: take the open node with the lowest estimated total, cost so far
+        // plus the heuristic's guess of the rest. If it is the goal, the path is found.
+        // Otherwise close it and relax every connection leaving it, which opens or
+        // improves its neighbours, and go again. With a heuristic that never
+        // overestimates, a node's cost is final by the time it is the cheapest open one.
         while (true)
         {
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);

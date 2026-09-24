@@ -1,5 +1,6 @@
 #pragma once
 
+#include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/fixed_step.hpp"

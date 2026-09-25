@@ -117,7 +117,8 @@ namespace simple_platformer
         const World& world,
         const TileMap& map,
         float simulationStepSeconds,
-        const NavigationDebugView& view)
+        const NavigationDebugView& view,
+        std::optional<Aabb> visibleBounds)
     {
         std::vector<ConnectionBody> bodies;
         for (const Actor& actor : world.actors())
@@ -176,9 +177,14 @@ namespace simple_platformer
                 {
                     continue;
                 }
+                const Aabb bounds = cellBounds(map.tileSize(), cell);
+                if (visibleBounds.has_value() && !overlaps(bounds, *visibleBounds))
+                {
+                    continue;
+                }
                 const std::vector<NavigationNeighbor>* kept = cache.find(cell, body);
                 info.cells.push_back(
-                    {cellBounds(map.tileSize(), cell),
+                    {bounds,
                      kept == nullptr ? std::nullopt : std::optional<std::size_t>(kept->size())});
             }
         }

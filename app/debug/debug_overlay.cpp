@@ -343,7 +343,7 @@ namespace simple_platformer
         }
 
         scene.navigationCache =
-            makeNavigationCacheDebugInfo(world, map, simulationStepSeconds, navigation);
+            makeNavigationCacheDebugInfo(world, map, simulationStepSeconds, navigation, view);
         scene.breakableCellUnderCursor = breakableCellUnderCursor(map, navigation.cursorWorld);
         return scene;
     }

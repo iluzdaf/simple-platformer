@@ -827,8 +827,9 @@ built before the simulation and hands back what the player asked for as
 instead of firing a shot and building the interface never changes the game.
 F1 toggles the debug overlay. `drawDebugTools` in `app/debug/debug_tools` is the same
 kind of list for it: the world and text overlay, the machine window, then the frame
-panel, and `DebugTools` beside it is everything they keep between frames, so the
-application holds one object and makes one call.
+panel, drawn from the `DebugOverlay` the game built, and `DebugTools` beside it is
+everything they keep between frames, so the application holds one object and makes
+one call.
 The overlay shows what the camera can see, a tile beyond
 its edges, so a large level does not fill the text column with actors off screen. It
 can show actor details, sprite and collision

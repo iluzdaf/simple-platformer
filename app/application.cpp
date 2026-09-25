@@ -12,6 +12,7 @@
 #include <imgui.h>
 
 #include "content/level_catalog.hpp"
+#include "debug/debug_overlay.hpp"
 #include "debug/debug_tools.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
@@ -271,10 +272,10 @@ namespace simple_platformer
             {
                 drawDebugTools(
                     debugTools,
-                    game,
-                    static_cast<float>(atlasTexture.width),
-                    internalCursor,
-                    context.debugBodyIndex,
+                    game.debugOverlay(
+                        static_cast<float>(atlasTexture.width),
+                        internalCursor,
+                        context.debugBodyIndex),
                     windowViewport);
             }
             imgui.render();

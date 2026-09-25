@@ -30,6 +30,7 @@
 #include "support/add_player.hpp"
 #include "support/fill_navigation.hpp"
 #include "support/fixed_step.hpp"
+#include "support/npc_machine_builder.hpp"
 
 using tests::actor;
 using tests::bite;
@@ -163,13 +164,13 @@ TEST_CASE("An NPC with a machine takes its state from the machine, not its tacti
         tests::TileMapBuilder({"........", "........", "########"});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({70.0F, 28.0F}));
-    simple_platformer::NpcStateMachine machine;
-    machine.name = "test";
-    machine.states = {
-        {"nap", simple_platformer::NpcState::Watch}, {"hunt", simple_platformer::NpcState::Chase}};
-    machine.transitions = {{"nap", "hunt", {{"targetKnown", true}}, 0.0F}};
     const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({24.0F, 32.0F}).running(machine));
+        world.addActor(makeNpc({24.0F, 32.0F})
+                           .running(tests::NpcMachineBuilder::named("test")
+                                        .state("nap", simple_platformer::NpcState::Watch)
+                                        .state("hunt", simple_platformer::NpcState::Chase)
+                                        .transition("nap", "hunt")
+                                        .when("targetKnown", true)));
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
 
     // The activity follows the machine's first state on the first update.

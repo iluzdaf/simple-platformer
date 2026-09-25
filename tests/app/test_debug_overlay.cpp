@@ -27,6 +27,7 @@
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/actor_builder.hpp"
+#include "support/npc_machine_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
@@ -415,15 +416,13 @@ TEST_CASE("Debug overlay data rejects an invalid atlas width", "[app][debug]")
 
 TEST_CASE("The overlay shows a machine in place of the tactic it silences", "[app][debug]")
 {
-    simple_platformer::NpcStateMachine machine;
-    machine.name = "test";
-    machine.states = {{"rest", simple_platformer::NpcState::Idle}};
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .at({16.0F, 32.0F})
                        .walking()
                        .thinking({})
-                       .running(machine));
+                       .running(tests::NpcMachineBuilder::named("test").state(
+                           "rest", simple_platformer::NpcState::Idle)));
     const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "######"});
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};

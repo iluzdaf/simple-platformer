@@ -9,6 +9,7 @@
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
 #include "support/npc_facts_builder.hpp"
+#include "support/npc_machine_builder.hpp"
 
 using Catch::Matchers::ContainsSubstring;
 using simple_platformer::NpcFactRow;
@@ -16,19 +17,21 @@ using simple_platformer::NpcMachine;
 using simple_platformer::NpcState;
 using simple_platformer::NpcStateMachine;
 using tests::NpcFactsBuilder;
+using tests::NpcMachineBuilder;
 
 namespace
 {
     // Rest until a target is known, hunt until it is lost for half a second.
     NpcStateMachine restAndHunt()
     {
-        NpcStateMachine machine;
-        machine.name = "test";
-        machine.states = {{"rest", NpcState::Idle}, {"hunt", NpcState::Chase}};
-        machine.transitions = {
-            {"rest", "hunt", {{"targetKnown", true}}, 0.0F},
-            {"hunt", "rest", {{"targetKnown", false}}, 0.5F}};
-        return machine;
+        return NpcMachineBuilder::named("test")
+            .state("rest", NpcState::Idle)
+            .state("hunt", NpcState::Chase)
+            .transition("rest", "hunt")
+            .when("targetKnown", true)
+            .transition("hunt", "rest")
+            .when("targetKnown", false)
+            .after(0.5F);
     }
 }
 
@@ -133,11 +136,14 @@ TEST_CASE("A transition with a hold fires once its conditions have held that lon
 
 TEST_CASE("Among transitions from one state the first that holds wins", "[npc][fsm]")
 {
-    NpcStateMachine definition = restAndHunt();
-    definition.states.push_back({"flee", NpcState::Retreat});
-    definition.transitions.insert(
-        definition.transitions.begin(), {"rest", "flee", {{"targetTooClose", true}}, 0.0F});
-    NpcMachine machine = simple_platformer::startNpcMachine(definition);
+    NpcMachine machine = simple_platformer::startNpcMachine(NpcMachineBuilder::named("test")
+                                                                .state("rest", NpcState::Idle)
+                                                                .state("hunt", NpcState::Chase)
+                                                                .state("flee", NpcState::Retreat)
+                                                                .transition("rest", "flee")
+                                                                .when("targetTooClose", true)
+                                                                .transition("rest", "hunt")
+                                                                .when("targetKnown", true));
 
     // Both the flee and the hunt transitions hold; the flee is listed first.
     REQUIRE(

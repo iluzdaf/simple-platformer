@@ -419,6 +419,7 @@ if(BUILD_TESTING)
         tests/render/test_presentation.cpp
         tests/render/test_render_scene.cpp
         tests/support/test_actor_builder.cpp
+        tests/support/test_npc_machine_builder.cpp
         tests/support/test_tile_map_builder.cpp
         tests/timing/test_fixed_step.cpp
         tests/timing/test_frame_history.cpp

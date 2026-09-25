@@ -14,7 +14,8 @@ namespace simple_platformer
 {
     struct MachineDebugInfo;
 
-    // The machine window: the followed NPC's machine as a graph, each state a node
+    // The machine window, anchored at the bottom-right beside the actor text: the
+    // followed NPC's machine as a graph, each state a node
     // listing its transitions in priority order, the active state lit and the transition
     // that fired last flowing along its link. States can be dragged about, the canvas
     // panned with the right button and zoomed with the wheel, and F fits it to the

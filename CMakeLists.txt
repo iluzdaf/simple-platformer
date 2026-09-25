@@ -72,6 +72,10 @@ add_library(
     external/imgui/backends/imgui_impl_opengl3.cpp
     external/implot/implot.cpp
     external/implot/implot_items.cpp
+    external/imgui-node-editor/crude_json.cpp
+    external/imgui-node-editor/imgui_canvas.cpp
+    external/imgui-node-editor/imgui_node_editor.cpp
+    external/imgui-node-editor/imgui_node_editor_api.cpp
 )
 target_compile_features(simple_platformer_imgui PUBLIC cxx_std_17)
 target_include_directories(
@@ -80,6 +84,7 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui
     ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/backends
     ${CMAKE_CURRENT_SOURCE_DIR}/external/implot
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui-node-editor
 )
 target_link_libraries(simple_platformer_imgui PUBLIC glfw)
 
@@ -155,6 +160,8 @@ add_executable(
     app/debug/frame_axes.cpp
     app/debug/frame_profile_ui.cpp
     app/debug/frame_selection.cpp
+    app/debug/machine_graph_ui.cpp
+    app/debug/npc_names.cpp
     app/content/actor_catalog.cpp
     app/content/actor_definition.cpp
     app/content/animation_catalog.cpp

@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -154,6 +155,60 @@ namespace simple_platformer
             return info;
         }
 
+        bool containsPoint(const Aabb& box, glm::vec2 point)
+        {
+            return point.x >= box.position.x && point.y >= box.position.y &&
+                   point.x < box.position.x + box.size.x && point.y < box.position.y + box.size.y;
+        }
+
+        float distanceBetweenCenters(const Aabb& first, const Aabb& second)
+        {
+            return glm::length(centerOf(first) - centerOf(second));
+        }
+
+        // The actors the overlay shows: those the camera can see, a tile beyond its edges.
+        std::vector<const Actor*> actorsInView(const World& world, const Aabb& view)
+        {
+            std::vector<const Actor*> shown;
+            for (const Actor& actor : world.actors())
+            {
+                if (overlaps(actor.body.bounds, view))
+                {
+                    shown.push_back(&actor);
+                }
+            }
+            return shown;
+        }
+
+        // The NPC whose machine is shown: the one under the cursor when it has a machine,
+        // otherwise the one with a machine nearest the player, or nearest the camera's
+        // centre without a player. Nothing while none of the shown actors has a machine.
+        const Actor* followedNpc(
+            const std::vector<const Actor*>& shown,
+            std::optional<glm::vec2> cursorWorld,
+            const Aabb& nearTo)
+        {
+            const Actor* nearest = nullptr;
+            for (const Actor* actor : shown)
+            {
+                if (!actor->machine.has_value())
+                {
+                    continue;
+                }
+                if (cursorWorld.has_value() &&
+                    containsPoint(actor->body.bounds, cursorWorld.value_or(glm::vec2{})))
+                {
+                    return actor;
+                }
+                if (nearest == nullptr || distanceBetweenCenters(actor->body.bounds, nearTo) <
+                                              distanceBetweenCenters(nearest->body.bounds, nearTo))
+                {
+                    nearest = actor;
+                }
+            }
+            return nearest;
+        }
+
         // The bounds of the cell under the cursor when its tile can break, for the hint
         // that B breaks it; nothing off the map or over a tile that cannot.
         std::optional<Aabb> breakableCellUnderCursor(
@@ -207,11 +262,17 @@ namespace simple_platformer
             cameraController.camera.position +
                 (cameraController.camera.viewportSize - cameraController.deadZoneSize) * 0.5F,
             cameraController.deadZoneSize};
-        scene.actors.reserve(world.actors().size());
+        const auto margin = static_cast<float>(map.tileSize());
+        const Aabb view{
+            scene.cameraBounds.position - glm::vec2{margin, margin},
+            scene.cameraBounds.size + glm::vec2{margin, margin} * 2.0F};
+        const std::vector<const Actor*> shown = actorsInView(world, view);
+        scene.actors.reserve(shown.size());
         const Actor* player = world.findActor(world.playerId());
 
-        for (const Actor& actor : world.actors())
+        for (const Actor* shownActor : shown)
         {
+            const Actor& actor = *shownActor;
             ActorDebugInfo info;
             info.id = actor.id;
             info.kind = kindOf(actor, world.playerId());
@@ -262,18 +323,33 @@ namespace simple_platformer
             scene.actors.push_back(info);
         }
 
-        scene.projectiles.reserve(world.projectiles().size());
         for (const Projectile& projectile : world.projectiles())
         {
-            scene.projectiles.push_back(
-                {projectile.bounds, projectile.lifetimeRemaining, projectile.owner});
+            if (overlaps(projectile.bounds, view))
+            {
+                scene.projectiles.push_back(
+                    {projectile.bounds, projectile.lifetimeRemaining, projectile.owner});
+            }
         }
 
-        scene.pickups.reserve(world.pickups().size());
         for (const Pickup& pickup : world.pickups())
         {
-            scene.pickups.push_back(
-                {pickup.body.bounds, world.itemDefinition(pickup.stack.item).name});
+            if (overlaps(pickup.body.bounds, view))
+            {
+                scene.pickups.push_back(
+                    {pickup.body.bounds, world.itemDefinition(pickup.stack.item).name});
+            }
+        }
+
+        const Actor* followed = followedNpc(
+            shown,
+            navigation.cursorWorld,
+            player != nullptr ? player->body.bounds : scene.cameraBounds);
+        if (followed != nullptr)
+        {
+            const NpcMachine& machine = followed->machine.value_or(NpcMachine{});
+            scene.machine = MachineDebugInfo{
+                followed->id, machine.definition, machine.active, machine.lastFired};
         }
 
         scene.navigationCache =

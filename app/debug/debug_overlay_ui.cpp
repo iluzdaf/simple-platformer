@@ -4,6 +4,7 @@
 #include "debug_overlay.hpp"
 #include "navigation_debug.hpp"
 #include "navigation_debug_ui.hpp"
+#include "npc_names.hpp"
 #include "graphics/display_viewport.hpp"
 
 #include <cstddef>
@@ -15,7 +16,6 @@
 
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "ui/hud_draw.hpp"
 
@@ -41,44 +41,6 @@ namespace simple_platformer
                 return "Attack";
             case AnimationName::Death:
                 return "Death";
-            }
-
-            return "Unknown";
-        }
-
-        const char* nameOf(NpcState state)
-        {
-            switch (state)
-            {
-            case NpcState::Idle:
-                return "Idle";
-            case NpcState::Patrol:
-                return "Patrol";
-            case NpcState::Chase:
-                return "Chase";
-            case NpcState::Bite:
-                return "Bite";
-            case NpcState::Shoot:
-                return "Shoot";
-            case NpcState::Search:
-                return "Search";
-            case NpcState::Retreat:
-                return "Retreat";
-            case NpcState::Watch:
-                return "Watch";
-            }
-
-            return "Unknown";
-        }
-
-        const char* nameOf(NpcTactic tactic)
-        {
-            switch (tactic)
-            {
-            case NpcTactic::Pursuer:
-                return "Pursuer";
-            case NpcTactic::KeepDistance:
-                return "KeepDistance";
             }
 
             return "Unknown";
@@ -386,6 +348,20 @@ namespace simple_platformer
                 "B to break");
         }
 
+        // A second box round the NPC whose machine the machine window shows.
+        void drawFollowedOutline(
+            ImDrawList& drawList,
+            const ActorDebugInfo& actor,
+            const DebugOverlay& scene,
+            const WindowViewport& viewport)
+        {
+            constexpr float Gap = 2.0F;
+            const Aabb outline{
+                actor.collider.position - glm::vec2{Gap, Gap},
+                actor.collider.size + glm::vec2{Gap, Gap} * 2.0F};
+            drawWorldBounds(drawList, outline, scene.cameraBounds, viewport, FollowedActorColour);
+        }
+
         void drawActorText(ImDrawList& drawList, const ActorDebugInfo& actor, ImVec2& position)
         {
             constexpr float Indentation = 12.0F;
@@ -513,6 +489,10 @@ namespace simple_platformer
             drawActorWorldLabel(*drawList, actor, scene, *viewport);
             drawWorldBounds(
                 *drawList, actor.collider, scene.cameraBounds, *viewport, ColliderBoundsColour);
+            if (scene.machine.has_value() && scene.machine->actor == actor.id)
+            {
+                drawFollowedOutline(*drawList, actor, scene, *viewport);
+            }
         }
 
         if (scene.navigationCache.has_value() && actorTextHasSpace &&

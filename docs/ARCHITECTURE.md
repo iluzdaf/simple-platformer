@@ -74,7 +74,8 @@ simulation tick, and inspect the result without needing a window or graphics con
 
 All third-party source is vendored under `external/` so the project builds offline and
 everyone works from the same releases. The current dependencies include GLFW, glad, GLM, ImGui,
-ImPlot for the debug overlay's plots, Catch2, stb image loading, and nlohmann/json.
+ImPlot for the debug overlay's plots, imgui-node-editor for its machine window, Catch2,
+stb image loading, and nlohmann/json.
 
 ### Application folders
 
@@ -518,7 +519,8 @@ not a finite, non-negative time, and names the transition.
 
 The zombie soldier runs the `keep_distance` machine, which is its KeepDistance tactic
 written out: the same facts, states and activities, with the tactic's two questions as
-transitions. The two can be read side by side. What the machine cannot do is anything
+transitions. The two can be read side by side, and the overlay's machine window draws
+the machine of the soldier nearest the player as it runs. What the machine cannot do is anything
 the enum brain cannot: it chooses among activities that exist and asks facts that are
 gathered, and a new behaviour is still a state and its function in C++ first.
 
@@ -823,7 +825,9 @@ the scene and the order it is drawn in, as `world_simulation` is for the systems
 built before the simulation and hands back what the player asked for as
 `InterfaceRequests`, which the loop applies, so a click on the bag pauses the same frame
 instead of firing a shot and building the interface never changes the game.
-F1 toggles the debug overlay. The overlay can show actor details, sprite and collision
+F1 toggles the debug overlay. The overlay shows what the camera can see, a tile beyond
+its edges, so a large level does not fill the text column with actors off screen. It
+can show actor details, sprite and collision
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,
 navigation paths, and the connection cache's cells for one platformer NPC body, N moving
 to the next: filled with their connection count while kept, outlined while missing, which
@@ -837,6 +841,18 @@ why a break inside it drops the cell, draws each connection to where it lands wi
 and falls along their replayed arcs, and shades the cells a failed search found
 reachable from it. Debug data is built separately from its ImGui presentation so it can
 be tested without a window.
+
+The machine window, drawn by `app/debug/machine_graph_ui`, shows one NPC's
+`NpcMachine` as a graph: each state a node listing its transitions in priority order
+with their conditions, the active state lit, and the transition that fired last flowing
+along its link. It follows the NPC under the cursor when that NPC has a machine, and
+otherwise the NPC with a machine nearest the player, as the cache view follows the
+cell under the cursor; the overlay outlines the NPC it follows. Which NPC is followed
+is decided with the rest of the debug data, so it is tested. The graph is drawn with
+imgui-node-editor so states can be dragged about while the reader makes sense of a
+machine, and the arrangement is kept per machine name in a `machine_layout_` file
+beside `imgui.ini`, so it survives a restart and a change of NPC. Nothing in the
+window edits the machine; that is the data's job.
 
 The overlay also shows a frame panel, drawn by `app/debug/frame_profile_ui`. The
 application times each frame with a `Stopwatch` from `timing/stopwatch`, how many fixed

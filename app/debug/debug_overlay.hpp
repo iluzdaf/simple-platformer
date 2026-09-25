@@ -10,6 +10,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 
 #include "debug/navigation_debug.hpp"
 
@@ -104,6 +105,18 @@ namespace simple_platformer
         std::string itemName;
     };
 
+    // The machine of the NPC the machine window follows: its definition to draw, which
+    // state is active and which transition fired last.
+    struct MachineDebugInfo
+    {
+        ActorId actor;
+        NpcStateMachine definition;
+        std::size_t active = 0;
+        std::optional<std::size_t> lastFired;
+    };
+
+    // What the overlay shows of the world: only what the camera can see, a tile beyond
+    // its edges, so a large level does not fill the text column with actors off screen.
     struct DebugOverlay
     {
         std::vector<ActorDebugInfo> actors;
@@ -112,13 +125,17 @@ namespace simple_platformer
         std::optional<NavigationCacheDebugInfo> navigationCache;
         // The cell under the cursor when its tile can break, for the hint that B breaks it.
         std::optional<Aabb> breakableCellUnderCursor;
+        // The machine of the NPC under the cursor, or else of the NPC with a machine
+        // nearest the player; absent while no NPC on screen has one.
+        std::optional<MachineDebugInfo> machine;
         Aabb cameraBounds;
         Aabb cameraDeadZone;
     };
 
     // simulationStepSeconds is the fixed step the world is simulated with; predicted jump
     // arcs are replayed at it so they match what the actor will do. The navigation view
-    // says which cell and which body the cache is shown for.
+    // says which cell and which body the cache is shown for, and its cursor also picks
+    // the NPC whose machine is shown.
     DebugOverlay makeDebugOverlay(
         const World& world,
         const TileMap& map,

@@ -69,7 +69,8 @@ namespace simple_platformer
             {
                 for (std::size_t index = 0; index < value.size(); ++index)
                 {
-                    sources.push_back(jsonText(value[index], sourceName, indexPath(path, index)));
+                    sources.push_back(
+                        jsonName(value[index], "state name", sourceName, indexPath(path, index)));
                 }
                 if (sources.empty())
                 {
@@ -77,7 +78,7 @@ namespace simple_platformer
                 }
                 return sources;
             }
-            sources.push_back(jsonText(value, sourceName, path));
+            sources.push_back(jsonName(value, "state name", sourceName, path));
             return sources;
         }
 
@@ -102,7 +103,7 @@ namespace simple_platformer
                 const std::string statePath = indexPath(statesPath, index);
                 checkJsonFields(states[index], {"name", "does"}, sourceName, statePath);
                 NpcMachineState state;
-                state.name = readText(states[index], "name", sourceName, statePath);
+                state.name = readName(states[index], "name", "state name", sourceName, statePath);
                 state.does = jsonActivity(
                     requiredJsonMember(states[index], "does", sourceName, statePath),
                     sourceName,
@@ -122,7 +123,7 @@ namespace simple_platformer
                 const Json& entry = transitions[index];
                 checkJsonFields(entry, {"from", "to", "when", "after"}, sourceName, transitionPath);
                 NpcMachineTransition transition;
-                transition.to = readText(entry, "to", sourceName, transitionPath);
+                transition.to = readName(entry, "to", "state name", sourceName, transitionPath);
                 const std::string whenPath = fieldPath(transitionPath, "when");
                 const Json& when = requiredJsonMember(entry, "when", sourceName, transitionPath);
                 checkJsonObject(when, sourceName, whenPath);

@@ -47,6 +47,11 @@ TEST_CASE("Machine JSON rejects what the engine cannot run, naming where", "[app
         machine["states"][0]["does"] = "sleep";
         expected = "machines.test_machine.states[0].does";
     }
+    SECTION("An empty state name")
+    {
+        machine["states"][0]["name"] = "";
+        expected = "machines.test_machine.states[0].name";
+    }
     SECTION("Unknown fact")
     {
         machine["transitions"][0]["when"]["cornered"] = true;

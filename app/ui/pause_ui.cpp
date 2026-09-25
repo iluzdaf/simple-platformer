@@ -14,11 +14,6 @@ namespace simple_platformer
         const float centerX = viewport.topLeft.x + InternalViewportSize.x * viewport.scale.x * 0.5F;
         const float top = viewport.topLeft.y + HudMargin * viewport.scale.y;
         ImDrawList* drawList = ImGui::GetForegroundDrawList();
-        const auto drawCentered = [&](float y, const char* text)
-        {
-            const float left = centerX - ImGui::CalcTextSize(text).x * 0.5F;
-            drawShadowedText(*drawList, {left, y}, HudTextColour, text);
-        };
-        drawCentered(top, "Paused");
+        drawCenteredText(*drawList, centerX, top, "Paused");
     }
 }

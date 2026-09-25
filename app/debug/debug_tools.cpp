@@ -3,6 +3,7 @@
 #include "debug_overlay.hpp"
 #include "debug_overlay_ui.hpp"
 #include "frame_profile_ui.hpp"
+#include "machine_graph_ui.hpp"
 
 #include <optional>
 

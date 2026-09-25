@@ -340,6 +340,13 @@ The application converts the mouse from window coordinates through the letterbox
 display viewport and camera into a world-space aim direction. Clicks outside the game
 viewport are ignored. When ImGui captures input, gameplay input is cleared.
 
+P pauses the simulation and P resumes it; while paused, `.` runs one fixed step, so a
+decision such as a machine's transition can be watched landing in the overlay. The
+interface, the overlay and rendering carry on while the simulation stands still, and
+the fixed step is reset across a pause, as across the inventory, so no burst of
+catch-up steps follows a resume. The pause and the step are the application's: the
+game only sees which steps it is asked to run.
+
 ### Platformer movement
 
 `PlatformerMovement` contains configuration plus a small runtime state for grounded,

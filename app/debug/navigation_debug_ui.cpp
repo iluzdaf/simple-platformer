@@ -45,8 +45,8 @@ namespace simple_platformer
             return UnknownPathColour;
         }
 
-        // A cell of the connection cache: a filled cell while its connections are kept,
-        // with their count, and an outlined one while they are missing.
+        // A cell of the connection cache: filled while its connections are kept, and
+        // outlined while they are missing.
         void drawNavigationCell(
             ImDrawList& drawList,
             const NavigationCellDebugInfo& cell,
@@ -65,12 +65,22 @@ namespace simple_platformer
             const ImU32 colour =
                 *cell.connections == 0 ? NavigationEmptyColour : NavigationKeptColour;
             drawList.AddRectFilled(minimum, maximum, colour);
-            if (*cell.connections > 0)
+        }
+
+        void drawConnectionCount(
+            ImDrawList& drawList,
+            const NavigationCellDebugInfo& cell,
+            const Aabb& cameraBounds,
+            const WindowViewport& viewport)
+        {
+            if (!cell.connections.has_value())
             {
-                char count[8];
-                std::snprintf(count, sizeof(count), "%zu", *cell.connections);
-                drawShadowedText(drawList, {minimum.x + 1.0F, minimum.y}, WorldLabelColour, count);
+                return;
             }
+            char count[8];
+            std::snprintf(count, sizeof(count), "%zu", *cell.connections);
+            const ImVec2 minimum = screenPosition(cell.bounds.position, cameraBounds, viewport);
+            drawShadowedText(drawList, {minimum.x + 1.0F, minimum.y}, WorldLabelColour, count);
         }
 
         // The cursor cell: its reachable cells shaded, its footprint outlined, and each
@@ -130,14 +140,23 @@ namespace simple_platformer
         const Aabb& cameraBounds,
         const WindowViewport& viewport)
     {
+        const CursorCellDebugInfo cursor = cache.cursorCell.value_or(CursorCellDebugInfo{});
+        const NavigationCellDebugInfo* cellUnderCursor = nullptr;
         for (const NavigationCellDebugInfo& cell : cache.cells)
         {
             drawNavigationCell(drawList, cell, cameraBounds, viewport);
+            if (cache.cursorCell.has_value() && cell.bounds.position == cursor.bounds.position)
+            {
+                cellUnderCursor = &cell;
+            }
         }
         if (cache.cursorCell.has_value())
         {
-            drawCursorCell(
-                drawList, cache.cursorCell.value_or(CursorCellDebugInfo{}), cameraBounds, viewport);
+            drawCursorCell(drawList, cursor, cameraBounds, viewport);
+        }
+        if (cellUnderCursor != nullptr)
+        {
+            drawConnectionCount(drawList, *cellUnderCursor, cameraBounds, viewport);
         }
     }
 

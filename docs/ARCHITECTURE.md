@@ -845,10 +845,10 @@ its edges, so a large level does not fill the text column with actors off screen
 can show actor details, sprite and collision
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,
 navigation paths, and the connection cache's cells for one platformer NPC body at a
-time: filled with their connection count while kept, outlined while missing, which
-after a break is what the break dropped and the fill has not reached yet, with the
-cache's totals under the actor text, including the cells waiting for the fill and the
-cells dropped and kept so far. With
+time: filled while kept, with the cell under the cursor labelled by its connection
+count, and outlined while missing, which after a break is what the break dropped and
+the fill has not reached yet, with the cache's totals under the actor text, including
+the cells waiting for the fill and the cells dropped and kept so far. With
 the overlay open, a tile under the cursor that can break is labelled and can be broken
 as a shot would break it, so what a break does to the cache can be tried without one. For the cell
 under the cursor it also outlines the footprint the cell's simulation swept, which is

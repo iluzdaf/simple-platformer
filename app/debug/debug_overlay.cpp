@@ -101,7 +101,6 @@ namespace simple_platformer
             {
                 info.destinationFeet = feetInCell(map.tileSize(), *follower.destinationCell);
             }
-            info.repathRemaining = follower.repathRemaining;
             if (!follower.path.has_value())
             {
                 return info;

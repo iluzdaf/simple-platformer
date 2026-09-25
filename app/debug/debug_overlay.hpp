@@ -53,7 +53,6 @@ namespace simple_platformer
         std::size_t stepCount = 0;
         // Resolved to feet here, like the connections, so the UI draws without cell maths.
         std::optional<glm::vec2> destinationFeet;
-        float repathRemaining = 0.0F;
         std::vector<PathConnectionDebugInfo> connections;
     };
 

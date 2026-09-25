@@ -313,7 +313,6 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
          {{4, 3}, simple_platformer::Traversal::Fall, {}}}};
     follower.nextStep = 1;
     follower.destinationCell = simple_platformer::GridPosition{4, 3};
-    follower.repathRemaining = 0.12F;
 
     simple_platformer::Actor npc =
         tests::ActorBuilder::sized({12.0F, 12.0F}).at({16.0F, 32.0F}).walking().thinking({});
@@ -336,7 +335,6 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
     REQUIRE(path.nextStep == 1);
     REQUIRE(path.stepCount == 3);
     REQUIRE(path.destinationFeet == simple_platformer::feetInCell(tests::TileSize, {4, 3}));
-    REQUIRE(path.repathRemaining == 0.12F);
     REQUIRE(path.connections.size() == 3);
 
     REQUIRE(path.connections[0].fromFeet == simple_platformer::feetInCell(tests::TileSize, {1, 2}));

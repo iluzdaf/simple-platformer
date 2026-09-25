@@ -7,7 +7,6 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/validation.hpp"
-#include "simple_platformer/npc/npc.hpp"
 
 namespace simple_platformer
 {
@@ -120,11 +119,6 @@ namespace simple_platformer
             {
                 throw std::invalid_argument(
                     "NPC actors require a brain, senses, and path follower");
-            }
-            if (actor.brain.has_value() && actor.brain->state == NpcState::Bite &&
-                !actor.bite.has_value())
-            {
-                throw std::invalid_argument("An NPC in the Bite state requires a bite attack");
             }
             if (actor.brain.has_value() &&
                 (!std::isfinite(actor.brain->stateElapsed) || actor.brain->stateElapsed < 0.0F ||

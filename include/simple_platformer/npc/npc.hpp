@@ -13,7 +13,8 @@ namespace simple_platformer
         Idle,
         Patrol,
         Chase,
-        Bite
+        Bite,
+        Shoot
     };
 
     struct NpcBrain

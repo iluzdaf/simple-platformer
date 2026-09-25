@@ -269,11 +269,6 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
     brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
     brain(world, npcId).targetVisible = true;
 
-    // One transition an update: the target is chased, then bitten.
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
-    REQUIRE_FALSE(actor(world, npcId).intentions.primaryAttackPressed);
-
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Bite);
     REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
@@ -308,7 +303,7 @@ TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]"
     REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
 }
 
-TEST_CASE("A ranged NPC stops and requests an attack while its target is visible", "[npc][fsm]")
+TEST_CASE("A ranged NPC shoots a visible target where it stands", "[npc][fsm]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
@@ -323,7 +318,7 @@ TEST_CASE("A ranged NPC stops and requests an attack while its target is visible
     // Facing is decided by the movement update from what the NPC intends.
     simple_platformer::updateActorMovement(map, world, 0.1F);
 
-    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Shoot);
     REQUIRE(actor(world, npcId).facing == simple_platformer::Facing::Right);
     REQUIRE(actor(world, npcId).intentions.direction == glm::vec2{0.0F, 0.0F});
     REQUIRE(actor(world, npcId).intentions.aimDirection == glm::vec2{32.0F, -16.0F});

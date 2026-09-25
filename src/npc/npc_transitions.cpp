@@ -12,16 +12,36 @@ namespace simple_platformer
         {
             return facts.hasPatrol ? NpcState::Patrol : NpcState::Idle;
         }
+
+        // How a known target is pursued: with the attack that can reach it now, a bite
+        // before a shot, and otherwise by chasing. Nothing without a target.
+        std::optional<NpcState> pursuit(const NpcFacts& facts)
+        {
+            if (!facts.targetKnown)
+            {
+                return std::nullopt;
+            }
+            if (facts.targetInBiteRange)
+            {
+                return NpcState::Bite;
+            }
+            if (facts.canShootTarget)
+            {
+                return NpcState::Shoot;
+            }
+            return NpcState::Chase;
+        }
     }
 
     std::optional<NpcState> nextNpcState(NpcState state, const NpcFacts& facts)
     {
+        const std::optional<NpcState> pursuing = pursuit(facts);
         switch (state)
         {
         case NpcState::Idle:
-            if (facts.targetKnown)
+            if (pursuing.has_value())
             {
-                return NpcState::Chase;
+                return pursuing;
             }
             if (facts.hasPatrol)
             {
@@ -29,24 +49,18 @@ namespace simple_platformer
             }
             return std::nullopt;
         case NpcState::Patrol:
-            if (facts.targetKnown)
-            {
-                return NpcState::Chase;
-            }
-            return std::nullopt;
+            return pursuing;
         case NpcState::Chase:
-            if (!facts.targetKnown)
+        case NpcState::Shoot:
+            if (!pursuing.has_value())
             {
                 return patrolOrIdle(facts);
             }
-            if (facts.targetInBiteRange)
-            {
-                return NpcState::Bite;
-            }
-            return std::nullopt;
+            return *pursuing != state ? pursuing : std::nullopt;
         case NpcState::Bite:
             // The bite starts the update after it is asked for, so a bite still ready on
             // the entering update has not begun; the wait lets the attack system see it.
+            // A finished bite chases before it bites again.
             if (!facts.biteReady || facts.stateElapsed <= 0.0F)
             {
                 return std::nullopt;

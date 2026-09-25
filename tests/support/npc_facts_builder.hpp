@@ -39,6 +39,15 @@ namespace tests
             return *this;
         }
 
+        // A visible target with a ranged weapon to shoot it, which is known as well.
+        NpcFactsBuilder canShootTarget() &&
+        {
+            built.targetKnown = true;
+            built.targetVisible = true;
+            built.canShootTarget = true;
+            return *this;
+        }
+
         // The bite is ready this many seconds into the state.
         NpcFactsBuilder biteReadyFor(float stateElapsed) &&
         {

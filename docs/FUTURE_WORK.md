@@ -189,7 +189,9 @@ weapon is a capability rather than a `Shooter` brain. Useful tactics could inclu
 - `Patroller`: follow patrol points without pursuing the player.
 
 The first implementation should stay explicit. An enum in `NpcBrain` and a switch in
-the NPC system keep the available policies and their dispatch visible:
+the transition table keep the available policies and their dispatch visible. States,
+facts and the functions that act on a state are shared; a tactic differs only in which
+state it enters from which:
 
 ```cpp
 enum class NpcTactic
@@ -210,25 +212,27 @@ struct NpcBrain
 ```
 
 ```cpp
-switch (brain.tactic)
+std::optional<NpcState> nextNpcState(NpcTactic tactic, NpcState state, const NpcFacts& facts)
 {
-case NpcTactic::Pursuer:
-    updatePursuer(map, world, actor, deltaTime);
-    break;
-case NpcTactic::Guard:
-    updateGuard(map, world, actor, deltaTime);
-    break;
-case NpcTactic::KeepDistance:
-    updateKeepDistance(map, world, actor, deltaTime);
-    break;
-case NpcTactic::Flee:
-    updateFlee(map, world, actor, deltaTime);
-    break;
-case NpcTactic::Patroller:
-    updatePatroller(map, world, actor, deltaTime);
-    break;
+    switch (tactic)
+    {
+    case NpcTactic::Pursuer:
+        return nextPursuerState(state, facts);
+    case NpcTactic::Guard:
+        return nextGuardState(state, facts);
+    case NpcTactic::KeepDistance:
+        return nextKeepDistanceState(state, facts);
+    case NpcTactic::Flee:
+        return nextFleeState(state, facts);
+    case NpcTactic::Patroller:
+        return nextPatrollerState(state, facts);
+    }
 }
 ```
+
+A tactic that needs a fact the others do not, such as whether a guard is inside its
+home region, adds it to `NpcFacts`; one that needs a state the others do not, such as
+returning home, adds the state and its function once for every tactic to use.
 
 The `Pursuer` tactic should eventually improve how it handles an unreachable target.
 Instead of selecting only the geometrically nearest standable cell, it can examine

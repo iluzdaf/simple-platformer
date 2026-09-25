@@ -65,3 +65,39 @@ TEST_CASE("A finished bite chases a known target and otherwise patrols or idles"
         nextNpcState(NpcState::Bite, NpcFactsBuilder::facts().biteReadyFor(0.1F)) ==
         NpcState::Idle);
 }
+
+TEST_CASE("A target in reach is attacked straight from idle or patrol", "[npc][fsm]")
+{
+    REQUIRE(
+        nextNpcState(NpcState::Idle, NpcFactsBuilder::facts().targetInBiteRange()) ==
+        NpcState::Bite);
+    REQUIRE(
+        nextNpcState(NpcState::Patrol, NpcFactsBuilder::facts().canShootTarget()) ==
+        NpcState::Shoot);
+}
+
+TEST_CASE("A chase shoots a target in its sights and a shot chases one out of them", "[npc][fsm]")
+{
+    REQUIRE(
+        nextNpcState(NpcState::Chase, NpcFactsBuilder::facts().canShootTarget()) ==
+        NpcState::Shoot);
+    REQUIRE(
+        nextNpcState(NpcState::Shoot, NpcFactsBuilder::facts().canShootTarget()) == std::nullopt);
+    REQUIRE(
+        nextNpcState(NpcState::Shoot, NpcFactsBuilder::facts().knowingTarget()) == NpcState::Chase);
+}
+
+TEST_CASE("A shot ends in patrol or idle once the target is lost", "[npc][fsm]")
+{
+    REQUIRE(
+        nextNpcState(NpcState::Shoot, NpcFactsBuilder::facts().withPatrol()) == NpcState::Patrol);
+    REQUIRE(nextNpcState(NpcState::Shoot, NpcFactsBuilder::facts()) == NpcState::Idle);
+}
+
+TEST_CASE("A bite comes before a shot at a target in range of both", "[npc][fsm]")
+{
+    REQUIRE(
+        nextNpcState(
+            NpcState::Shoot, NpcFactsBuilder::facts().canShootTarget().targetInBiteRange()) ==
+        NpcState::Bite);
+}

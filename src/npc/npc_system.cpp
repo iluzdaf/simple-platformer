@@ -183,6 +183,8 @@ namespace simple_platformer
             facts.targetInBiteRange =
                 target != nullptr && brain.targetVisible && targetIsInBiteRange(actor, *target);
             facts.biteReady = actor.bite.has_value() && actor.bite->phase == BitePhase::Ready;
+            facts.canShootTarget =
+                target != nullptr && brain.targetVisible && actor.rangedWeapon.has_value();
             facts.hasPatrol = actor.patrol.has_value();
             facts.stateElapsed = brain.stateElapsed;
             return facts;
@@ -229,14 +231,6 @@ namespace simple_platformer
             }
 
             aimToward(actor, brain.lastSeenTargetFeet);
-            if (brain.targetVisible && actor.rangedWeapon.has_value())
-            {
-                clearPath(follower);
-                actor.intentions.aimDirection =
-                    centerOf(target->body.bounds) - centerOf(actor.body.bounds);
-                actor.intentions.primaryAttackPressed = true;
-                return;
-            }
             glm::vec2 destinationFeet = brain.lastSeenTargetFeet;
             if (actor.platformerMovement.has_value())
             {
@@ -250,6 +244,19 @@ namespace simple_platformer
                 destinationFeet = feetInCell(update.map.tileSize(), chaseCell.value());
             }
             followDestination(update, actor, follower, destinationFeet);
+        }
+
+        // The target is visible for as long as this state lasts, since the transitions
+        // leave it on the update sight is lost, so the aim may read the target's body.
+        void updateShootState(Actor& actor, const Actor* target)
+        {
+            if (target == nullptr)
+            {
+                throw std::logic_error("A shooting NPC has no target");
+            }
+            actor.intentions.aimDirection =
+                centerOf(target->body.bounds) - centerOf(actor.body.bounds);
+            actor.intentions.primaryAttackPressed = true;
         }
 
         // Which state comes next is decided once, from the facts, before the state acts.
@@ -280,6 +287,9 @@ namespace simple_platformer
                 break;
             case NpcState::Bite:
                 aimToward(actor, brain.lastSeenTargetFeet);
+                break;
+            case NpcState::Shoot:
+                updateShootState(actor, target);
                 break;
             }
         }

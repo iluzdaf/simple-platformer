@@ -17,6 +17,8 @@ namespace simple_platformer
         bool targetInBiteRange = false;
         // The NPC has a bite and it is ready to start.
         bool biteReady = false;
+        // The target is visible and the NPC has a ranged weapon.
+        bool canShootTarget = false;
         bool hasPatrol = false;
         float stateElapsed = 0.0F;
     };

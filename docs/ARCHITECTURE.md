@@ -416,20 +416,22 @@ or shoot. This keeps perception and decisions separately testable.
 
 ### Explicit state machine
 
-`NpcState` is an enum with four states: Idle, Patrol, Chase, and Bite. An update decides
-in three steps, each its own function:
+`NpcState` is an enum with five states: Idle, Patrol, Chase, Bite, and Shoot. An update
+decides in three steps, each its own function:
 
 1. `gatherNpcFacts` reads what the transitions decide on into `NpcFacts`: whether a
-   living target is remembered or visible, whether it is in bite range, whether the bite
-   is ready, whether the NPC has a patrol, and how long it has been in its state.
+   living target is remembered or visible, whether it is in bite range or in a ranged
+   weapon's sights, whether the bite is ready, whether the NPC has a patrol, and how
+   long it has been in its state.
 2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
    current state that returns the state to enter, or nothing to stay. It reads only the
    facts, so a test hands it a struct and expects a state. An NPC makes at most one
-   transition an update.
+   transition an update, and a known target is pursued with the attack that can reach
+   it now, a bite before a shot, or by chasing, from whichever state notices it.
 3. Entering a state resets its timing, clears the follower's path and, for Bite, asks
-   for the attack once. The state's function then acts: it chooses a destination or an
-   aim and writes intentions. Ranged NPCs use the same Chase state but request their
-   ranged attack while the target is visible.
+   for the attack once. The state's function then acts: Chase chooses a destination and
+   follows its path, Bite aims at the remembered target, and Shoot aims at the visible
+   target and presses the attack. None of them decides what comes next.
 
 Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
 edge and loses its path, navigation can recover to a supported cell before repathing;

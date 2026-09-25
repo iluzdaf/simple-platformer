@@ -6,15 +6,19 @@
 
 #include <optional>
 
+#include "simple_platformer/timing/frame_profile.hpp"
+
 namespace simple_platformer
 {
     void drawDebugTools(
         DebugTools& tools,
+        const FrameProfile& profile,
         const DebugOverlay& overlay,
         const std::optional<WindowViewport>& viewport)
     {
         drawDebugOverlay(overlay, viewport);
         tools.machineGraph.draw(overlay.machine);
+        tools.frameHistory.push(profile);
         drawFrameProfile(tools.frameHistory, tools.frameSelection, tools.frameAxes);
     }
 }

@@ -265,12 +265,12 @@ namespace simple_platformer
             const Stopwatch renderWatch;
             renderer.render(scene, reading.framebufferSize.x, reading.framebufferSize.y);
             profile.renderSeconds = renderWatch.elapsedSeconds();
-            debugTools.frameHistory.push(profile);
 
             if (context.showDebugOverlay)
             {
                 drawDebugTools(
                     debugTools,
+                    profile,
                     game.debugOverlay(
                         static_cast<float>(atlasTexture.width),
                         internalCursor,

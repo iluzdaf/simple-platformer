@@ -155,6 +155,7 @@ add_executable(
     app/debug/debug_draw.cpp
     app/debug/debug_overlay.cpp
     app/debug/debug_overlay_ui.cpp
+    app/debug/debug_tools.cpp
     app/debug/navigation_debug.cpp
     app/debug/navigation_debug_ui.cpp
     app/debug/frame_axes.cpp

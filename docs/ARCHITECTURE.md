@@ -825,7 +825,12 @@ the scene and the order it is drawn in, as `world_simulation` is for the systems
 built before the simulation and hands back what the player asked for as
 `InterfaceRequests`, which the loop applies, so a click on the bag pauses the same frame
 instead of firing a shot and building the interface never changes the game.
-F1 toggles the debug overlay. The overlay shows what the camera can see, a tile beyond
+F1 toggles the debug overlay. `drawDebugTools` in `app/debug/debug_tools` is the same
+kind of list for it: the world and text overlay, the machine window, then the frame
+panel, drawn from the `DebugOverlay` the game built, and `DebugTools` beside it is
+everything they keep between frames, so the application holds one object and makes
+one call.
+The overlay shows what the camera can see, a tile beyond
 its edges, so a large level does not fill the text column with actors off screen. It
 can show actor details, sprite and collision
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,

@@ -39,8 +39,7 @@ namespace simple_platformer
             // B with the overlay open breaks the tile under the cursor, as a shot would.
             bool breakTileRequested = false;
             bool inventoryOpen = false;
-            // P holds the simulation still while everything else runs; . then runs one
-            // fixed step, to watch a decision land.
+            // P pauses the simulation; . runs one fixed step while paused.
             bool simulationPaused = false;
             bool stepRequested = false;
             // Set when the inventory opens or closes, the simulation pauses or resumes,
@@ -271,8 +270,6 @@ namespace simple_platformer
                 // Time that built up would otherwise be simulated in a burst on resuming.
                 fixedStep.reset();
                 context.playInterrupted = false;
-                // A step asked for while paused runs one fixed step on its own, unless
-                // the inventory or the completion holds the game still anyway.
                 if (context.stepRequested && !context.inventoryOpen && !game.complete())
                 {
                     const Stopwatch simulationWatch;

@@ -1,5 +1,7 @@
 #include "simple_platformer/actor/actor_validation.hpp"
 
+#include "simple_platformer/npc/npc_state_machine.hpp"
+
 #include <cmath>
 #include <stdexcept>
 

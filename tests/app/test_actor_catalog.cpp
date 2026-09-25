@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <optional>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 #include "content/actor_catalog.hpp"
@@ -175,7 +176,10 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
         std::nullopt,
         machines);
     REQUIRE(actor.machine.has_value());
-    REQUIRE(simple_platformer::activeNpcMachineState(*actor.machine).name == "rest");
+    REQUIRE(
+        simple_platformer::activeNpcMachineState(
+            actor.machine.value_or(simple_platformer::NpcMachine{}))
+            .name == "rest");
     REQUIRE(tests::flyingMovement(actor).speed == 25);
     REQUIRE(tests::bite(actor).damage == 2);
     REQUIRE(tests::senses(actor).searchDuration == 3);

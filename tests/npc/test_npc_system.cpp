@@ -181,7 +181,10 @@ TEST_CASE("An NPC with a machine takes its state from the machine, not its tacti
     brain(world, npcId).targetVisible = true;
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
-    REQUIRE(simple_platformer::activeNpcMachineState(*actor(world, npcId).machine).name == "hunt");
+    REQUIRE(
+        simple_platformer::activeNpcMachineState(
+            actor(world, npcId).machine.value_or(simple_platformer::NpcMachine{}))
+            .name == "hunt");
     REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
 
     // Too close for its tactic, but the machine has no retreat and is not asked.

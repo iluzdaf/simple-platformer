@@ -1,4 +1,5 @@
 #include "actor_catalog.hpp"
+#include "machine_catalog.hpp"
 #include "content_diagnostics.hpp"
 #include "content_json.hpp"
 #include "animation_catalog.hpp"

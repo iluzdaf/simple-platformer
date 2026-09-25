@@ -14,28 +14,30 @@ namespace simple_platformer
 {
     struct MachineDebugInfo;
 
+    // One machine's node editor and what the machine window keeps for it between
+    // frames. The store owns the first two fields: the editor reads its settings file's
+    // name through a pointer, so the name lives beside the context. The rest is the
+    // window's: when no arrangement was saved, the first frame lays the states out in
+    // a ring and the first frame after the canvas has settled at a size fits the view
+    // to them, since a size change would undo the fit; and the NPC and transition shown
+    // last frame, so a fresh firing flows once.
+    struct MachineGraphEditor
+    {
+        std::string settingsFile;
+        ax::NodeEditor::EditorContext* context = nullptr;
+        bool layingOut = false;
+        int framesDrawn = 0;
+        ImVec2 canvasSize = {0.0F, 0.0F};
+        std::optional<ActorId> shownActor;
+        std::optional<std::size_t> shownFired;
+    };
+
     // The node editors the machine window draws with, one per machine name so each
     // keeps its own arrangement, made the first time a machine is shown and destroyed
-    // with the store. The editor reads its settings file's name through a pointer, so
-    // the name lives beside the context.
+    // with the store.
     class MachineGraphEditors
     {
     public:
-        struct Editor
-        {
-            std::string settingsFile;
-            ax::NodeEditor::EditorContext* context = nullptr;
-            // Set when no arrangement was saved: the first frame lays the states out in
-            // a ring, and the first frame after the canvas has settled at a size fits
-            // the view to them, since a size change would undo the fit.
-            bool layingOut = false;
-            int framesDrawn = 0;
-            ImVec2 canvasSize = {0.0F, 0.0F};
-            // The NPC and transition shown last frame, so a fresh firing flows once.
-            std::optional<ActorId> shownActor;
-            std::optional<std::size_t> shownFired;
-        };
-
         MachineGraphEditors() = default;
         MachineGraphEditors(const MachineGraphEditors&) = delete;
         MachineGraphEditors& operator=(const MachineGraphEditors&) = delete;
@@ -43,10 +45,10 @@ namespace simple_platformer
         MachineGraphEditors& operator=(MachineGraphEditors&&) = delete;
         ~MachineGraphEditors();
 
-        Editor& editorFor(const std::string& machineName);
+        MachineGraphEditor& editorFor(const std::string& machineName);
 
     private:
-        std::map<std::string, Editor> editors;
+        std::map<std::string, MachineGraphEditor> editors;
     };
 
     // The machine window, anchored at the top beside the actor text: the followed

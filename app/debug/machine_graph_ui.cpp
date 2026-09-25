@@ -173,7 +173,7 @@ namespace simple_platformer
         }
     }
 
-    MachineGraphEditors::Editor& MachineGraphEditors::editorFor(const std::string& machineName)
+    MachineGraphEditor& MachineGraphEditors::editorFor(const std::string& machineName)
     {
         const auto found = editors.find(machineName);
         if (found != editors.end())
@@ -181,7 +181,7 @@ namespace simple_platformer
             return found->second;
         }
 
-        Editor& editor = editors[machineName];
+        MachineGraphEditor& editor = editors[machineName];
         editor.settingsFile = "machine_layout_" + machineName + ".json";
         editor.layingOut = !std::filesystem::exists(editor.settingsFile);
         ed::Config config;
@@ -225,7 +225,7 @@ namespace simple_platformer
         ImGui::SameLine();
         ImGui::TextDisabled("(under the cursor, else nearest the player)");
 
-        MachineGraphEditors::Editor& editor = editors.editorFor(shown.definition.name);
+        MachineGraphEditor& editor = editors.editorFor(shown.definition.name);
         ed::SetCurrentEditor(editor.context);
         ed::Begin("##machine");
         if (editor.layingOut && editor.framesDrawn == 0)

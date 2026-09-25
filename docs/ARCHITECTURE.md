@@ -181,7 +181,8 @@ Physics code works with `body.bounds.position`. Content and ground navigation us
 
 ## Time
 
-Gameplay time is `float` seconds in the fixed simulation step. Every system receives the
+Gameplay time is seconds in the fixed simulation step, as `float` except for the world
+clock and its stamps. Every system receives the
 step it ran as `deltaTime`, and `requireSeconds` rejects one that is not a finite,
 non-negative number. Rendering has no step and never advances time.
 
@@ -197,7 +198,7 @@ stepping, and not updating its system freezes it. Its cost is order. Where the t
 happens relative to other systems is a rule the reader has to know, which is why the
 bite state holds for the update it is entered on.
 
-**Stamps.** An `std::optional<float>` holding the world clock's value when something
+**Stamps.** An `std::optional<double>` holding the world clock's value when something
 happened, empty until it first does (`lastDamageTimeSeconds`, `lastFiredTimeSeconds`,
 `lastLockedTouchTimeSeconds`, `openedTimeSeconds`). `World` advances the clock once at
 the start of every step. A writer takes `simulationTimeSeconds()`; a reader asks
@@ -205,8 +206,9 @@ the start of every step. A writer takes `simulationTimeSeconds()`; a reader asks
 one write serves every reader. Senses hear the shot stamp, the cover fade reveals it,
 and the hit flash's length is a rendering constant. A stamp belongs to the clock it was
 taken from. One from the future is rejected, respawn clears the damage stamp, and no
-actor carries a stamp into another world. The clock and its stamps are `float`, whose
-resolution reaches a millisecond after about two hours of play.
+actor carries a stamp into another world. The clock and its stamps are `double`, so a
+stamp keeps its precision however long a session runs, and an age is a `float`, being
+small.
 
 **Which to use.**
 

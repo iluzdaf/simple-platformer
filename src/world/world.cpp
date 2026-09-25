@@ -75,11 +75,11 @@ namespace simple_platformer
         }
     }
 
-    void World::requireWithinSimulationTime(const std::optional<float>& time, const char* what)
+    void World::requireWithinSimulationTime(const std::optional<double>& time, const char* what)
         const
     {
         if (time.has_value() &&
-            (!std::isfinite(*time) || *time < 0.0F || *time > elapsedSimulationTimeSeconds))
+            (!std::isfinite(*time) || *time < 0.0 || *time > elapsedSimulationTimeSeconds))
         {
             throw std::invalid_argument(std::string(what) + " must be within simulation time");
         }
@@ -95,30 +95,25 @@ namespace simple_platformer
         return platformerConnectionCache;
     }
 
-    float World::simulationTimeSeconds() const
+    double World::simulationTimeSeconds() const
     {
         return elapsedSimulationTimeSeconds;
     }
 
-    std::optional<float> World::secondsSince(const std::optional<float>& timeSeconds) const
+    std::optional<float> World::secondsSince(const std::optional<double>& timeSeconds) const
     {
         requireWithinSimulationTime(timeSeconds, "Stamp");
         if (!timeSeconds.has_value())
         {
             return std::nullopt;
         }
-        return elapsedSimulationTimeSeconds - *timeSeconds;
+        return static_cast<float>(elapsedSimulationTimeSeconds - *timeSeconds);
     }
 
     void World::advanceSimulationTime(float deltaTime)
     {
         requireSeconds(deltaTime, "Simulation time step");
-        const float advancedTime = elapsedSimulationTimeSeconds + deltaTime;
-        if (!std::isfinite(advancedTime))
-        {
-            throw std::overflow_error("Simulation time has overflowed");
-        }
-        elapsedSimulationTimeSeconds = advancedTime;
+        elapsedSimulationTimeSeconds += deltaTime;
     }
 
     const ItemDefinition& World::itemDefinition(ItemId id) const

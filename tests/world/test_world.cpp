@@ -16,6 +16,8 @@
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
+#include "support/fixed_step.hpp"
+#include "support/require_near.hpp"
 
 namespace
 {
@@ -68,12 +70,6 @@ TEST_CASE("World owns a validated simulation clock", "[world][time]")
     REQUIRE_THROWS_AS(world.advanceSimulationTime(-0.1F), std::invalid_argument);
     REQUIRE_THROWS_AS(
         world.advanceSimulationTime(std::numeric_limits<float>::infinity()), std::invalid_argument);
-
-    simple_platformer::World overflowingWorld;
-    overflowingWorld.advanceSimulationTime(std::numeric_limits<float>::max());
-    REQUIRE_THROWS_AS(
-        overflowingWorld.advanceSimulationTime(std::numeric_limits<float>::max()),
-        std::overflow_error);
 }
 
 TEST_CASE("World measures how long ago a stamp on its clock was", "[world][time]")
@@ -88,6 +84,18 @@ TEST_CASE("World measures how long ago a stamp on its clock was", "[world][time]
     // A stamp cannot come from before the world began or from its future.
     REQUIRE_THROWS_AS(world.secondsSince(-0.1F), std::invalid_argument);
     REQUIRE_THROWS_AS(world.secondsSince(0.75F), std::invalid_argument);
+}
+
+TEST_CASE("A stamp taken hours in still measures a single step", "[world][time]")
+{
+    simple_platformer::World world;
+    for (int hour = 0; hour < 5; ++hour)
+    {
+        world.advanceSimulationTime(3600.0F);
+    }
+    const double stamp = world.simulationTimeSeconds();
+    world.advanceSimulationTime(tests::FixedStepSeconds);
+    REQUIRE_NEAR(world.secondsSince(stamp).value_or(0.0F), tests::FixedStepSeconds);
 }
 
 TEST_CASE("World rejects invalid actor composition", "[world][actor]")

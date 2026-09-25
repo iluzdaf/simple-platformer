@@ -43,7 +43,7 @@ namespace simple_platformer
         float phaseTimeRemaining = 0.0F;
         // When the weapon last fired, on the world clock. Senses hear a shot on the update
         // after it, and the screen shows the shooter exposed for a while.
-        std::optional<float> lastFiredTimeSeconds;
+        std::optional<double> lastFiredTimeSeconds;
         // Its display size is independent of projectileSize, just like an actor sprite and body.
         Sprite projectileSprite = {0, {}, {4.0F, 2.0F}};
     };

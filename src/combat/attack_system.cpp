@@ -54,7 +54,7 @@ namespace simple_platformer
             const Actor& actor,
             RangedWeapon& weapon,
             WorldRequests& requests,
-            float simulationTimeSeconds)
+            double simulationTimeSeconds)
         {
             weapon.phase = RangedPhase::Shoot;
             weapon.phaseTimeRemaining = weapon.shootDuration;

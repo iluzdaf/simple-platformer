@@ -149,7 +149,7 @@ namespace simple_platformer
                     pickup.sprite ? *pickup.sprite : world.itemDefinition(pickup.stack.item).icon;
                 Aabb bounds = spriteBounds(pickup.body.bounds, sprite);
                 bounds.position.y += pickupVerticalOffset(
-                    world.simulationTimeSeconds() +
+                    static_cast<float>(world.simulationTimeSeconds()) +
                     pickupPhaseOffset(map.tileSize(), pickup.body.bounds));
                 scene.sprites.push_back(
                     {sprite.textureId,

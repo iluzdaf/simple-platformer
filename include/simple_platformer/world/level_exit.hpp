@@ -22,10 +22,10 @@ namespace simple_platformer
         std::optional<Sprite> sprite;
         // When the living player last stood in the exit without meeting its requirement, on
         // the world clock. The screen hints at what is missing for a while after.
-        std::optional<float> lastLockedTouchTimeSeconds;
+        std::optional<double> lastLockedTouchTimeSeconds;
         // When the living player entered the exit with its requirement, on the world clock.
         // The requirement is consumed then, and the level completes ExitOpenSeconds later.
-        std::optional<float> openedTimeSeconds;
+        std::optional<double> openedTimeSeconds;
     };
 
     class World;

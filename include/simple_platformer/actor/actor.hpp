@@ -39,7 +39,7 @@ namespace simple_platformer
 
         LifeState life = LifeState::Alive;
         float deathTimeRemaining = 0.0F;
-        std::optional<float> lastDamageTimeSeconds;
+        std::optional<double> lastDamageTimeSeconds;
 
         std::optional<Sprite> sprite;
         std::optional<Animator> animator;

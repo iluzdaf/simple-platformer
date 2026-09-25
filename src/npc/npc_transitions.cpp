@@ -19,13 +19,19 @@ namespace simple_platformer
             return facts.searches ? NpcState::Search : patrolOrIdle(facts);
         }
 
-        // How a known target is pursued: with the attack that can reach it now, a bite
-        // before a shot, and otherwise by chasing. Nothing without a target.
-        std::optional<NpcState> pursuit(const NpcFacts& facts)
+        // The one choice the table puts to the tactic: how a known target is pursued.
+        // With the attack that can reach it now, a bite before a shot, and otherwise by
+        // chasing; a KeepDistance NPC first backs away from a target that has come too
+        // near. Nothing without a target.
+        std::optional<NpcState> pursuit(NpcTactic tactic, const NpcFacts& facts)
         {
             if (!facts.targetKnown)
             {
                 return std::nullopt;
+            }
+            if (tactic == NpcTactic::KeepDistance && facts.targetTooClose)
+            {
+                return NpcState::Retreat;
             }
             if (facts.targetInBiteRange)
             {
@@ -39,9 +45,9 @@ namespace simple_platformer
         }
     }
 
-    std::optional<NpcState> nextNpcState(NpcState state, const NpcFacts& facts)
+    std::optional<NpcState> nextNpcState(NpcTactic tactic, NpcState state, const NpcFacts& facts)
     {
-        const std::optional<NpcState> pursuing = pursuit(facts);
+        const std::optional<NpcState> pursuing = pursuit(tactic, facts);
         switch (state)
         {
         case NpcState::Idle:
@@ -58,6 +64,7 @@ namespace simple_platformer
             return pursuing;
         case NpcState::Chase:
         case NpcState::Shoot:
+        case NpcState::Retreat:
             if (!pursuing.has_value())
             {
                 return lostTarget(facts);

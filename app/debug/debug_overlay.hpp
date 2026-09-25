@@ -20,6 +20,7 @@ namespace simple_platformer
     struct CameraController;
     enum class AnimationName;
     enum class NpcState;
+    enum class NpcTactic;
 
     enum class ActorDebugKind
     {
@@ -52,7 +53,6 @@ namespace simple_platformer
         std::size_t stepCount = 0;
         // Resolved to feet here, like the connections, so the UI draws without cell maths.
         std::optional<glm::vec2> destinationFeet;
-        float repathRemaining = 0.0F;
         std::vector<PathConnectionDebugInfo> connections;
     };
 
@@ -80,6 +80,7 @@ namespace simple_platformer
         std::optional<ActorSpriteDebugInfo> sprite;
         std::optional<AnimationName> animation;
         std::optional<NpcState> npcState;
+        std::optional<NpcTactic> npcTactic;
         std::optional<PathFollowerDebugInfo> pathFollower;
         std::optional<SensorDebugInfo> sensor;
         std::optional<PatrolDebugInfo> patrol;

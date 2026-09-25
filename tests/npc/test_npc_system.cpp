@@ -100,6 +100,63 @@ TEST_CASE("A chasing NPC that does not search patrols again at once", "[npc][fsm
 }
 
 TEST_CASE(
+    "A KeepDistance walker backs away from a close target, firing, and holds at a ledge",
+    "[npc][fsm]")
+{
+    // Ground under columns 2 to 5 only.
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "..####.."});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({40.0F, 32.0F}));
+    const simple_platformer::ActorId npcId =
+        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                           .atFeet({72.0F, 32.0F})
+                           .walking()
+                           .onTeam(simple_platformer::Team::Enemy)
+                           .shooting()
+                           .thinking({96.0F, 1.0F}));
+    brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
+    brain(world, npcId).standoffDistance = 64.0F;
+    brain(world, npcId).target = playerId;
+    brain(world, npcId).lastSeenTargetFeet = {40.0F, 32.0F};
+    brain(world, npcId).targetVisible = true;
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Retreat);
+    REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
+    REQUIRE(actor(world, npcId).intentions.aimDirection.x < 0.0F);
+    REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
+
+    // A body width from the ledge, the next cell along cannot be stood on.
+    simple_platformer::placeFeetAt(actor(world, npcId).body.bounds, {88.0F, 32.0F});
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Retreat);
+    REQUIRE(actor(world, npcId).intentions.direction.x == 0.0F);
+    REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
+}
+
+TEST_CASE("A KeepDistance NPC shoots once its target is at its standoff", "[npc][fsm]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "########"});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({24.0F, 32.0F}));
+    const simple_platformer::ActorId npcId =
+        world.addActor(makeNpc({88.0F, 32.0F}).onTeam(simple_platformer::Team::Enemy).shooting());
+    brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
+    brain(world, npcId).standoffDistance = 48.0F;
+    brain(world, npcId).state = simple_platformer::NpcState::Retreat;
+    brain(world, npcId).target = playerId;
+    brain(world, npcId).lastSeenTargetFeet = {24.0F, 32.0F};
+    brain(world, npcId).targetVisible = true;
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Shoot);
+    REQUIRE(actor(world, npcId).intentions.direction == glm::vec2{0.0F, 0.0F});
+    REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
+}
+
+TEST_CASE(
     "A searching NPC where the target was last seen looks one way, then the other",
     "[npc][fsm]")
 {

@@ -48,6 +48,14 @@ namespace tests
             return *this;
         }
 
+        // A known target nearer than the standoff distance.
+        NpcFactsBuilder targetTooClose() &&
+        {
+            built.targetKnown = true;
+            built.targetTooClose = true;
+            return *this;
+        }
+
         // The NPC searches for a lost target, with time still to search.
         NpcFactsBuilder searching() &&
         {

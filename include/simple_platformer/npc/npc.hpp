@@ -15,11 +15,26 @@ namespace simple_platformer
         Chase,
         Bite,
         Shoot,
-        Search
+        Search,
+        Retreat
+    };
+
+    // The brain's policy, asked wherever the transition table makes a choice; today that
+    // is what to do about a known target. A Pursuer closes in and attacks with what
+    // reaches. A KeepDistance NPC does the same but backs away from a target nearer than
+    // its standoff, so a ranged NPC keeps its range. A tactic chooses between states that
+    // exist; it never adds behaviour.
+    enum class NpcTactic
+    {
+        Pursuer,
+        KeepDistance
     };
 
     struct NpcBrain
     {
+        NpcTactic tactic = NpcTactic::Pursuer;
+        // How near a KeepDistance NPC lets its target come before it retreats.
+        float standoffDistance = 48.0F;
         NpcState state = NpcState::Idle;
         float stateElapsed = 0.0F;
         std::optional<ActorId> target;

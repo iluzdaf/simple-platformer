@@ -288,7 +288,7 @@ capabilities:
 | Player | `PlatformerMovement` | application writes `InputIntentions` | `Health`, `Inventory`, `Team::Player`, `RangedWeapon` | `Sprite`, `Animator` |
 | Zombie | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
 | Bat | `FlyingMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
-| Zombie soldier | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon` | `Sprite`, `Animator` |
+| Zombie soldier | `PlatformerMovement` | `NpcBrain` (KeepDistance), `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon` | `Sprite`, `Animator` |
 
 The recipe is additive. For example, making a second zombie does not require another
 type: reference the same definition with different spawn and patrol data. A bat can use a
@@ -452,26 +452,46 @@ or shoot. This keeps perception and decisions separately testable.
 
 ### Explicit state machine
 
-`NpcState` is an enum with six states: Idle, Patrol, Chase, Bite, Shoot, and Search. An
-update decides in three steps, each its own function:
+`NpcState` is an enum with seven states: Idle, Patrol, Chase, Bite, Shoot, Search, and
+Retreat. `NpcTactic` is an enum with two: Pursuer and KeepDistance. An update decides in
+three steps, each its own function:
 
 1. `gatherNpcFacts` reads what the transitions decide on into `NpcFacts`: whether a
    living target is remembered or visible, whether it is in bite range or in a ranged
-   weapon's sights, whether the bite is ready, whether the NPC has a patrol, whether it
-   searches for a lost target and that search's time is up, and how long it has been in
-   its state.
+   weapon's sights, whether it has come nearer than the brain's `standoffDistance`,
+   whether the bite is ready, whether the NPC has a patrol, whether it searches for a
+   lost target and that search's time is up, and how long it has been in its state.
 2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
    current state that returns the state to enter, or nothing to stay. It reads only the
-   facts, so a test hands it a struct and expects a state. An NPC makes at most one
-   transition an update, and a known target is pursued with the attack that can reach
-   it now, a bite before a shot, or by chasing, from whichever state notices it.
+   tactic and the facts, so a test hands it those and expects a state. An NPC makes at
+   most one transition an update, and a known target is pursued from whichever state
+   notices it, as the brain's [tactic](#tactics) answers.
 3. Entering a state resets its timing, clears the follower's path and, for Bite, asks
    for the attack once. The state's function then acts: Chase chooses a destination and
    follows its path, Bite aims at the remembered target, and Shoot aims at the visible
    target and presses the attack. Search finishes the walk to where the target was last
    seen and looks about there, turning every half second, until its senses'
    `searchDuration` runs out; a duration of zero sends a pursuer that lost its target
-   straight back to Patrol or Idle. None of them decides what comes next.
+   straight back to Patrol or Idle. Retreat backs straight away from where the target
+   was last seen, facing it and firing, and a walker holds at a ledge rather than step
+   off it. None of them decides what comes next.
+
+### Tactics
+
+`NpcTactic` is one named policy on the brain: Pursuer or KeepDistance. The transition
+table asks it one question, what to do about a target the NPC knows of, and shares every
+other transition. A Pursuer answers with the attack that reaches, a bite before a shot,
+or Chase. A KeepDistance NPC answers Retreat while the target is nearer than its
+standoff and otherwise the same. The zombie is a Pursuer and the zombie soldier keeps
+its distance, over the same states, facts and activities.
+
+A tactic chooses; it never adds behaviour. A state, its activity, the facts it decides on
+and any capability it uses exist first, so healing instead of attacking is a heal
+component, a hurt fact and a Heal state before it is a tactic that answers Heal. Adding
+a tactic is an enum value and a branch in the pursuit function, plus whatever it needs,
+added once for every tactic to use. The table asks the tactic nothing while the NPC has
+no target; a tactic that acts then, such as healing once safe, needs a second question
+where a lost target returns to its routine, added with the first tactic that needs it.
 
 Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
 edge and loses its path, navigation can recover to a supported cell before repathing;
@@ -873,9 +893,11 @@ genuinely new example enemy normally involves:
 
 Species, capabilities, and decisions are separate concerns. Artwork does not determine
 the brain, and possessing a ranged weapon does not require a `Shooter` subclass. The
-future [NPC tactics](FUTURE_WORK.md#npc-tactics) section describes how to introduce
-multiple reusable
-decision policies once the game contains a real second policy.
+decision policy is the brain's [tactic](#tactics): the zombie is a Pursuer and the
+zombie soldier keeps its distance, over the same states and facts. A new tactic, such as
+a guard that pursues only inside a home region or a coward that flees, is an enum value
+and a branch where the table asks the tactic, plus any fact or state it needs, added
+once for every tactic to use.
 
 ### Choosing the layer
 

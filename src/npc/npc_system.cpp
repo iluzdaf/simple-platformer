@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -188,6 +189,10 @@ namespace simple_platformer
             facts.biteReady = actor.bite.has_value() && actor.bite->phase == BitePhase::Ready;
             facts.canShootTarget =
                 target != nullptr && brain.targetVisible && actor.rangedWeapon.has_value();
+            facts.targetTooClose =
+                target != nullptr &&
+                glm::distance(feetOf(actor.body.bounds), brain.lastSeenTargetFeet) <
+                    brain.standoffDistance;
             facts.hasPatrol = actor.patrol.has_value();
             const float searchDuration =
                 actor.senses.has_value() ? actor.senses->searchDuration : 0.0F;
@@ -317,6 +322,29 @@ namespace simple_platformer
             actor.intentions.primaryAttackPressed = true;
         }
 
+        // A retreat backs straight away from where the target was last seen, facing it and
+        // firing. A walker holds at a ledge rather than step off it.
+        void updateRetreatState(const NpcUpdate& update, Actor& actor, const NpcBrain& brain)
+        {
+            const glm::vec2 feet = feetOf(actor.body.bounds);
+            glm::vec2 away = feet - brain.lastSeenTargetFeet;
+            if (actor.platformerMovement.has_value())
+            {
+                const float side = away.x < 0.0F ? -1.0F : 1.0F;
+                away = {side, 0.0F};
+                const GridPosition ahead = cellAtFeet(
+                    update.map.tileSize(), feet + glm::vec2{side * actor.body.bounds.size.x, 0.0F});
+                if (!update.map.contains(ahead) ||
+                    !canStandAt(update.map, ahead, actor.body.bounds.size))
+                {
+                    away = {0.0F, 0.0F};
+                }
+            }
+            actor.intentions.direction = away;
+            aimToward(actor, brain.lastSeenTargetFeet);
+            actor.intentions.primaryAttackPressed = true;
+        }
+
         // Which state comes next is decided once, from the facts, before the state acts.
         void updateNpcState(const NpcUpdate& update, Actor& actor)
         {
@@ -328,7 +356,7 @@ namespace simple_platformer
             PathFollower& follower = *actor.pathFollower;
             const Actor* target = livingTarget(update.world, brain);
             const NpcFacts facts = gatherNpcFacts(actor, brain, target);
-            if (const std::optional<NpcState> next = nextNpcState(brain.state, facts))
+            if (const std::optional<NpcState> next = nextNpcState(brain.tactic, brain.state, facts))
             {
                 enterNpcState(actor, brain, follower, *next);
             }
@@ -351,6 +379,9 @@ namespace simple_platformer
                 break;
             case NpcState::Search:
                 updateSearchState(update, actor, brain, follower);
+                break;
+            case NpcState::Retreat:
+                updateRetreatState(update, actor, brain);
                 break;
             }
         }

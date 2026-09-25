@@ -49,7 +49,8 @@
         "shootDuration": 0.3,
         "recoveryDuration": 0.8,
         "sprite": { "position": [64, 192], "size": [8, 4] }
-      }
+      },
+      "tactic": { "kind": "keepDistance", "standoffDistance": 48 }
     }
   }
 }

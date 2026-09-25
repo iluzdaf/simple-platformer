@@ -62,6 +62,21 @@ namespace simple_platformer
                 return "Shoot";
             case NpcState::Search:
                 return "Search";
+            case NpcState::Retreat:
+                return "Retreat";
+            }
+
+            return "Unknown";
+        }
+
+        const char* nameOf(NpcTactic tactic)
+        {
+            switch (tactic)
+            {
+            case NpcTactic::Pursuer:
+                return "Pursuer";
+            case NpcTactic::KeepDistance:
+                return "KeepDistance";
             }
 
             return "Unknown";
@@ -397,10 +412,9 @@ namespace simple_platformer
                 drawTextLine(drawList, position, text, TextDetailColour, Indentation);
             }
 
-            if (actor.pathFollower.has_value())
+            if (actor.npcTactic.has_value())
             {
-                const PathFollowerDebugInfo& follower = actor.pathFollower.value();
-                std::snprintf(text, sizeof(text), "repath: %.2f", follower.repathRemaining);
+                std::snprintf(text, sizeof(text), "tactic: %s", nameOf(actor.npcTactic.value()));
                 drawTextLine(drawList, position, text, TextDetailColour, Indentation);
             }
             position.y += ActorTextGap;
@@ -410,7 +424,7 @@ namespace simple_platformer
         {
             int lineCount = 2;
             lineCount += actor.sprite.has_value() ? 1 : 0;
-            lineCount += actor.pathFollower.has_value() ? 1 : 0;
+            lineCount += actor.npcTactic.has_value() ? 1 : 0;
             return static_cast<float>(lineCount) * ImGui::GetTextLineHeight() + ActorTextGap;
         }
     }

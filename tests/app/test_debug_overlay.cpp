@@ -160,6 +160,7 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     REQUIRE(npcDebug.id == npcId);
     REQUIRE(npcDebug.kind == simple_platformer::ActorDebugKind::Npc);
     REQUIRE(npcDebug.npcState == simple_platformer::NpcState::Chase);
+    REQUIRE(npcDebug.npcTactic == simple_platformer::NpcTactic::Pursuer);
     REQUIRE(npcDebug.pathFollower.has_value());
     const simple_platformer::PathFollowerDebugInfo emptyPath =
         npcDebug.pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});
@@ -312,7 +313,6 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
          {{4, 3}, simple_platformer::Traversal::Fall, {}}}};
     follower.nextStep = 1;
     follower.destinationCell = simple_platformer::GridPosition{4, 3};
-    follower.repathRemaining = 0.12F;
 
     simple_platformer::Actor npc =
         tests::ActorBuilder::sized({12.0F, 12.0F}).at({16.0F, 32.0F}).walking().thinking({});
@@ -335,7 +335,6 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
     REQUIRE(path.nextStep == 1);
     REQUIRE(path.stepCount == 3);
     REQUIRE(path.destinationFeet == simple_platformer::feetInCell(tests::TileSize, {4, 3}));
-    REQUIRE(path.repathRemaining == 0.12F);
     REQUIRE(path.connections.size() == 3);
 
     REQUIRE(path.connections[0].fromFeet == simple_platformer::feetInCell(tests::TileSize, {1, 2}));

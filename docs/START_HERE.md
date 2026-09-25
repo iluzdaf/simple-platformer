@@ -123,8 +123,8 @@ A practical route through the implementation is:
    from movement.
 4. Read generic lowest-cost search and flying navigation before studying simulated
    platformer jumps.
-5. Create an enemy with a deliberate combination of movement, senses, state rules,
-   navigation, attack, and animation.
+5. Create an enemy with a deliberate combination of movement, senses, tactic, state
+   rules, navigation, attack, and animation.
 
 The [NPC-state recipe](ARCHITECTURE.md#adding-an-npc-state) and
 [enemy-composition recipe](ARCHITECTURE.md#creating-a-new-enemy) list the files and

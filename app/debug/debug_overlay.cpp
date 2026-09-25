@@ -101,7 +101,6 @@ namespace simple_platformer
             {
                 info.destinationFeet = feetInCell(map.tileSize(), *follower.destinationCell);
             }
-            info.repathRemaining = follower.repathRemaining;
             if (!follower.path.has_value())
             {
                 return info;
@@ -227,6 +226,7 @@ namespace simple_platformer
             if (actor.brain.has_value())
             {
                 info.npcState = actor.brain->state;
+                info.npcTactic = actor.brain->tactic;
             }
             if (actor.pathFollower.has_value())
             {

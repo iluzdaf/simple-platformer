@@ -19,6 +19,8 @@ namespace simple_platformer
         bool biteReady = false;
         // The target is visible and the NPC has a ranged weapon.
         bool canShootTarget = false;
+        // The target was last seen nearer than the brain's standoff distance.
+        bool targetTooClose = false;
         bool hasPatrol = false;
         // The NPC searches for a lost target at all, and its search has run its time.
         bool searches = false;
@@ -27,6 +29,8 @@ namespace simple_platformer
     };
 
     // The state to enter from this one given the facts, or nothing to stay. Every
-    // transition the NPC makes is a branch here, and none of them act.
-    std::optional<NpcState> nextNpcState(NpcState state, const NpcFacts& facts);
+    // transition the NPC makes is a branch here, and none of them act. The tactic is
+    // asked wherever the table makes a choice, which today is the pursuit of a known
+    // target; every other transition is shared.
+    std::optional<NpcState> nextNpcState(NpcTactic tactic, NpcState state, const NpcFacts& facts);
 }

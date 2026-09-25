@@ -21,7 +21,8 @@ namespace simple_platformer
         const AnimationCatalog& animations,
         int textureId,
         glm::vec2 spawnFeet,
-        std::optional<Patrol> patrol)
+        std::optional<Patrol> patrol,
+        const MachineCatalog& machines)
     {
         Actor actor;
         actor.body.bounds.size = definition.bodySize;
@@ -61,6 +62,14 @@ namespace simple_platformer
         {
             throw std::invalid_argument("A tactic requires senses");
         }
+        if (!definition.machine.empty())
+        {
+            if (!actor.brain)
+            {
+                throw std::invalid_argument("A state machine requires senses");
+            }
+            actor.machine = startNpcMachine(npcStateMachine(machines, definition.machine));
+        }
         actor.patrol = patrol;
         actor.bite = definition.bite;
         if (actor.bite)
@@ -93,9 +102,10 @@ namespace simple_platformer
 
     void validateActorDefinition(
         const ActorDefinition& definition,
-        const AnimationCatalog& animations)
+        const AnimationCatalog& animations,
+        const MachineCatalog& machines)
     {
         // Use the same composition and engine validation for loaded and C++ definitions.
-        composeActor(definition, animations, 0);
+        composeActor(definition, animations, 0, {}, std::nullopt, machines);
     }
 }

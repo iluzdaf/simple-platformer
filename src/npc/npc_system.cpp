@@ -23,6 +23,7 @@
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
 #include "simple_platformer/timing/stopwatch.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -187,7 +188,7 @@ namespace simple_platformer
             facts.targetInBiteRange =
                 target != nullptr && brain.targetVisible && targetIsInBiteRange(actor, *target);
             facts.biteReady = actor.bite.has_value() && actor.bite->phase == BitePhase::Ready;
-            facts.canShootTarget =
+            facts.targetInSights =
                 target != nullptr && brain.targetVisible && actor.rangedWeapon.has_value();
             facts.targetTooClose =
                 target != nullptr &&
@@ -356,7 +357,20 @@ namespace simple_platformer
             PathFollower& follower = *actor.pathFollower;
             const Actor* target = livingTarget(update.world, brain);
             const NpcFacts facts = gatherNpcFacts(actor, brain, target);
-            if (const std::optional<NpcState> next = nextNpcState(brain.tactic, brain.state, facts))
+            if (actor.machine.has_value())
+            {
+                // The machine decides, and the brain's activity follows its state: on the
+                // update a transition fires, and on the first update after composition.
+                NpcMachine& machine = *actor.machine;
+                const bool fired = advanceNpcMachine(machine, facts, update.deltaTime).has_value();
+                const NpcState does = activeNpcMachineState(machine).does;
+                if (fired || brain.state != does)
+                {
+                    enterNpcState(actor, brain, follower, does);
+                }
+            }
+            else if (
+                const std::optional<NpcState> next = nextNpcState(brain.tactic, brain.state, facts))
             {
                 enterNpcState(actor, brain, follower, *next);
             }

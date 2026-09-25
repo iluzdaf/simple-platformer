@@ -343,6 +343,7 @@ namespace simple_platformer
                  "flying",
                  "senses",
                  "tactic",
+                 "machine",
                  "bite",
                  "ranged"},
                 sourceName,
@@ -360,6 +361,7 @@ namespace simple_platformer
             readOptionalNpcSenses(value, "senses", result.senses, sourceName, path);
             readOptionalNpcTactic(
                 value, "tactic", result.tactic, result.standoffDistance, sourceName, path);
+            readOptionalText(value, "machine", result.machine, sourceName, path);
             readOptionalBite(value, "bite", result.bite, sourceName, path);
             readOptionalRangedWeapon(value, "ranged", result.ranged, sourceName, path);
             return result;
@@ -369,7 +371,8 @@ namespace simple_platformer
     ActorCatalog parseActorCatalog(
         std::string_view text,
         std::string_view sourceName,
-        const AnimationCatalog& animations)
+        const AnimationCatalog& animations,
+        const MachineCatalog& machines)
     {
         const auto root = parseContentRoot(text, sourceName);
         checkJsonFields(root, {"player", "actors"}, sourceName, "root");
@@ -391,11 +394,14 @@ namespace simple_platformer
                 entry.key(),
                 jsonActorDefinition(entry.value(), sourceName, fieldPath("actors", entry.key())));
         }
-        validateInFile(sourceName, [&] { validateActorCatalog(result, animations); });
+        validateInFile(sourceName, [&] { validateActorCatalog(result, animations, machines); });
         return result;
     }
 
-    void validateActorCatalog(const ActorCatalog& catalog, const AnimationCatalog& animations)
+    void validateActorCatalog(
+        const ActorCatalog& catalog,
+        const AnimationCatalog& animations,
+        const MachineCatalog& machines)
     {
         for (const auto& entry : catalog.definitions)
         {
@@ -405,7 +411,7 @@ namespace simple_platformer
             }
             try
             {
-                validateActorDefinition(entry.second, animations);
+                validateActorDefinition(entry.second, animations, machines);
             }
             catch (const std::invalid_argument& error)
             {
@@ -426,9 +432,10 @@ namespace simple_platformer
 
     ActorCatalog loadActorCatalog(
         const std::filesystem::path& path,
-        const AnimationCatalog& animations)
+        const AnimationCatalog& animations,
+        const MachineCatalog& machines)
     {
-        return parseActorCatalog(loadContentText(path), path.string(), animations);
+        return parseActorCatalog(loadContentText(path), path.string(), animations, machines);
     }
 
     const ActorDefinition& actorDefinition(const ActorCatalog& catalog, const std::string& name)

@@ -13,6 +13,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "support/tile_size.hpp"
@@ -56,6 +57,13 @@ namespace tests
             built.brain = simple_platformer::NpcBrain{};
             built.senses = senses;
             built.pathFollower = simple_platformer::PathFollower{};
+            return std::move(*this);
+        }
+
+        // A data-driven machine deciding the brain's state; comes after thinking().
+        ActorBuilder running(simple_platformer::NpcStateMachine machine) &&
+        {
+            built.machine = simple_platformer::startNpcMachine(std::move(machine));
             return std::move(*this);
         }
 

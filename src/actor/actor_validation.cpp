@@ -120,6 +120,19 @@ namespace simple_platformer
                 throw std::invalid_argument(
                     "NPC actors require a brain, senses, and path follower");
             }
+            if (actor.machine.has_value())
+            {
+                if (!actor.brain.has_value())
+                {
+                    throw std::invalid_argument("An NPC state machine requires a brain");
+                }
+                validateNpcStateMachine(actor.machine->definition);
+                if (actor.machine->active >= actor.machine->definition.states.size() ||
+                    actor.machine->heldFor.size() != actor.machine->definition.transitions.size())
+                {
+                    throw std::invalid_argument("An NPC state machine must be started");
+                }
+            }
             if (actor.brain.has_value() &&
                 (!std::isfinite(actor.brain->standoffDistance) ||
                  actor.brain->standoffDistance < 0.0F ||

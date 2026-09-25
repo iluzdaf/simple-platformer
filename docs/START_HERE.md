@@ -119,8 +119,10 @@ A practical route through the implementation is:
    definition's `senses` settings in [`actors.json`](../assets/actors.json), using the
    debug overlay to observe visible targets, remembered positions, patrol points,
    destinations, and paths.
-3. Add one state such as Guard, Retreat, or Recover and test its transitions separately
-   from movement.
+3. Add one state such as Guard or Recover and test its transitions separately from
+   movement. Then write the same rules as a machine in
+   [`machines.json`](../assets/machines.json) and give it to an actor, to compare the
+   switch with the data.
 4. Read generic lowest-cost search and flying navigation before studying simulated
    platformer jumps.
 5. Create an enemy with a deliberate combination of movement, senses, tactic, state

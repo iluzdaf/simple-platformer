@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include "animation_catalog.hpp"
+#include "machine_catalog.hpp"
 #include <glm/vec2.hpp>
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -32,6 +33,9 @@ namespace simple_platformer
         NpcTactic tactic = NpcTactic::Pursuer;
         // How near a KeepDistance brain lets a target come before it retreats.
         float standoffDistance = 48.0F;
+        // A data-driven machine in the machine catalog, run instead of the tactic. Empty
+        // for none.
+        std::string machine;
         // Reuse the engine's attack settings. Composition resets their phase/timer state;
         // JSON exposes only configuration fields, never those runtime fields.
         std::optional<BiteAttack> bite;
@@ -43,8 +47,10 @@ namespace simple_platformer
         const AnimationCatalog& animations,
         int textureId,
         glm::vec2 spawnFeet = {},
-        std::optional<Patrol> patrol = std::nullopt);
+        std::optional<Patrol> patrol = std::nullopt,
+        const MachineCatalog& machines = {});
     void validateActorDefinition(
         const ActorDefinition& definition,
-        const AnimationCatalog& animations);
+        const AnimationCatalog& animations,
+        const MachineCatalog& machines = {});
 }

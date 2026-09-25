@@ -55,6 +55,7 @@ Shared catalogues sit beside `levels.json` in `assets`:
 | [`tiles.json`](../assets/tiles.json) | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp) |
 | [`actors.json`](../assets/actors.json) | Player definition, actor capabilities, and tuning | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp) |
 | [`animations.json`](../assets/animations.json) | Named animation sets, frame rectangles, timing, and looping | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp) |
+| [`machines.json`](../assets/machines.json) | Named data-driven NPC state machines | [`machine_catalog.cpp`](../app/content/machine_catalog.cpp) |
 | [`items.json`](../assets/items.json) | Inventory names, icons, stacking, and effect settings | [`item_catalog.cpp`](../app/content/item_catalog.cpp) |
 | [`pickups.json`](../assets/pickups.json) | World pickup quantities, bounds, and optional sprites | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp) |
 | [`exits.json`](../assets/exits.json) | Exit bounds and sprites | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp) |
@@ -243,7 +244,9 @@ Exactly one of `platformer` or `flying` is required. Empty component objects use
 defaults; omitted optional components are absent. `senses` adds the existing NPC brain,
 sensing and path follower together. `tactic` is that brain's policy: an object whose
 `kind` is `pursuer` or `keepDistance`, with a `standoffDistance` in world pixels for
-`keepDistance`, which a target may not come nearer than. It requires `senses`. `health` and `inventorySlots` are positive integers.
+`keepDistance`, which a target may not come nearer than. It requires `senses`. `machine`
+names a state machine in `machines.json` to run instead of the tactic; it requires
+`senses` too. `health` and `inventorySlots` are positive integers.
 Attacks use either `bite` or `ranged`, and require a non-neutral team. There is no
 inheritance or arbitrary per-placement override mechanism.
 
@@ -256,6 +259,30 @@ optional `displaySize`, and optional `anchor`. Sprite coordinates use atlas pixe
 Animation names reference named sets in `animations.json`;
 animation frames are not loaded here. `facing` is `left` or `right`, and `spriteAnchor`
 is `feet` or `center`.
+
+## State machines
+
+`machines.json` holds named machines an actor definition can run through its `machine`
+field. A machine has `states`, an array of `{ "name", "does" }` in the order they are
+declared, and `transitions`, an array of `{ "from", "to", "when", "after" }`. The
+first state is the one the NPC starts in. `does` is the built-in activity the state
+runs: `idle`, `patrol`, `chase`, `bite`, `shoot`, `search`, `retreat` or `watch`.
+
+`from` is a state name or an array of them, which declares one transition per name.
+`when` maps fact names to the boolean each must hold, and may be empty for a transition
+that always holds. `after` is optional and is how many seconds every condition must
+hold before the transition fires. Among the transitions from one state, the first in
+the array whose conditions have held long enough wins.
+
+The facts are `targetKnown`, `targetVisible`, `targetInBiteRange`, `biteReady`,
+`targetInSights`, `targetTooClose`, `hasPatrol` and `searchTimeUp`. They are answered
+by the engine from the NPC's senses, memory, attacks and patrol, and the distances they
+compare against are the senses' `noticeDistance` and the tactic's `standoffDistance`.
+The soldier's `keep_distance` machine is the shipped example.
+
+Loading reports a machine with no states, a state declared twice, a transition from or
+to a state the machine lacks, a fact no row answers, an activity that does not exist,
+or a hold that is negative, by the machine and transition it found it in.
 
 ## Animation sets
 

@@ -81,6 +81,9 @@ namespace simple_platformer
         std::optional<AnimationName> animation;
         std::optional<NpcState> npcState;
         std::optional<NpcTactic> npcTactic;
+        // A data-driven machine's name and the name of its active state.
+        std::optional<std::string> machine;
+        std::optional<std::string> machineState;
         std::optional<PathFollowerDebugInfo> pathFollower;
         std::optional<SensorDebugInfo> sensor;
         std::optional<PatrolDebugInfo> patrol;

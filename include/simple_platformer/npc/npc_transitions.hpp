@@ -18,7 +18,7 @@ namespace simple_platformer
         // The NPC has a bite and it is ready to start.
         bool biteReady = false;
         // The target is visible and the NPC has a ranged weapon.
-        bool canShootTarget = false;
+        bool targetInSights = false;
         // The target was last seen nearer than the brain's standoff distance.
         bool targetTooClose = false;
         bool hasPatrol = false;

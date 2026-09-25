@@ -21,6 +21,7 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -227,6 +228,11 @@ namespace simple_platformer
             {
                 info.npcState = actor.brain->state;
                 info.npcTactic = actor.brain->tactic;
+            }
+            if (actor.machine.has_value())
+            {
+                info.machine = actor.machine->definition.name;
+                info.machineState = activeNpcMachineState(*actor.machine).name;
             }
             if (actor.pathFollower.has_value())
             {

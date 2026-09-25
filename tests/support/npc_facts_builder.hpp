@@ -40,11 +40,11 @@ namespace tests
         }
 
         // A visible target with a ranged weapon to shoot it, which is known as well.
-        NpcFactsBuilder canShootTarget() &&
+        NpcFactsBuilder targetInSights() &&
         {
             built.targetKnown = true;
             built.targetVisible = true;
-            built.canShootTarget = true;
+            built.targetInSights = true;
             return *this;
         }
 

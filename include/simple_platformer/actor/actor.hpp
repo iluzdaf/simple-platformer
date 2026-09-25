@@ -10,6 +10,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -52,6 +53,8 @@ namespace simple_platformer
         std::optional<RangedWeapon> rangedWeapon;
         std::optional<BiteAttack> bite;
         std::optional<NpcBrain> brain;
+        // A data-driven machine that decides the brain's state instead of its tactic.
+        std::optional<NpcMachine> machine;
         std::optional<NpcSenses> senses;
         std::optional<Patrol> patrol;
         std::optional<PathFollower> pathFollower;

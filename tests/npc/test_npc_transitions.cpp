@@ -188,7 +188,7 @@ TEST_CASE("A KeepDistance NPC retreats from a target that has come too close", "
 }
 
 TEST_CASE(
-    "A retreat shoots or chases once the target is far enough, and searches once it is lost",
+    "A retreat shoots or chases once the target is far enough, and watches once it is lost",
     "[npc][fsm]")
 {
     REQUIRE(
@@ -202,7 +202,7 @@ TEST_CASE(
         NpcState::Chase);
     REQUIRE(
         nextNpcState(KeepDistance, NpcState::Retreat, NpcFactsBuilder::facts().searching()) ==
-        NpcState::Search);
+        NpcState::Watch);
 }
 
 TEST_CASE("A Pursuer never retreats", "[npc][fsm]")
@@ -214,4 +214,46 @@ TEST_CASE("A Pursuer never retreats", "[npc][fsm]")
         nextNpcState(
             Pursuer, NpcState::Idle, NpcFactsBuilder::facts().targetTooClose().canShootTarget()) ==
         NpcState::Shoot);
+}
+
+TEST_CASE("A KeepDistance NPC that loses its target watches from where it stands", "[npc][fsm]")
+{
+    REQUIRE(
+        nextNpcState(KeepDistance, NpcState::Chase, NpcFactsBuilder::facts().searching()) ==
+        NpcState::Watch);
+    REQUIRE(
+        nextNpcState(KeepDistance, NpcState::Retreat, NpcFactsBuilder::facts().searching()) ==
+        NpcState::Watch);
+    REQUIRE(
+        nextNpcState(
+            KeepDistance,
+            NpcState::Bite,
+            NpcFactsBuilder::facts().searching().biteReadyFor(0.1F)) == NpcState::Watch);
+    REQUIRE(
+        nextNpcState(KeepDistance, NpcState::Chase, NpcFactsBuilder::facts().withPatrol()) ==
+        NpcState::Patrol);
+}
+
+TEST_CASE(
+    "A watch pursues a target found again and otherwise ends when its time is up",
+    "[npc][fsm]")
+{
+    REQUIRE(
+        nextNpcState(KeepDistance, NpcState::Watch, NpcFactsBuilder::facts().searching()) ==
+        std::nullopt);
+    REQUIRE(
+        nextNpcState(
+            KeepDistance, NpcState::Watch, NpcFactsBuilder::facts().searching().canShootTarget()) ==
+        NpcState::Shoot);
+    REQUIRE(
+        nextNpcState(
+            KeepDistance, NpcState::Watch, NpcFactsBuilder::facts().searching().targetTooClose()) ==
+        NpcState::Retreat);
+    REQUIRE(
+        nextNpcState(
+            KeepDistance, NpcState::Watch, NpcFactsBuilder::facts().searchTimeUp().withPatrol()) ==
+        NpcState::Patrol);
+    REQUIRE(
+        nextNpcState(KeepDistance, NpcState::Watch, NpcFactsBuilder::facts().searchTimeUp()) ==
+        NpcState::Idle);
 }

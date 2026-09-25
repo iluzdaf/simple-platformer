@@ -452,9 +452,9 @@ or shoot. This keeps perception and decisions separately testable.
 
 ### Explicit state machine
 
-`NpcState` is an enum with seven states: Idle, Patrol, Chase, Bite, Shoot, Search, and
-Retreat. `NpcTactic` is an enum with two: Pursuer and KeepDistance. An update decides in
-three steps, each its own function:
+`NpcState` is an enum with eight states: Idle, Patrol, Chase, Bite, Shoot, Search,
+Retreat, and Watch. `NpcTactic` is an enum with two: Pursuer and KeepDistance. An update
+decides in three steps, each its own function:
 
 1. `gatherNpcFacts` reads what the transitions decide on into `NpcFacts`: whether a
    living target is remembered or visible, whether it is in bite range or in a ranged
@@ -464,34 +464,36 @@ three steps, each its own function:
 2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
    current state that returns the state to enter, or nothing to stay. It reads only the
    tactic and the facts, so a test hands it those and expects a state. An NPC makes at
-   most one transition an update, and a known target is pursued from whichever state
-   notices it, as the brain's [tactic](#tactics) answers.
+   most one transition an update. A known target is pursued from whichever state
+   notices it, and a lost one leaves the NPC where the brain's [tactic](#tactics)
+   answers.
 3. Entering a state resets its timing, clears the follower's path and, for Bite, asks
    for the attack once. The state's function then acts: Chase chooses a destination and
    follows its path, Bite aims at the remembered target, and Shoot aims at the visible
    target and presses the attack. Search finishes the walk to where the target was last
    seen and looks about there, turning every half second, until its senses'
-   `searchDuration` runs out; a duration of zero sends a pursuer that lost its target
-   straight back to Patrol or Idle. Retreat backs straight away from where the target
-   was last seen, facing it and firing, and a walker holds at a ledge rather than step
-   off it. None of them decides what comes next.
+   `searchDuration` runs out; a duration of zero sends an NPC that lost its target
+   straight back to Patrol or Idle. Watch looks about the same way from where the NPC
+   stands, for the same time. Retreat backs straight away from where the target was
+   last seen, facing it and firing, and a walker holds at a ledge rather than step off
+   it. None of them decides what comes next.
 
 ### Tactics
 
 `NpcTactic` is one named policy on the brain: Pursuer or KeepDistance. The transition
-table asks it one question, what to do about a target the NPC knows of, and shares every
-other transition. A Pursuer answers with the attack that reaches, a bite before a shot,
-or Chase. A KeepDistance NPC answers Retreat while the target is nearer than its
-standoff and otherwise the same. The zombie is a Pursuer and the zombie soldier keeps
-its distance, over the same states, facts and activities.
+table asks it two questions, what to do about a target the NPC knows of and where a
+lost one leaves it, and shares every other transition. A Pursuer answers the first with
+the attack that reaches, a bite before a shot, or Chase, and the second with Search. A
+KeepDistance NPC answers Retreat while the target is nearer than its standoff and
+otherwise the same, and watches from where it stands rather than walk to where the
+target was. The zombie is a Pursuer and the zombie soldier keeps its distance, over the
+same states, facts and activities.
 
 A tactic chooses; it never adds behaviour. A state, its activity, the facts it decides on
 and any capability it uses exist first, so healing instead of attacking is a heal
 component, a hurt fact and a Heal state before it is a tactic that answers Heal. Adding
-a tactic is an enum value and a branch in the pursuit function, plus whatever it needs,
-added once for every tactic to use. The table asks the tactic nothing while the NPC has
-no target; a tactic that acts then, such as healing once safe, needs a second question
-where a lost target returns to its routine, added with the first tactic that needs it.
+a tactic is an enum value and a branch in each question it answers differently, plus
+whatever it needs, added once for every tactic to use.
 
 Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
 edge and loses its path, navigation can recover to a supported cell before repathing;

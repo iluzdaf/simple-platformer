@@ -16,14 +16,16 @@ namespace simple_platformer
         Bite,
         Shoot,
         Search,
-        Retreat
+        Retreat,
+        Watch
     };
 
-    // The brain's policy, asked wherever the transition table makes a choice; today that
-    // is what to do about a known target. A Pursuer closes in and attacks with what
-    // reaches. A KeepDistance NPC does the same but backs away from a target nearer than
-    // its standoff, so a ranged NPC keeps its range. A tactic chooses between states that
-    // exist; it never adds behaviour.
+    // The brain's policy, asked wherever the transition table makes a choice: what to do
+    // about a known target, and where a lost one leaves the NPC. A Pursuer closes in,
+    // attacks with what reaches, and searches where it lost its target. A KeepDistance
+    // NPC backs away from a target nearer than its standoff, so a ranged NPC keeps its
+    // range, and watches from where it stands rather than walk to where the target was.
+    // A tactic chooses between states that exist; it never adds behaviour.
     enum class NpcTactic
     {
         Pursuer,

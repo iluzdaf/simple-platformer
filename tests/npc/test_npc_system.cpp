@@ -156,6 +156,29 @@ TEST_CASE("A KeepDistance NPC shoots once its target is at its standoff", "[npc]
     REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
 }
 
+TEST_CASE("A watching NPC looks about without leaving where it stands", "[npc][fsm]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "########"});
+    simple_platformer::World world;
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({24.0F, 32.0F}));
+    brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
+    brain(world, npcId).state = simple_platformer::NpcState::Chase;
+    brain(world, npcId).lastSeenTargetFeet = {72.0F, 32.0F};
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.3F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Watch);
+    REQUIRE(actor(world, npcId).intentions.direction == glm::vec2{0.0F, 0.0F});
+    REQUIRE(actor(world, npcId).intentions.aimDirection.x > 0.0F);
+    REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.3F);
+    simple_platformer::updateNpcBehaviour(map, world, 0.3F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Watch);
+    REQUIRE(actor(world, npcId).intentions.direction == glm::vec2{0.0F, 0.0F});
+    REQUIRE(actor(world, npcId).intentions.aimDirection.x < 0.0F);
+}
+
 TEST_CASE(
     "A searching NPC where the target was last seen looks one way, then the other",
     "[npc][fsm]")

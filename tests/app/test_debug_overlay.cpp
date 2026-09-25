@@ -160,6 +160,7 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     REQUIRE(npcDebug.id == npcId);
     REQUIRE(npcDebug.kind == simple_platformer::ActorDebugKind::Npc);
     REQUIRE(npcDebug.npcState == simple_platformer::NpcState::Chase);
+    REQUIRE(npcDebug.npcTactic == simple_platformer::NpcTactic::Pursuer);
     REQUIRE(npcDebug.pathFollower.has_value());
     const simple_platformer::PathFollowerDebugInfo emptyPath =
         npcDebug.pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});

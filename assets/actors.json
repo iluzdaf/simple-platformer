@@ -11,7 +11,10 @@
       "ranged": {
         "projectileLifetime": 0.9,
         "breaksTiles": true,
-        "sprite": { "position": [32, 192], "size": [8, 4] }
+        "sprite": {
+          "position": [32, 192],
+          "size": [8, 4]
+        }
       }
     },
     "zombie": {
@@ -20,9 +23,17 @@
       "facing": "left",
       "animations": "zombie",
       "health": 3,
-      "platformer": { "maximumSpeed": 60 },
-      "senses": { "noticeDistance": 80 },
-      "bite": { "windupDuration": 0.3, "activeDuration": 0.1, "recoveryDuration": 0.6 }
+      "platformer": {
+        "maximumSpeed": 60
+      },
+      "senses": {
+        "noticeDistance": 80
+      },
+      "bite": {
+        "windupDuration": 0.3,
+        "activeDuration": 0.1,
+        "recoveryDuration": 0.6
+      }
     },
     "bat": {
       "bodySize": [12, 8],
@@ -32,7 +43,10 @@
       "spriteAnchor": "center",
       "health": 1,
       "flying": {},
-      "senses": { "noticeDistance": 56, "targetMemoryDuration": 0.5 },
+      "senses": {
+        "noticeDistance": 56,
+        "targetMemoryDuration": 0.5
+      },
       "bite": {}
     },
     "zombie_soldier": {
@@ -48,7 +62,14 @@
         "projectileLifetime": 0.75,
         "shootDuration": 0.3,
         "recoveryDuration": 0.8,
-        "sprite": { "position": [64, 192], "size": [8, 4] }
+        "sprite": {
+          "position": [64, 192],
+          "size": [8, 4]
+        }
+      },
+      "tactic": {
+        "kind": "keepDistance",
+        "standoffDistance": 48
       }
     }
   }

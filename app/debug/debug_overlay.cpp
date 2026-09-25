@@ -227,6 +227,7 @@ namespace simple_platformer
             if (actor.brain.has_value())
             {
                 info.npcState = actor.brain->state;
+                info.npcTactic = actor.brain->tactic;
             }
             if (actor.pathFollower.has_value())
             {

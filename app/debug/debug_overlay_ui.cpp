@@ -62,6 +62,21 @@ namespace simple_platformer
                 return "Shoot";
             case NpcState::Search:
                 return "Search";
+            case NpcState::Retreat:
+                return "Retreat";
+            }
+
+            return "Unknown";
+        }
+
+        const char* nameOf(NpcTactic tactic)
+        {
+            switch (tactic)
+            {
+            case NpcTactic::Pursuer:
+                return "Pursuer";
+            case NpcTactic::KeepDistance:
+                return "KeepDistance";
             }
 
             return "Unknown";
@@ -321,6 +336,11 @@ namespace simple_platformer
             {
                 labelPosition.y += lineHeight;
                 drawList.AddText(labelPosition, WorldLabelColour, nameOf(actor.npcState.value()));
+            }
+            if (actor.npcTactic.has_value())
+            {
+                labelPosition.y += lineHeight;
+                drawList.AddText(labelPosition, WorldLabelColour, nameOf(actor.npcTactic.value()));
             }
         }
 

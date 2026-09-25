@@ -20,6 +20,7 @@ namespace simple_platformer
     struct CameraController;
     enum class AnimationName;
     enum class NpcState;
+    enum class NpcTactic;
 
     enum class ActorDebugKind
     {
@@ -80,6 +81,7 @@ namespace simple_platformer
         std::optional<ActorSpriteDebugInfo> sprite;
         std::optional<AnimationName> animation;
         std::optional<NpcState> npcState;
+        std::optional<NpcTactic> npcTactic;
         std::optional<PathFollowerDebugInfo> pathFollower;
         std::optional<SensorDebugInfo> sensor;
         std::optional<PatrolDebugInfo> patrol;

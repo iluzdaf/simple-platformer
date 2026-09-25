@@ -173,66 +173,18 @@ inheritance hierarchy, or generic plugin system merely to anticipate possible fe
 
 ## NPC tactics
 
-NPC composition should continue to describe what an actor *can do*: platformer or
-flying movement, sensing, biting, and shooting. `NpcState` describes what it is doing
-right now, such as patrolling, chasing, or attacking. A future tactic can separately
-describe how the NPC chooses between those states.
+`NpcTactic` has two values, Pursuer and KeepDistance, and the transition table consults
+it only for how a known target is pursued. More tactics fit the same shape:
 
-This keeps species, capabilities, and decision-making independent. A zombie and a
-soldier can use different artwork and attacks while sharing a guard tactic; a ranged
-weapon is a capability rather than a `Shooter` brain. Useful tactics could include:
-
-- `Pursuer`: move as close to the remembered target as the map permits;
 - `Guard`: pursue only inside a home region, then return;
-- `KeepDistance`: approach or retreat to maintain a useful attack range;
 - `Flee`: move away from the target;
 - `Patroller`: follow patrol points without pursuing the player.
 
-The first implementation should stay explicit. An enum in `NpcBrain` and a switch in
-the transition table keep the available policies and their dispatch visible. States,
-facts and the functions that act on a state are shared; a tactic differs only in which
-state it enters from which:
-
-```cpp
-enum class NpcTactic
-{
-    Pursuer,
-    Guard,
-    KeepDistance,
-    Flee,
-    Patroller
-};
-
-struct NpcBrain
-{
-    NpcTactic tactic = NpcTactic::Pursuer;
-    NpcState state = NpcState::Idle;
-    // Perception memory and tactic-specific state.
-};
-```
-
-```cpp
-std::optional<NpcState> nextNpcState(NpcTactic tactic, NpcState state, const NpcFacts& facts)
-{
-    switch (tactic)
-    {
-    case NpcTactic::Pursuer:
-        return nextPursuerState(state, facts);
-    case NpcTactic::Guard:
-        return nextGuardState(state, facts);
-    case NpcTactic::KeepDistance:
-        return nextKeepDistanceState(state, facts);
-    case NpcTactic::Flee:
-        return nextFleeState(state, facts);
-    case NpcTactic::Patroller:
-        return nextPatrollerState(state, facts);
-    }
-}
-```
-
 A tactic that needs a fact the others do not, such as whether a guard is inside its
 home region, adds it to `NpcFacts`; one that needs a state the others do not, such as
-returning home, adds the state and its function once for every tactic to use.
+returning home, adds the state and its function once for every tactic to use. Virtual
+brain classes, callbacks, and a general behaviour-tree framework are not needed for
+these tactics.
 
 The `Pursuer` tactic should eventually improve how it handles an unreachable target.
 Instead of selecting only the geometrically nearest standable cell, it can examine
@@ -261,8 +213,3 @@ follows the returned path and waits at its closest reachable endpoint while rema
 in the chase state: the state expresses its intention to pursue, not a guarantee that
 it can reach the target. As with current target memory, this search must use only the
 last position the NPC perceived and must not reveal the player's hidden position.
-
-`NpcTactic` should be introduced only when the game adds a genuinely different second
-policy, such as `Guard`. Until then, a single clearly named pursuit implementation is
-simpler than an abstraction created for hypothetical behaviours. Virtual brain classes,
-callbacks, and a general behaviour-tree framework are not needed for these tactics.

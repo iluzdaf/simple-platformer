@@ -124,6 +124,16 @@ TEST_CASE("Actor definitions reuse engine component validation", "[app][actors]"
     {
         definition.bite = simple_platformer::BiteAttack{};
     }
+    SECTION("A tactic without senses")
+    {
+        definition.tactic = simple_platformer::NpcTactic::KeepDistance;
+    }
+    SECTION("A negative standoff")
+    {
+        definition.senses = simple_platformer::NpcSenses{};
+        definition.tactic = simple_platformer::NpcTactic::KeepDistance;
+        definition.standoffDistance = -1.0F;
+    }
     REQUIRE_THROWS_AS(
         simple_platformer::validateActorDefinition(definition, {}), std::invalid_argument);
 }
@@ -137,6 +147,7 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
         "player":"hero", "actors":{
           "hero":{"bodySize":[12,20],"platformer":{"jumpSpeed":210},"health":5,"inventorySlots":3},
           "scout":{"flying":{"speed":25},"team":"enemy","senses":{"noticeDistance":40,"searchDuration":3},
+                   "tactic":{"kind":"keepDistance","standoffDistance":30},
                    "bodySize":[8,6],"animations":"test_actor","spriteAnchor":"center","bite":{"damage":2}}
         }})",
         "test actors",
@@ -147,6 +158,8 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
     REQUIRE(tests::flyingMovement(actor).speed == 25);
     REQUIRE(tests::bite(actor).damage == 2);
     REQUIRE(tests::senses(actor).searchDuration == 3);
+    REQUIRE(tests::brain(actor).tactic == simple_platformer::NpcTactic::KeepDistance);
+    REQUIRE(tests::brain(actor).standoffDistance == 30);
     REQUIRE(tests::sprite(actor).textureId == 7);
     REQUIRE(tests::sprite(actor).anchor == simple_platformer::SpriteAnchor::BodyCenter);
     REQUIRE_FALSE(actor.platformerMovement.has_value());

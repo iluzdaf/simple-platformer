@@ -52,8 +52,14 @@ namespace simple_platformer
         if (definition.senses)
         {
             actor.brain = NpcBrain{};
+            actor.brain->tactic = definition.tactic;
+            actor.brain->standoffDistance = definition.standoffDistance;
             actor.senses = definition.senses;
             actor.pathFollower = PathFollower{};
+        }
+        else if (definition.tactic != NpcTactic::Pursuer)
+        {
+            throw std::invalid_argument("A tactic requires senses");
         }
         actor.patrol = patrol;
         actor.bite = definition.bite;

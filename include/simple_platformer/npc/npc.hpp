@@ -15,11 +15,24 @@ namespace simple_platformer
         Chase,
         Bite,
         Shoot,
-        Search
+        Search,
+        Retreat
+    };
+
+    // How a brain pursues a target it knows of. A Pursuer closes in and attacks with what
+    // reaches; a KeepDistance NPC does the same but backs away from a target that has come
+    // nearer than its standoff, so a ranged NPC keeps its range.
+    enum class NpcTactic
+    {
+        Pursuer,
+        KeepDistance
     };
 
     struct NpcBrain
     {
+        NpcTactic tactic = NpcTactic::Pursuer;
+        // How near a KeepDistance NPC lets its target come before it retreats.
+        float standoffDistance = 48.0F;
         NpcState state = NpcState::Idle;
         float stateElapsed = 0.0F;
         std::optional<ActorId> target;

@@ -42,6 +42,26 @@ namespace simple_platformer
                 "unknown team '" + team + "'; expected player, enemy, or neutral");
         }
 
+        NpcTactic jsonNpcTactic(
+            const Json& value,
+            std::string_view sourceName,
+            std::string_view path)
+        {
+            const std::string tactic = jsonText(value, sourceName, path);
+            if (tactic == "pursuer")
+            {
+                return NpcTactic::Pursuer;
+            }
+            if (tactic == "keepDistance")
+            {
+                return NpcTactic::KeepDistance;
+            }
+            failJson(
+                sourceName,
+                path,
+                "unknown tactic '" + tactic + "'; expected pursuer or keepDistance");
+        }
+
         Facing jsonFacing(const Json& value, std::string_view sourceName, std::string_view path)
         {
             const std::string facing = jsonText(value, sourceName, path);
@@ -194,6 +214,30 @@ namespace simple_platformer
             }
         }
 
+        // A tactic object names its kind and, for keepDistance, its standoff distance.
+        void readOptionalNpcTactic(
+            const Json& object,
+            std::string_view key,
+            NpcTactic& tactic,
+            float& standoffDistance,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            const Json* found = optionalJsonMember(object, key, sourceName, path);
+            if (found == nullptr)
+            {
+                return;
+            }
+            const std::string tacticPath = fieldPath(path, key);
+            checkJsonFields(*found, {"kind", "standoffDistance"}, sourceName, tacticPath);
+            if (const Json* kind = optionalJsonMember(*found, "kind", sourceName, tacticPath))
+            {
+                tactic = jsonNpcTactic(*kind, sourceName, fieldPath(tacticPath, "kind"));
+            }
+            readOptionalNumber(
+                *found, "standoffDistance", standoffDistance, sourceName, tacticPath);
+        }
+
         void readOptionalFacing(
             const Json& object,
             std::string_view key,
@@ -289,6 +333,7 @@ namespace simple_platformer
                  "platformer",
                  "flying",
                  "senses",
+                 "tactic",
                  "bite",
                  "ranged"},
                 sourceName,
@@ -304,6 +349,8 @@ namespace simple_platformer
             readOptionalPlatformerConfig(value, "platformer", result.platformer, sourceName, path);
             readOptionalFlyingMovement(value, "flying", result.flying, sourceName, path);
             readOptionalNpcSenses(value, "senses", result.senses, sourceName, path);
+            readOptionalNpcTactic(
+                value, "tactic", result.tactic, result.standoffDistance, sourceName, path);
             readOptionalBite(value, "bite", result.bite, sourceName, path);
             readOptionalRangedWeapon(value, "ranged", result.ranged, sourceName, path);
             return result;

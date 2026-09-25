@@ -241,7 +241,10 @@ for the game's HUD, and must not enable NPC sensing. Level patrols remain per-in
 
 Exactly one of `platformer` or `flying` is required. Empty component objects use C++
 defaults; omitted optional components are absent. `senses` adds the existing NPC brain,
-sensing and path follower together. `health` and `inventorySlots` are positive integers.
+sensing and path follower together. `tactic` says how that brain pursues a target: an
+object whose `kind` is `pursuer` or `keepDistance`, with a `standoffDistance` in world
+pixels for `keepDistance`, which the target may not come nearer than. It requires
+`senses`. `health` and `inventorySlots` are positive integers.
 Attacks use either `bite` or `ranged`, and require a non-neutral team. There is no
 inheritance or arbitrary per-placement override mechanism.
 

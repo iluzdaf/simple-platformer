@@ -121,7 +121,9 @@ namespace simple_platformer
                     "NPC actors require a brain, senses, and path follower");
             }
             if (actor.brain.has_value() &&
-                (!std::isfinite(actor.brain->stateElapsed) || actor.brain->stateElapsed < 0.0F ||
+                (!std::isfinite(actor.brain->standoffDistance) ||
+                 actor.brain->standoffDistance < 0.0F ||
+                 !std::isfinite(actor.brain->stateElapsed) || actor.brain->stateElapsed < 0.0F ||
                  !isFinite(actor.brain->lastSeenTargetFeet) ||
                  !std::isfinite(actor.brain->targetMemoryRemaining) ||
                  actor.brain->targetMemoryRemaining < 0.0F))

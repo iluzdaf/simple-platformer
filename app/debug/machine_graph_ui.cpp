@@ -192,20 +192,20 @@ namespace simple_platformer
 
     void MachineGraph::draw(const std::optional<MachineDebugInfo>& machine)
     {
-        // Anchored at the bottom-right, left of the actor text, without a frame, so it
-        // stays where the overlay's other panels leave room. The wheel zooms the graph
-        // rather than scrolling the window.
+        // Anchored at the top, left of the actor text, without a frame or background,
+        // so it sits over the scene like the overlay's other panels. The wheel zooms
+        // the graph rather than scrolling the window.
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(
             {viewport->WorkPos.x + viewport->WorkSize.x - ActorTextWidth - WindowWidth -
                  WindowMargin,
-             viewport->WorkPos.y + viewport->WorkSize.y - WindowHeight - WindowMargin},
+             viewport->WorkPos.y + WindowMargin},
             ImGuiCond_Always);
         ImGui::SetNextWindowSize({WindowWidth, WindowHeight}, ImGuiCond_Always);
-        constexpr ImGuiWindowFlags Flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                           ImGuiWindowFlags_NoSavedSettings |
-                                           ImGuiWindowFlags_NoScrollbar |
-                                           ImGuiWindowFlags_NoScrollWithMouse;
+        constexpr ImGuiWindowFlags Flags =
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground |
+            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
         if (!ImGui::Begin("Machine", nullptr, Flags))
         {
             ImGui::End();

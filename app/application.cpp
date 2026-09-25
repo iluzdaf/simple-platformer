@@ -12,7 +12,6 @@
 #include <imgui.h>
 
 #include "content/level_catalog.hpp"
-#include "debug/debug_overlay.hpp"
 #include "debug/debug_tools.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"

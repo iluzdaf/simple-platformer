@@ -13,7 +13,8 @@ Use this as a reference when working on a particular feature:
 | Orientation | [Purpose and scope](#purpose-and-scope) | What the repository is and is not. |
 | | [Project shape](#project-shape) | Targets, folders, and the dependency boundary. |
 | | [Runtime flow](#runtime-flow) | The fixed step and the order systems run in. |
-| | [Coordinates and time](#coordinates-and-time) | Axes, feet positions, and the shared clock. |
+| | [Coordinates](#coordinates) | Axes and feet positions. |
+| | [Time](#time) | The step, timers, stamps, and which to use. |
 | The data model | [World ownership and identity](#world-ownership-and-identity) | What the world owns. |
 | | [Actor composition](#actor-composition) | How capabilities fit together. |
 | Gameplay systems | [Input and movement](#input-and-movement) | Intentions, platformer and flying movement. |
@@ -148,7 +149,7 @@ collections. They append plain values to `WorldRequests`; the requests are appli
 the end of the tick. This makes the mutation point explicit and avoids invalidating
 iterators and pointers during a system update.
 
-## Coordinates and time
+## Coordinates
 
 - Positive X points right.
 - Positive Y points down.
@@ -161,11 +162,6 @@ iterators and pointers during a system update.
   carries it, and every cell calculation takes that size rather than assuming one. The
   game uses 16.
 - Window output is an integer-scaled internal image with letterboxing when required.
-- `World` owns elapsed simulation time. It advances once per fixed simulation update and
-  provides a shared clock for effects that do not need their own resettable timer.
-  Actors store damage timestamps against this clock, while rendering decides how recent
-  damage should look. `World::secondsSince` answers how long ago such a stamp was, and
-  rejects one from the future, so the readers only compare the age to their window.
 
 The two actor-position conventions are deliberately named:
 
@@ -182,6 +178,65 @@ void placeFeetAt(Aabb& box, glm::vec2 feet);
 
 Physics code works with `body.bounds.position`. Content and ground navigation use
 `feetOf` and `placeFeetAt`. There is no ambiguous general `setPosition` function.
+
+## Time
+
+Gameplay time is seconds, as `float`, measured in the fixed simulation step. The
+application clamps frame time and runs whole steps of `FixedDeltaSeconds`. Every system
+receives the step it ran as `deltaTime` and checks it with `requireSeconds`, which
+rejects anything but a finite, non-negative number. Rendering has no step of its own
+and never advances time.
+
+A moment or a length of time is held in one of two forms.
+
+### Timers
+
+A timer is a `float` on the component its window belongs to, ticked by the one system
+that owns that component, once every step, by that step's `deltaTime`. A countdown holds
+seconds remaining and its window is over at zero: `coyoteRemaining`,
+`jumpBufferRemaining`, `phaseTimeRemaining`, `lifetimeRemaining`, `repathRemaining`,
+`targetMemoryRemaining`, and `deathTimeRemaining`. A count-up holds seconds elapsed and
+is compared against a length: `stateElapsed` and `programElapsed`. The length is a
+second field beside the timer, or beside its reader, such as `coyoteDuration`,
+`targetMemoryDuration`, and `searchDuration`.
+
+A timer needs no clock, so its component and system are tested alone by setting the
+value and stepping. Not updating the system freezes its timers, and refreshing one is an
+assignment. Its cost is order: the tick happens exactly once a step, and where it
+happens relative to other systems is a rule the reader must know. The bite state holds
+for the update it is entered on because the attack system runs after the brain, so a
+bite still ready on that update has not begun.
+
+### Stamps
+
+A stamp is an `std::optional<float>` holding the world clock's value when something
+happened, and empty until it first does: `lastDamageTimeSeconds`,
+`lastFiredTimeSeconds`, `lastLockedTouchTimeSeconds`, and `openedTimeSeconds`. `World`
+owns the clock and advances it once, at the start of every step. A writer takes
+`simulationTimeSeconds()`. A reader asks `secondsSince(stamp)` for its age, or nothing
+when it never happened, and compares the age against a window the reader owns.
+
+One write serves every reader. The shot stamp is read by senses, which hear a shot one
+update old, and by the cover fade, which reveals the shooter for its own window. The
+damage stamp is read only by the hit flash, whose length is a rendering constant, so
+the simulation carries no timer for the renderer's sake. Rendering also reads the raw
+clock, which pickups bob on.
+
+A stamp belongs to the clock it was taken from. `secondsSince` and `addActor` reject a
+stamp from the future, so a player who respawns has the damage stamp cleared, and an
+actor never carries a stamp into another world. A reader of a stamp takes the world as
+well, which is what a test of it has to build. The clock and its stamps are `float`
+seconds, whose resolution reaches a millisecond after about two hours of play; the
+senses' one-update-old check is the first reader that would notice.
+
+### Which to use
+
+- One system starts the window, ends it, and is its only reader: a timer.
+- The question is how long ago something happened, and several readers or a rendering
+  reader ask it: a stamp.
+- Rendering reads stamps and the clock. It ticks nothing.
+- A length that content tunes is a duration field in seconds, checked finite and
+  non-negative like every other time.
 
 ## World ownership and identity
 

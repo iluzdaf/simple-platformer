@@ -514,11 +514,10 @@ TEST_CASE("The overlay shows only navigation cells near the camera", "[app][debu
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........................", "########################"});
     simple_platformer::World world;
-    world.addActor(
-        tests::ActorBuilder::sized({12.0F, 12.0F})
-            .atFeet({8.0F, 16.0F})
-            .walking()
-            .thinking({64.0F, 1.0F}));
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .atFeet({8.0F, 16.0F})
+                       .walking()
+                       .thinking({64.0F, 1.0F}));
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};
 

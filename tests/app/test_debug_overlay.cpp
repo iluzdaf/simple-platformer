@@ -525,8 +525,9 @@ TEST_CASE("The overlay shows only navigation cells near the camera", "[app][debu
         world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.navigationCache.has_value());
-    const std::vector<simple_platformer::NavigationCellDebugInfo>& cells =
-        debug.navigationCache->cells;
+    const simple_platformer::NavigationCacheDebugInfo navigation =
+        debug.navigationCache.value_or(simple_platformer::NavigationCacheDebugInfo{});
+    const std::vector<simple_platformer::NavigationCellDebugInfo>& cells = navigation.cells;
     REQUIRE(cells.size() == 21);
     REQUIRE(cells.front().bounds.position == glm::vec2{0.0F, 0.0F});
     // As for actors, one tile beyond the camera's edge is shown; the rest are not.

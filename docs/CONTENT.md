@@ -468,7 +468,7 @@ of those. A `json` function receives a value; a `read` function finds one by key
 | --- | --- | --- | --- |
 | `jsonText`, `jsonVector`, `jsonSprite`, ... | a JSON value | the converted value | The caller already holds the value. |
 | `readText`, `readVector`, `readName`, ... | an object and a key | the converted value | A missing key is an error. |
-| `jsonName`, `readName` | a value, or an object and a key, and a description | the name | For a name that identifies an entry, such as a definition, an item or a state, which an empty string can never be; the description names the thing in the message. A word converted to something else, such as a team, uses `jsonText`, and a field whose empty string means "none", such as `animations`, uses `readOptionalText`. |
+| `jsonName`, `readName` | a value or a key, and a description | the name | A name that identifies an entry; an empty one is an error. A converted word uses `jsonText`, and a field whose empty string means none uses `readOptionalText`. |
 | `readOptionalText`, `readOptionalVector`, ... | an object, a key, and a reference | nothing | A missing key keeps the caller's value; a present but invalid one is an error. |
 | `checkJsonFields`, `checkJsonObject`, `checkJsonPair` | a JSON value | nothing | Shape assertions. They extract no value. |
 | `requiredJsonMember` | an object and a key | the member | Throws when the key is absent. |

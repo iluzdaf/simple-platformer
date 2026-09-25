@@ -383,6 +383,11 @@ namespace simple_platformer
             case NpcState::Retreat:
                 updateRetreatState(update, actor, brain);
                 break;
+            case NpcState::Watch:
+                // A watch looks about from where the NPC stands; its path was cleared on
+                // entry and nothing here asks for one.
+                lookAbout(actor, brain);
+                break;
             }
         }
     }

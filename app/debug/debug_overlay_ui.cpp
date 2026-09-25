@@ -64,6 +64,8 @@ namespace simple_platformer
                 return "Search";
             case NpcState::Retreat:
                 return "Retreat";
+            case NpcState::Watch:
+                return "Watch";
             }
 
             return "Unknown";

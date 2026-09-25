@@ -13,13 +13,19 @@ namespace simple_platformer
             return facts.hasPatrol ? NpcState::Patrol : NpcState::Idle;
         }
 
-        // Where a lost target leaves its pursuer: searching for it, or back to its routine.
-        NpcState lostTarget(const NpcFacts& facts)
+        // The second choice the table puts to the tactic: where a lost target leaves the
+        // NPC. A Pursuer searches where it lost it, a KeepDistance NPC watches from where
+        // it stands, and one that does not search goes back to its routine.
+        NpcState lostTarget(NpcTactic tactic, const NpcFacts& facts)
         {
-            return facts.searches ? NpcState::Search : patrolOrIdle(facts);
+            if (!facts.searches)
+            {
+                return patrolOrIdle(facts);
+            }
+            return tactic == NpcTactic::KeepDistance ? NpcState::Watch : NpcState::Search;
         }
 
-        // The one choice the table puts to the tactic: how a known target is pursued.
+        // The first choice the table puts to the tactic: how a known target is pursued.
         // With the attack that can reach it now, a bite before a shot, and otherwise by
         // chasing; a KeepDistance NPC first backs away from a target that has come too
         // near. Nothing without a target.
@@ -67,10 +73,11 @@ namespace simple_platformer
         case NpcState::Retreat:
             if (!pursuing.has_value())
             {
-                return lostTarget(facts);
+                return lostTarget(tactic, facts);
             }
             return *pursuing != state ? pursuing : std::nullopt;
         case NpcState::Search:
+        case NpcState::Watch:
             if (pursuing.has_value())
             {
                 return pursuing;
@@ -84,7 +91,7 @@ namespace simple_platformer
             {
                 return std::nullopt;
             }
-            return facts.targetKnown ? NpcState::Chase : lostTarget(facts);
+            return facts.targetKnown ? NpcState::Chase : lostTarget(tactic, facts);
         }
         return std::nullopt;
     }

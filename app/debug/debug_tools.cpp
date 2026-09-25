@@ -15,11 +15,13 @@ namespace simple_platformer
         DebugTools& tools,
         const FrameProfile& profile,
         const DebugOverlay& overlay,
-        const std::optional<WindowViewport>& viewport)
+        const std::optional<WindowViewport>& viewport,
+        bool showFrameProfileDetails)
     {
         drawDebugOverlay(overlay, viewport);
         drawMachineGraph(tools.machineEditors, overlay.machine);
         tools.frameHistory.push(profile);
-        drawFrameProfile(tools.frameHistory, tools.frameSelection, tools.frameAxes);
+        drawFrameProfile(
+            tools.frameHistory, tools.frameSelection, tools.frameAxes, showFrameProfileDetails);
     }
 }

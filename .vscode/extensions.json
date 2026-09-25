@@ -2,7 +2,6 @@
     "recommendations": [
         "llvm-vs-code-extensions.vscode-clangd",
         "ms-vscode.cmake-tools",
-        "matepek.vscode-catch2-test-adapter",
         "esbenp.prettier-vscode"
     ]
 }

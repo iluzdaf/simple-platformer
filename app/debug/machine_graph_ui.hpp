@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 
+#include <imgui.h>
 #include <imgui_node_editor.h>
 
 #include "simple_platformer/actor/actor_id.hpp"

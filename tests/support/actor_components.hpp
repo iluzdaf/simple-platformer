@@ -13,6 +13,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -121,6 +122,23 @@ namespace tests
         simple_platformer::ActorId id)
     {
         return brain(actor(world, id));
+    }
+
+    inline simple_platformer::NpcMachine& machine(simple_platformer::Actor& actor)
+    {
+        std::optional<simple_platformer::NpcMachine>& component = actor.machine;
+        if (!component.has_value())
+        {
+            throw std::logic_error("The test actor has no machine");
+        }
+        return *component;
+    }
+
+    inline simple_platformer::NpcMachine& machine(
+        simple_platformer::World& world,
+        simple_platformer::ActorId id)
+    {
+        return machine(actor(world, id));
     }
 
     inline simple_platformer::BiteAttack& bite(simple_platformer::Actor& actor)

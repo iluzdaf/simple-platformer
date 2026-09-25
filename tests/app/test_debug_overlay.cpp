@@ -453,6 +453,17 @@ namespace
                          .when("targetKnown", true));
     }
 
+    // Which NPC the machine window follows, or nothing.
+    std::optional<simple_platformer::ActorId> followedBy(
+        const simple_platformer::DebugOverlay& debug)
+    {
+        if (!debug.machine.has_value())
+        {
+            return std::nullopt;
+        }
+        return debug.machine.value_or(simple_platformer::MachineDebugInfo{}).actor;
+    }
+
     simple_platformer::DebugOverlay overlayOf(
         const simple_platformer::World& world,
         std::optional<glm::vec2> cursorWorld = std::nullopt)
@@ -530,12 +541,12 @@ TEST_CASE("The machine window follows the NPC under the cursor instead", "[app][
     world.addActor(machineNpc({60.0F, 20.0F}));
     const simple_platformer::ActorId further = world.addActor(machineNpc({200.0F, 20.0F}));
 
-    REQUIRE(overlayOf(world, glm::vec2{206.0F, 26.0F}).machine->actor == further);
+    REQUIRE(followedBy(overlayOf(world, glm::vec2{206.0F, 26.0F})) == further);
     // The cursor over an NPC without a machine, or over nothing, changes nothing.
     world.addActor(
         tests::ActorBuilder::sized({12.0F, 12.0F}).at({150.0F, 20.0F}).walking().thinking({}));
-    REQUIRE(overlayOf(world, glm::vec2{156.0F, 26.0F}).machine->actor != further);
-    REQUIRE(overlayOf(world, glm::vec2{10.0F, 10.0F}).machine->actor != further);
+    REQUIRE(followedBy(overlayOf(world, glm::vec2{156.0F, 26.0F})) != further);
+    REQUIRE(followedBy(overlayOf(world, glm::vec2{10.0F, 10.0F})) != further);
 }
 
 TEST_CASE("The machine window follows nothing off screen", "[app][debug]")
@@ -552,15 +563,17 @@ TEST_CASE("The machine window is told which transition fired last", "[app][debug
 {
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(machineNpc({60.0F, 20.0F}));
-    simple_platformer::NpcMachine& machine = world.findActor(id)->machine.value();
     REQUIRE(
         simple_platformer::advanceNpcMachine(
-            machine, tests::NpcFactsBuilder::facts().knowingTarget(), tests::FixedStepSeconds) ==
-        0);
+            tests::machine(world, id),
+            tests::NpcFactsBuilder::facts().knowingTarget(),
+            tests::FixedStepSeconds) == 0);
 
     const simple_platformer::DebugOverlay debug = overlayOf(world);
 
     REQUIRE(debug.machine.has_value());
-    REQUIRE(debug.machine->active == 1);
-    REQUIRE(debug.machine->lastFired == 0);
+    const simple_platformer::MachineDebugInfo machine =
+        debug.machine.value_or(simple_platformer::MachineDebugInfo{});
+    REQUIRE(machine.active == 1);
+    REQUIRE(machine.lastFired == 0);
 }

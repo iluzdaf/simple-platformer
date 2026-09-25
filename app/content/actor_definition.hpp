@@ -28,7 +28,7 @@ namespace simple_platformer
         std::optional<FlyingMovement> flying;
         // Presence enables the existing NPC brain and path follower together.
         std::optional<NpcSenses> senses;
-        // How the brain pursues a target, and for KeepDistance how near it lets one come.
+        // The brain's policy, and for KeepDistance how near it lets a target come.
         NpcTactic tactic = NpcTactic::Pursuer;
         float standoffDistance = 48.0F;
         // Reuse the engine's attack settings. Composition resets their phase/timer state;

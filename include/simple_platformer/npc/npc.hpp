@@ -19,9 +19,11 @@ namespace simple_platformer
         Retreat
     };
 
-    // How a brain pursues a target it knows of. A Pursuer closes in and attacks with what
-    // reaches; a KeepDistance NPC does the same but backs away from a target that has come
-    // nearer than its standoff, so a ranged NPC keeps its range.
+    // The brain's policy, asked wherever the transition table makes a choice; today that
+    // is what to do about a known target. A Pursuer closes in and attacks with what
+    // reaches. A KeepDistance NPC does the same but backs away from a target nearer than
+    // its standoff, so a ranged NPC keeps its range. A tactic chooses between states that
+    // exist; it never adds behaviour.
     enum class NpcTactic
     {
         Pursuer,

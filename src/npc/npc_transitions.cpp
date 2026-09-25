@@ -19,9 +19,10 @@ namespace simple_platformer
             return facts.searches ? NpcState::Search : patrolOrIdle(facts);
         }
 
-        // How a known target is pursued: with the attack that can reach it now, a bite
-        // before a shot, and otherwise by chasing. A KeepDistance NPC first backs away
-        // from a target that has come too near. Nothing without a target.
+        // The one choice the table puts to the tactic: how a known target is pursued.
+        // With the attack that can reach it now, a bite before a shot, and otherwise by
+        // chasing; a KeepDistance NPC first backs away from a target that has come too
+        // near. Nothing without a target.
         std::optional<NpcState> pursuit(NpcTactic tactic, const NpcFacts& facts)
         {
             if (!facts.targetKnown)

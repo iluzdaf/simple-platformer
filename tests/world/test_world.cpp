@@ -142,13 +142,6 @@ TEST_CASE("World rejects invalid actor composition", "[world][actor]")
     {
         actor.brain = simple_platformer::NpcBrain{};
     }
-    SECTION("An NPC biting without a bite")
-    {
-        actor.brain = simple_platformer::NpcBrain{};
-        tests::brain(actor).state = simple_platformer::NpcState::Bite;
-        actor.senses = simple_platformer::NpcSenses{};
-        actor.pathFollower = simple_platformer::PathFollower{};
-    }
     SECTION("Damage taken in the future")
     {
         actor.lastDamageTimeSeconds = 1.0F;

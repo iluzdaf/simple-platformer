@@ -12,10 +12,12 @@
 #include <imgui.h>
 
 #include "content/level_catalog.hpp"
+#include "debug/debug_overlay.hpp"
 #include "debug/debug_overlay_ui.hpp"
 #include "debug/frame_axes.hpp"
 #include "debug/frame_profile_ui.hpp"
 #include "debug/frame_selection.hpp"
+#include "debug/machine_graph_ui.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/game_window.hpp"
@@ -178,6 +180,7 @@ namespace simple_platformer
         FrameHistory frameHistory;
         FrameSelection frameSelection;
         FrameAxes frameAxes;
+        MachineGraph machineGraph;
         Stopwatch frameClock;
 
         while (!window.shouldClose())
@@ -274,12 +277,10 @@ namespace simple_platformer
 
             if (context.showDebugOverlay)
             {
-                drawDebugOverlay(
-                    game.debugOverlay(
-                        static_cast<float>(atlasTexture.width),
-                        internalCursor,
-                        context.debugBodyIndex),
-                    windowViewport);
+                const DebugOverlay overlay = game.debugOverlay(
+                    static_cast<float>(atlasTexture.width), internalCursor, context.debugBodyIndex);
+                drawDebugOverlay(overlay, windowViewport);
+                machineGraph.draw(overlay.machine);
                 drawFrameProfile(frameHistory, frameSelection, frameAxes);
             }
             imgui.render();

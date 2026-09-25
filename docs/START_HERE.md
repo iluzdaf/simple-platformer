@@ -122,7 +122,7 @@ A practical route through the implementation is:
 3. Add one state such as Guard or Recover and test its transitions separately from
    movement. Optionally, write the same rules as a machine in
    [`machines.json`](../assets/machines.json) and give it to an actor, to compare the
-   switch with the data.
+   switch with the data and watch it run in the overlay's machine window.
 4. Read generic lowest-cost search and flying navigation before studying simulated
    platformer jumps.
 5. Create an enemy with a deliberate combination of movement, senses, tactic, state

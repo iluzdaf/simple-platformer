@@ -1,0 +1,9 @@
+imgui-node-editor, vendored from https://github.com/thedmd/imgui-node-editor
+Commit 021aa0ea4da13fed864bafb2a92d4c5205076866 on develop, 2026-03-29
+(IMGUI_NODE_EDITOR_VERSION "0.9.4").
+Files: imgui_node_editor.h, imgui_node_editor.cpp, imgui_node_editor_api.cpp,
+imgui_node_editor_internal.h, imgui_node_editor_internal.inl, imgui_canvas.h,
+imgui_canvas.cpp, imgui_bezier_math.h, imgui_bezier_math.inl, imgui_extra_math.h,
+imgui_extra_math.inl, crude_json.h, crude_json.cpp, LICENSE, README.md (from docs/).
+Taken from develop rather than the last tagged release (v0.9.3, 2023) because the tag
+defines ImVec2 operators that ImGui 1.91 already defines and does not compile against it.

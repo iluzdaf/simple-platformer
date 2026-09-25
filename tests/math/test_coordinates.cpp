@@ -51,6 +51,17 @@ TEST_CASE("AABBs that only touch at an edge do not overlap", "[math][aabb]")
     REQUIRE_FALSE(simple_platformer::overlaps(first, second));
 }
 
+TEST_CASE("An AABB contains points inside it and on its near edges", "[math][aabb]")
+{
+    const simple_platformer::Aabb box{{10.0F, 20.0F}, {4.0F, 6.0F}};
+
+    REQUIRE(simple_platformer::contains(box, {12.0F, 23.0F}));
+    REQUIRE(simple_platformer::contains(box, {10.0F, 20.0F}));
+    REQUIRE_FALSE(simple_platformer::contains(box, {14.0F, 23.0F}));
+    REQUIRE_FALSE(simple_platformer::contains(box, {12.0F, 26.0F}));
+    REQUIRE_FALSE(simple_platformer::contains(box, {9.0F, 23.0F}));
+}
+
 TEST_CASE("Grid positions compare by both coordinates", "[math][coordinates]")
 {
     using simple_platformer::GridPosition;

@@ -129,16 +129,21 @@ one key; the third exit completes the example campaign.
 ## Debug overlay
 
 F1 opens the overlay. It draws colliders, NPC sensing, patrol points, navigation paths,
-and the navigation cache's cells for one NPC body, and shows a frame panel that plots
-the last two seconds of frame times against the 60 Hz budget, stacks the simulation's
-cost by category on a second axis, and breaks the latest frame into simulation, scene
-building, rendering, and interface time, with every simulation phase listed under its
-category.
+and the navigation cache's cells for one NPC body, for what the camera can see, and
+shows a frame panel that plots the last two seconds of frame times against the 60 Hz
+budget, stacks the simulation's cost by category on a second axis, and breaks the
+latest frame into simulation, scene building, rendering, and interface time, with
+every simulation phase listed under its category. A machine window draws the state
+machine of the NPC under the cursor, or else of the one with a machine nearest the
+player, with its active state lit and the transition that fired last flowing.
 
 | Action | Controls |
 | --- | --- |
 | Show the navigation cache for the next NPC body | N |
 | Break a breakable tile under the cursor | B, while the tile is labelled |
+| Move a state in the machine window | Drag it |
+| Pan or zoom the machine window | Drag with the right button, or scroll |
+| Fit the machine window to its graph | F, with the cursor over it |
 | Hold the frame plot on a frame and show its costs | Press on the plot |
 | Scrub along the frames | Drag on the plot |
 | Resume the live plot | Click the picked frame again |

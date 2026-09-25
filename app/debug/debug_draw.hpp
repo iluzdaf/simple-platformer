@@ -35,6 +35,7 @@ namespace simple_platformer
     constexpr ImU32 SpriteBoundsColour = IM_COL32(64, 64, 64, 255);
     constexpr ImU32 ColliderBoundsColour = IM_COL32(255, 64, 64, 255);
     constexpr ImU32 PickupColour = IM_COL32(96, 255, 160, 255);
+    constexpr ImU32 FollowedActorColour = IM_COL32(80, 255, 96, 255);
 
     // Where a world position lands on screen, given the camera's view of the world.
     ImVec2 screenPosition(

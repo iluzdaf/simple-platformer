@@ -6,6 +6,7 @@
 
 #include "graphics/display_viewport.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "ui/hud_draw.hpp"
 
 namespace simple_platformer
 {
@@ -40,7 +41,7 @@ namespace simple_platformer
         ImU32 colour,
         float indentation)
     {
-        drawList.AddText({position.x + indentation, position.y}, colour, text);
+        drawShadowedText(drawList, {position.x + indentation, position.y}, colour, text);
         position.y += ImGui::GetTextLineHeight();
     }
 }

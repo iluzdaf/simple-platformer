@@ -14,6 +14,7 @@
 #include "navigation_debug.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "ui/hud_draw.hpp"
 
 namespace simple_platformer
 {
@@ -68,7 +69,7 @@ namespace simple_platformer
             {
                 char count[8];
                 std::snprintf(count, sizeof(count), "%zu", *cell.connections);
-                drawList.AddText({minimum.x + 1.0F, minimum.y}, WorldLabelColour, count);
+                drawShadowedText(drawList, {minimum.x + 1.0F, minimum.y}, WorldLabelColour, count);
             }
         }
 

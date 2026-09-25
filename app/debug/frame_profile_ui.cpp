@@ -16,6 +16,7 @@
 
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
+#include "ui/hud_draw.hpp"
 
 namespace simple_platformer
 {
@@ -117,7 +118,8 @@ namespace simple_platformer
                         {rowTopLeft.x + swatchInset + swatchSize,
                          rowTopLeft.y + swatchInset + swatchSize},
                         ImGui::ColorConvertFloat4ToU32(swatch));
-                    drawList->AddText(
+                    drawShadowedText(
+                        *drawList,
                         {rowTopLeft.x + rowHeight + swatchInset, rowTopLeft.y},
                         ImGui::GetColorU32(entry.hidden ? ImGuiCol_TextDisabled : ImGuiCol_Text),
                         entry.label);

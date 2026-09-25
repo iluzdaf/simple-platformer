@@ -144,7 +144,8 @@ namespace simple_platformer
                 char pointLabel[16]{};
                 std::snprintf(pointLabel, sizeof(pointLabel), "%zu", index + 1);
                 const ImVec2 pointLabelSize = ImGui::CalcTextSize(pointLabel);
-                drawList.AddText(
+                drawShadowedText(
+                    drawList,
                     {to.x - pointLabelSize.x * 0.5F,
                      to.y - pointLabelSize.y - (connection.next ? 6.0F : 5.0F)},
                     colour,
@@ -173,7 +174,8 @@ namespace simple_platformer
                 const ImVec2 destination =
                     screenPosition(follower.destinationFeet.value(), scene.cameraBounds, viewport);
                 drawList.AddCircle(destination, DestinationRadius, PathDestinationColour, 16, 2.0F);
-                drawList.AddText(
+                drawShadowedText(
+                    drawList,
                     {destination.x + DestinationRadius + 2.0F,
                      destination.y - ImGui::GetTextLineHeight() * 0.5F},
                     PathDestinationColour,
@@ -226,7 +228,8 @@ namespace simple_platformer
                     2.0F);
                 char memoryLabel[32]{};
                 std::snprintf(memoryLabel, sizeof(memoryLabel), "%.2fs", sensor.memoryRemaining);
-                drawList.AddText(
+                drawShadowedText(
+                    drawList,
                     {remembered.x + MarkerRadius + 2.0F, remembered.y - MarkerRadius},
                     RememberedTargetColour,
                     memoryLabel);
@@ -267,9 +270,13 @@ namespace simple_platformer
                 const float top = point.y - ActivePointRadius - 2.0F - lineHeight * 2.0F;
                 const ImVec2 actorLabelSize = ImGui::CalcTextSize(actorLabel);
                 const ImVec2 pointLabelSize = ImGui::CalcTextSize(pointName);
-                drawList.AddText(
-                    {point.x - actorLabelSize.x * 0.5F, top}, PatrolPointColour, actorLabel);
-                drawList.AddText(
+                drawShadowedText(
+                    drawList,
+                    {point.x - actorLabelSize.x * 0.5F, top},
+                    PatrolPointColour,
+                    actorLabel);
+                drawShadowedText(
+                    drawList,
                     {point.x - pointLabelSize.x * 0.5F, top + lineHeight},
                     PatrolPointColour,
                     pointName);
@@ -289,17 +296,19 @@ namespace simple_platformer
             ImVec2 labelPosition = screenPosition(labelWorldPosition, scene.cameraBounds, viewport);
             const float lineHeight = ImGui::GetTextLineHeight();
             const std::string actorLabel = labelFor(actor);
-            drawList.AddText(labelPosition, WorldLabelColour, actorLabel.c_str());
+            drawShadowedText(drawList, labelPosition, WorldLabelColour, actorLabel.c_str());
 
             if (actor.animation.has_value())
             {
                 labelPosition.y += lineHeight;
-                drawList.AddText(labelPosition, WorldLabelColour, nameOf(actor.animation.value()));
+                drawShadowedText(
+                    drawList, labelPosition, WorldLabelColour, nameOf(actor.animation.value()));
             }
             if (actor.npcState.has_value())
             {
                 labelPosition.y += lineHeight;
-                drawList.AddText(labelPosition, WorldLabelColour, nameOf(actor.npcState.value()));
+                drawShadowedText(
+                    drawList, labelPosition, WorldLabelColour, nameOf(actor.npcState.value()));
             }
         }
 
@@ -329,7 +338,7 @@ namespace simple_platformer
             {
                 std::snprintf(label, sizeof(label), "none\n%.2f", projectile.lifetimeRemaining);
             }
-            drawList.AddText(labelPosition, ProjectileColour, label);
+            drawShadowedText(drawList, labelPosition, ProjectileColour, label);
         }
 
         // Outlines the breakable cell under the cursor and names the key that breaks it.
@@ -432,7 +441,8 @@ namespace simple_platformer
                 scene.cameraBounds,
                 *viewport,
                 CameraDeadZoneColour);
-            drawList->AddText(
+            drawShadowedText(
+                *drawList,
                 screenPosition(scene.cameraDeadZone.position, scene.cameraBounds, *viewport),
                 CameraDeadZoneColour,
                 "camera dead zone");
@@ -527,7 +537,8 @@ namespace simple_platformer
             {
                 drawWorldBounds(
                     *drawList, pickup.bounds, scene.cameraBounds, *viewport, PickupColour);
-                drawList->AddText(
+                drawShadowedText(
+                    *drawList,
                     screenPosition(pickup.bounds.position, scene.cameraBounds, *viewport),
                     PickupColour,
                     pickup.itemName.c_str());

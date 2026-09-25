@@ -509,6 +509,31 @@ TEST_CASE("The overlay shows only what the camera can see", "[app][debug]")
     REQUIRE(debug.pickups.front().bounds.position == glm::vec2{20.0F, 40.0F});
 }
 
+TEST_CASE("The overlay shows only navigation cells near the camera", "[app][debug]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........................", "########################"});
+    simple_platformer::World world;
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .atFeet({8.0F, 16.0F})
+                       .walking()
+                       .thinking({64.0F, 1.0F}));
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
+
+    REQUIRE(debug.navigationCache.has_value());
+    const simple_platformer::NavigationCacheDebugInfo navigation =
+        debug.navigationCache.value_or(simple_platformer::NavigationCacheDebugInfo{});
+    const std::vector<simple_platformer::NavigationCellDebugInfo>& cells = navigation.cells;
+    REQUIRE(cells.size() == 21);
+    REQUIRE(cells.front().bounds.position == glm::vec2{0.0F, 0.0F});
+    // As for actors, one tile beyond the camera's edge is shown; the rest are not.
+    REQUIRE(cells.back().bounds.position == glm::vec2{320.0F, 0.0F});
+}
+
 TEST_CASE("The machine window follows the NPC with a machine nearest the player", "[app][debug]")
 {
     simple_platformer::World world;

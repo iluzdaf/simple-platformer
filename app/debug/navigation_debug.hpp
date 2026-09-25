@@ -108,10 +108,12 @@ namespace simple_platformer
 
     // Built from the map and the world's connection cache, without ImGui, so it can be
     // tested. The step is the one the world is simulated with, which is part of the
-    // body the cache keys on.
+    // body the cache keys on. When visibleBounds is present, only cells overlapping it
+    // are included; the cache totals still describe the whole map.
     std::optional<NavigationCacheDebugInfo> makeNavigationCacheDebugInfo(
         const World& world,
         const TileMap& map,
         float simulationStepSeconds,
-        const NavigationDebugView& view = {});
+        const NavigationDebugView& view = {},
+        std::optional<Aabb> visibleBounds = std::nullopt);
 }

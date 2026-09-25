@@ -21,6 +21,12 @@ namespace simple_platformer
         drawList.AddText(position, colour, text);
     }
 
+    void drawCenteredText(ImDrawList& drawList, float centerX, float y, const char* text)
+    {
+        const float left = centerX - ImGui::CalcTextSize(text).x * 0.5F;
+        drawShadowedText(drawList, {left, y}, HudTextColour, text);
+    }
+
     void drawAtlasRegion(
         ImDrawList& drawList,
         const TextureView& atlas,

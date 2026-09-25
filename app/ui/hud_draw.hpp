@@ -11,6 +11,7 @@ namespace simple_platformer
 
     // Text over a one-pixel dark shadow, so it reads on any part of the scene.
     void drawShadowedText(ImDrawList& drawList, ImVec2 position, ImU32 colour, const char* text);
+    void drawCenteredText(ImDrawList& drawList, float centerX, float y, const char* text);
 
     // The atlas region stretched over the screen rectangle.
     void drawAtlasRegion(

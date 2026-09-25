@@ -8,6 +8,7 @@
 #include "ui/exit_hint_ui.hpp"
 #include "ui/health_hud_ui.hpp"
 #include "ui/inventory_ui.hpp"
+#include "ui/pause_ui.hpp"
 
 namespace simple_platformer
 {
@@ -15,7 +16,8 @@ namespace simple_platformer
         const Game& game,
         const TextureView& atlas,
         const std::optional<WindowViewport>& viewport,
-        bool inventoryOpen)
+        bool inventoryOpen,
+        bool simulationPaused)
     {
         InterfaceRequests requests;
         if (!viewport.has_value())
@@ -29,6 +31,10 @@ namespace simple_platformer
             drawLockedExitHint(game, atlas, *viewport);
         }
         drawLevelCompletion(game, *viewport);
+        if (simulationPaused && !game.complete())
+        {
+            drawPauseNotice(*viewport);
+        }
         if (inventoryOpen && !game.complete())
         {
             requests.useInventorySlot = drawInventory(game, atlas, *viewport);

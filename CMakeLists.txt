@@ -191,6 +191,7 @@ add_executable(
     app/ui/interface_ui.cpp
     app/ui/inventory_layout.cpp
     app/ui/inventory_ui.cpp
+    app/ui/pause_ui.cpp
 )
 target_compile_features(simple_platformer PRIVATE cxx_std_17)
 target_include_directories(simple_platformer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/app)

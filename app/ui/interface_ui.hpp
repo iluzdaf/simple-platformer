@@ -19,12 +19,14 @@ namespace simple_platformer
     };
 
     // The player-facing interface over the scene, in a fixed order: the health HUD, the
-    // inventory bag, the locked exit hint, the completion message, and the inventory while
-    // it is open. With no viewport there is nothing to draw against. Build it before the
-    // simulation so a bag click pauses the same frame instead of firing a shot.
+    // inventory bag, the locked exit hint, the completion message, the pause notice
+    // while the simulation is paused, and the inventory while it is open. With no
+    // viewport there is nothing to draw against. Build it before the simulation so a
+    // bag click pauses the same frame instead of firing a shot.
     InterfaceRequests drawInterface(
         const Game& game,
         const TextureView& atlas,
         const std::optional<WindowViewport>& viewport,
-        bool inventoryOpen);
+        bool inventoryOpen,
+        bool simulationPaused);
 }

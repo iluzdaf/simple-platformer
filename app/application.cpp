@@ -39,8 +39,12 @@ namespace simple_platformer
             // B with the overlay open breaks the tile under the cursor, as a shot would.
             bool breakTileRequested = false;
             bool inventoryOpen = false;
-            // Set when the inventory opens or closes or the game restarts, so the next
-            // step discards the time and input edges that built up across the change.
+            // P pauses the simulation; . runs one fixed step while paused.
+            bool simulationPaused = false;
+            bool stepRequested = false;
+            // Set when the inventory opens or closes, the simulation pauses or resumes,
+            // or the game restarts, so the next step discards the time and input edges
+            // that built up across the change.
             bool playInterrupted = false;
             bool restartRequested = false;
         };
@@ -79,6 +83,17 @@ namespace simple_platformer
             if (key == GLFW_KEY_R && action == GLFW_PRESS)
             {
                 context->restartRequested = true;
+                return;
+            }
+            if (key == GLFW_KEY_P && action == GLFW_PRESS)
+            {
+                context->simulationPaused = !context->simulationPaused;
+                context->playInterrupted = true;
+                return;
+            }
+            if (key == GLFW_KEY_PERIOD && action == GLFW_PRESS && context->simulationPaused)
+            {
+                context->stepRequested = true;
                 return;
             }
 
@@ -199,8 +214,12 @@ namespace simple_platformer
             FrameProfile profile;
             profile.frameSeconds = frameClock.lapSeconds();
             const Stopwatch interfaceWatch;
-            const InterfaceRequests interfaceRequests =
-                drawInterface(game, atlasTexture, windowViewport, context.inventoryOpen);
+            const InterfaceRequests interfaceRequests = drawInterface(
+                game,
+                atlasTexture,
+                windowViewport,
+                context.inventoryOpen,
+                context.simulationPaused);
             profile.interfaceSeconds = interfaceWatch.elapsedSeconds();
             if (interfaceRequests.toggleInventory)
             {
@@ -230,7 +249,8 @@ namespace simple_platformer
 
             // What input survives into the step: nothing while paused, across an
             // interruption, or while ImGui has the keyboard; no attack without the cursor.
-            const bool paused = context.inventoryOpen || game.complete();
+            const bool paused =
+                context.inventoryOpen || game.complete() || context.simulationPaused;
             if (paused || context.playInterrupted || ImGui::GetIO().WantCaptureKeyboard)
             {
                 context.input = {};
@@ -240,24 +260,32 @@ namespace simple_platformer
                 context.input.clearButton(InputButton::PrimaryAttack);
             }
 
+            const auto step = [&](float deltaTime)
+            {
+                const InputIntentions intentions = playerIntentions(context, game, gameCursor);
+                game.update(intentions, deltaTime, &profile);
+            };
             if (paused || context.playInterrupted)
             {
                 // Time that built up would otherwise be simulated in a burst on resuming.
                 fixedStep.reset();
                 context.playInterrupted = false;
+                if (context.stepRequested && !context.inventoryOpen && !game.complete())
+                {
+                    const Stopwatch simulationWatch;
+                    step(static_cast<float>(fixedStep.stepSeconds()));
+                    profile.simulationTicks = 1;
+                    profile.simulationSeconds = simulationWatch.elapsedSeconds();
+                }
             }
             else
             {
-                const auto step = [&](float deltaTime)
-                {
-                    const InputIntentions intentions = playerIntentions(context, game, gameCursor);
-                    game.update(intentions, deltaTime, &profile);
-                };
                 const Stopwatch simulationWatch;
                 const FixedStepResult stepped = fixedStep.advance(profile.frameSeconds, step);
                 profile.simulationTicks = static_cast<int>(stepped.updates);
                 profile.simulationSeconds = simulationWatch.elapsedSeconds();
             }
+            context.stepRequested = false;
 
             const Stopwatch sceneWatch;
             const RenderScene scene = game.buildScene();

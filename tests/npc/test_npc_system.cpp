@@ -269,6 +269,11 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
     brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
     brain(world, npcId).targetVisible = true;
 
+    // One transition an update: the target is chased, then bitten.
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
+    REQUIRE_FALSE(actor(world, npcId).intentions.primaryAttackPressed);
+
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Bite);
     REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);

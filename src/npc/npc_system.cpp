@@ -22,6 +22,7 @@
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
+#include "simple_platformer/npc/npc_transitions.hpp"
 #include "simple_platformer/timing/stopwatch.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -39,12 +40,6 @@ namespace simple_platformer
             float deltaTime;
             NpcBehaviourCost& cost;
         };
-
-        void changeState(NpcBrain& brain, NpcState state)
-        {
-            brain.state = state;
-            brain.stateElapsed = 0.0F;
-        }
 
         // Looking at the target is an aim, like everything else an actor intends; the
         // movement update turns it into a facing.
@@ -180,58 +175,29 @@ namespace simple_platformer
             }
         }
 
-        void enterPatrolOrIdle(NpcBrain& brain, PathFollower& follower, bool hasPatrol)
+        NpcFacts gatherNpcFacts(const Actor& actor, const NpcBrain& brain, const Actor* target)
+        {
+            NpcFacts facts;
+            facts.targetKnown = target != nullptr;
+            facts.targetVisible = brain.targetVisible;
+            facts.targetInBiteRange =
+                target != nullptr && brain.targetVisible && targetIsInBiteRange(actor, *target);
+            facts.biteReady = actor.bite.has_value() && actor.bite->phase == BitePhase::Ready;
+            facts.hasPatrol = actor.patrol.has_value();
+            facts.stateElapsed = brain.stateElapsed;
+            return facts;
+        }
+
+        // Every change drops the path, since the new state chooses its own destination,
+        // and a bite is asked for once, as its state is entered.
+        void enterNpcState(Actor& actor, NpcBrain& brain, PathFollower& follower, NpcState state)
         {
             clearPath(follower);
-            changeState(brain, hasPatrol ? NpcState::Patrol : NpcState::Idle);
-        }
-
-        void chooseNpcState(
-            NpcBrain& brain,
-            PathFollower& follower,
-            bool hasPatrol,
-            const Actor* target)
-        {
-            if (brain.state == NpcState::Bite)
+            brain.state = state;
+            brain.stateElapsed = 0.0F;
+            if (state == NpcState::Bite)
             {
-                return;
-            }
-
-            if (target != nullptr && brain.state != NpcState::Chase)
-            {
-                clearPath(follower);
-                changeState(brain, NpcState::Chase);
-            }
-            else if (target == nullptr && brain.state == NpcState::Chase)
-            {
-                enterPatrolOrIdle(brain, follower, hasPatrol);
-            }
-            else if (brain.state == NpcState::Idle && hasPatrol)
-            {
-                changeState(brain, NpcState::Patrol);
-            }
-        }
-
-        void updateBiteState(
-            Actor& actor,
-            NpcBrain& brain,
-            PathFollower& follower,
-            const BiteAttack& bite,
-            const Actor* target)
-        {
-            aimToward(actor, brain.lastSeenTargetFeet);
-            if (bite.phase != BitePhase::Ready || brain.stateElapsed <= 0.0F)
-            {
-                return;
-            }
-
-            if (target == nullptr)
-            {
-                enterPatrolOrIdle(brain, follower, actor.patrol.has_value());
-            }
-            else
-            {
-                changeState(brain, NpcState::Chase);
+                actor.intentions.primaryAttackPressed = true;
             }
         }
 
@@ -253,23 +219,16 @@ namespace simple_platformer
         void updateChaseState(
             const NpcUpdate& update,
             Actor& actor,
-            NpcBrain& brain,
+            const NpcBrain& brain,
             PathFollower& follower,
             const Actor* target)
         {
             if (target == nullptr)
             {
-                return;
+                throw std::logic_error("A chasing NPC has no target");
             }
 
             aimToward(actor, brain.lastSeenTargetFeet);
-            if (brain.targetVisible && targetIsInBiteRange(actor, *target))
-            {
-                clearPath(follower);
-                actor.intentions.primaryAttackPressed = true;
-                changeState(brain, NpcState::Bite);
-                return;
-            }
             if (brain.targetVisible && actor.rangedWeapon.has_value())
             {
                 clearPath(follower);
@@ -293,6 +252,7 @@ namespace simple_platformer
             followDestination(update, actor, follower, destinationFeet);
         }
 
+        // Which state comes next is decided once, from the facts, before the state acts.
         void updateNpcState(const NpcUpdate& update, Actor& actor)
         {
             if (!actor.brain.has_value() || !actor.pathFollower.has_value())
@@ -302,7 +262,11 @@ namespace simple_platformer
             NpcBrain& brain = *actor.brain;
             PathFollower& follower = *actor.pathFollower;
             const Actor* target = livingTarget(update.world, brain);
-            chooseNpcState(brain, follower, actor.patrol.has_value(), target);
+            const NpcFacts facts = gatherNpcFacts(actor, brain, target);
+            if (const std::optional<NpcState> next = nextNpcState(brain.state, facts))
+            {
+                enterNpcState(actor, brain, follower, *next);
+            }
 
             switch (brain.state)
             {
@@ -315,11 +279,7 @@ namespace simple_platformer
                 updateChaseState(update, actor, brain, follower, target);
                 break;
             case NpcState::Bite:
-                if (!actor.bite.has_value())
-                {
-                    throw std::logic_error("An NPC in the Bite state is missing its bite attack");
-                }
-                updateBiteState(actor, brain, follower, *actor.bite, target);
+                aimToward(actor, brain.lastSeenTargetFeet);
                 break;
             }
         }

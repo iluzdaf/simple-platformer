@@ -110,6 +110,7 @@ add_library(
     src/navigation/platformer_navigation.cpp
     src/npc/npc_senses.cpp
     src/npc/npc_system.cpp
+    src/npc/npc_transitions.cpp
     src/physics/body.cpp
     src/physics/collision.cpp
     src/physics/segment_cast.cpp
@@ -401,6 +402,7 @@ if(BUILD_TESTING)
         tests/navigation/test_platformer_navigation.cpp
         tests/npc/test_npc_senses.cpp
         tests/npc/test_npc_system.cpp
+        tests/npc/test_npc_transitions.cpp
         tests/physics/test_body.cpp
         tests/physics/test_collision.cpp
         tests/physics/test_segment_cast.cpp

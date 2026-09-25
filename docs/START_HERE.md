@@ -112,7 +112,8 @@ senses and memory
 
 A practical route through the implementation is:
 
-1. Trace the explicit `NpcState` enum and state branches in
+1. Trace the explicit `NpcState` enum, its transitions in
+   [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp), and the state branches in
    [`npc_system.cpp`](../src/npc/npc_system.cpp).
 2. Change `noticeDistance` and `targetMemoryDuration` in an actor definition's `senses` settings
    in [`actors.json`](../assets/actors.json), using the debug overlay to observe
@@ -228,10 +229,11 @@ NPCs use the same actor movement and attack systems as the player. Their brain p
 intentions instead of reading a keyboard. Follow this route:
 
 1. [`npc_senses.cpp`](../src/npc/npc_senses.cpp)
-2. [`npc_system.cpp`](../src/npc/npc_system.cpp)
-3. [`attack_system.cpp`](../src/combat/attack_system.cpp)
-4. [`projectile_system.cpp`](../src/combat/projectile_system.cpp)
-5. [`lifecycle.cpp`](../src/actor/lifecycle.cpp)
+2. [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp)
+3. [`npc_system.cpp`](../src/npc/npc_system.cpp)
+4. [`attack_system.cpp`](../src/combat/attack_system.cpp)
+5. [`projectile_system.cpp`](../src/combat/projectile_system.cpp)
+6. [`lifecycle.cpp`](../src/actor/lifecycle.cpp)
 
 The enum-and-switch NPC state machine is intentionally explicit. The bite and ranged
 attacks have different gameplay data, but both use the same primary-attack intention.

@@ -416,14 +416,24 @@ or shoot. This keeps perception and decisions separately testable.
 
 ### Explicit state machine
 
-`NpcState` is an enum and `updateNpcBehaviour` uses explicit branching. The main states
-are Idle, Patrol, Chase, and Bite. Ranged NPCs use the same pursuit state but request
-their ranged primary attack when the target is visible and in range.
+`NpcState` is an enum with four states: Idle, Patrol, Chase, and Bite. An update decides
+in three steps, each its own function:
 
-Behaviour chooses a destination or attack and writes intentions. It does not move the
-body directly. If a ground NPC reaches an awkward platform edge and loses its path,
-navigation can recover to a supported cell before repathing; regression tests cover
-this case.
+1. `gatherNpcFacts` reads what the transitions decide on into `NpcFacts`: whether a
+   living target is remembered or visible, whether it is in bite range, whether the bite
+   is ready, whether the NPC has a patrol, and how long it has been in its state.
+2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
+   current state that returns the state to enter, or nothing to stay. It reads only the
+   facts, so a test hands it a struct and expects a state. An NPC makes at most one
+   transition an update.
+3. Entering a state resets its timing, clears the follower's path and, for Bite, asks
+   for the attack once. The state's function then acts: it chooses a destination or an
+   aim and writes intentions. Ranged NPCs use the same Chase state but request their
+   ranged attack while the target is visible.
+
+Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
+edge and loses its path, navigation can recover to a supported cell before repathing;
+regression tests cover this case.
 
 ## Navigation
 
@@ -787,15 +797,17 @@ instead of filling
 `NpcState` represents what an NPC is doing now. To add a state such as Search, Guard,
 Retreat, or Recover:
 
-1. Add the state to the enum and give its entry and exit conditions explicit branches
-   in the NPC system.
-2. Reset state-local timing in the same place as the other transitions.
-3. Let the state choose a destination, facing, or attack intention.
-4. Continue to move and attack through `InputIntentions`; NPC decision code should not
+1. Add the state to the enum.
+2. Add any fact its transitions decide on to `NpcFacts`, and gather it in the NPC
+   system.
+3. Give its entry and exit conditions branches in `nextNpcState`. Entering resets the
+   state's timing and clears the path for every state.
+4. Let the state's function choose a destination, facing, or attack intention.
+5. Continue to move and attack through `InputIntentions`; NPC decision code should not
    write body position or bypass combat systems.
-5. Test entry, sustained behaviour, exit, and the most important interaction with
-   sensing or target memory.
-6. Add the state name to the debug presentation so it can be inspected while playing.
+6. Test its transitions with facts alone, then its sustained behaviour and the most
+   important interaction with sensing or target memory through `updateNpcBehaviour`.
+7. Add the state name to the debug presentation so it can be inspected while playing.
 
 Keep the enum and explicit state branches while the number of states is small. A
 behaviour tree, virtual brain hierarchy, or callback registry would make transitions

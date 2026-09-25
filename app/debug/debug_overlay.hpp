@@ -80,8 +80,9 @@ namespace simple_platformer
         std::optional<ActorSpriteDebugInfo> sprite;
         std::optional<AnimationName> animation;
         std::optional<NpcState> npcState;
+        // Whichever decides the NPC's state: its tactic, or its machine's name and the
+        // name of the machine's active state.
         std::optional<NpcTactic> npcTactic;
-        // A data-driven machine's name and the name of its active state.
         std::optional<std::string> machine;
         std::optional<std::string> machineState;
         std::optional<PathFollowerDebugInfo> pathFollower;

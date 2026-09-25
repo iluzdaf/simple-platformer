@@ -19,6 +19,7 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -410,4 +411,28 @@ TEST_CASE("Debug overlay data rejects an invalid atlas width", "[app][debug]")
         simple_platformer::makeDebugOverlay(
             world, map, cameraController, 0.0F, tests::FixedStepSeconds),
         std::invalid_argument);
+}
+
+TEST_CASE("The overlay shows a machine in place of the tactic it silences", "[app][debug]")
+{
+    simple_platformer::NpcStateMachine machine;
+    machine.name = "test";
+    machine.states = {{"rest", simple_platformer::NpcState::Idle}};
+    simple_platformer::World world;
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .at({16.0F, 32.0F})
+                       .walking()
+                       .thinking({})
+                       .running(machine));
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "######"});
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
+
+    REQUIRE(debug.actors.size() == 1);
+    REQUIRE(debug.actors.front().machine == "test");
+    REQUIRE(debug.actors.front().machineState == "rest");
+    REQUIRE_FALSE(debug.actors.front().npcTactic.has_value());
 }

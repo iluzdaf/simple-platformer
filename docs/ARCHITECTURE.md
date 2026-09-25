@@ -340,12 +340,13 @@ The application converts the mouse from window coordinates through the letterbox
 display viewport and camera into a world-space aim direction. Clicks outside the game
 viewport are ignored. When ImGui captures input, gameplay input is cleared.
 
-P pauses the simulation and P resumes it; while paused, `.` runs one fixed step, so a
+The application can pause the simulation and, while paused, run one fixed step, so a
 decision such as a machine's transition can be watched landing in the overlay. The
 interface, the overlay and rendering carry on while the simulation stands still, and
 the fixed step is reset across a pause, as across the inventory, so no burst of
 catch-up steps follows a resume. The pause and the step are the application's: the
-game only sees which steps it is asked to run.
+game only sees which steps it is asked to run. The keys are listed in
+[README.md](../README.md#playing-the-example-game).
 
 ### Platformer movement
 
@@ -735,8 +736,8 @@ level completes. The simulation reports completion;
 different levels. `Game` replaces that value at a transition, carries over the player's current health and inventory,
 and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
-The final exit shows completion text and R creates a fresh copy of the catalogue's start
-level.
+The final exit shows completion text, and a restart creates a fresh copy of the
+catalogue's start level.
 
 ### Data-driven level boundary
 
@@ -832,7 +833,9 @@ the scene and the order it is drawn in, as `world_simulation` is for the systems
 built before the simulation and hands back what the player asked for as
 `InterfaceRequests`, which the loop applies, so a click on the bag pauses the same frame
 instead of firing a shot and building the interface never changes the game.
-F1 toggles the debug overlay. `drawDebugTools` in `app/debug/debug_tools` is the same
+The debug overlay is toggled from the application; its keys are listed under
+[Debug overlay](../README.md#debug-overlay) in the README.
+`drawDebugTools` in `app/debug/debug_tools` is the same
 kind of list for it: the world and text overlay, the machine window, then the frame
 panel, drawn from the `DebugOverlay` the game built, and `DebugTools` beside it is
 everything they keep between frames, so the application holds one object and makes
@@ -841,13 +844,13 @@ The overlay shows what the camera can see, a tile beyond
 its edges, so a large level does not fill the text column with actors off screen. It
 can show actor details, sprite and collision
 bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,
-navigation paths, and the connection cache's cells for one platformer NPC body, N moving
-to the next: filled with their connection count while kept, outlined while missing, which
+navigation paths, and the connection cache's cells for one platformer NPC body at a
+time: filled with their connection count while kept, outlined while missing, which
 after a break is what the break dropped and the fill has not reached yet, with the
 cache's totals under the actor text, including the cells waiting for the fill and the
 cells dropped and kept so far. With
-the overlay open, a tile under the cursor that can break is labelled, and B breaks it as
-a shot would, so what a break does to the cache can be tried without one. For the cell
+the overlay open, a tile under the cursor that can break is labelled and can be broken
+as a shot would break it, so what a break does to the cache can be tried without one. For the cell
 under the cursor it also outlines the footprint the cell's simulation swept, which is
 why a break inside it drops the cell, draws each connection to where it lands with jumps
 and falls along their replayed arcs, and shades the cells a failed search found

@@ -165,7 +165,7 @@ namespace simple_platformer
         }
     }
 
-    MachineGraph::~MachineGraph()
+    MachineGraphEditors::~MachineGraphEditors()
     {
         for (auto& [name, editor] : editors)
         {
@@ -173,7 +173,7 @@ namespace simple_platformer
         }
     }
 
-    MachineGraph::Editor& MachineGraph::editorFor(const std::string& machineName)
+    MachineGraphEditors::Editor& MachineGraphEditors::editorFor(const std::string& machineName)
     {
         const auto found = editors.find(machineName);
         if (found != editors.end())
@@ -190,7 +190,9 @@ namespace simple_platformer
         return editor;
     }
 
-    void MachineGraph::draw(const std::optional<MachineDebugInfo>& machine)
+    void drawMachineGraph(
+        MachineGraphEditors& editors,
+        const std::optional<MachineDebugInfo>& machine)
     {
         // Anchored at the top, left of the actor text, without a frame or background,
         // so it sits over the scene like the overlay's other panels. The wheel zooms
@@ -223,7 +225,7 @@ namespace simple_platformer
         ImGui::SameLine();
         ImGui::TextDisabled("(under the cursor, else nearest the player)");
 
-        Editor& editor = editorFor(shown.definition.name);
+        MachineGraphEditors::Editor& editor = editors.editorFor(shown.definition.name);
         ed::SetCurrentEditor(editor.context);
         ed::Begin("##machine");
         if (editor.layingOut && editor.framesDrawn == 0)
@@ -236,7 +238,7 @@ namespace simple_platformer
         }
         drawTransitions(shown.definition, shown.lastFired);
         if (shown.lastFired.has_value() &&
-            (shownActor != shown.actor || shownFired != shown.lastFired))
+            (editor.shownActor != shown.actor || editor.shownFired != shown.lastFired))
         {
             ed::Flow(linkId(shown.lastFired.value_or(0)));
         }
@@ -252,8 +254,8 @@ namespace simple_platformer
         editor.canvasSize = canvasSize;
         ed::SetCurrentEditor(nullptr);
         ++editor.framesDrawn;
-        shownActor = shown.actor;
-        shownFired = shown.lastFired;
+        editor.shownActor = shown.actor;
+        editor.shownFired = shown.lastFired;
         ImGui::End();
     }
 }

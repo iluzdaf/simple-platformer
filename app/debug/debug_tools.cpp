@@ -17,7 +17,7 @@ namespace simple_platformer
         const std::optional<WindowViewport>& viewport)
     {
         drawDebugOverlay(overlay, viewport);
-        tools.machineGraph.draw(overlay.machine);
+        drawMachineGraph(tools.machineEditors, overlay.machine);
         tools.frameHistory.push(profile);
         drawFrameProfile(tools.frameHistory, tools.frameSelection, tools.frameAxes);
     }

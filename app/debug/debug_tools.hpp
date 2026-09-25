@@ -19,7 +19,7 @@ namespace simple_platformer
         FrameHistory frameHistory;
         FrameSelection frameSelection;
         FrameAxes frameAxes;
-        MachineGraph machineGraph;
+        MachineGraphEditors machineEditors;
     };
 
     // The debug tools over the scene while the overlay is open, in a fixed order: the

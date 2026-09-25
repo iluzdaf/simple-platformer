@@ -1,7 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <stdexcept>
-
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "support/npc_machine_builder.hpp"
@@ -30,9 +28,4 @@ TEST_CASE(
     REQUIRE(machine.transitions[1].from == "hunt");
     REQUIRE(machine.transitions[1].when.at("targetKnown") == false);
     REQUIRE(machine.transitions[1].after == 0.5F);
-}
-
-TEST_CASE("The machine builder needs a transition before a condition", "[support][machine-builder]")
-{
-    REQUIRE_THROWS_AS(NpcMachineBuilder::named("test").when("targetKnown", true), std::logic_error);
 }

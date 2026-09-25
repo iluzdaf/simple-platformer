@@ -171,26 +171,13 @@ This phase should be introduced alongside the first real optional ability, once 
 required data and interactions are concrete. It should not become a callback registry,
 inheritance hierarchy, or generic plugin system merely to anticipate possible features.
 
-## NPC tactics
+## Closest reachable chase destination
 
-`NpcTactic` has two values, Pursuer and KeepDistance, and the transition table consults
-it only for how a known target is pursued. More tactics fit the same shape:
-
-- `Guard`: pursue only inside a home region, then return;
-- `Flee`: move away from the target;
-- `Patroller`: follow patrol points without pursuing the player.
-
-A tactic that needs a fact the others do not, such as whether a guard is inside its
-home region, adds it to `NpcFacts`; one that needs a state the others do not, such as
-returning home, adds the state and its function once for every tactic to use. Virtual
-brain classes, callbacks, and a general behaviour-tree framework are not needed for
-these tactics.
-
-The `Pursuer` tactic should eventually improve how it handles an unreachable target.
-Instead of selecting only the geometrically nearest standable cell, it can examine
-standable candidates near the last-seen position and return the nearest one for which
-pathfinding succeeds. Returning the path and chosen destination together avoids doing
-the same search twice:
+Chase should eventually improve how it handles an unreachable target. Instead of
+selecting only the geometrically nearest standable cell, it can examine standable
+candidates near the last-seen position and return the nearest one for which pathfinding
+succeeds. Returning the path and chosen destination together avoids doing the same
+search twice:
 
 ```cpp
 struct ChasePath

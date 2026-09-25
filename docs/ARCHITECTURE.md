@@ -879,10 +879,10 @@ genuinely new example enemy normally involves:
 Species, capabilities, and decisions are separate concerns. Artwork does not determine
 the brain, and possessing a ranged weapon does not require a `Shooter` subclass. The
 decision policy is the brain's tactic: the zombie is a Pursuer and the zombie soldier
-keeps its distance, over the same states and facts. A new tactic is an enum value and a
-branch in how a target is pursued, plus any fact or state it needs, added once for every
-tactic to use. [NPC tactics](FUTURE_WORK.md#npc-tactics) lists the ones not yet
-written.
+keeps its distance, over the same states and facts. A new tactic, such as a guard that
+pursues only inside a home region or a coward that flees, is an enum value and a branch
+in how a target is pursued, plus any fact or state it needs, added once for every tactic
+to use.
 
 ### Choosing the layer
 

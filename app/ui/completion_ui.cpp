@@ -12,15 +12,6 @@
 
 namespace simple_platformer
 {
-    namespace
-    {
-        void drawCenteredText(ImDrawList& drawList, ImVec2 center, float y, const char* text)
-        {
-            const float left = center.x - ImGui::CalcTextSize(text).x * 0.5F;
-            drawShadowedText(drawList, {left, y}, HudTextColour, text);
-        }
-    }
-
     void drawLevelCompletion(const Game& game, const WindowViewport& viewport)
     {
         if (!game.complete())
@@ -40,8 +31,8 @@ namespace simple_platformer
         const float firstLineY =
             doorTopCenter.y - lineHeight * 3.0F - GapAboveDoor * viewport.scale.y;
         ImDrawList* drawList = ImGui::GetForegroundDrawList();
-        drawCenteredText(*drawList, doorTopCenter, firstLineY, "Completed");
-        drawCenteredText(*drawList, doorTopCenter, firstLineY + lineHeight, "Press R to");
-        drawCenteredText(*drawList, doorTopCenter, firstLineY + lineHeight * 2.0F, "restart");
+        drawCenteredText(*drawList, doorTopCenter.x, firstLineY, "Completed");
+        drawCenteredText(*drawList, doorTopCenter.x, firstLineY + lineHeight, "Press R to");
+        drawCenteredText(*drawList, doorTopCenter.x, firstLineY + lineHeight * 2.0F, "restart");
     }
 }

@@ -21,6 +21,7 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -226,6 +227,16 @@ namespace simple_platformer
             if (actor.brain.has_value())
             {
                 info.npcState = actor.brain->state;
+            }
+            // Whichever decides the state is shown: the machine when there is one, since
+            // the tactic is not asked then, and otherwise the tactic.
+            if (actor.machine.has_value())
+            {
+                info.machine = actor.machine->definition.name;
+                info.machineState = activeNpcMachineState(*actor.machine).name;
+            }
+            else if (actor.brain.has_value())
+            {
                 info.npcTactic = actor.brain->tactic;
             }
             if (actor.pathFollower.has_value())

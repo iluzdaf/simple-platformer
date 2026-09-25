@@ -1,4 +1,5 @@
 #include "actor_catalog.hpp"
+#include "machine_catalog.hpp"
 #include "content_diagnostics.hpp"
 #include "content_json.hpp"
 #include "animation_catalog.hpp"
@@ -132,11 +133,13 @@ namespace simple_platformer
         {
             checkJsonFields(
                 value,
-                {"noticeDistance", "targetMemoryDuration", "searchDuration"},
+                {"noticeDistance", "standoffDistance", "targetMemoryDuration", "searchDuration"},
                 sourceName,
                 path);
             NpcSenses config;
             readOptionalNumber(value, "noticeDistance", config.noticeDistance, sourceName, path);
+            readOptionalNumber(
+                value, "standoffDistance", config.standoffDistance, sourceName, path);
             readOptionalNumber(
                 value, "targetMemoryDuration", config.targetMemoryDuration, sourceName, path);
             readOptionalNumber(value, "searchDuration", config.searchDuration, sourceName, path);
@@ -214,37 +217,17 @@ namespace simple_platformer
             }
         }
 
-        // A tactic object names its kind and, for keepDistance, its standoff distance.
         void readOptionalNpcTactic(
             const Json& object,
             std::string_view key,
-            NpcTactic& tactic,
-            float& standoffDistance,
+            NpcTactic& result,
             std::string_view sourceName,
             const std::string& path)
         {
-            const Json* found = optionalJsonMember(object, key, sourceName, path);
-            if (found == nullptr)
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
             {
-                return;
+                result = jsonNpcTactic(*found, sourceName, fieldPath(path, key));
             }
-            const std::string tacticPath = fieldPath(path, key);
-            checkJsonFields(*found, {"kind", "standoffDistance"}, sourceName, tacticPath);
-            if (const Json* kind = optionalJsonMember(*found, "kind", sourceName, tacticPath))
-            {
-                tactic = jsonNpcTactic(*kind, sourceName, fieldPath(tacticPath, "kind"));
-            }
-            const Json* standoff =
-                optionalJsonMember(*found, "standoffDistance", sourceName, tacticPath);
-            if (standoff != nullptr && tactic != NpcTactic::KeepDistance)
-            {
-                failJson(
-                    sourceName,
-                    fieldPath(tacticPath, "standoffDistance"),
-                    "applies only to a keepDistance tactic");
-            }
-            readOptionalNumber(
-                *found, "standoffDistance", standoffDistance, sourceName, tacticPath);
         }
 
         void readOptionalFacing(
@@ -343,6 +326,7 @@ namespace simple_platformer
                  "flying",
                  "senses",
                  "tactic",
+                 "machine",
                  "bite",
                  "ranged"},
                 sourceName,
@@ -358,8 +342,8 @@ namespace simple_platformer
             readOptionalPlatformerConfig(value, "platformer", result.platformer, sourceName, path);
             readOptionalFlyingMovement(value, "flying", result.flying, sourceName, path);
             readOptionalNpcSenses(value, "senses", result.senses, sourceName, path);
-            readOptionalNpcTactic(
-                value, "tactic", result.tactic, result.standoffDistance, sourceName, path);
+            readOptionalNpcTactic(value, "tactic", result.tactic, sourceName, path);
+            readOptionalText(value, "machine", result.machine, sourceName, path);
             readOptionalBite(value, "bite", result.bite, sourceName, path);
             readOptionalRangedWeapon(value, "ranged", result.ranged, sourceName, path);
             return result;
@@ -369,7 +353,8 @@ namespace simple_platformer
     ActorCatalog parseActorCatalog(
         std::string_view text,
         std::string_view sourceName,
-        const AnimationCatalog& animations)
+        const AnimationCatalog& animations,
+        const MachineCatalog& machines)
     {
         const auto root = parseContentRoot(text, sourceName);
         checkJsonFields(root, {"player", "actors"}, sourceName, "root");
@@ -391,11 +376,14 @@ namespace simple_platformer
                 entry.key(),
                 jsonActorDefinition(entry.value(), sourceName, fieldPath("actors", entry.key())));
         }
-        validateInFile(sourceName, [&] { validateActorCatalog(result, animations); });
+        validateInFile(sourceName, [&] { validateActorCatalog(result, animations, machines); });
         return result;
     }
 
-    void validateActorCatalog(const ActorCatalog& catalog, const AnimationCatalog& animations)
+    void validateActorCatalog(
+        const ActorCatalog& catalog,
+        const AnimationCatalog& animations,
+        const MachineCatalog& machines)
     {
         for (const auto& entry : catalog.definitions)
         {
@@ -405,7 +393,7 @@ namespace simple_platformer
             }
             try
             {
-                validateActorDefinition(entry.second, animations);
+                validateActorDefinition(entry.second, animations, machines);
             }
             catch (const std::invalid_argument& error)
             {
@@ -426,9 +414,10 @@ namespace simple_platformer
 
     ActorCatalog loadActorCatalog(
         const std::filesystem::path& path,
-        const AnimationCatalog& animations)
+        const AnimationCatalog& animations,
+        const MachineCatalog& machines)
     {
-        return parseActorCatalog(loadContentText(path), path.string(), animations);
+        return parseActorCatalog(loadContentText(path), path.string(), animations, machines);
     }
 
     const ActorDefinition& actorDefinition(const ActorCatalog& catalog, const std::string& name)

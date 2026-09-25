@@ -1,0 +1,14 @@
+{
+  "machines": {
+    "test_machine": {
+      "states": [
+        { "name": "rest", "does": "idle" },
+        { "name": "hunt", "does": "chase" }
+      ],
+      "transitions": [
+        { "from": "rest", "to": "hunt", "when": { "targetKnown": true } },
+        { "from": "hunt", "to": "rest", "when": { "targetKnown": false }, "after": 0.5 }
+      ]
+    }
+  }
+}

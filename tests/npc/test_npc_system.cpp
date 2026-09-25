@@ -18,6 +18,7 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -29,6 +30,7 @@
 #include "support/add_player.hpp"
 #include "support/fill_navigation.hpp"
 #include "support/fixed_step.hpp"
+#include "support/npc_machine_builder.hpp"
 
 using tests::actor;
 using tests::bite;
@@ -45,7 +47,7 @@ namespace
     }
 
     // The NPC these tests measure their maps against.
-    tests::ActorBuilder makeNpc(glm::vec2 feet)
+    tests::ActorBuilder::Thinking makeNpc(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})
             .atFeet(feet)
@@ -116,7 +118,7 @@ TEST_CASE(
                            .shooting()
                            .thinking({96.0F, 1.0F}));
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
-    brain(world, npcId).standoffDistance = 64.0F;
+    tests::senses(actor(world, npcId)).standoffDistance = 64.0F;
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {40.0F, 32.0F};
     brain(world, npcId).targetVisible = true;
@@ -144,7 +146,7 @@ TEST_CASE("A KeepDistance NPC shoots once its target is at its standoff", "[npc]
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({88.0F, 32.0F}).onTeam(simple_platformer::Team::Enemy).shooting());
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
-    brain(world, npcId).standoffDistance = 48.0F;
+    tests::senses(actor(world, npcId)).standoffDistance = 48.0F;
     brain(world, npcId).state = simple_platformer::NpcState::Retreat;
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {24.0F, 32.0F};
@@ -154,6 +156,42 @@ TEST_CASE("A KeepDistance NPC shoots once its target is at its standoff", "[npc]
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Shoot);
     REQUIRE(actor(world, npcId).intentions.direction == glm::vec2{0.0F, 0.0F});
     REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
+}
+
+TEST_CASE("An NPC with a machine takes its state from the machine, not its tactic", "[npc][fsm]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "########"});
+    simple_platformer::World world;
+    const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({70.0F, 28.0F}));
+    const simple_platformer::ActorId npcId =
+        world.addActor(makeNpc({24.0F, 32.0F})
+                           .running(tests::NpcMachineBuilder::named("test")
+                                        .state("nap", simple_platformer::NpcState::Watch)
+                                        .state("hunt", simple_platformer::NpcState::Chase)
+                                        .transition("nap", "hunt")
+                                        .when("targetKnown", true)));
+    brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
+
+    // The activity follows the machine's first state on the first update.
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Watch);
+
+    brain(world, npcId).target = playerId;
+    brain(world, npcId).lastSeenTargetFeet = {70.0F, 28.0F};
+    brain(world, npcId).targetVisible = true;
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
+    REQUIRE(
+        simple_platformer::activeNpcMachineState(
+            actor(world, npcId).machine.value_or(simple_platformer::NpcMachine{}))
+            .name == "hunt");
+    REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
+
+    // Too close for its tactic, but the machine has no retreat and is not asked.
+    brain(world, npcId).lastSeenTargetFeet = {30.0F, 32.0F};
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
 }
 
 TEST_CASE("A watching NPC looks about without leaving where it stands", "[npc][fsm]")

@@ -419,6 +419,16 @@ namespace simple_platformer
                 std::snprintf(text, sizeof(text), "tactic: %s", nameOf(actor.npcTactic.value()));
                 drawTextLine(drawList, position, text, TextDetailColour, Indentation);
             }
+            if (actor.machine.has_value() && actor.machineState.has_value())
+            {
+                std::snprintf(
+                    text,
+                    sizeof(text),
+                    "machine: %s, %s",
+                    actor.machine->c_str(),
+                    actor.machineState->c_str());
+                drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+            }
             position.y += ActorTextGap;
         }
 
@@ -427,6 +437,7 @@ namespace simple_platformer
             int lineCount = 2;
             lineCount += actor.sprite.has_value() ? 1 : 0;
             lineCount += actor.npcTactic.has_value() ? 1 : 0;
+            lineCount += actor.machine.has_value() ? 1 : 0;
             return static_cast<float>(lineCount) * ImGui::GetTextLineHeight() + ActorTextGap;
         }
     }

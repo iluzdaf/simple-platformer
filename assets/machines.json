@@ -1,0 +1,44 @@
+{
+  "machines": {
+    "keep_distance": {
+      "states": [
+        { "name": "idle", "does": "idle" },
+        { "name": "patrol", "does": "patrol" },
+        { "name": "retreat", "does": "retreat" },
+        { "name": "shoot", "does": "shoot" },
+        { "name": "chase", "does": "chase" },
+        { "name": "watch", "does": "watch" }
+      ],
+      "transitions": [
+        {
+          "from": ["idle", "patrol", "watch"],
+          "to": "retreat",
+          "when": { "targetTooClose": true }
+        },
+        { "from": ["idle", "patrol", "watch"], "to": "shoot", "when": { "targetInSights": true } },
+        { "from": ["idle", "patrol", "watch"], "to": "chase", "when": { "targetKnown": true } },
+        { "from": "idle", "to": "patrol", "when": { "hasPatrol": true } },
+        { "from": ["chase", "shoot"], "to": "retreat", "when": { "targetTooClose": true } },
+        { "from": "chase", "to": "shoot", "when": { "targetInSights": true } },
+        {
+          "from": "shoot",
+          "to": "chase",
+          "when": { "targetKnown": true, "targetInSights": false }
+        },
+        { "from": ["chase", "shoot", "retreat"], "to": "watch", "when": { "targetKnown": false } },
+        {
+          "from": "retreat",
+          "to": "shoot",
+          "when": { "targetTooClose": false, "targetInSights": true }
+        },
+        {
+          "from": "retreat",
+          "to": "chase",
+          "when": { "targetTooClose": false, "targetKnown": true }
+        },
+        { "from": "watch", "to": "patrol", "when": { "searchTimeUp": true, "hasPatrol": true } },
+        { "from": "watch", "to": "idle", "when": { "searchTimeUp": true } }
+      ]
+    }
+  }
+}

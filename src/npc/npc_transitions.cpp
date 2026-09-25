@@ -43,7 +43,7 @@ namespace simple_platformer
             {
                 return NpcState::Bite;
             }
-            if (facts.canShootTarget)
+            if (facts.targetInSights)
             {
                 return NpcState::Shoot;
             }

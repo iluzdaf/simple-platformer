@@ -26,6 +26,7 @@
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/actor_builder.hpp"
+#include "support/npc_machine_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
@@ -161,6 +162,7 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     REQUIRE(npcDebug.kind == simple_platformer::ActorDebugKind::Npc);
     REQUIRE(npcDebug.npcState == simple_platformer::NpcState::Chase);
     REQUIRE(npcDebug.npcTactic == simple_platformer::NpcTactic::Pursuer);
+    REQUIRE_FALSE(npcDebug.machine.has_value());
     REQUIRE(npcDebug.pathFollower.has_value());
     const simple_platformer::PathFollowerDebugInfo emptyPath =
         npcDebug.pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});
@@ -409,4 +411,26 @@ TEST_CASE("Debug overlay data rejects an invalid atlas width", "[app][debug]")
         simple_platformer::makeDebugOverlay(
             world, map, cameraController, 0.0F, tests::FixedStepSeconds),
         std::invalid_argument);
+}
+
+TEST_CASE("The overlay shows a machine in place of the tactic it silences", "[app][debug]")
+{
+    simple_platformer::World world;
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .at({16.0F, 32.0F})
+                       .walking()
+                       .thinking({})
+                       .running(tests::NpcMachineBuilder::named("test").state(
+                           "rest", simple_platformer::NpcState::Idle)));
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "######"});
+    const simple_platformer::CameraController cameraController{
+        simple_platformer::Camera{}, {80.0F, 40.0F}};
+
+    const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
+        world, map, cameraController, 128.0F, tests::FixedStepSeconds);
+
+    REQUIRE(debug.actors.size() == 1);
+    REQUIRE(debug.actors.front().machine == "test");
+    REQUIRE(debug.actors.front().machineState == "rest");
+    REQUIRE_FALSE(debug.actors.front().npcTactic.has_value());
 }

@@ -7,6 +7,7 @@
 #include "item_catalog.hpp"
 #include "pickup_catalog.hpp"
 #include "exit_catalog.hpp"
+#include "machine_catalog.hpp"
 
 namespace simple_platformer
 {
@@ -15,6 +16,7 @@ namespace simple_platformer
     {
         TileCatalog tiles;
         AnimationCatalog animations;
+        MachineCatalog machines;
         ActorCatalog actors;
         ItemCatalog items;
         PickupCatalog pickups;

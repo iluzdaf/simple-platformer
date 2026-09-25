@@ -1,9 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <optional>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 #include "content/actor_catalog.hpp"
 #include "content/animation_catalog.hpp"
+#include "content/machine_catalog.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "content/actor_definition.hpp"
 #include "game/level_composition.hpp"
 #include "content/level_catalog.hpp"
@@ -131,8 +134,16 @@ TEST_CASE("Actor definitions reuse engine component validation", "[app][actors]"
     SECTION("A negative standoff")
     {
         definition.senses = simple_platformer::NpcSenses{};
-        definition.tactic = simple_platformer::NpcTactic::KeepDistance;
-        definition.standoffDistance = -1.0F;
+        definition.senses->standoffDistance = -1.0F;
+    }
+    SECTION("A machine without senses")
+    {
+        definition.machine = "test_machine";
+    }
+    SECTION("A machine the catalog lacks")
+    {
+        definition.senses = simple_platformer::NpcSenses{};
+        definition.machine = "missing";
     }
     REQUIRE_THROWS_AS(
         simple_platformer::validateActorDefinition(definition, {}), std::invalid_argument);
@@ -142,24 +153,37 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
 {
     const auto animations =
         simple_platformer::loadAnimationCatalog("tests/fixtures/animations.json");
+    const auto machines = simple_platformer::loadMachineCatalog("tests/fixtures/machines.json");
     const auto catalog = simple_platformer::parseActorCatalog(
         R"({
         "player":"hero", "actors":{
           "hero":{"bodySize":[12,20],"platformer":{"jumpSpeed":210},"health":5,"inventorySlots":3},
-          "scout":{"flying":{"speed":25},"team":"enemy","senses":{"noticeDistance":40,"searchDuration":3},
-                   "tactic":{"kind":"keepDistance","standoffDistance":30},
+          "scout":{"flying":{"speed":25},"team":"enemy","senses":{"noticeDistance":40,"searchDuration":3,"standoffDistance":30},
+                   "tactic":"keepDistance",
+                   "machine":"test_machine",
                    "bodySize":[8,6],"animations":"test_actor","spriteAnchor":"center","bite":{"damage":2}}
         }})",
         "test actors",
-        animations);
+        animations,
+        machines);
     REQUIRE(catalog.player == "hero");
     auto actor = simple_platformer::composeActor(
-        simple_platformer::actorDefinition(catalog, "scout"), animations, 7);
+        simple_platformer::actorDefinition(catalog, "scout"),
+        animations,
+        7,
+        {},
+        std::nullopt,
+        machines);
+    REQUIRE(actor.machine.has_value());
+    REQUIRE(
+        simple_platformer::activeNpcMachineState(
+            actor.machine.value_or(simple_platformer::NpcMachine{}))
+            .name == "rest");
     REQUIRE(tests::flyingMovement(actor).speed == 25);
     REQUIRE(tests::bite(actor).damage == 2);
     REQUIRE(tests::senses(actor).searchDuration == 3);
     REQUIRE(tests::brain(actor).tactic == simple_platformer::NpcTactic::KeepDistance);
-    REQUIRE(tests::brain(actor).standoffDistance == 30);
+    REQUIRE(tests::senses(actor).standoffDistance == 30);
     REQUIRE(tests::sprite(actor).textureId == 7);
     REQUIRE(tests::sprite(actor).anchor == simple_platformer::SpriteAnchor::BodyCenter);
     REQUIRE_FALSE(actor.platformerMovement.has_value());
@@ -208,12 +232,7 @@ TEST_CASE(
     SECTION("Unknown tactic")
     {
         root["actors"]["hero"]["senses"] = {};
-        root["actors"]["hero"]["tactic"] = {{"kind", "ambusher"}};
-    }
-    SECTION("A standoff on a pursuer")
-    {
-        root["actors"]["hero"]["senses"] = {};
-        root["actors"]["hero"]["tactic"] = {{"kind", "pursuer"}, {"standoffDistance", 48}};
+        root["actors"]["hero"]["tactic"] = "ambusher";
     }
     SECTION("Unused definition")
     {

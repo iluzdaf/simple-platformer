@@ -165,7 +165,8 @@ namespace simple_platformer
                     catalogs.animations,
                     textureId,
                     feetOf(map, placement.spawn),
-                    makePatrol(map, placement.patrol)));
+                    makePatrol(map, placement.patrol),
+                    catalogs.machines));
             }
             catch (const std::invalid_argument& error)
             {

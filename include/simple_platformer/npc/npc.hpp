@@ -35,8 +35,6 @@ namespace simple_platformer
     struct NpcBrain
     {
         NpcTactic tactic = NpcTactic::Pursuer;
-        // How near a KeepDistance NPC lets its target come before it retreats.
-        float standoffDistance = 48.0F;
         NpcState state = NpcState::Idle;
         float stateElapsed = 0.0F;
         std::optional<ActorId> target;
@@ -52,6 +50,9 @@ namespace simple_platformer
         // How long a lost target is searched for before the NPC returns to its routine.
         // Zero sends it straight back.
         float searchDuration = 2.0F;
+        // How near a target may come before it counts as too close, which a KeepDistance
+        // brain or a machine answers with a retreat.
+        float standoffDistance = 48.0F;
     };
 
     struct Patrol

@@ -110,6 +110,8 @@ add_library(
     src/navigation/platformer_navigation.cpp
     src/npc/npc_senses.cpp
     src/npc/npc_system.cpp
+    src/npc/npc_fact_rows.cpp
+    src/npc/npc_state_machine.cpp
     src/npc/npc_transitions.cpp
     src/physics/body.cpp
     src/physics/collision.cpp
@@ -164,6 +166,7 @@ add_executable(
     app/content/item_catalog.cpp
     app/content/level_catalog.cpp
     app/content/level_data.cpp
+    app/content/machine_catalog.cpp
     app/content/pickup_catalog.cpp
     app/content/tile_catalog.cpp
     app/game/game.cpp
@@ -359,6 +362,7 @@ if(BUILD_TESTING)
         app/content/item_catalog.cpp
         app/content/level_catalog.cpp
         app/content/level_data.cpp
+        app/content/machine_catalog.cpp
         app/content/pickup_catalog.cpp
         app/content/tile_catalog.cpp
         app/game/game.cpp
@@ -378,6 +382,7 @@ if(BUILD_TESTING)
         tests/app/test_content_validation.cpp
         tests/app/test_content_json.cpp
         tests/app/test_actor_catalog.cpp
+        tests/app/test_machine_catalog.cpp
         tests/app/test_animation_catalog.cpp
         tests/app/test_item_catalog.cpp
         tests/app/test_pickup_catalog.cpp
@@ -401,6 +406,7 @@ if(BUILD_TESTING)
         tests/navigation/test_path_follower.cpp
         tests/navigation/test_platformer_navigation.cpp
         tests/npc/test_npc_senses.cpp
+        tests/npc/test_npc_state_machine.cpp
         tests/npc/test_npc_system.cpp
         tests/npc/test_npc_transitions.cpp
         tests/physics/test_body.cpp
@@ -413,6 +419,7 @@ if(BUILD_TESTING)
         tests/render/test_presentation.cpp
         tests/render/test_render_scene.cpp
         tests/support/test_actor_builder.cpp
+        tests/support/test_npc_machine_builder.cpp
         tests/support/test_tile_map_builder.cpp
         tests/timing/test_fixed_step.cpp
         tests/timing/test_frame_history.cpp

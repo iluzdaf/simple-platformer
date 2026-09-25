@@ -288,7 +288,7 @@ capabilities:
 | Player | `PlatformerMovement` | application writes `InputIntentions` | `Health`, `Inventory`, `Team::Player`, `RangedWeapon` | `Sprite`, `Animator` |
 | Zombie | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
 | Bat | `FlyingMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
-| Zombie soldier | `PlatformerMovement` | `NpcBrain` (KeepDistance), `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon` | `Sprite`, `Animator` |
+| Zombie soldier | `PlatformerMovement` | `NpcBrain`, `NpcMachine` (`keep_distance`), `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon` | `Sprite`, `Animator` |
 
 The recipe is additive. For example, making a second zombie does not require another
 type: reference the same definition with different spawn and patrol data. A bat can use a
@@ -458,7 +458,7 @@ decides in three steps, each its own function:
 
 1. `gatherNpcFacts` reads what the transitions decide on into `NpcFacts`: whether a
    living target is remembered or visible, whether it is in bite range or in a ranged
-   weapon's sights, whether it has come nearer than the brain's `standoffDistance`,
+   weapon's sights, whether it has come nearer than the senses' `standoffDistance`,
    whether the bite is ready, whether the NPC has a patrol, whether it searches for a
    lost target and that search's time is up, and how long it has been in its state.
 2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
@@ -486,14 +486,41 @@ lost one leaves it, and shares every other transition. A Pursuer answers the fir
 the attack that reaches, a bite before a shot, or Chase, and the second with Search. A
 KeepDistance NPC answers Retreat while the target is nearer than its standoff and
 otherwise the same, and watches from where it stands rather than walk to where the
-target was. The zombie is a Pursuer and the zombie soldier keeps its distance, over the
-same states, facts and activities.
+target was. The zombie is a Pursuer. The zombie soldier keeps its distance through the
+`keep_distance` machine, the KeepDistance tactic written as data over the same states,
+facts and activities.
 
 A tactic chooses; it never adds behaviour. A state, its activity, the facts it decides on
 and any capability it uses exist first, so healing instead of attacking is a heal
 component, a hurt fact and a Heal state before it is a tactic that answers Heal. Adding
 a tactic is an enum value and a branch in each question it answers differently, plus
 whatever it needs, added once for every tactic to use.
+
+### Data-driven state machine
+
+An NPC may carry an `NpcMachine` beside its brain, built from a machine in
+`machines.json`. When it does, the machine decides the brain's state and the tactic is
+not asked. The machine is the same shape as the table in code, written as data: named
+states, each running one of the built-in activities, and transitions with a `from`, a
+`to`, a `when` and an `after`. `when` is a map of fact names to the value each must
+hold, answered by the rows in `npc_fact_rows.cpp` over the same `NpcFacts` the enum
+brain reads, so the two brains see one world. `after` is how long every condition must
+hold before the transition fires; the hold restarts when a condition drops.
+
+`advanceNpcMachine` runs once an update. Among the transitions from the active state,
+the first whose conditions have held long enough fires, so a transition's position in
+the data is its priority, and at most one fires an update. On the update it fires, and
+on the first update after composition, the NPC system enters the state's activity the
+way the enum brain would, so the timing reset, the cleared path and a bite's press are
+the same. Loading rejects a machine with no states, a repeated state name, a transition
+from or to a state it lacks, a condition on a fact no row answers, or a hold that is
+not a finite, non-negative time, and names the transition.
+
+The zombie soldier runs the `keep_distance` machine, which is its KeepDistance tactic
+written out: the same facts, states and activities, with the tactic's two questions as
+transitions. The two can be read side by side. What the machine cannot do is anything
+the enum brain cannot: it chooses among activities that exist and asks facts that are
+gathered, and a new behaviour is still a state and its function in C++ first.
 
 Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
 edge and loses its path, navigation can recover to a supported cell before repathing;
@@ -872,6 +899,8 @@ or Recover:
 6. Test its transitions with facts alone, then its sustained behaviour and the most
    important interaction with sensing or target memory through `updateNpcBehaviour`.
 7. Add the state name to the debug presentation so it can be inspected while playing.
+8. Name the activity in the machine loader, so a machine in `machines.json` can run it,
+   and give any new fact a row in `npc_fact_rows.cpp`, so a transition can ask for it.
 
 Keep the enum and explicit state branches while the number of states is small. A
 behaviour tree, virtual brain hierarchy, or callback registry would make transitions
@@ -895,8 +924,9 @@ genuinely new example enemy normally involves:
 
 Species, capabilities, and decisions are separate concerns. Artwork does not determine
 the brain, and possessing a ranged weapon does not require a `Shooter` subclass. The
-decision policy is the brain's [tactic](#tactics): the zombie is a Pursuer and the
-zombie soldier keeps its distance, over the same states and facts. A new tactic, such as
+decision policy is the brain's [tactic](#tactics) or its machine: the zombie is a
+Pursuer, and the zombie soldier runs the `keep_distance` machine, the KeepDistance tactic
+written as data over the same states and facts. A new tactic, such as
 a guard that pursues only inside a home region or a coward that flees, is an enum value
 and a branch where the table asks the tactic, plus any fact or state it needs, added
 once for every tactic to use.

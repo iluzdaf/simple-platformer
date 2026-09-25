@@ -13,6 +13,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "support/tile_size.hpp"
@@ -34,14 +35,16 @@ namespace tests
     //
     // Placement and movement can't be skipped: sized() offers only at() and atFeet(), and
     // those offer only walking() and flying(). A forgotten placement would silently put the
-    // actor at the origin, and World requires exactly one movement component. The chain works
-    // on a fresh builder and converts to an Actor wherever one is expected, such as
+    // actor at the origin, and World requires exactly one movement component. What needs a
+    // brain, such as a machine, is offered only by the builder thinking() returns. The chain
+    // works on a fresh builder and converts to an Actor wherever one is expected, such as
     // World::addActor.
     class ActorBuilder
     {
     public:
         class Sized;
         class Placed;
+        class Thinking;
 
         static Sized sized(glm::vec2 size);
 
@@ -51,13 +54,9 @@ namespace tests
             return std::move(*this);
         }
 
-        ActorBuilder thinking(simple_platformer::NpcSenses senses) &&
-        {
-            built.brain = simple_platformer::NpcBrain{};
-            built.senses = senses;
-            built.pathFollower = simple_platformer::PathFollower{};
-            return std::move(*this);
-        }
+        // A brain, senses and a path follower at once, and with them the steps that need
+        // a brain.
+        Thinking thinking(simple_platformer::NpcSenses senses) &&;
 
         ActorBuilder patrolling(glm::vec2 firstFeet, glm::vec2 secondFeet) &&
         {
@@ -106,7 +105,7 @@ namespace tests
             return std::move(built);
         }
 
-    private:
+    protected:
         explicit ActorBuilder(simple_platformer::Actor actor)
             : built(std::move(actor))
         {
@@ -114,6 +113,35 @@ namespace tests
 
         simple_platformer::Actor built;
     };
+
+    // An NPC with a brain, which is what a machine, and anything else that decides for
+    // the brain, needs first.
+    class ActorBuilder::Thinking : public ActorBuilder
+    {
+    public:
+        // A data-driven machine deciding the brain's state.
+        Thinking running(simple_platformer::NpcStateMachine machine) &&
+        {
+            built.machine = simple_platformer::startNpcMachine(std::move(machine));
+            return std::move(*this);
+        }
+
+    private:
+        friend class ActorBuilder;
+
+        explicit Thinking(simple_platformer::Actor actor)
+            : ActorBuilder(std::move(actor))
+        {
+        }
+    };
+
+    inline ActorBuilder::Thinking ActorBuilder::thinking(simple_platformer::NpcSenses senses) &&
+    {
+        built.brain = simple_platformer::NpcBrain{};
+        built.senses = senses;
+        built.pathFollower = simple_platformer::PathFollower{};
+        return Thinking(std::move(built));
+    }
 
     // A placed body, waiting for the movement World requires.
     class ActorBuilder::Placed

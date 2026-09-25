@@ -42,7 +42,7 @@
       "animations": "zombie_soldier",
       "health": 2,
       "platformer": {},
-      "senses": {},
+      "senses": { "standoffDistance": 48 },
       "ranged": {
         "projectileSpeed": 140,
         "projectileLifetime": 0.75,
@@ -50,7 +50,7 @@
         "recoveryDuration": 0.8,
         "sprite": { "position": [64, 192], "size": [8, 4] }
       },
-      "tactic": { "kind": "keepDistance", "standoffDistance": 48 }
+      "machine": "keep_distance"
     }
   }
 }

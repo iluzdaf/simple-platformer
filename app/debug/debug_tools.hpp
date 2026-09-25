@@ -32,5 +32,6 @@ namespace simple_platformer
         DebugTools& tools,
         const FrameProfile& profile,
         const DebugOverlay& overlay,
-        const std::optional<WindowViewport>& viewport);
+        const std::optional<WindowViewport>& viewport,
+        bool showFrameProfileDetails);
 }

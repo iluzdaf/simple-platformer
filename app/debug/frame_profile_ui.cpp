@@ -4,7 +4,6 @@
 #include "frame_selection.hpp"
 
 #include <algorithm>
-#include <cfloat>
 #include <cstddef>
 #include <numeric>
 #include <optional>
@@ -24,10 +23,8 @@ namespace simple_platformer
     {
         // Frame panel layout, in window pixels. Adjust these to resize the panel.
         constexpr float PanelWidth = 420.0F;
-        // Tall enough for the legend beside it: the frame line, the budget, and one row per
-        // simulation category.
         constexpr float PlotHeight = 160.0F;
-        constexpr float LegendWidth = 130.0F;
+        constexpr int LegendColumns = 3;
         // A legend swatch sits inside its text row by this fraction of the row height.
         constexpr float SwatchInsetFraction = 0.2F;
         // A hidden series keeps its swatch at this fraction of its colour's opacity.
@@ -36,7 +33,7 @@ namespace simple_platformer
         constexpr ImU32 HoveredFrameColour = IM_COL32(255, 255, 255, 90);
         constexpr ImU32 PickedFrameColour = IM_COL32(255, 255, 255, 230);
 
-        // The budget line. The axes' floors and headroom are FrameAxes' tunables.
+        // The fixed-step budget shown on the frame-time axis.
         constexpr float TargetFrameMilliseconds = static_cast<float>(FixedDeltaSeconds) * 1000.0F;
 
         std::vector<float> toMilliseconds(std::vector<float> seconds)
@@ -72,14 +69,18 @@ namespace simple_platformer
         {
             const char* label;
             ImVec4 colour;
+            ImGuiID storageId;
             bool hidden;
         };
 
-        // The frame plot's legend, in a window of its own. It is the one part of the panel
-        // the mouse can see, so a click on an entry toggles its series while a click
-        // anywhere else over the panel reaches the game. Which series are hidden is kept
-        // in the window's ImGui storage and filled into the series on the way out.
-        void drawFramePlotLegend(ImVec2 topLeft, ImVec2 size, std::vector<FramePlotSeries>& series)
+        // The frame plot's legend, in a short window below the plot. A click on an entry
+        // toggles its series. Hidden state belongs to the plot window, which exists even
+        // when the details are collapsed, so hiding the legend does not reset the plot.
+        void drawFramePlotLegend(
+            ImVec2 topLeft,
+            ImVec2 size,
+            ImGuiStorage& hidden,
+            std::vector<FramePlotSeries>& series)
         {
             ImGui::SetNextWindowPos(topLeft, ImGuiCond_Always);
             ImGui::SetNextWindowSize(size, ImGuiCond_Always);
@@ -91,38 +92,49 @@ namespace simple_platformer
                         ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar |
                         ImGuiWindowFlags_NoScrollWithMouse))
             {
-                ImGuiStorage* hidden = ImGui::GetStateStorage();
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
                 const float rowHeight = ImGui::GetTextLineHeight();
                 const float swatchInset = rowHeight * SwatchInsetFraction;
                 const float swatchSize = rowHeight - 2.0F * swatchInset;
-                for (FramePlotSeries& entry : series)
+                if (ImGui::BeginTable(
+                        "series",
+                        LegendColumns,
+                        ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_NoPadOuterX))
                 {
-                    const ImGuiID id = ImGui::GetID(entry.label);
-                    entry.hidden = hidden->GetBool(id);
-                    const ImVec2 rowTopLeft = ImGui::GetCursorScreenPos();
-                    ImGui::PushID(entry.label);
-                    if (ImGui::Selectable("##toggle", false, 0, {0.0F, rowHeight}))
+                    for (std::size_t index = 0; index < series.size(); ++index)
                     {
-                        entry.hidden = !entry.hidden;
-                        hidden->SetBool(id, entry.hidden);
+                        FramePlotSeries& entry = series[index];
+                        if (index % LegendColumns == 0)
+                        {
+                            ImGui::TableNextRow(0, rowHeight);
+                        }
+                        ImGui::TableSetColumnIndex(static_cast<int>(index % LegendColumns));
+                        const ImVec2 rowTopLeft = ImGui::GetCursorScreenPos();
+                        ImGui::PushID(entry.label);
+                        if (ImGui::Selectable("##toggle", false, 0, {0.0F, rowHeight}))
+                        {
+                            entry.hidden = !entry.hidden;
+                            hidden.SetBool(entry.storageId, entry.hidden);
+                        }
+                        ImGui::PopID();
+                        ImVec4 swatch = entry.colour;
+                        if (entry.hidden)
+                        {
+                            swatch.w *= HiddenSwatchOpacity;
+                        }
+                        drawList->AddRectFilled(
+                            {rowTopLeft.x + swatchInset, rowTopLeft.y + swatchInset},
+                            {rowTopLeft.x + swatchInset + swatchSize,
+                             rowTopLeft.y + swatchInset + swatchSize},
+                            ImGui::ColorConvertFloat4ToU32(swatch));
+                        drawShadowedText(
+                            *drawList,
+                            {rowTopLeft.x + rowHeight + swatchInset, rowTopLeft.y},
+                            ImGui::GetColorU32(
+                                entry.hidden ? ImGuiCol_TextDisabled : ImGuiCol_Text),
+                            entry.label);
                     }
-                    ImGui::PopID();
-                    ImVec4 swatch = entry.colour;
-                    if (entry.hidden)
-                    {
-                        swatch.w *= HiddenSwatchOpacity;
-                    }
-                    drawList->AddRectFilled(
-                        {rowTopLeft.x + swatchInset, rowTopLeft.y + swatchInset},
-                        {rowTopLeft.x + swatchInset + swatchSize,
-                         rowTopLeft.y + swatchInset + swatchSize},
-                        ImGui::ColorConvertFloat4ToU32(swatch));
-                    drawShadowedText(
-                        *drawList,
-                        {rowTopLeft.x + rowHeight + swatchInset, rowTopLeft.y},
-                        ImGui::GetColorU32(entry.hidden ? ImGuiCol_TextDisabled : ImGuiCol_Text),
-                        entry.label);
+                    ImGui::EndTable();
                 }
             }
             ImGui::End();
@@ -212,13 +224,13 @@ namespace simple_platformer
             const char* heading,
             float scale)
         {
-            if (!ImGui::BeginTable("phases", 2, ImGuiTableFlags_SizingFixedFit))
+            if (!ImGui::BeginTable("phases", 2, ImGuiTableFlags_SizingStretchProp))
             {
                 return;
             }
-            // Both columns fit their content, so the numbers sit beside the longest name
-            // instead of at the panel's far edge.
-            ImGui::TableSetupColumn("phase", ImGuiTableColumnFlags_WidthFixed);
+            // Names fill the available width while the measurement stays compact at the
+            // right edge, so the breakdown shares the full width of the plot above it.
+            ImGui::TableSetupColumn("phase", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn(heading, ImGuiTableColumnFlags_WidthFixed);
             for (const char* category : categoriesOf(phases))
             {
@@ -277,7 +289,6 @@ namespace simple_platformer
             // would flicker between 0.00 and 0.01; the stack above already shows the spikes.
             const std::vector<float> simulationSeconds = history.simulationSecondsOldestFirst();
             const float scale = 1000.0F / static_cast<float>(ticks);
-            ImGui::Separator();
             ImGui::Text(
                 "simulation %6.3f ms per tick over %d ticks",
                 std::accumulate(simulationSeconds.begin(), simulationSeconds.end(), 0.0F) * scale,
@@ -333,9 +344,45 @@ namespace simple_platformer
                 frame.navigationFillTicks);
             drawPhaseTable(phasesByCost(frame.phases), "ms", 1000.0F);
         }
+
+        // The breakdown fills the window below the plot and legend. It still scrolls
+        // with the wheel when its phase list is longer, but does not draw a scrollbar.
+        void drawFrameDetails(
+            ImVec2 topLeft,
+            float width,
+            float height,
+            const FrameHistory& history,
+            const std::vector<PhaseTiming>& phases,
+            const FrameSelection& selection)
+        {
+            ImGui::SetNextWindowPos(topLeft, ImGuiCond_Always);
+            ImGui::SetNextWindowSize({width, height}, ImGuiCond_Always);
+            if (ImGui::Begin(
+                    "Frame details##profile",
+                    nullptr,
+                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground |
+                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                        ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar))
+            {
+                const std::optional<std::size_t> picked = selection.selectedIndex();
+                if (picked.has_value())
+                {
+                    drawPickedFrame(selection.selectedFrame(), *picked, history.size());
+                }
+                else
+                {
+                    drawHistorySummary(history, phases);
+                }
+            }
+            ImGui::End();
+        }
     }
 
-    void drawFrameProfile(const FrameHistory& live, FrameSelection& selection, FrameAxes& axes)
+    void drawFrameProfile(
+        const FrameHistory& live,
+        FrameSelection& selection,
+        FrameAxes& axes,
+        bool showDetails)
     {
         const FrameHistory& history = selection.kept() != nullptr ? *selection.kept() : live;
         if (history.size() == 0)
@@ -345,11 +392,11 @@ namespace simple_platformer
 
         const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(mainViewport->WorkPos, ImGuiCond_Always);
-        // A fixed width keeps the window still while the numbers in it change; each line
-        // below is written to fit it, and no scrollbar appears if one does not. The mouse
-        // cannot see this window, so clicks over it reach the game like clicks over the
-        // rest of the overlay; only the legend, a window of its own, takes them.
-        ImGui::SetNextWindowSizeConstraints({PanelWidth, 0.0F}, {PanelWidth, FLT_MAX});
+        // A fixed width keeps the plot still while the numbers change. The mouse cannot
+        // see this window, so clicks over it reach the game like clicks over the rest of
+        // the overlay; the picker and optional lower panel are windows of their own.
+        ImGui::SetNextWindowSizeConstraints(
+            {PanelWidth, 0.0F}, {PanelWidth, mainViewport->WorkSize.y});
         if (!ImGui::Begin(
                 "Frame##profile",
                 nullptr,
@@ -371,36 +418,51 @@ namespace simple_platformer
             toMilliseconds(history.frameSecondsOldestFirst());
         const int frameCount = static_cast<int>(frameMilliseconds.size());
         const auto frameAxis = static_cast<double>(history.capacity());
-        axes.fitTo(live);
+        // A picked frame keeps the plotted history still; keep its scale still as well so
+        // live spikes cannot move the data under inspection. Fitting resumes when the
+        // selection is cleared.
+        if (selection.kept() == nullptr)
+        {
+            axes.fitTo(live);
+        }
         constexpr ImPlotFlags PlotFlags = ImPlotFlags_NoInputs | ImPlotFlags_NoMenus |
                                           ImPlotFlags_NoTitle | ImPlotFlags_NoBoxSelect |
-                                          ImPlotFlags_NoLegend;
+                                          ImPlotFlags_NoLegend | ImPlotFlags_NoFrame;
 
-        // The legend is drawn first so what it hides shapes this frame's plot.
-        std::vector<FramePlotSeries> series = {
-            {"60 Hz budget", ImPlot::GetColormapColor(0), false},
-            {"frame", ImPlot::GetColormapColor(1), false}};
+        ImGuiStorage& hidden = *ImGui::GetStateStorage();
+        std::vector<FramePlotSeries> series;
+        const auto addSeries = [&](const char* label, ImVec4 colour)
+        {
+            ImGui::PushID("Frame plot series");
+            const ImGuiID storageId = ImGui::GetID(label);
+            ImGui::PopID();
+            series.push_back({label, colour, storageId, hidden.GetBool(storageId)});
+        };
+        addSeries("60 Hz budget", ImPlot::GetColormapColor(0));
+        addSeries("frame", ImPlot::GetColormapColor(1));
         if (ticks > 0)
         {
             for (const char* category : categoriesOf(phases))
             {
-                series.push_back(
-                    {category, ImPlot::GetColormapColor(static_cast<int>(series.size())), false});
+                addSeries(category, ImPlot::GetColormapColor(static_cast<int>(series.size())));
             }
         }
-        const ImVec2 panelTopLeft = ImGui::GetWindowPos();
         const ImVec2 padding = ImGui::GetStyle().WindowPadding;
-        drawFramePlotLegend(
-            {panelTopLeft.x + PanelWidth - padding.x - LegendWidth, panelTopLeft.y + padding.y},
-            {LegendWidth, PlotHeight},
-            series);
+        const ImVec2 plotWidgetTopLeft = ImGui::GetCursorScreenPos();
+        const float plotWidgetWidth = ImGui::GetContentRegionAvail().x;
+        const auto legendRows = (series.size() + static_cast<std::size_t>(LegendColumns) - 1) /
+                                static_cast<std::size_t>(LegendColumns);
+        const float legendHeight =
+            2.0F * padding.y + ImGui::GetTextLineHeight() * static_cast<float>(legendRows);
         const FramePlotSeries& budget = series[0];
         const FramePlotSeries& frame = series[1];
 
         ImVec2 plotTopLeft;
         ImVec2 plotSize;
         bool plotted = false;
-        if (ImPlot::BeginPlot("##frame", {-LegendWidth, PlotHeight}, PlotFlags))
+        ImPlot::PushStyleColor(ImPlotCol_PlotBg, ImVec4{0.0F, 0.0F, 0.0F, 0.0F});
+        ImPlot::PushStyleVar(ImPlotStyleVar_PlotBorderSize, 0.0F);
+        if (ImPlot::BeginPlot("##frame", {plotWidgetWidth, PlotHeight}, PlotFlags))
         {
             ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoTickLabels);
             ImPlot::SetupAxis(ImAxis_Y1, "frame ms");
@@ -485,19 +547,31 @@ namespace simple_platformer
             plotted = true;
             ImPlot::EndPlot();
         }
+        ImPlot::PopStyleVar();
+        ImPlot::PopStyleColor();
         if (plotted)
         {
             drawFramePicker(plotTopLeft, plotSize, history, live, selection);
         }
 
-        const std::optional<std::size_t> picked = selection.selectedIndex();
-        if (picked.has_value())
+        if (plotted && showDetails)
         {
-            drawPickedFrame(selection.selectedFrame(), *picked, history.size());
-        }
-        else
-        {
-            drawHistorySummary(history, phases);
+            // ImPlot's visible data rectangle is narrower than its widget because the
+            // axes live inside the widget. Expand the lower windows by their padding so
+            // their content edges, rather than their invisible window edges, line up
+            // with that rectangle.
+            const ImVec2 legendTopLeft = {
+                plotTopLeft.x - padding.x, plotWidgetTopLeft.y + PlotHeight + padding.y};
+            const float lowerWindowWidth = plotSize.x + 2.0F * padding.x;
+            drawFramePlotLegend(legendTopLeft, {lowerWindowWidth, legendHeight}, hidden, series);
+            const ImVec2 detailsTopLeft = {legendTopLeft.x, legendTopLeft.y + legendHeight};
+            const float availableHeight =
+                mainViewport->WorkPos.y + mainViewport->WorkSize.y - detailsTopLeft.y;
+            if (availableHeight > 0.0F)
+            {
+                drawFrameDetails(
+                    detailsTopLeft, lowerWindowWidth, availableHeight, history, phases, selection);
+            }
         }
         ImGui::End();
     }

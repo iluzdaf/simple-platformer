@@ -155,17 +155,6 @@ namespace simple_platformer
             return info;
         }
 
-        bool containsPoint(const Aabb& box, glm::vec2 point)
-        {
-            return point.x >= box.position.x && point.y >= box.position.y &&
-                   point.x < box.position.x + box.size.x && point.y < box.position.y + box.size.y;
-        }
-
-        float distanceBetweenCenters(const Aabb& first, const Aabb& second)
-        {
-            return glm::length(centerOf(first) - centerOf(second));
-        }
-
         // The actors the overlay shows: those the camera can see, a tile beyond its edges.
         std::vector<const Actor*> actorsInView(const World& world, const Aabb& view)
         {
@@ -196,12 +185,13 @@ namespace simple_platformer
                     continue;
                 }
                 if (cursorWorld.has_value() &&
-                    containsPoint(actor->body.bounds, cursorWorld.value_or(glm::vec2{})))
+                    contains(actor->body.bounds, cursorWorld.value_or(glm::vec2{})))
                 {
                     return actor;
                 }
-                if (nearest == nullptr || distanceBetweenCenters(actor->body.bounds, nearTo) <
-                                              distanceBetweenCenters(nearest->body.bounds, nearTo))
+                const glm::vec2 target = centerOf(nearTo);
+                if (nearest == nullptr || glm::distance(centerOf(actor->body.bounds), target) <
+                                              glm::distance(centerOf(nearest->body.bounds), target))
                 {
                     nearest = actor;
                 }

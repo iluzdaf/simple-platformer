@@ -35,4 +35,6 @@ namespace simple_platformer
     CellRange cellsCovered(int tileSize, const Aabb& box);
     // Edge contact alone is not an overlap.
     bool overlaps(const Aabb& first, const Aabb& second);
+    // A point on the left or top edge is inside; one on the right or bottom edge is not.
+    bool contains(const Aabb& box, glm::vec2 point);
 }

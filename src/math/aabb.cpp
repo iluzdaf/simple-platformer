@@ -46,6 +46,12 @@ namespace simple_platformer
                first.position.y + first.size.y > second.position.y;
     }
 
+    bool contains(const Aabb& box, glm::vec2 point)
+    {
+        return point.x >= box.position.x && point.y >= box.position.y &&
+               point.x < box.position.x + box.size.x && point.y < box.position.y + box.size.y;
+    }
+
     bool contains(const CellRange& range, GridPosition cell)
     {
         return cell.x >= range.first.x && cell.x <= range.last.x && cell.y >= range.first.y &&

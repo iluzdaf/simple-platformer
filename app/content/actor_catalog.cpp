@@ -234,6 +234,15 @@ namespace simple_platformer
             {
                 tactic = jsonNpcTactic(*kind, sourceName, fieldPath(tacticPath, "kind"));
             }
+            const Json* standoff =
+                optionalJsonMember(*found, "standoffDistance", sourceName, tacticPath);
+            if (standoff != nullptr && tactic != NpcTactic::KeepDistance)
+            {
+                failJson(
+                    sourceName,
+                    fieldPath(tacticPath, "standoffDistance"),
+                    "applies only to a keepDistance tactic");
+            }
             readOptionalNumber(
                 *found, "standoffDistance", standoffDistance, sourceName, tacticPath);
         }

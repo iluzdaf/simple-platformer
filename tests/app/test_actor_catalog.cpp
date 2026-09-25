@@ -205,6 +205,16 @@ TEST_CASE(
     {
         root["actors"]["hero"]["brain"] = {};
     }
+    SECTION("Unknown tactic")
+    {
+        root["actors"]["hero"]["senses"] = {};
+        root["actors"]["hero"]["tactic"] = {{"kind", "ambusher"}};
+    }
+    SECTION("A standoff on a pursuer")
+    {
+        root["actors"]["hero"]["senses"] = {};
+        root["actors"]["hero"]["tactic"] = {{"kind", "pursuer"}, {"standoffDistance", 48}};
+    }
     SECTION("Unused definition")
     {
         root["actors"]["unused"] = {{"flying", {{"speed", -1}}}};

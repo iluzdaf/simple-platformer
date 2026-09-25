@@ -120,7 +120,7 @@ A practical route through the implementation is:
    debug overlay to observe visible targets, remembered positions, patrol points,
    destinations, and paths.
 3. Add one state such as Guard or Recover and test its transitions separately from
-   movement. Then write the same rules as a machine in
+   movement. Optionally, write the same rules as a machine in
    [`machines.json`](../assets/machines.json) and give it to an actor, to compare the
    switch with the data.
 4. Read generic lowest-cost search and flying navigation before studying simulated

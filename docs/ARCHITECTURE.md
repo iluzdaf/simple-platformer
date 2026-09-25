@@ -182,8 +182,8 @@ Physics code works with `body.bounds.position`. Content and ground navigation us
 ## Time
 
 Gameplay time is `float` seconds in the fixed simulation step. Every system receives the
-step it ran as `deltaTime` and checks it with `requireSeconds`: finite and non-negative.
-Rendering has no step and never advances time.
+step it ran as `deltaTime`, and `requireSeconds` rejects one that is not a finite,
+non-negative number. Rendering has no step and never advances time.
 
 A moment or a length of time takes one of two forms.
 
@@ -193,27 +193,29 @@ one system that owns the component. A countdown is over at zero (`coyoteRemainin
 `deathTimeRemaining`); a count-up is compared against a length (`stateElapsed`,
 `programElapsed`). The length is a duration field beside it, such as
 `targetMemoryDuration`. A timer needs no clock, so it is tested by setting the value and
-stepping, and not updating its system freezes it. Its cost is order: where the tick
-happens relative to other systems is a rule the reader must know, which is why the bite
-state holds for the update it is entered on.
+stepping, and not updating its system freezes it. Its cost is order. Where the tick
+happens relative to other systems is a rule the reader has to know, which is why the
+bite state holds for the update it is entered on.
 
 **Stamps.** An `std::optional<float>` holding the world clock's value when something
 happened, empty until it first does (`lastDamageTimeSeconds`, `lastFiredTimeSeconds`,
 `lastLockedTouchTimeSeconds`, `openedTimeSeconds`). `World` advances the clock once at
 the start of every step. A writer takes `simulationTimeSeconds()`; a reader asks
 `secondsSince(stamp)` for its age and compares it against a window the reader owns, so
-one write serves every reader: senses hear the shot stamp, the cover fade reveals it,
+one write serves every reader. Senses hear the shot stamp, the cover fade reveals it,
 and the hit flash's length is a rendering constant. A stamp belongs to the clock it was
-taken from: one from the future is rejected, respawn clears the damage stamp, and no
+taken from. One from the future is rejected, respawn clears the damage stamp, and no
 actor carries a stamp into another world. The clock and its stamps are `float`, whose
 resolution reaches a millisecond after about two hours of play.
 
 **Which to use.**
 
-- One system starts the window, ends it, and is its only reader: a timer.
-- The question is how long ago, asked by several readers or by rendering: a stamp.
-- Rendering reads stamps and the clock. It ticks nothing.
-- A length content tunes is a duration field in seconds, checked like every other time.
+- If one system starts the window, ends it and is the only reader, use a timer.
+- If the question is how long ago something happened, and several systems or rendering
+  ask it, use a stamp.
+- Rendering reads stamps and the clock and should not tick anything.
+- Put a length that content tunes in a duration field in seconds, checked like every
+  other time.
 
 ## World ownership and identity
 

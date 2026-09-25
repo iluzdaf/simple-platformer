@@ -107,7 +107,7 @@ namespace simple_platformer
             }
             return;
         }
-        const float now = world.simulationTimeSeconds();
+        const double now = world.simulationTimeSeconds();
         if (!overlaps(player->body.bounds, exit.bounds))
         {
             return;

@@ -35,11 +35,12 @@ namespace simple_platformer
         bool levelComplete() const;
         void completeLevel();
 
-        // Elapsed active fixed-step time for this world.
-        float simulationTimeSeconds() const;
+        // Elapsed active fixed-step time for this world. A double, and so are the stamps
+        // taken from it, so a stamp keeps its precision however long a session runs.
+        double simulationTimeSeconds() const;
         // How long ago a stamp taken from this clock was, or nothing without a stamp. A
-        // stamp ahead of the clock is rejected.
-        std::optional<float> secondsSince(const std::optional<float>& timeSeconds) const;
+        // stamp ahead of the clock is rejected. An age is small, so it is a float.
+        std::optional<float> secondsSince(const std::optional<double>& timeSeconds) const;
         // The simulation loop calls this once at the start of each active update.
         void advanceSimulationTime(float deltaTime);
 
@@ -82,14 +83,14 @@ namespace simple_platformer
 
     private:
         // A stamp on the world clock may be unset, but never ahead of the clock.
-        void requireWithinSimulationTime(const std::optional<float>& time, const char* what) const;
+        void requireWithinSimulationTime(const std::optional<double>& time, const char* what) const;
 
         std::vector<ItemDefinition> itemDefinitions;
         PlatformerConnectionCache platformerConnectionCache;
         std::vector<Pickup> pickupStorage;
         std::optional<LevelExit> levelExit;
         bool completed = false;
-        float elapsedSimulationTimeSeconds = 0.0F;
+        double elapsedSimulationTimeSeconds = 0.0;
         std::vector<Actor> actorStorage;
         std::vector<Projectile> projectileStorage;
         std::vector<ProjectileBurst> projectileBurstStorage;

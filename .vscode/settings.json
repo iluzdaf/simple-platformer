@@ -15,5 +15,6 @@
     },
     "[json]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
-    }
+    },
+    "prettier.resolveGlobalModules": true
 }

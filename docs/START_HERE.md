@@ -115,8 +115,8 @@ A practical route through the implementation is:
 1. Trace the explicit `NpcState` enum, its transitions in
    [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp), and the state branches in
    [`npc_system.cpp`](../src/npc/npc_system.cpp).
-2. Change `noticeDistance`, `targetMemoryDuration` and `searchDuration` in an actor
-   definition's `senses` settings in [`actors.json`](../assets/actors.json), using the
+2. Change `noticeDistance`, `standoffDistance`, `targetMemoryDuration` and
+   `searchDuration` in an actor definition's `senses` settings in [`actors.json`](../assets/actors.json), using the
    debug overlay to observe visible targets, remembered positions, patrol points,
    destinations, and paths.
 3. Add one state such as Guard or Recover and test its transitions separately from

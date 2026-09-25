@@ -136,9 +136,7 @@ namespace simple_platformer
                 }
             }
             if (actor.brain.has_value() &&
-                (!std::isfinite(actor.brain->standoffDistance) ||
-                 actor.brain->standoffDistance < 0.0F ||
-                 !std::isfinite(actor.brain->stateElapsed) || actor.brain->stateElapsed < 0.0F ||
+                (!std::isfinite(actor.brain->stateElapsed) || actor.brain->stateElapsed < 0.0F ||
                  !isFinite(actor.brain->lastSeenTargetFeet) ||
                  !std::isfinite(actor.brain->targetMemoryRemaining) ||
                  actor.brain->targetMemoryRemaining < 0.0F))
@@ -150,7 +148,9 @@ namespace simple_platformer
                                              !std::isfinite(actor.senses->targetMemoryDuration) ||
                                              actor.senses->targetMemoryDuration < 0.0F ||
                                              !std::isfinite(actor.senses->searchDuration) ||
-                                             actor.senses->searchDuration < 0.0F))
+                                             actor.senses->searchDuration < 0.0F ||
+                                             !std::isfinite(actor.senses->standoffDistance) ||
+                                             actor.senses->standoffDistance < 0.0F))
             {
                 throw std::invalid_argument("NPC senses data is invalid");
             }

@@ -288,7 +288,7 @@ capabilities:
 | Player | `PlatformerMovement` | application writes `InputIntentions` | `Health`, `Inventory`, `Team::Player`, `RangedWeapon` | `Sprite`, `Animator` |
 | Zombie | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
 | Bat | `FlyingMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
-| Zombie soldier | `PlatformerMovement` | `NpcBrain` (KeepDistance), `NpcMachine` (`keep_distance`), `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon` | `Sprite`, `Animator` |
+| Zombie soldier | `PlatformerMovement` | `NpcBrain`, `NpcMachine` (`keep_distance`), `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon` | `Sprite`, `Animator` |
 
 The recipe is additive. For example, making a second zombie does not require another
 type: reference the same definition with different spawn and patrol data. A bat can use a
@@ -458,7 +458,7 @@ decides in three steps, each its own function:
 
 1. `gatherNpcFacts` reads what the transitions decide on into `NpcFacts`: whether a
    living target is remembered or visible, whether it is in bite range or in a ranged
-   weapon's sights, whether it has come nearer than the brain's `standoffDistance`,
+   weapon's sights, whether it has come nearer than the senses' `standoffDistance`,
    whether the bite is ready, whether the NPC has a patrol, whether it searches for a
    lost target and that search's time is up, and how long it has been in its state.
 2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
@@ -486,8 +486,9 @@ lost one leaves it, and shares every other transition. A Pursuer answers the fir
 the attack that reaches, a bite before a shot, or Chase, and the second with Search. A
 KeepDistance NPC answers Retreat while the target is nearer than its standoff and
 otherwise the same, and watches from where it stands rather than walk to where the
-target was. The zombie is a Pursuer and the zombie soldier keeps its distance, over the
-same states, facts and activities.
+target was. The zombie is a Pursuer. The zombie soldier keeps its distance through the
+`keep_distance` machine, the KeepDistance tactic written as data over the same states,
+facts and activities.
 
 A tactic chooses; it never adds behaviour. A state, its activity, the facts it decides on
 and any capability it uses exist first, so healing instead of attacking is a heal
@@ -923,8 +924,9 @@ genuinely new example enemy normally involves:
 
 Species, capabilities, and decisions are separate concerns. Artwork does not determine
 the brain, and possessing a ranged weapon does not require a `Shooter` subclass. The
-decision policy is the brain's [tactic](#tactics): the zombie is a Pursuer and the
-zombie soldier keeps its distance, over the same states and facts. A new tactic, such as
+decision policy is the brain's [tactic](#tactics) or its machine: the zombie is a
+Pursuer, and the zombie soldier runs the `keep_distance` machine, the KeepDistance tactic
+written as data over the same states and facts. A new tactic, such as
 a guard that pursues only inside a home region or a coward that flees, is an enum value
 and a branch where the table asks the tactic, plus any fact or state it needs, added
 once for every tactic to use.

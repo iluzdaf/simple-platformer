@@ -190,10 +190,12 @@ namespace simple_platformer
             facts.biteReady = actor.bite.has_value() && actor.bite->phase == BitePhase::Ready;
             facts.targetInSights =
                 target != nullptr && brain.targetVisible && actor.rangedWeapon.has_value();
+            const float standoffDistance =
+                actor.senses.has_value() ? actor.senses->standoffDistance : 0.0F;
             facts.targetTooClose =
                 target != nullptr &&
                 glm::distance(feetOf(actor.body.bounds), brain.lastSeenTargetFeet) <
-                    brain.standoffDistance;
+                    standoffDistance;
             facts.hasPatrol = actor.patrol.has_value();
             const float searchDuration =
                 actor.senses.has_value() ? actor.senses->searchDuration : 0.0F;

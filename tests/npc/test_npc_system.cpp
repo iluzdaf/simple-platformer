@@ -117,7 +117,7 @@ TEST_CASE(
                            .shooting()
                            .thinking({96.0F, 1.0F}));
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
-    brain(world, npcId).standoffDistance = 64.0F;
+    tests::senses(actor(world, npcId)).standoffDistance = 64.0F;
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {40.0F, 32.0F};
     brain(world, npcId).targetVisible = true;
@@ -145,7 +145,7 @@ TEST_CASE("A KeepDistance NPC shoots once its target is at its standoff", "[npc]
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({88.0F, 32.0F}).onTeam(simple_platformer::Team::Enemy).shooting());
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
-    brain(world, npcId).standoffDistance = 48.0F;
+    tests::senses(actor(world, npcId)).standoffDistance = 48.0F;
     brain(world, npcId).state = simple_platformer::NpcState::Retreat;
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastSeenTargetFeet = {24.0F, 32.0F};

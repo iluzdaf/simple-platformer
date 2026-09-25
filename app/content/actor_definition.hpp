@@ -31,8 +31,6 @@ namespace simple_platformer
         std::optional<NpcSenses> senses;
         // The brain's policy.
         NpcTactic tactic = NpcTactic::Pursuer;
-        // How near a KeepDistance brain lets a target come before it retreats.
-        float standoffDistance = 48.0F;
         // A data-driven machine in the machine catalog, run instead of the tactic. Empty
         // for none.
         std::string machine;

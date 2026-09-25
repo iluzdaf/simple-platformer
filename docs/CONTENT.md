@@ -242,16 +242,16 @@ for the game's HUD, and must not enable NPC sensing. Level patrols remain per-in
 
 Exactly one of `platformer` or `flying` is required. Empty component objects use C++
 defaults; omitted optional components are absent. `senses` adds the existing NPC brain,
-sensing and path follower together. `tactic` is that brain's policy: an object whose
-`kind` is `pursuer` or `keepDistance`, with a `standoffDistance` in world pixels for
-`keepDistance`, which a target may not come nearer than. It requires `senses`. `machine`
+sensing and path follower together. `tactic` is that brain's policy, `pursuer` or
+`keepDistance`, and requires `senses`. `machine`
 names a state machine in `machines.json` to run instead of the tactic; it requires
 `senses` too. `health` and `inventorySlots` are positive integers.
 Attacks use either `bite` or `ranged`, and require a non-neutral team. There is no
 inheritance or arbitrary per-placement override mechanism.
 
 Platformer fields match `PlatformerMovementConfig`; flying exposes `speed`. Sensing
-exposes `noticeDistance`, `targetMemoryDuration`, and `searchDuration`. Bite exposes `damage`, `hitboxSize`, `reach`,
+exposes `noticeDistance`, `standoffDistance`, `targetMemoryDuration`, and
+`searchDuration`. Bite exposes `damage`, `hitboxSize`, `reach`,
 `windupDuration`, `activeDuration`, and `recoveryDuration`. Ranged exposes `damage`,
 `projectileSize`, `projectileSpeed`, `projectileLifetime`, `shootDuration`,
 `recoveryDuration`, `breaksTiles`, and an optional `sprite` object with `position`, `size`,
@@ -277,7 +277,7 @@ the array whose conditions have held long enough wins.
 The facts are `targetKnown`, `targetVisible`, `targetInBiteRange`, `biteReady`,
 `targetInSights`, `targetTooClose`, `hasPatrol` and `searchTimeUp`. They are answered
 by the engine from the NPC's senses, memory, attacks and patrol, and the distances they
-compare against are the senses' `noticeDistance` and the tactic's `standoffDistance`.
+compare against are the senses' `noticeDistance` and `standoffDistance`.
 The soldier's `keep_distance` machine is the shipped example.
 
 Loading reports a machine with no states, a state declared twice, a transition from or

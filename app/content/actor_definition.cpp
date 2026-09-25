@@ -56,7 +56,6 @@ namespace simple_platformer
         {
             actor.brain = NpcBrain{};
             actor.brain->tactic = definition.tactic;
-            actor.brain->standoffDistance = definition.standoffDistance;
             actor.senses = definition.senses;
             actor.pathFollower = PathFollower{};
         }

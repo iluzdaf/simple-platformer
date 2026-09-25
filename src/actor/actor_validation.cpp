@@ -131,7 +131,9 @@ namespace simple_platformer
             if (actor.senses.has_value() && (!std::isfinite(actor.senses->noticeDistance) ||
                                              actor.senses->noticeDistance < 0.0F ||
                                              !std::isfinite(actor.senses->targetMemoryDuration) ||
-                                             actor.senses->targetMemoryDuration < 0.0F))
+                                             actor.senses->targetMemoryDuration < 0.0F ||
+                                             !std::isfinite(actor.senses->searchDuration) ||
+                                             actor.senses->searchDuration < 0.0F))
             {
                 throw std::invalid_argument("NPC senses data is invalid");
             }

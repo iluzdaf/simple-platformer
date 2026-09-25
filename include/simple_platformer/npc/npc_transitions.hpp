@@ -20,6 +20,9 @@ namespace simple_platformer
         // The target is visible and the NPC has a ranged weapon.
         bool canShootTarget = false;
         bool hasPatrol = false;
+        // The NPC searches for a lost target at all, and its search has run its time.
+        bool searches = false;
+        bool searchTimeUp = false;
         float stateElapsed = 0.0F;
     };
 

@@ -14,7 +14,8 @@ namespace simple_platformer
         Patrol,
         Chase,
         Bite,
-        Shoot
+        Shoot,
+        Search
     };
 
     struct NpcBrain
@@ -31,6 +32,9 @@ namespace simple_platformer
     {
         float noticeDistance = 96.0F;
         float targetMemoryDuration = 1.5F;
+        // How long a lost target is searched for before the NPC returns to its routine.
+        // Zero sends it straight back.
+        float searchDuration = 2.0F;
     };
 
     struct Patrol

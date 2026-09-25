@@ -63,7 +63,7 @@ TEST_CASE("NPC behaviour rejects invalid timing", "[npc][validation]")
         simple_platformer::updateNpcBehaviour(map, world, -0.1F), std::invalid_argument);
 }
 
-TEST_CASE("A chasing NPC patrols again once it has no target", "[npc][fsm]")
+TEST_CASE("A chasing NPC searches for a lost target, then patrols again", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"............", "............", "............", "############"});
@@ -71,9 +71,55 @@ TEST_CASE("A chasing NPC patrols again once it has no target", "[npc][fsm]")
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({22.0F, 28.0F}).patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
     brain(world, npcId).state = simple_platformer::NpcState::Chase;
+    brain(world, npcId).lastSeenTargetFeet = {22.0F, 28.0F};
+    tests::senses(actor(world, npcId)).searchDuration = 0.25F;
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Search);
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Search);
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Patrol);
+}
+
+TEST_CASE("A chasing NPC that does not search patrols again at once", "[npc][fsm]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"............", "............", "............", "############"});
+    simple_platformer::World world;
+    const simple_platformer::ActorId npcId =
+        world.addActor(makeNpc({22.0F, 28.0F}).patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
+    brain(world, npcId).state = simple_platformer::NpcState::Chase;
+    tests::senses(actor(world, npcId)).searchDuration = 0.0F;
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Patrol);
+}
+
+TEST_CASE(
+    "A searching NPC where the target was last seen looks one way, then the other",
+    "[npc][fsm]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "########"});
+    simple_platformer::World world;
+    const simple_platformer::ActorId npcId = world.addActor(makeNpc({24.0F, 32.0F}));
+    brain(world, npcId).state = simple_platformer::NpcState::Chase;
+    brain(world, npcId).lastSeenTargetFeet = {24.0F, 32.0F};
+
+    // Entering the search, then a turn's worth of looking.
+    simple_platformer::updateNpcBehaviour(map, world, 0.3F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Search);
+    REQUIRE(actor(world, npcId).intentions.aimDirection.x > 0.0F);
+    simple_platformer::updateNpcBehaviour(map, world, 0.3F);
+    REQUIRE(actor(world, npcId).intentions.aimDirection.x > 0.0F);
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.3F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Search);
+    REQUIRE(actor(world, npcId).intentions.aimDirection.x < 0.0F);
 }
 
 TEST_CASE("A chasing NPC follows the last seen target feet", "[npc][fsm]")

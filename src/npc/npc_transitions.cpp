@@ -13,6 +13,12 @@ namespace simple_platformer
             return facts.hasPatrol ? NpcState::Patrol : NpcState::Idle;
         }
 
+        // Where a lost target leaves its pursuer: searching for it, or back to its routine.
+        NpcState lostTarget(const NpcFacts& facts)
+        {
+            return facts.searches ? NpcState::Search : patrolOrIdle(facts);
+        }
+
         // How a known target is pursued: with the attack that can reach it now, a bite
         // before a shot, and otherwise by chasing. Nothing without a target.
         std::optional<NpcState> pursuit(const NpcFacts& facts)
@@ -54,9 +60,15 @@ namespace simple_platformer
         case NpcState::Shoot:
             if (!pursuing.has_value())
             {
-                return patrolOrIdle(facts);
+                return lostTarget(facts);
             }
             return *pursuing != state ? pursuing : std::nullopt;
+        case NpcState::Search:
+            if (pursuing.has_value())
+            {
+                return pursuing;
+            }
+            return facts.searchTimeUp ? std::optional(patrolOrIdle(facts)) : std::nullopt;
         case NpcState::Bite:
             // The bite starts the update after it is asked for, so a bite still ready on
             // the entering update has not begun; the wait lets the attack system see it.
@@ -65,7 +77,7 @@ namespace simple_platformer
             {
                 return std::nullopt;
             }
-            return facts.targetKnown ? NpcState::Chase : patrolOrIdle(facts);
+            return facts.targetKnown ? NpcState::Chase : lostTarget(facts);
         }
         return std::nullopt;
     }

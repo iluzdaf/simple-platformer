@@ -115,11 +115,12 @@ A practical route through the implementation is:
 1. Trace the explicit `NpcState` enum, its transitions in
    [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp), and the state branches in
    [`npc_system.cpp`](../src/npc/npc_system.cpp).
-2. Change `noticeDistance` and `targetMemoryDuration` in an actor definition's `senses` settings
-   in [`actors.json`](../assets/actors.json), using the debug overlay to observe
-   visible targets, remembered positions, patrol points, destinations, and paths.
-3. Add one state such as Search, Guard, Retreat, or Recover and test its transitions
-   separately from movement.
+2. Change `noticeDistance`, `targetMemoryDuration` and `searchDuration` in an actor
+   definition's `senses` settings in [`actors.json`](../assets/actors.json), using the
+   debug overlay to observe visible targets, remembered positions, patrol points,
+   destinations, and paths.
+3. Add one state such as Guard, Retreat, or Recover and test its transitions separately
+   from movement.
 4. Read generic lowest-cost search and flying navigation before studying simulated
    platformer jumps.
 5. Create an enemy with a deliberate combination of movement, senses, state rules,

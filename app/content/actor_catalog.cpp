@@ -110,11 +110,16 @@ namespace simple_platformer
             std::string_view sourceName,
             const std::string& path)
         {
-            checkJsonFields(value, {"noticeDistance", "targetMemoryDuration"}, sourceName, path);
+            checkJsonFields(
+                value,
+                {"noticeDistance", "targetMemoryDuration", "searchDuration"},
+                sourceName,
+                path);
             NpcSenses config;
             readOptionalNumber(value, "noticeDistance", config.noticeDistance, sourceName, path);
             readOptionalNumber(
                 value, "targetMemoryDuration", config.targetMemoryDuration, sourceName, path);
+            readOptionalNumber(value, "searchDuration", config.searchDuration, sourceName, path);
             return config;
         }
 

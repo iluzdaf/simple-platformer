@@ -416,13 +416,14 @@ or shoot. This keeps perception and decisions separately testable.
 
 ### Explicit state machine
 
-`NpcState` is an enum with five states: Idle, Patrol, Chase, Bite, and Shoot. An update
-decides in three steps, each its own function:
+`NpcState` is an enum with six states: Idle, Patrol, Chase, Bite, Shoot, and Search. An
+update decides in three steps, each its own function:
 
 1. `gatherNpcFacts` reads what the transitions decide on into `NpcFacts`: whether a
    living target is remembered or visible, whether it is in bite range or in a ranged
-   weapon's sights, whether the bite is ready, whether the NPC has a patrol, and how
-   long it has been in its state.
+   weapon's sights, whether the bite is ready, whether the NPC has a patrol, whether it
+   searches for a lost target and that search's time is up, and how long it has been in
+   its state.
 2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
    current state that returns the state to enter, or nothing to stay. It reads only the
    facts, so a test hands it a struct and expects a state. An NPC makes at most one
@@ -431,7 +432,10 @@ decides in three steps, each its own function:
 3. Entering a state resets its timing, clears the follower's path and, for Bite, asks
    for the attack once. The state's function then acts: Chase chooses a destination and
    follows its path, Bite aims at the remembered target, and Shoot aims at the visible
-   target and presses the attack. None of them decides what comes next.
+   target and presses the attack. Search finishes the walk to where the target was last
+   seen and looks about there, turning every half second, until its senses'
+   `searchDuration` runs out; a duration of zero sends a pursuer that lost its target
+   straight back to Patrol or Idle. None of them decides what comes next.
 
 Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
 edge and loses its path, navigation can recover to a supported cell before repathing;
@@ -796,8 +800,8 @@ instead of filling
 
 ### Adding an NPC state
 
-`NpcState` represents what an NPC is doing now. To add a state such as Search, Guard,
-Retreat, or Recover:
+`NpcState` represents what an NPC is doing now. To add a state such as Guard, Retreat,
+or Recover:
 
 1. Add the state to the enum.
 2. Add any fact its transitions decide on to `NpcFacts`, and gather it in the NPC

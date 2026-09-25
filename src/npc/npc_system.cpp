@@ -31,6 +31,9 @@ namespace simple_platformer
 {
     namespace
     {
+        // How often a searching NPC turns to look the other way.
+        constexpr float SearchTurnSeconds = 0.5F;
+
         // Everything one NPC update needs, passed as one so the state functions carry
         // nothing they do not use themselves.
         struct NpcUpdate
@@ -186,6 +189,10 @@ namespace simple_platformer
             facts.canShootTarget =
                 target != nullptr && brain.targetVisible && actor.rangedWeapon.has_value();
             facts.hasPatrol = actor.patrol.has_value();
+            const float searchDuration =
+                actor.senses.has_value() ? actor.senses->searchDuration : 0.0F;
+            facts.searches = searchDuration > 0.0F;
+            facts.searchTimeUp = brain.stateElapsed >= searchDuration;
             facts.stateElapsed = brain.stateElapsed;
             return facts;
         }
@@ -218,6 +225,26 @@ namespace simple_platformer
             }
         }
 
+        // Where the last seen feet send a pursuer. A platformer needs a standable cell
+        // near them, and has nowhere to go when there is none.
+        std::optional<glm::vec2> lastSeenDestination(
+            const NpcUpdate& update,
+            const Actor& actor,
+            const NpcBrain& brain)
+        {
+            if (!actor.platformerMovement.has_value())
+            {
+                return brain.lastSeenTargetFeet;
+            }
+            const std::optional<GridPosition> chaseCell = findPlatformerChaseCell(
+                update.map, brain.lastSeenTargetFeet, actor.body.bounds.size);
+            if (!chaseCell.has_value())
+            {
+                return std::nullopt;
+            }
+            return feetInCell(update.map.tileSize(), chaseCell.value());
+        }
+
         void updateChaseState(
             const NpcUpdate& update,
             Actor& actor,
@@ -231,19 +258,50 @@ namespace simple_platformer
             }
 
             aimToward(actor, brain.lastSeenTargetFeet);
-            glm::vec2 destinationFeet = brain.lastSeenTargetFeet;
-            if (actor.platformerMovement.has_value())
+            const std::optional<glm::vec2> destination = lastSeenDestination(update, actor, brain);
+            if (!destination.has_value())
             {
-                const std::optional<GridPosition> chaseCell = findPlatformerChaseCell(
-                    update.map, brain.lastSeenTargetFeet, actor.body.bounds.size);
-                if (!chaseCell.has_value())
-                {
-                    clearPath(follower);
-                    return;
-                }
-                destinationFeet = feetInCell(update.map.tileSize(), chaseCell.value());
+                clearPath(follower);
+                return;
             }
-            followDestination(update, actor, follower, destinationFeet);
+            followDestination(update, actor, follower, *destination);
+        }
+
+        // Looking about is an aim that turns every SearchTurnSeconds, first towards where
+        // the target was last seen.
+        void lookAbout(Actor& actor, const NpcBrain& brain)
+        {
+            const float toward = brain.lastSeenTargetFeet.x - feetOf(actor.body.bounds).x;
+            float side = toward < 0.0F ? -1.0F : 1.0F;
+            const int turns = static_cast<int>(brain.stateElapsed / SearchTurnSeconds);
+            if (turns % 2 == 1)
+            {
+                side = -side;
+            }
+            actor.intentions.aimDirection = {side, 0.0F};
+        }
+
+        // A search finishes the walk to where the target was last seen, and looks about
+        // once it is there or cannot get there.
+        void updateSearchState(
+            const NpcUpdate& update,
+            Actor& actor,
+            const NpcBrain& brain,
+            PathFollower& follower)
+        {
+            const std::optional<glm::vec2> destination = lastSeenDestination(update, actor, brain);
+            if (destination.has_value())
+            {
+                followDestination(update, actor, follower, *destination);
+            }
+            else
+            {
+                clearPath(follower);
+            }
+            if (!follower.path.has_value() || pathComplete(follower))
+            {
+                lookAbout(actor, brain);
+            }
         }
 
         // The target is visible for as long as this state lasts, since the transitions
@@ -290,6 +348,9 @@ namespace simple_platformer
                 break;
             case NpcState::Shoot:
                 updateShootState(actor, target);
+                break;
+            case NpcState::Search:
+                updateSearchState(update, actor, brain, follower);
                 break;
             }
         }

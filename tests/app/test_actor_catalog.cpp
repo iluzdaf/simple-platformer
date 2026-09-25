@@ -136,7 +136,7 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
         R"({
         "player":"hero", "actors":{
           "hero":{"bodySize":[12,20],"platformer":{"jumpSpeed":210},"health":5,"inventorySlots":3},
-          "scout":{"flying":{"speed":25},"team":"enemy","senses":{"noticeDistance":40},
+          "scout":{"flying":{"speed":25},"team":"enemy","senses":{"noticeDistance":40,"searchDuration":3},
                    "bodySize":[8,6],"animations":"test_actor","spriteAnchor":"center","bite":{"damage":2}}
         }})",
         "test actors",
@@ -146,6 +146,7 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
         simple_platformer::actorDefinition(catalog, "scout"), animations, 7);
     REQUIRE(tests::flyingMovement(actor).speed == 25);
     REQUIRE(tests::bite(actor).damage == 2);
+    REQUIRE(tests::senses(actor).searchDuration == 3);
     REQUIRE(tests::sprite(actor).textureId == 7);
     REQUIRE(tests::sprite(actor).anchor == simple_platformer::SpriteAnchor::BodyCenter);
     REQUIRE_FALSE(actor.platformerMovement.has_value());

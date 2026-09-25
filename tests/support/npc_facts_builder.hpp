@@ -48,6 +48,21 @@ namespace tests
             return *this;
         }
 
+        // The NPC searches for a lost target, with time still to search.
+        NpcFactsBuilder searching() &&
+        {
+            built.searches = true;
+            return *this;
+        }
+
+        // The NPC searches for a lost target, and its search has run its time.
+        NpcFactsBuilder searchTimeUp() &&
+        {
+            built.searches = true;
+            built.searchTimeUp = true;
+            return *this;
+        }
+
         // The bite is ready this many seconds into the state.
         NpcFactsBuilder biteReadyFor(float stateElapsed) &&
         {

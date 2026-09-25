@@ -246,7 +246,7 @@ Attacks use either `bite` or `ranged`, and require a non-neutral team. There is 
 inheritance or arbitrary per-placement override mechanism.
 
 Platformer fields match `PlatformerMovementConfig`; flying exposes `speed`. Sensing
-exposes `noticeDistance` and `targetMemoryDuration`. Bite exposes `damage`, `hitboxSize`, `reach`,
+exposes `noticeDistance`, `targetMemoryDuration`, and `searchDuration`. Bite exposes `damage`, `hitboxSize`, `reach`,
 `windupDuration`, `activeDuration`, and `recoveryDuration`. Ranged exposes `damage`,
 `projectileSize`, `projectileSpeed`, `projectileLifetime`, `shootDuration`,
 `recoveryDuration`, `breaksTiles`, and an optional `sprite` object with `position`, `size`,

@@ -28,7 +28,9 @@ TEST_CASE("A known target is chased from idle and from patrol", "[npc][fsm]")
     REQUIRE(nextNpcState(NpcState::Patrol, NpcFactsBuilder::facts().withPatrol()) == std::nullopt);
 }
 
-TEST_CASE("A chase ends in patrol or idle once the target is lost", "[npc][fsm]")
+TEST_CASE(
+    "A chase that does not search ends in patrol or idle once the target is lost",
+    "[npc][fsm]")
 {
     REQUIRE(
         nextNpcState(NpcState::Chase, NpcFactsBuilder::facts().withPatrol()) == NpcState::Patrol);
@@ -100,4 +102,35 @@ TEST_CASE("A bite comes before a shot at a target in range of both", "[npc][fsm]
         nextNpcState(
             NpcState::Shoot, NpcFactsBuilder::facts().canShootTarget().targetInBiteRange()) ==
         NpcState::Bite);
+}
+
+TEST_CASE("A searcher searches for a lost target from a chase, a shot or a bite", "[npc][fsm]")
+{
+    REQUIRE(
+        nextNpcState(NpcState::Chase, NpcFactsBuilder::facts().searching()) == NpcState::Search);
+    REQUIRE(
+        nextNpcState(NpcState::Shoot, NpcFactsBuilder::facts().searching()) == NpcState::Search);
+    REQUIRE(
+        nextNpcState(NpcState::Bite, NpcFactsBuilder::facts().searching().biteReadyFor(0.1F)) ==
+        NpcState::Search);
+}
+
+TEST_CASE("A search pursues a target found again", "[npc][fsm]")
+{
+    REQUIRE(
+        nextNpcState(NpcState::Search, NpcFactsBuilder::facts().searching().knowingTarget()) ==
+        NpcState::Chase);
+    REQUIRE(
+        nextNpcState(NpcState::Search, NpcFactsBuilder::facts().searching().targetInBiteRange()) ==
+        NpcState::Bite);
+}
+
+TEST_CASE("A search ends in patrol or idle once its time is up", "[npc][fsm]")
+{
+    REQUIRE(nextNpcState(NpcState::Search, NpcFactsBuilder::facts().searching()) == std::nullopt);
+    REQUIRE(
+        nextNpcState(NpcState::Search, NpcFactsBuilder::facts().searchTimeUp().withPatrol()) ==
+        NpcState::Patrol);
+    REQUIRE(
+        nextNpcState(NpcState::Search, NpcFactsBuilder::facts().searchTimeUp()) == NpcState::Idle);
 }

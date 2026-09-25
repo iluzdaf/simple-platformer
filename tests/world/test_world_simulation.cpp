@@ -311,6 +311,8 @@ TEST_CASE(
     tests::brain(zombie).target = playerId;
     tests::brain(zombie).lastSeenTargetFeet = {88.0F, 32.0F};
     tests::brain(zombie).targetMemoryRemaining = 0.01F;
+    // It does not search, so losing the player sends it straight back to its patrol.
+    tests::senses(zombie).searchDuration = 0.0F;
     tests::patrol(zombie).headingToSecond = false;
     const simple_platformer::ActorId zombieId = world.addActor(zombie);
 

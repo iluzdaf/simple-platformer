@@ -60,6 +60,8 @@ namespace simple_platformer
                 return "Bite";
             case NpcState::Shoot:
                 return "Shoot";
+            case NpcState::Search:
+                return "Search";
             }
 
             return "Unknown";

@@ -10,6 +10,7 @@
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
@@ -86,4 +87,21 @@ TEST_CASE("An NPC from the actor builder is one World accepts", "[support][actor
     REQUIRE(tests::patrol(npc).firstFeet == glm::vec2{8.0F, 32.0F});
     REQUIRE(tests::patrol(npc).secondFeet == glm::vec2{56.0F, 32.0F});
     REQUIRE(npc.bite.has_value());
+}
+
+TEST_CASE("A thinking actor from the builder can run a machine", "[support][actor-builder]")
+{
+    simple_platformer::NpcStateMachine machine;
+    machine.name = "test";
+    machine.states = {{"rest", simple_platformer::NpcState::Idle}};
+    simple_platformer::World world;
+    const simple_platformer::ActorId id = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                                                             .at({8.0F, 8.0F})
+                                                             .walking()
+                                                             .thinking({})
+                                                             .running(machine));
+    REQUIRE(
+        simple_platformer::activeNpcMachineState(
+            tests::actor(world, id).machine.value_or(simple_platformer::NpcMachine{}))
+            .name == "rest");
 }

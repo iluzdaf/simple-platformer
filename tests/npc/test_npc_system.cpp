@@ -46,7 +46,7 @@ namespace
     }
 
     // The NPC these tests measure their maps against.
-    tests::ActorBuilder makeNpc(glm::vec2 feet)
+    tests::ActorBuilder::Thinking makeNpc(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})
             .atFeet(feet)

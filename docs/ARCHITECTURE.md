@@ -833,48 +833,29 @@ the scene and the order it is drawn in, as `world_simulation` is for the systems
 built before the simulation and hands back what the player asked for as
 `InterfaceRequests`, which the loop applies, so a click on the bag pauses the same frame
 instead of firing a shot and building the interface never changes the game.
-The debug overlay is toggled from the application; its keys are listed under
-[Debug overlay](../README.md#debug-overlay) in the README.
-`drawDebugTools` in `app/debug/debug_tools` is the same
-kind of list for it: the world and text overlay, the machine window, then the frame
-panel, drawn from the `DebugOverlay` the game built, and `DebugTools` beside it is
-everything they keep between frames, so the application holds one object and makes
-one call.
-The overlay shows what the camera can see, a tile beyond
-its edges, so a large level does not fill the text column with actors off screen. It
-can show actor details, sprite and collision
-bounds, pickups, projectiles, bite hitboxes, camera bounds, dead zone, NPC sensing,
-navigation paths, and the connection cache's cells for one platformer NPC body at a
-time: filled while kept, with the cell under the cursor labelled by its connection
-count, and outlined while missing, which after a break is what the break dropped and
-the fill has not reached yet, with the cache's totals under the actor text, including
-the cells waiting for the fill and the cells dropped and kept so far. With
-the overlay open, a tile under the cursor that can break is labelled and can be broken
-as a shot would break it, so what a break does to the cache can be tried without one. For the cell
-under the cursor it also outlines the footprint the cell's simulation swept, which is
-why a break inside it drops the cell, draws each connection to where it lands with jumps
-and falls along their replayed arcs, and shades the cells a failed search found
-reachable from it. Debug data is built separately from its ImGui presentation so it can
-be tested without a window.
+The application owns `DebugToolVisibility`; all control mappings remain in
+[Debug overlay](../README.md#debug-overlay). `drawDebugTools` in
+`app/debug/debug_tools` orders the optional world, text and machine layers before the
+frame panel. `DebugTools` owns the persistent profiling, selection and graph-editor
+state, so the application needs one object and one draw call.
 
-The machine window, drawn by `app/debug/machine_graph_ui`, shows one NPC's
-`NpcMachine` as a graph: each state a node listing its transitions in priority order
-with their conditions, the active state lit, and the transition that fired last flowing
-along its link. It follows the NPC under the cursor when that NPC has a machine, and
-otherwise the NPC with a machine nearest the player, as the cache view follows the
-cell under the cursor; the overlay outlines the NPC it follows. Which NPC is followed
-is decided with the rest of the debug data, so it is tested. The graph is drawn with
-imgui-node-editor so states can be dragged about while the reader makes sense of a
-machine, and the arrangement is kept per machine name in a `machine_layout_` file
-beside `imgui.ini`, so it survives a restart and a change of NPC. Nothing in the
-window edits the machine; that is the data's job.
+`Game::debugOverlay` builds a presentation-ready `DebugOverlay` snapshot without ImGui.
+It limits world diagnostics to the camera and a small margin, and carries actor,
+projectile, pickup, navigation, camera and machine data. The UI only projects that data
+through `DisplayViewport`; it does not change simulation state. This separation keeps
+collection and selection logic testable without a window.
 
-The overlay also shows a frame panel, drawn by `app/debug/frame_profile_ui`. The
-application times each frame with a `Stopwatch` from `timing/stopwatch`, how many fixed
-steps it ran, and how long simulation, scene building, rendering, and the interface
-took, and records them in a `FrameHistory` from `timing/frame_profile`.
-The panel is one transparent, borderless ImPlot plot over the recent frames with two vertical axes: frame time against the 60 Hz budget line on the left, and the simulation's phases on the right, stacked by category (NPC, Movement, Combat, World). Each axis starts at a floor, the frame axis at two budgets so the budget line stays in the lower half, and grows at once to fit the worst frame in the history with some headroom, so a spike is never cut off; it comes down slowly, holding for a full turn of the history after the spike has left before fitting what remains, so the scale does not jump about under the reader. `FrameAxes` in `app/debug/frame_axes` keeps the tops and is data without ImGui, so the floors, the growth and the late shrinking are tested. The plot is the only part shown initially. Pressing 1 toggles a legend below it and a details window that fills the remaining viewport height. Long details scroll with the wheel without drawing a scrollbar. Hiding a series in the legend persists while the details are closed, and hiding a category restacks the rest. The details print the latest breakdown, the average, the worst frame, and every phase under its category as an average cost per simulation step over the history, since one frame's numbers change too fast to read. The plot's window is invisible to the mouse, so clicks over it reach the game like the rest of the overlay; its picker, legend and details are small windows of their own and the places a click or scroll lands. A press on the plot picks the frame under the cursor and holding the button scrubs along the frames: a `FrameSelection` from `app/debug/frame_selection` keeps a copy of the history as it was, the plot and both axis ranges hold still with the picked frame marked, and the details show that frame's own costs, its phases in milliseconds rather than per step and listed by cost, the dearest category first and each category's dearest phase first, until the picked frame is clicked again. The selection is data without ImGui, so what a press or a drag picks and what it keeps are tested. When the overlay is open, the simulation step is also handed the profile and charges each of its phases to it under a category and a short name. The NPC system reports what its searches cost, how many ran, their statistics summed and the seconds they took, and the step charges those seconds as a "Path search" phase inside the behaviour phase, which then keeps only its own time, and adds the counts: searches run, how many waited for a fill, cells expanded, how many of those the connection cache already held, movement ticks simulated, and the ticks the fill phase simulated. The stack shows which category widened in a slow frame. Timings are only
-meaningful from a release build.
+`app/debug/machine_graph_ui` presents the selected NPC's `NpcMachine` without editing
+it. Selection is resolved while building the debug snapshot, preferring an NPC under
+the cursor and otherwise one near the player. Node arrangements are stored per machine
+name beside `imgui.ini`.
+
+The application records frame, simulation, scene, render and interface timing in a
+`FrameHistory`. `app/debug/frame_profile_ui` plots frame time against the 60 Hz budget
+and stacks simulation phases by category on a second axis. `FrameAxes` owns the adaptive
+axis ranges, while `FrameSelection` keeps an immutable history snapshot and freezes the
+ranges during inspection. Both are independent of ImGui and tested directly. Profiling
+numbers are meaningful only in a release build.
 
 The profile follows one policy. Only a step owner charges it: the application charges the frame's sections, and `updateWorldSimulation` charges every phase and every counter, so nothing below the simulation takes a `FrameProfile`. Systems report through their own types, `PathSearchStatistics`, `FillWork` and `NpcBehaviourCost`, and the step copies them into the profile in one place. Time is read only through the timing subject: `timePhase` for a phase, `Stopwatch` for seconds a system sums itself, such as the searches inside NPC behaviour. A null profile means the step reads no clock and counts nothing, which is what tests and a shipped game get.
 

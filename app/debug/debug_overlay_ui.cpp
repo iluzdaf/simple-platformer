@@ -417,21 +417,69 @@ namespace simple_platformer
             position.y += ActorTextGap;
         }
 
-        float actorTextHeight(const ActorDebugInfo& actor)
+        // Actor and navigation text share a transparent, full-height panel at the right.
+        // Its custom-drawn lines reserve matching ImGui content height, so the mouse wheel
+        // can scroll a long list without showing a scrollbar.
+        void drawDebugTextPanel(
+            const DebugOverlay& scene,
+            bool showActorText,
+            bool showNavigationCacheText)
         {
-            int lineCount = 2;
-            lineCount += actor.sprite.has_value() ? 1 : 0;
-            lineCount += actor.npcTactic.has_value() ? 1 : 0;
-            lineCount += actor.machine.has_value() ? 1 : 0;
-            return static_cast<float>(lineCount) * ImGui::GetTextLineHeight() + ActorTextGap;
+            const bool hasActorText = showActorText && !scene.actors.empty();
+            const bool hasNavigationText =
+                showNavigationCacheText && scene.navigationCache.has_value();
+            if (!hasActorText && !hasNavigationText)
+            {
+                return;
+            }
+
+            constexpr float TextWidth = 180.0F;
+            const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+            const ImVec2 padding = ImGui::GetStyle().WindowPadding;
+            const float windowWidth = TextWidth + 2.0F * padding.x;
+            ImGui::SetNextWindowPos(
+                {mainViewport->WorkPos.x + mainViewport->WorkSize.x - windowWidth,
+                 mainViewport->WorkPos.y},
+                ImGuiCond_Always);
+            ImGui::SetNextWindowSize({windowWidth, mainViewport->WorkSize.y}, ImGuiCond_Always);
+            if (ImGui::Begin(
+                    "Debug text##overlay",
+                    nullptr,
+                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground |
+                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                        ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar))
+            {
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                ImVec2 position = ImGui::GetCursorScreenPos();
+                const float contentTop = position.y;
+                if (showActorText)
+                {
+                    for (const ActorDebugInfo& actor : scene.actors)
+                    {
+                        drawActorText(*drawList, actor, position);
+                    }
+                }
+                if (hasNavigationText)
+                {
+                    drawNavigationTotals(*drawList, *scene.navigationCache, position);
+                }
+                ImGui::Dummy({TextWidth, position.y - contentTop});
+            }
+            ImGui::End();
         }
     }
 
-    void drawDebugOverlay(const DebugOverlay& scene, const std::optional<WindowViewport>& viewport)
+    void drawDebugOverlay(
+        const DebugOverlay& scene,
+        const std::optional<WindowViewport>& viewport,
+        bool showWorldAndCamera,
+        bool showActorText,
+        bool showNavigationCacheText,
+        bool showStateMachine)
     {
         ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 
-        if (viewport.has_value())
+        if (showWorldAndCamera && viewport.has_value())
         {
             drawWorldBounds(
                 *drawList, scene.cameraBounds, scene.cameraBounds, *viewport, CameraBoundsColour);
@@ -448,27 +496,9 @@ namespace simple_platformer
                 "camera dead zone");
         }
 
-        constexpr float ActorTextWidth = 180.0F;
-        constexpr float ActorTextMargin = 8.0F;
-        const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-        ImVec2 actorTextPosition = {
-            mainViewport->WorkPos.x + mainViewport->WorkSize.x - ActorTextWidth - ActorTextMargin,
-            mainViewport->WorkPos.y + ActorTextMargin};
-        const float actorTextBottom =
-            mainViewport->WorkPos.y + mainViewport->WorkSize.y - ActorTextMargin;
-        bool actorTextHasSpace = true;
         for (const ActorDebugInfo& actor : scene.actors)
         {
-            if (actorTextHasSpace &&
-                actorTextPosition.y + actorTextHeight(actor) <= actorTextBottom)
-            {
-                drawActorText(*drawList, actor, actorTextPosition);
-            }
-            else
-            {
-                actorTextHasSpace = false;
-            }
-            if (!viewport.has_value())
+            if (!showWorldAndCamera || !viewport.has_value())
             {
                 continue;
             }
@@ -499,22 +529,13 @@ namespace simple_platformer
             drawActorWorldLabel(*drawList, actor, scene, *viewport);
             drawWorldBounds(
                 *drawList, actor.collider, scene.cameraBounds, *viewport, ColliderBoundsColour);
-            if (scene.machine.has_value() && scene.machine->actor == actor.id)
+            if (showStateMachine && scene.machine.has_value() && scene.machine->actor == actor.id)
             {
                 drawFollowedOutline(*drawList, actor, scene, *viewport);
             }
         }
 
-        if (scene.navigationCache.has_value() && actorTextHasSpace &&
-            actorTextPosition.y + navigationTotalsHeight() <= actorTextBottom)
-        {
-            drawNavigationTotals(
-                *drawList,
-                scene.navigationCache.value_or(NavigationCacheDebugInfo{}),
-                actorTextPosition);
-        }
-
-        if (viewport.has_value())
+        if (showWorldAndCamera && viewport.has_value())
         {
             for (const ProjectileDebugInfo& projectile : scene.projectiles)
             {
@@ -544,5 +565,6 @@ namespace simple_platformer
                     pickup.itemName.c_str());
             }
         }
+        drawDebugTextPanel(scene, showActorText, showNavigationCacheText);
     }
 }

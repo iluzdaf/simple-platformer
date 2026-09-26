@@ -203,9 +203,4 @@ namespace simple_platformer
         line("dropped:", cache.cellsDropped);
         line("kept:", cache.cellsKeptSoFar);
     }
-
-    float navigationTotalsHeight()
-    {
-        return 11.0F * ImGui::GetTextLineHeight();
-    }
 }

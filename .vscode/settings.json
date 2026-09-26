@@ -25,5 +25,9 @@
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff"
   },
+  "[lua]": {
+    "editor.defaultFormatter": "JohnnyMorganz.stylua"
+  },
+  "stylua.targetReleaseVersion": "v2.5.2",
   "prettier.resolveGlobalModules": true
 }

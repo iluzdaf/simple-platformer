@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1...3.12)
-project(lua LANGUAGES C VERSION 5.4.7)
+project(lua LANGUAGES C VERSION 5.4.9)
 
 option(LUA_SUPPORT_DL "Support dynamic loading of compiled modules" OFF)
 option(LUA_BUILD_AS_CXX "Build lua as C++" OFF)

@@ -17,6 +17,7 @@ jobs:
       LLVM: 18
       PRETTIER: 3.9.8
       RUFF: 0.16.8
+      STYLUA: 2.5.2
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -25,11 +26,15 @@ jobs:
           clang-$LLVM --version
           clang-format-$LLVM --version
           echo "CLANG_FORMAT=$(command -v clang-format-$LLVM)" >> "$GITHUB_ENV"
-      - name: Install the pinned Prettier
+      - name: Install the pinned Prettier and StyLua
         run: |
-          npm install --global --no-fund --no-audit prettier@$PRETTIER
+          npm install --global --no-fund --no-audit \
+            prettier@$PRETTIER \
+            @johnnymorganz/stylua-bin@$STYLUA
           prettier --version
+          stylua --version
           echo "PRETTIER_BIN=$(command -v prettier)" >> "$GITHUB_ENV"
+          echo "STYLUA_BIN=$(command -v stylua)" >> "$GITHUB_ENV"
       - name: Install the pinned Ruff
         uses: astral-sh/ruff-action@v4.1.0
         with:
@@ -43,6 +48,7 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-$LLVM
           -DCLANG_FORMAT_EXECUTABLE=$CLANG_FORMAT
           -DPRETTIER_EXECUTABLE=$PRETTIER_BIN
+          -DSTYLUA_EXECUTABLE=$STYLUA_BIN
           -DGLFW_BUILD_X11=OFF
           -DGLFW_BUILD_WAYLAND=OFF
       - name: Check formatting
@@ -55,6 +61,12 @@ jobs:
         run: cmake --build build/quality --target format-markdown-check
       - name: Check Python formatting and lint
         run: cmake --build build/quality --target format-python-check lint-python
+      - name: Check Lua formatting
+        run: cmake --build build/quality --target format-lua-check
+      - name: Check Lua lint
+        uses: lunarmodules/luacheck@v1
+        with:
+          args: assets tests/fixtures/scripts
 
   headers:
     name: Headers stand alone

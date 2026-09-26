@@ -161,7 +161,7 @@ GitHub Actions runs three jobs. The names below are the ones shown on a pull req
 | ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
 | macOS / Apple Clang            | `macos-latest` | Configures, builds, and runs the whole test suite.                                                                       | pushes to `main` and pull requests |
 | Windows / Visual Studio 2022   | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds the `.sln` with MSBuild, then builds its `run_tests` project. | pushes to `main` and pull requests |
-| Formatting and static analysis | `ubuntu-24.04` | Checks C++ and JSON formatting, runs clang-tidy, and verifies that every public header compiles on its own.              | pull requests only                 |
+| Formatting and static analysis | `ubuntu-24.04` | Checks first-party formatting and lint, runs clang-tidy, and verifies that every public header compiles on its own.      | pull requests only                 |
 
 The quality job is skipped on pushes because branch protection already ran it on the
 pull request. Its checks add no tools to the macOS or Visual Studio build, and Linux is
@@ -175,20 +175,29 @@ built as generated. None of this affects local builds.
 ## Formatting
 
 `.clang-format` defines the C and C++ style; `.prettierrc` covers JSON, YAML, and
-Markdown. Ruff formats and checks first-party Python. `.editorconfig` supplies shared
-whitespace rules.
+Markdown. Ruff formats and checks first-party Python. `.stylua.toml` formats Lua 5.4,
+while `.luacheckrc` limits linted globals to the libraries exposed by the protected
+runtime. `.luarc.json` configures LuaLS for Lua 5.4 and leaves formatting to StyLua.
+`.editorconfig` supplies shared whitespace rules.
 
-|           | Config          | Tool            | VS Code                                 | Visual Studio                            |
-| --------- | --------------- | --------------- | --------------------------------------- | ---------------------------------------- |
-| C and C++ | `.clang-format` | clang-format 18 | on save, through clangd                 | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
-| JSON      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
-| YAML      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
-| Markdown  | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
-| Python    | Ruff defaults   | Ruff 0.16.8     | on save, through the Ruff extension     | not supported, use the command line      |
+|           | Config          | Tool                            | VS Code                                 | Visual Studio                            |
+| --------- | --------------- | ------------------------------- | --------------------------------------- | ---------------------------------------- |
+| C and C++ | `.clang-format` | clang-format 18                 | on save, through clangd                 | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
+| JSON      | `.prettierrc`   | Prettier 3.9.8                  | on save, through the Prettier extension | not supported, use the command line      |
+| YAML      | `.prettierrc`   | Prettier 3.9.8                  | on save, through the Prettier extension | not supported, use the command line      |
+| Markdown  | `.prettierrc`   | Prettier 3.9.8                  | on save, through the Prettier extension | not supported, use the command line      |
+| Python    | Ruff defaults   | Ruff 0.16.8                     | on save, through the Ruff extension     | not supported, use the command line      |
+| Lua       | `.stylua.toml`  | StyLua 2.5.2 and Luacheck 1.2.0 | on save, through the StyLua extension   | not supported, use the command line      |
 
 Both editors read `.clang-format` and `.editorconfig` without an extension. Visual
-Studio does not read `.prettierrc`, so JSON, YAML, and Markdown there are formatted
-from the command line or caught by CI.
+Studio does not read the other formatter configs, so those files are formatted from
+the command line or caught by CI. VS Code also recommends LuaLS for Lua diagnostics.
+
+On macOS, install the Lua command-line tools with:
+
+```sh
+brew install stylua luacheck
+```
 
 Format first-party C++, or check it without changing files:
 
@@ -225,16 +234,29 @@ cmake --build --preset mac-debug --target format-python
 cmake --build --preset mac-debug --target format-python-check lint-python
 ```
 
+Format first-party Lua, or check its formatting and lint findings:
+
+```sh
+cmake --build --preset mac-debug --target format-lua
+cmake --build --preset mac-debug --target format-lua-check lint-lua
+```
+
+Luacheck models the intended script authoring surface: the base functions and the
+`math`, `string`, and `table` libraries. It rejects unavailable libraries such as
+`io`, `os`, `package`, `debug`, `coroutine`, and `utf8`, as well as disabled loaders
+such as `dofile`, `load`, `loadfile`, and `require`.
+
 The C++ targets skip `external/`; the JSON targets cover `assets/` and
 `tests/fixtures/`; the YAML targets cover `.github/`; the Markdown targets cover the
-root documentation and `docs/`; the Python targets cover `tools/`. CMake looks for all
-three tools while configuring and reports any it cannot find, leaving those targets
-unavailable. Use `-DCLANG_FORMAT_EXECUTABLE=`, `-DPRETTIER_EXECUTABLE=`, or
-`-DRUFF_EXECUTABLE=` to choose a specific one.
+root documentation and `docs/`; the Python targets cover `tools/`; and the Lua targets
+cover `assets/` and `tests/fixtures/`. CMake reports any unavailable tool while
+configuring and omits only its targets. Use `-DCLANG_FORMAT_EXECUTABLE=`,
+`-DPRETTIER_EXECUTABLE=`, `-DRUFF_EXECUTABLE=`, `-DSTYLUA_EXECUTABLE=`, or
+`-DLUACHECK_EXECUTABLE=` to choose a specific one.
 
-CI runs clang-format 18, Prettier 3.9.8, and Ruff 0.16.8, and a pull request cannot
-merge until their checks pass. Local versions do not have to match. If yours formats
-differently, CI fails and you reformat with the commands above.
+CI runs clang-format 18, Prettier 3.9.8, Ruff 0.16.8, StyLua 2.5.2, and Luacheck 1.2.0,
+and a pull request cannot merge until their checks pass. Local versions do not have to
+match. If yours formats differently, CI fails and you reformat with the commands above.
 
 ## Static analysis
 

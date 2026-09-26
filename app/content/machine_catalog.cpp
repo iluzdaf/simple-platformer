@@ -10,6 +10,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 
 namespace simple_platformer
@@ -35,7 +36,7 @@ namespace simple_platformer
              {"retreat", NpcState::Retreat},
              {"watch", NpcState::Watch}}};
 
-        NpcState jsonActivity(
+        BuiltInNpcActivity jsonBuiltInActivity(
             const Json& value,
             std::string_view sourceName,
             const std::string& path)
@@ -45,7 +46,7 @@ namespace simple_platformer
             {
                 if (entry.name == name)
                 {
-                    return entry.does;
+                    return {entry.does};
                 }
             }
             std::string expected;
@@ -55,6 +56,34 @@ namespace simple_platformer
             }
             failJson(
                 sourceName, path, "unknown activity '" + name + "'; expected one of " + expected);
+        }
+
+        LuaNpcActivity jsonLuaActivity(
+            const Json& value,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            checkJsonFields(value, {"kind", "script", "activity"}, sourceName, path);
+            const std::string kind = readName(value, "kind", "activity kind", sourceName, path);
+            if (kind != "lua")
+            {
+                failJson(sourceName, fieldPath(path, "kind"), "expected 'lua'");
+            }
+            return {
+                readName(value, "script", "script name", sourceName, path),
+                readName(value, "activity", "activity name", sourceName, path)};
+        }
+
+        NpcActivity jsonActivity(
+            const Json& value,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (value.is_string())
+            {
+                return jsonBuiltInActivity(value, sourceName, path);
+            }
+            return jsonLuaActivity(value, sourceName, path);
         }
 
         // A transition's `from` is one state name or a list of them; a list becomes one

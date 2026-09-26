@@ -26,9 +26,9 @@ levels remain equivalent.
 
 ## Lua-authored NPC behaviour
 
-The protected Lua runtime and copied snapshot-and-command boundary are implemented, but no
-actor or state machine invokes them yet. The remaining work connects that boundary to NPC
-activities and adds the behaviours and engine capabilities below.
+The protected Lua runtime, copied snapshot-and-command boundary, and machine activity
+integration are implemented. No shipped actor uses Lua yet; the remaining work adds the
+behaviours and engine capabilities below.
 
 Lua can add game-specific decisions without moving simulation mechanics out of the
 engine. It should extend the existing teaching progression rather than replace it:
@@ -47,16 +47,16 @@ facts and tuning and returns a small command value: intentions, an aim or destin
 an attack request, or a request to follow a route. It must not move bodies, resolve
 collision, search the navigation graph, apply damage, or add and remove world objects.
 
-Machine-state identity should therefore be separated from the activity that implements
-it. A state can run either a named built-in C++ activity or a named Lua activity. The
-existing C++ transition runner, validation, timing, priority, and debug view should work
-for both. The existing JSON format remains useful; if Lua later authors a machine, the
+Machine-state identity is separated from the activity that implements it. A state can
+run either a named built-in C++ activity or a named Lua activity. The existing C++
+transition runner, validation, timing, priority, and debug view work for both. The
+existing JSON format remains useful; if Lua later authors a machine, the
 script should return declarative states and transitions which are converted to the same
 validated `NpcStateMachine`, rather than execute unrestricted transition callbacks every
 update.
 
-One possible representation keeps `NpcState` as the identifier understood by the
-existing C++ activity switch:
+The representation keeps `NpcState` as the identifier understood by the existing C++
+activity switch:
 
 ```cpp
 struct BuiltInNpcActivity
@@ -88,7 +88,7 @@ for a built-in activity, preserving the zombie soldier as the intermediate examp
 { "name": "patrol", "does": "patrol" }
 ```
 
-A scripted rat state needs an explicit tagged form so loading can validate its script
+A scripted rat state uses an explicit tagged form so loading can validate its script
 and activity:
 
 ```json
@@ -106,10 +106,10 @@ activity switch, while a Lua value calls its `enter`, `update`, or `exit` hook. 
 paths ultimately produce intentions or narrow engine commands consumed by the same
 navigation, movement, and combat systems.
 
-The machine should own its active state's elapsed time and activity lifecycle. A Lua
-state cannot be represented honestly by `NpcBrain::state`, so machine-controlled NPCs
-should not copy their activity back into that enum. The debug overlay can instead show
-the machine state name and an activity label such as `builtin: patrol` or `lua: rat.flee`.
+The machine owns its active state's elapsed time and activity lifecycle. A Lua state
+cannot be represented honestly by `NpcBrain::state`, so machine-controlled NPCs do not
+copy their activity back into that enum. The debug overlay instead shows the machine
+state name and an activity label such as `builtin: patrol` or `lua: rat.flee`.
 
 The old Platformer provides a useful order for introducing the enemies, but its code
 should be adapted to this engine rather than copied:
@@ -133,27 +133,21 @@ without Lua before a scripted spider uses it.
 
 Script calls have protected error handling and an instruction budget. A failed update reports
 the script, actor, activity, and hook, then produces no commands for that update instead of
-damaging the simulation. Loading rejects missing required hooks, and command parsing rejects
-unknown fields and invalid values. Machine integration must also reject unknown facts or
-activities when it loads their definitions.
-State-local memory, pending work, and any delayed actions must be discarded with their
-actor. Tests should cover lifecycle calls, fresh memory on re-entry, returned commands,
-navigation through the C++ façade, deterministic transition order, error fallback, and
-debug-overlay state names.
+damaging the simulation. Loading rejects missing required hooks and unknown machine activity
+references, and command parsing rejects unknown fields and invalid values. State-local memory
+is discarded with its actor.
 
 A practical remaining delivery order is:
 
-1. Add scripted activities beside built-in activities, without changing either shipped
-   zombie implementation.
-2. Add a C++ pounce activity and implement the rat using existing ground movement and
+1. Add a C++ pounce activity and implement the rat using existing ground movement and
    navigation.
-3. Add the event and fact boundary needed by the boar, then implement its charge in C++
+2. Add the event and fact boundary needed by the boar, then implement its charge in C++
    and its policy in Lua.
-4. Implement and test wall and ceiling movement, surface navigation, and following in
+3. Implement and test wall and ceiling movement, surface navigation, and following in
    C++.
-5. Implement the spider as the first scripted user of that surface-navigation
+4. Implement the spider as the first scripted user of that surface-navigation
    capability.
-6. Consider Lua-authored declarative machine definitions only after the state boundary
+5. Consider Lua-authored declarative machine definitions only after the state boundary
    has proved useful; keep runtime transition evaluation in C++ unless a concrete rule
    cannot be expressed by facts and timed conditions.
 

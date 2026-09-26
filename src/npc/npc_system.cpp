@@ -3,12 +3,14 @@
 #include <algorithm>
 #include <optional>
 #include <stdexcept>
+#include <variant>
 #include <vector>
 
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/input/input_state.hpp"
@@ -22,6 +24,8 @@
 #include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
+#include "simple_platformer/npc/npc_activity_script.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
@@ -44,6 +48,7 @@ namespace simple_platformer
             World& world;
             float deltaTime;
             NpcBehaviourCost& cost;
+            NpcActivityScripts* scripts;
         };
 
         // Looking at the target is an aim, like everything else an actor intends; the
@@ -160,7 +165,7 @@ namespace simple_platformer
             }
         }
 
-        void followDestination(
+        InputIntentions intentionsToFollow(
             const NpcUpdate& update,
             Actor& actor,
             PathFollower& follower,
@@ -170,17 +175,31 @@ namespace simple_platformer
             const int tileSize = update.map.tileSize();
             if (actor.flyingMovement.has_value())
             {
-                actor.intentions = followFlyingPath(
+                return followFlyingPath(
                     tileSize, actor.body.bounds, *actor.flyingMovement, follower, update.deltaTime);
             }
-            else if (actor.platformerMovement.has_value())
+            if (actor.platformerMovement.has_value())
             {
-                actor.intentions = followPlatformerPath(
+                return followPlatformerPath(
                     tileSize, actor.body, *actor.platformerMovement, follower, update.deltaTime);
             }
+            return {};
         }
 
-        NpcFacts gatherNpcFacts(const Actor& actor, const NpcBrain& brain, const Actor* target)
+        void followDestination(
+            const NpcUpdate& update,
+            Actor& actor,
+            PathFollower& follower,
+            glm::vec2 destinationFeet)
+        {
+            actor.intentions = intentionsToFollow(update, actor, follower, destinationFeet);
+        }
+
+        NpcFacts gatherNpcFacts(
+            const Actor& actor,
+            const NpcBrain& brain,
+            const Actor* target,
+            float stateElapsed)
         {
             NpcFacts facts;
             facts.targetKnown = target != nullptr;
@@ -200,22 +219,27 @@ namespace simple_platformer
             const float searchDuration =
                 actor.senses.has_value() ? actor.senses->searchDuration : 0.0F;
             facts.searches = searchDuration > 0.0F;
-            facts.searchTimeUp = brain.stateElapsed >= searchDuration;
-            facts.stateElapsed = brain.stateElapsed;
+            facts.searchTimeUp = stateElapsed >= searchDuration;
+            facts.stateElapsed = stateElapsed;
             return facts;
         }
 
-        // Every change drops the path, since the new state chooses its own destination,
-        // and a bite is asked for once, as its state is entered.
-        void enterNpcState(Actor& actor, NpcBrain& brain, PathFollower& follower, NpcState state)
+        // Every activity change drops the old route, and a bite is asked for once as its
+        // activity is entered.
+        void enterBuiltInActivity(Actor& actor, PathFollower& follower, NpcState state)
         {
             clearPath(follower);
-            brain.state = state;
-            brain.stateElapsed = 0.0F;
             if (state == NpcState::Bite)
             {
                 actor.intentions.primaryAttackPressed = true;
             }
+        }
+
+        void enterNpcState(Actor& actor, NpcBrain& brain, PathFollower& follower, NpcState state)
+        {
+            brain.state = state;
+            brain.stateElapsed = 0.0F;
+            enterBuiltInActivity(actor, follower, state);
         }
 
         void updatePatrolState(const NpcUpdate& update, Actor& actor, PathFollower& follower)
@@ -277,11 +301,11 @@ namespace simple_platformer
 
         // Looking about is an aim that turns every SearchTurnSeconds, first towards where
         // the target was last seen.
-        void lookAbout(Actor& actor, const NpcBrain& brain)
+        void lookAbout(Actor& actor, const NpcBrain& brain, float stateElapsed)
         {
             const float toward = brain.lastSeenTargetFeet.x - feetOf(actor.body.bounds).x;
             float side = toward < 0.0F ? -1.0F : 1.0F;
-            const int turns = static_cast<int>(brain.stateElapsed / SearchTurnSeconds);
+            const int turns = static_cast<int>(stateElapsed / SearchTurnSeconds);
             if (turns % 2 == 1)
             {
                 side = -side;
@@ -295,7 +319,8 @@ namespace simple_platformer
             const NpcUpdate& update,
             Actor& actor,
             const NpcBrain& brain,
-            PathFollower& follower)
+            PathFollower& follower,
+            float stateElapsed)
         {
             const std::optional<glm::vec2> destination = lastSeenDestination(update, actor, brain);
             if (destination.has_value())
@@ -308,7 +333,7 @@ namespace simple_platformer
             }
             if (!follower.path.has_value() || pathComplete(follower))
             {
-                lookAbout(actor, brain);
+                lookAbout(actor, brain, stateElapsed);
             }
         }
 
@@ -348,36 +373,16 @@ namespace simple_platformer
             actor.intentions.primaryAttackPressed = true;
         }
 
-        // Which state comes next is decided once, from the facts, before the state acts.
-        void updateNpcState(const NpcUpdate& update, Actor& actor)
+        void updateBuiltInActivity(
+            const NpcUpdate& update,
+            Actor& actor,
+            NpcBrain& brain,
+            PathFollower& follower,
+            const Actor* target,
+            NpcState state,
+            float stateElapsed)
         {
-            if (!actor.brain.has_value() || !actor.pathFollower.has_value())
-            {
-                throw std::logic_error("An NPC is missing behaviour components");
-            }
-            NpcBrain& brain = *actor.brain;
-            PathFollower& follower = *actor.pathFollower;
-            const Actor* target = livingTarget(update.world, brain);
-            const NpcFacts facts = gatherNpcFacts(actor, brain, target);
-            if (actor.machine.has_value())
-            {
-                // The machine decides, and the brain's activity follows its state: on the
-                // update a transition fires, and on the first update after composition.
-                NpcMachine& machine = *actor.machine;
-                const bool fired = advanceNpcMachine(machine, facts, update.deltaTime).has_value();
-                const NpcState does = activeNpcMachineState(machine).does;
-                if (fired || brain.state != does)
-                {
-                    enterNpcState(actor, brain, follower, does);
-                }
-            }
-            else if (
-                const std::optional<NpcState> next = nextNpcState(brain.tactic, brain.state, facts))
-            {
-                enterNpcState(actor, brain, follower, *next);
-            }
-
-            switch (brain.state)
+            switch (state)
             {
             case NpcState::Idle:
                 break;
@@ -394,7 +399,7 @@ namespace simple_platformer
                 updateShootState(actor, target);
                 break;
             case NpcState::Search:
-                updateSearchState(update, actor, brain, follower);
+                updateSearchState(update, actor, brain, follower, stateElapsed);
                 break;
             case NpcState::Retreat:
                 updateRetreatState(update, actor, brain);
@@ -402,17 +407,203 @@ namespace simple_platformer
             case NpcState::Watch:
                 // A watch looks about from where the NPC stands; its path was cleared on
                 // entry and nothing here asks for one.
-                lookAbout(actor, brain);
+                lookAbout(actor, brain, stateElapsed);
                 break;
+            }
+        }
+
+        NpcActivitySnapshot activitySnapshot(
+            const Actor& actor,
+            const NpcBrain& brain,
+            const PathFollower& follower,
+            const NpcFacts& facts)
+        {
+            NpcActivitySnapshot snapshot;
+            snapshot.feet = feetOf(actor.body.bounds);
+            snapshot.facts = facts;
+            snapshot.pathComplete = pathComplete(follower);
+            if (facts.targetKnown)
+            {
+                snapshot.targetFeet = brain.lastSeenTargetFeet;
+            }
+            return snapshot;
+        }
+
+        NpcActivityScripts& requiredScripts(const NpcUpdate& update)
+        {
+            if (update.scripts == nullptr)
+            {
+                throw std::logic_error("A scripted NPC activity needs the scripting runtime");
+            }
+            return *update.scripts;
+        }
+
+        void applyScriptCommand(
+            const NpcUpdate& update,
+            Actor& actor,
+            PathFollower& follower,
+            const NpcActivityCommand& command)
+        {
+            actor.intentions = command.intentions;
+            if (command.clearRoute)
+            {
+                clearPath(follower);
+            }
+            if (command.routeTo.has_value())
+            {
+                const InputIntentions movement =
+                    intentionsToFollow(update, actor, follower, *command.routeTo);
+                actor.intentions.direction = movement.direction;
+                actor.intentions.jumpPressed = movement.jumpPressed;
+                actor.intentions.jumpHeld = movement.jumpHeld;
+            }
+            if (command.aimAt.has_value())
+            {
+                aimToward(actor, *command.aimAt);
+            }
+        }
+
+        void enterMachineActivity(
+            const NpcUpdate& update,
+            Actor& actor,
+            NpcBrain& brain,
+            PathFollower& follower,
+            NpcMachine& machine,
+            const NpcFacts& facts)
+        {
+            const NpcActivity& activity = activeNpcMachineState(machine).does;
+            if (const auto* builtIn = std::get_if<BuiltInNpcActivity>(&activity))
+            {
+                enterBuiltInActivity(actor, follower, builtIn->state);
+            }
+            else
+            {
+                clearPath(follower);
+                requiredScripts(update).enter(
+                    actor.id,
+                    std::get<LuaNpcActivity>(activity),
+                    activitySnapshot(actor, brain, follower, facts));
+            }
+            machine.activityEntered = true;
+        }
+
+        void exitMachineActivity(
+            const NpcUpdate& update,
+            Actor& actor,
+            const NpcBrain& brain,
+            const PathFollower& follower,
+            const NpcActivity& activity,
+            const NpcFacts& facts)
+        {
+            if (const auto* scripted = std::get_if<LuaNpcActivity>(&activity))
+            {
+                requiredScripts(update).exit(
+                    actor.id, *scripted, activitySnapshot(actor, brain, follower, facts));
+            }
+        }
+
+        void updateMachineActivity(
+            const NpcUpdate& update,
+            Actor& actor,
+            NpcBrain& brain,
+            PathFollower& follower,
+            const Actor* target,
+            NpcMachine& machine,
+            const NpcFacts& facts)
+        {
+            const NpcActivity& activity = activeNpcMachineState(machine).does;
+            if (const auto* builtIn = std::get_if<BuiltInNpcActivity>(&activity))
+            {
+                updateBuiltInActivity(
+                    update, actor, brain, follower, target, builtIn->state, facts.stateElapsed);
+                return;
+            }
+            const NpcActivityCommand command = requiredScripts(update).update(
+                actor.id,
+                std::get<LuaNpcActivity>(activity),
+                activitySnapshot(actor, brain, follower, facts),
+                update.deltaTime);
+            applyScriptCommand(update, actor, follower, command);
+        }
+
+        void updateMachineState(
+            const NpcUpdate& update,
+            Actor& actor,
+            NpcBrain& brain,
+            PathFollower& follower,
+            const Actor* target,
+            NpcMachine& machine,
+            const NpcFacts& facts)
+        {
+            const NpcActivity previous = activeNpcMachineState(machine).does;
+            const bool fired = advanceNpcMachine(machine, facts, update.deltaTime).has_value();
+            if (fired && machine.activityEntered)
+            {
+                exitMachineActivity(update, actor, brain, follower, previous, facts);
+                machine.activityEntered = false;
+            }
+
+            NpcFacts activeFacts = facts;
+            if (fired)
+            {
+                activeFacts = gatherNpcFacts(actor, brain, target, machine.stateElapsed);
+            }
+            if (!machine.activityEntered)
+            {
+                enterMachineActivity(update, actor, brain, follower, machine, activeFacts);
+            }
+            updateMachineActivity(update, actor, brain, follower, target, machine, activeFacts);
+        }
+
+        void updateTacticState(
+            const NpcUpdate& update,
+            Actor& actor,
+            NpcBrain& brain,
+            PathFollower& follower,
+            const Actor* target,
+            const NpcFacts& facts)
+        {
+            if (const std::optional<NpcState> next = nextNpcState(brain.tactic, brain.state, facts))
+            {
+                enterNpcState(actor, brain, follower, *next);
+            }
+            updateBuiltInActivity(
+                update, actor, brain, follower, target, brain.state, brain.stateElapsed);
+        }
+
+        // Which state comes next is decided once, from the facts, before the state acts.
+        void updateNpcState(const NpcUpdate& update, Actor& actor)
+        {
+            if (!actor.brain.has_value() || !actor.pathFollower.has_value())
+            {
+                throw std::logic_error("An NPC is missing behaviour components");
+            }
+            NpcBrain& brain = *actor.brain;
+            PathFollower& follower = *actor.pathFollower;
+            const Actor* target = livingTarget(update.world, brain);
+            const float stateElapsed =
+                actor.machine.has_value() ? actor.machine->stateElapsed : brain.stateElapsed;
+            const NpcFacts facts = gatherNpcFacts(actor, brain, target, stateElapsed);
+            if (actor.machine.has_value())
+            {
+                updateMachineState(update, actor, brain, follower, target, *actor.machine, facts);
+            }
+            else
+            {
+                updateTacticState(update, actor, brain, follower, target, facts);
             }
         }
     }
 
-    NpcBehaviourCost updateNpcBehaviour(const TileMap& map, World& world, float deltaTime)
+    NpcBehaviourCost updateNpcBehaviour(
+        const TileMap& map,
+        World& world,
+        float deltaTime,
+        NpcActivityScripts* scripts)
     {
         requireSeconds(deltaTime, "NPC behaviour time step");
         NpcBehaviourCost cost;
-        const NpcUpdate update{map, world, deltaTime, cost};
+        const NpcUpdate update{map, world, deltaTime, cost, scripts};
 
         for (Actor& actor : world.actors())
         {
@@ -432,9 +623,24 @@ namespace simple_platformer
             if (actor.life == LifeState::Alive)
             {
                 updateNpcState(update, actor);
-                brain.stateElapsed += deltaTime;
+                if (actor.machine.has_value())
+                {
+                    actor.machine->stateElapsed += deltaTime;
+                }
+                else
+                {
+                    brain.stateElapsed += deltaTime;
+                }
             }
         }
         return cost;
+    }
+
+    void forgetNpcActivities(const std::vector<ActorId>& actors, NpcActivityScripts& scripts)
+    {
+        for (const ActorId actor : actors)
+        {
+            scripts.forget(actor);
+        }
     }
 }

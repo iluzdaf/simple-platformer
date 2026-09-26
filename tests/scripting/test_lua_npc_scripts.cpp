@@ -5,7 +5,14 @@
 
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
+#include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/scripting/lua_npc_scripts.hpp"
+#include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/world/world.hpp"
+#include "support/actor_builder.hpp"
+#include "support/actor_components.hpp"
+#include "support/npc_machine_builder.hpp"
+#include "support/tile_map_builder.hpp"
 
 namespace
 {
@@ -67,6 +74,30 @@ TEST_CASE("A Lua activity reads a copied snapshot and returns a command", "[lua]
     REQUIRE(command.aimAt == snapshot.targetFeet);
     REQUIRE(command.clearRoute);
     REQUIRE(snapshot.feet.x == 12.0F);
+    REQUIRE(scripts.diagnostics().empty());
+}
+
+TEST_CASE("An NPC machine invokes a loaded Lua activity", "[lua][npc][integration]")
+{
+    LuaNpcScripts scripts;
+    scripts.loadScriptText(
+        "rat",
+        "return {activities={flee={update=function() return "
+        "{direction={x=-1,y=0},jumpHeld=true} end}}}",
+        "rat.lua");
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "...", "###"});
+    simple_platformer::World world;
+    const ActorId npc = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                                           .atFeet({24.0F, 32.0F})
+                                           .flying(20.0F)
+                                           .thinking({})
+                                           .running(tests::NpcMachineBuilder::named("rat").state(
+                                               "fleeing", LuaNpcActivity{"rat", "flee"})));
+
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
+
+    REQUIRE(tests::actor(world, npc).intentions.direction == glm::vec2{-1.0F, 0.0F});
+    REQUIRE(tests::actor(world, npc).intentions.jumpHeld);
     REQUIRE(scripts.diagnostics().empty());
 }
 

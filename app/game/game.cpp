@@ -6,6 +6,7 @@
 #include "level_composition.hpp"
 #include "content/level_catalog.hpp"
 #include "content/game_catalogs.hpp"
+#include "content/npc_script_catalog.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -44,6 +45,8 @@ namespace simple_platformer
         {
             throw std::invalid_argument("The game's simulation step must be finite and positive");
         }
+        loadNpcActivityScripts(
+            npcScripts, catalogs.machines, levelCatalog.levelDirectory / "scripts");
         startLevel(composePlayer(catalogs, atlasTextureId));
     }
 
@@ -54,6 +57,10 @@ namespace simple_platformer
         {
             nextPlayer.health = previousPlayer->health;
             nextPlayer.inventory = previousPlayer->inventory;
+        }
+        for (const Actor& actor : level.world.actors())
+        {
+            npcScripts.forget(actor.id);
         }
         // No pointers, projectiles, requests or NPC state survive replacement of the world.
         level = composeGameLevel(levelCatalog, levelNumber, atlasTextureId, catalogs);
@@ -93,7 +100,7 @@ namespace simple_platformer
         }
 
         player->intentions = intentions;
-        updateWorldSimulation(level.map, level.world, deltaTime, profile);
+        updateWorldSimulation(level.map, level.world, deltaTime, profile, &npcScripts);
 
         if (level.world.levelComplete())
         {
@@ -250,6 +257,10 @@ namespace simple_platformer
     void Game::restart()
     {
         gameComplete = false;
+        for (const Actor& actor : level.world.actors())
+        {
+            npcScripts.forget(actor.id);
+        }
         level = composeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId, catalogs);
         startLevel(composePlayer(catalogs, atlasTextureId));
     }

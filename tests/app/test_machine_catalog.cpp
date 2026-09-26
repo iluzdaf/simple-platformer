@@ -5,6 +5,7 @@
 #include "content/content_json.hpp"
 #include "content/machine_catalog.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 
 using Catch::Matchers::ContainsSubstring;
@@ -24,8 +25,12 @@ TEST_CASE("Machine JSON keeps state order, expands from lists and reads holds", 
     REQUIRE(parsed.name == "test_machine");
     REQUIRE(parsed.states.size() == 3);
     REQUIRE(parsed.states[0].name == "rest");
-    REQUIRE(parsed.states[0].does == simple_platformer::NpcState::Idle);
-    REQUIRE(parsed.states[2].does == simple_platformer::NpcState::Retreat);
+    REQUIRE(
+        std::get<simple_platformer::BuiltInNpcActivity>(parsed.states[0].does).state ==
+        simple_platformer::NpcState::Idle);
+    REQUIRE(
+        std::get<simple_platformer::BuiltInNpcActivity>(parsed.states[2].does).state ==
+        simple_platformer::NpcState::Retreat);
     REQUIRE(parsed.transitions.size() == 4);
     REQUIRE(parsed.transitions[1].after == 0.5F);
     REQUIRE(parsed.transitions[1].when.at("targetKnown") == false);
@@ -34,6 +39,20 @@ TEST_CASE("Machine JSON keeps state order, expands from lists and reads holds", 
     REQUIRE(parsed.transitions[3].to == "flee");
     REQUIRE_THROWS_AS(
         simple_platformer::npcStateMachine(catalog, "missing"), std::invalid_argument);
+}
+
+TEST_CASE("Machine JSON reads explicitly tagged Lua activities", "[app][machines][lua]")
+{
+    auto root =
+        nlohmann::json::parse(simple_platformer::loadContentText("tests/fixtures/machines.json"));
+    root["machines"]["test_machine"]["states"][0]["does"] = {
+        {"kind", "lua"}, {"script", "rat"}, {"activity", "flee"}};
+
+    const auto catalog = simple_platformer::parseMachineCatalog(root.dump(), "machines.json");
+    const auto& activity = std::get<simple_platformer::LuaNpcActivity>(
+        simple_platformer::npcStateMachine(catalog, "test_machine").states[0].does);
+    REQUIRE(activity.script == "rat");
+    REQUIRE(activity.activity == "flee");
 }
 
 TEST_CASE("Machine JSON rejects what the engine cannot run, naming where", "[app][machines]")
@@ -51,6 +70,17 @@ TEST_CASE("Machine JSON rejects what the engine cannot run, naming where", "[app
     {
         machine["states"][0]["name"] = "";
         expected = "machines.test_machine.states[0].name";
+    }
+    SECTION("An unknown tagged activity kind")
+    {
+        machine["states"][0]["does"] = {
+            {"kind", "python"}, {"script", "rat"}, {"activity", "flee"}};
+        expected = "states[0].does.kind";
+    }
+    SECTION("A tagged activity without a script")
+    {
+        machine["states"][0]["does"] = {{"kind", "lua"}, {"activity", "flee"}};
+        expected = "states[0].does";
     }
     SECTION("Unknown fact")
     {

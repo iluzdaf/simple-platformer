@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_fact_rows.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
@@ -69,13 +70,23 @@ TEST_CASE("A state machine rejects states and transitions it cannot run", "[npc]
     }
     SECTION("A state twice")
     {
-        machine.states.push_back({"rest", NpcState::Idle});
+        machine.states.push_back({"rest", simple_platformer::BuiltInNpcActivity{NpcState::Idle}});
         expected = "declared twice";
     }
     SECTION("A transition from a state it lacks")
     {
         machine.transitions[0].from = "sleep";
         expected = "from \"sleep\" to \"hunt\" starts from a state the machine lacks";
+    }
+    SECTION("A Lua state without a script name")
+    {
+        machine.states[0].does = simple_platformer::LuaNpcActivity{"", "wait"};
+        expected = "needs a Lua script name";
+    }
+    SECTION("A Lua state without an activity name")
+    {
+        machine.states[0].does = simple_platformer::LuaNpcActivity{"rat", ""};
+        expected = "needs a Lua activity name";
     }
     SECTION("A transition to a state it lacks")
     {
@@ -103,7 +114,10 @@ TEST_CASE(
 {
     NpcMachine machine = simple_platformer::startNpcMachine(restAndHunt());
     REQUIRE(simple_platformer::activeNpcMachineState(machine).name == "rest");
-    REQUIRE(simple_platformer::activeNpcMachineState(machine).does == NpcState::Idle);
+    REQUIRE(
+        std::get<simple_platformer::BuiltInNpcActivity>(
+            simple_platformer::activeNpcMachineState(machine).does)
+            .state == NpcState::Idle);
 
     REQUIRE(
         simple_platformer::advanceNpcMachine(machine, NpcFactsBuilder::facts(), 0.1F) ==
@@ -149,7 +163,10 @@ TEST_CASE("Among transitions from one state the first that holds wins", "[npc][f
     REQUIRE(
         simple_platformer::advanceNpcMachine(
             machine, NpcFactsBuilder::facts().targetTooClose(), 0.1F) == 0);
-    REQUIRE(simple_platformer::activeNpcMachineState(machine).does == NpcState::Retreat);
+    REQUIRE(
+        std::get<simple_platformer::BuiltInNpcActivity>(
+            simple_platformer::activeNpcMachineState(machine).does)
+            .state == NpcState::Retreat);
 }
 
 TEST_CASE("A machine that was not started cannot advance", "[npc][fsm][validation]")

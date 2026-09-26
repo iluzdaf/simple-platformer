@@ -2,6 +2,7 @@
 
 namespace simple_platformer
 {
+    class NpcActivityScripts;
     class TileMap;
     class World;
     struct FrameProfile;
@@ -12,5 +13,6 @@ namespace simple_platformer
         TileMap& map,
         World& world,
         float deltaTime,
-        FrameProfile* profile = nullptr);
+        FrameProfile* profile = nullptr,
+        NpcActivityScripts* scripts = nullptr);
 }

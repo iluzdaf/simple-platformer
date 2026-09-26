@@ -136,6 +136,7 @@ namespace simple_platformer
                 {
                     throw std::invalid_argument("An NPC state machine must be started");
                 }
+                requireSeconds(actor.machine->stateElapsed, "NPC machine state elapsed");
             }
             if (actor.brain.has_value())
             {

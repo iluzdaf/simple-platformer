@@ -311,6 +311,13 @@ namespace simple_platformer
                 drawShadowedText(
                     drawList, labelPosition, WorldLabelColour, nameOf(actor.npcState.value()));
             }
+            if (actor.machineState.has_value() && actor.npcActivity.has_value())
+            {
+                labelPosition.y += lineHeight;
+                const std::string state =
+                    *actor.machineState + " (" + nameOf(*actor.npcActivity) + ")";
+                drawShadowedText(drawList, labelPosition, WorldLabelColour, state.c_str());
+            }
         }
 
         void drawProjectile(
@@ -408,6 +415,17 @@ namespace simple_platformer
             if (actor.machine.has_value())
             {
                 std::snprintf(text, sizeof(text), "machine: %s", actor.machine->c_str());
+                drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+            }
+            if (actor.machineState.has_value())
+            {
+                std::snprintf(text, sizeof(text), "state:   %s", actor.machineState->c_str());
+                drawTextLine(drawList, position, text, TextDetailColour, Indentation);
+            }
+            if (actor.npcActivity.has_value())
+            {
+                const std::string activity = nameOf(*actor.npcActivity);
+                std::snprintf(text, sizeof(text), "does:    %s", activity.c_str());
                 drawTextLine(drawList, position, text, TextDetailColour, Indentation);
             }
             position.y += ActorTextGap;

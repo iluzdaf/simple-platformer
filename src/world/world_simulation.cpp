@@ -17,7 +17,12 @@
 
 namespace simple_platformer
 {
-    void updateWorldSimulation(TileMap& map, World& world, float deltaTime, FrameProfile* profile)
+    void updateWorldSimulation(
+        TileMap& map,
+        World& world,
+        float deltaTime,
+        FrameProfile* profile,
+        NpcActivityScripts* scripts)
     {
         if (world.levelComplete())
         {
@@ -47,7 +52,7 @@ namespace simple_platformer
             "NPC behaviour",
             [&]
             {
-                const NpcBehaviourCost cost = updateNpcBehaviour(map, world, deltaTime);
+                const NpcBehaviourCost cost = updateNpcBehaviour(map, world, deltaTime, scripts);
                 if (profile == nullptr || cost.pathSearches == 0)
                 {
                     return;
@@ -72,7 +77,17 @@ namespace simple_platformer
             [&] { updateProjectileBursts(world, requests, deltaTime); });
         phase("World", "Life states", [&] { updateLifeState(world, requests, deltaTime); });
         phase("World", "Pickups", [&] { updatePickups(world, requests); });
-        phase("World", "World requests", [&] { applyWorldRequests(world, requests); });
+        phase(
+            "World",
+            "World requests",
+            [&]
+            {
+                if (scripts != nullptr)
+                {
+                    forgetNpcActivities(requests.actorsToRemove(), *scripts);
+                }
+                applyWorldRequests(world, requests);
+            });
         phase("World", "Level exit", [&] { updateLevelExit(world); });
     }
 }

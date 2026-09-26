@@ -268,6 +268,20 @@ file(
 )
 
 file(
+    GLOB PROJECT_ROOT_MARKDOWN_FILES
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.md
+)
+
+file(
+    GLOB_RECURSE PROJECT_DOC_MARKDOWN_FILES
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/docs/*.md
+)
+
+set(PROJECT_MARKDOWN_FILES ${PROJECT_ROOT_MARKDOWN_FILES} ${PROJECT_DOC_MARKDOWN_FILES})
+
+file(
     GLOB_RECURSE PROJECT_PYTHON_FILES
     CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/*.py
@@ -321,8 +335,22 @@ if(PRETTIER_EXECUTABLE)
         COMMENT "Checking first-party YAML formatting"
         VERBATIM
     )
+
+    add_custom_target(
+        format-markdown
+        COMMAND ${PRETTIER_EXECUTABLE} --write --log-level warn ${PROJECT_MARKDOWN_FILES}
+        COMMENT "Formatting first-party Markdown"
+        VERBATIM
+    )
+
+    add_custom_target(
+        format-markdown-check
+        COMMAND ${PRETTIER_EXECUTABLE} --check --log-level warn ${PROJECT_MARKDOWN_FILES}
+        COMMENT "Checking first-party Markdown formatting"
+        VERBATIM
+    )
 else()
-    message(STATUS "prettier not found; JSON and YAML format targets are unavailable")
+    message(STATUS "prettier not found; JSON, YAML, and Markdown format targets are unavailable")
 endif()
 
 if(RUFF_EXECUTABLE)

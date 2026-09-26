@@ -19,6 +19,7 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
@@ -37,6 +38,7 @@
 using tests::actor;
 using tests::bite;
 using tests::brain;
+using tests::machine;
 using tests::pathFollower;
 using tests::patrol;
 
@@ -225,7 +227,7 @@ TEST_CASE("An NPC with a machine takes its activity from the machine, not its ta
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE(simple_platformer::activeNpcMachineState(*actor(world, npcId).machine).name == "nap");
+    REQUIRE(simple_platformer::activeNpcMachineState(machine(world, npcId)).name == "nap");
     REQUIRE(actor(world, npcId).intentions.aimDirection.x != 0.0F);
 
     // This target is close enough for the KeepDistance tactic to retreat, but the machine
@@ -290,7 +292,7 @@ TEST_CASE(
     REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
     REQUIRE(actor(world, npcId).intentions.aimDirection == glm::vec2{56.0F, -16.0F});
     REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
-    REQUIRE(actor(world, npcId).machine->stateElapsed == 0.1F);
+    REQUIRE(machine(world, npcId).stateElapsed == 0.1F);
     REQUIRE(brain(world, npcId).stateElapsed == 0.0F);
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
@@ -332,8 +334,7 @@ TEST_CASE("A scripted machine exits and enters around a transition", "[npc][lua]
     REQUIRE(scripts.calls[3].snapshot.targetFeet == glm::vec2{56.0F, 32.0F});
     REQUIRE(scripts.calls[4].hook == "update");
     REQUIRE(scripts.calls[4].snapshot.facts.stateElapsed == 0.0F);
-    REQUIRE(
-        simple_platformer::activeNpcMachineState(*actor(world, npcId).machine).name == "moving");
+    REQUIRE(simple_platformer::activeNpcMachineState(machine(world, npcId)).name == "moving");
 }
 
 TEST_CASE("A scripted machine activity requires a scripting runtime", "[npc][lua][validation]")

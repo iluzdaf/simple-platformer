@@ -434,6 +434,10 @@ TEST_CASE("The overlay shows a machine in place of the tactic it silences", "[ap
     REQUIRE(debug.actors.size() == 1);
     REQUIRE(debug.actors.front().machine == "test");
     REQUIRE(debug.actors.front().machineState == "rest");
+    if (!debug.actors.front().npcActivity.has_value())
+    {
+        throw std::logic_error("Missing machine activity in debug overlay");
+    }
     REQUIRE(
         std::get<simple_platformer::BuiltInNpcActivity>(*debug.actors.front().npcActivity).state ==
         simple_platformer::NpcState::Idle);

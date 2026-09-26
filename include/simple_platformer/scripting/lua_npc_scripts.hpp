@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
 
 namespace simple_platformer

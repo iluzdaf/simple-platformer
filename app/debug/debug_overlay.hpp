@@ -10,6 +10,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 
 #include "debug/navigation_debug.hpp"
@@ -84,6 +85,8 @@ namespace simple_platformer
         // Whichever decides the NPC's state: its tactic or its machine.
         std::optional<NpcTactic> npcTactic;
         std::optional<std::string> machine;
+        std::optional<std::string> machineState;
+        std::optional<NpcActivity> npcActivity;
         std::optional<PathFollowerDebugInfo> pathFollower;
         std::optional<SensorDebugInfo> sensor;
         std::optional<PatrolDebugInfo> patrol;

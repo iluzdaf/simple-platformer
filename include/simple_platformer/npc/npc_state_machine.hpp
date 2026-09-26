@@ -7,17 +7,17 @@
 #include <string_view>
 #include <vector>
 
-#include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
 
 namespace simple_platformer
 {
-    // A state of a data-driven machine: its name in the data, and the built-in activity
-    // the NPC system runs while it is active.
+    // A state of a data-driven machine: its name in the data, and the activity the NPC
+    // system runs while it is active.
     struct NpcMachineState
     {
         std::string name;
-        NpcState does = NpcState::Idle;
+        NpcActivity does = BuiltInNpcActivity{};
     };
 
     // A transition fires once every fact in `when` has held for `after` seconds. The
@@ -48,14 +48,16 @@ namespace simple_platformer
     // Whether every condition holds for these facts. A fact no row answers is an error.
     bool npcConditionsHold(const std::map<std::string, bool>& when, const NpcFacts& facts);
 
-    // A running machine: an NPC component beside its brain. The brain keeps the memory,
-    // the timing and the activity; the machine keeps which of its states is active and,
-    // per transition, how long its conditions have held.
+    // A running machine: an NPC component beside its brain. The brain keeps sensed-world
+    // memory; the machine owns its active activity's lifecycle and elapsed time, along
+    // with how long each transition's conditions have held.
     struct NpcMachine
     {
         NpcStateMachine definition;
         std::size_t active = 0;
         std::vector<float> heldFor;
+        float stateElapsed = 0.0F;
+        bool activityEntered = false;
         // The transition that fired last, for the overlay.
         std::optional<std::size_t> lastFired;
     };

@@ -47,8 +47,8 @@ The current example includes:
 - 360-degree projectiles and a timed bite attack
 - health, death, respawning, pickups, inventory, and three connected levels
 - sprite animation, an ImGui HUD, and an optional debug overlay
-- a protected Lua activity runtime with a copied snapshot-and-command boundary, not yet
-  connected to NPC state machines
+- data-driven NPC machines which can run protected Lua activities through a copied
+  snapshot-and-command boundary
 
 The project deliberately does not try to provide slopes, one-way or moving platforms,
 dynamic rigid-body physics, actor pushing, multiplayer, scripted gameplay, save games, an
@@ -513,29 +513,28 @@ whatever it needs, added once for every tactic to use.
 ### Data-driven state machine
 
 An NPC may carry an `NpcMachine` beside its brain, built from a machine in
-`machines.json`. When it does, the machine decides the brain's state and the tactic is
-not asked. The machine is the same shape as the table in code, written as data: named
-states, each running one of the built-in activities, and transitions with a `from`, a
-`to`, a `when` and an `after`. `when` is a map of fact names to the value each must
-hold, answered by the rows in `npc_fact_rows.cpp` over the same `NpcFacts` the enum
-brain reads, so the two brains see one world. `after` is how long every condition must
-hold before the transition fires; the hold restarts when a condition drops.
+`machines.json`. When it does, the machine chooses the activity and the tactic is not
+asked. A named state runs either a built-in C++ activity or a named Lua activity, and
+transitions have a `from`, a `to`, a `when` and an `after`. `when` is a map of fact
+names to the value each must hold, answered by the rows in `npc_fact_rows.cpp` over the
+same `NpcFacts` the enum brain reads. `after` is how long every condition must hold
+before the transition fires; the hold restarts when a condition drops.
 
 `advanceNpcMachine` runs once an update. Among the transitions from the active state,
 the first whose conditions have held long enough fires, so a transition's position in
-the data is its priority, and at most one fires an update. On the update it fires, and
-on the first update after composition, the NPC system enters the state's activity the
-way the enum brain would, so the timing reset, the cleared path and a bite's press are
-the same. Loading rejects a machine with no states, a repeated state name, a transition
+the data is its priority, and at most one fires an update. The machine owns the active
+state's elapsed time and calls its activity's exit and enter hooks around a transition.
+Built-in values dispatch the existing C++ activity switch; Lua values use the scripting
+boundary. Machine activities are not copied into `NpcBrain::state`. Loading rejects a
+machine with no states, a repeated state name, a transition
 from or to a state it lacks, a condition on a fact no row answers, or a hold that is
 not a finite, non-negative time, and names the transition.
 
-The zombie soldier runs the `keep_distance` machine, which is its KeepDistance tactic
-written out: the same facts, states and activities, with the tactic's two questions as
-transitions. The two can be read side by side, and the overlay's machine window draws
-the machine of the soldier nearest the player as it runs. What the machine cannot do is anything
-the enum brain cannot: it chooses among activities that exist and asks facts that are
-gathered, and a new behaviour is still a state and its function in C++ first.
+The zombie soldier still runs only built-in activities through the `keep_distance`
+machine, which is its KeepDistance tactic written out. It remains the intermediate
+example between the zombie's enum-and-switch brain and later scripted NPCs. The overlay
+shows the active machine state and labels its implementation as `builtin: ...` or
+`lua: script.activity`.
 
 Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
 edge and loses its path, navigation can recover to a supported cell before repathing;
@@ -543,12 +542,11 @@ regression tests cover this case.
 
 ### Lua activity boundary
 
-The scripting target provides the protected Lua runtime needed by future scripted NPC
-activities, but no actor or state machine invokes it yet. The core-facing boundary contains
-no Lua types. `NpcActivitySnapshot` is a copied, read-only-in-effect view of position, target,
-facts, state time, path completion, and authored tuning. `NpcActivityCommand` carries only
-intentions and requests to aim, route, or clear a route. Applying those requests remains
-engine work.
+The scripting target provides the protected Lua runtime used by scripted machine activities.
+The core-facing boundary contains no Lua types. `NpcActivitySnapshot` is a copied,
+read-only-in-effect view of position, target, facts, state time, path completion, and tuning.
+`NpcActivityCommand` carries only intentions and requests to aim, route, or clear a route.
+Applying those requests, including pathfinding, remains engine work.
 
 `LuaNpcScripts` loads each script into its own environment and requires it to return named
 activities with an `update` function; `enter` and `exit` are optional. Only the base, math,
@@ -559,8 +557,15 @@ fields, wrong types, and non-finite vectors.
 Every visit has a `self` table keyed by stable `ActorId`, script, and activity. Calls are
 protected and have an instruction budget. A hook error or invalid command records its source,
 script, activity, hook, and actor, then produces no command instead of escaping into the
-simulation. A failed script replacement leaves the previous script in place. The runtime can
-forget all state for a removed actor; the later NPC integration must call that ownership hook.
+simulation. A failed script replacement leaves the previous script in place. Before queued actor
+removals are applied, an NPC cleanup system discards their script-owned state. Level replacement
+and restart discard that state for every actor before replacing the world.
+
+Machine JSON keeps the short string form for built-in activities. A Lua activity uses
+`{"kind":"lua","script":"rat","activity":"flee"}`. The application loads each referenced
+script once from `scripts/<script>.lua` beside the other level content and rejects missing
+scripts or activities before the game starts. None of the shipped actors uses this tagged form
+yet.
 
 ## Navigation
 

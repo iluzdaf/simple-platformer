@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 
 namespace tests
@@ -37,6 +38,7 @@ namespace tests
         }
 
         Stated state(std::string name, simple_platformer::NpcState does) &&;
+        Stated state(std::string name, simple_platformer::LuaNpcActivity does) &&;
 
     protected:
         NpcMachineBuilder() = default;
@@ -50,7 +52,13 @@ namespace tests
     public:
         Stated state(std::string name, simple_platformer::NpcState does) &&
         {
-            built.states.push_back({std::move(name), does});
+            built.states.push_back({std::move(name), simple_platformer::BuiltInNpcActivity{does}});
+            return std::move(*this);
+        }
+
+        Stated state(std::string name, simple_platformer::LuaNpcActivity does) &&
+        {
+            built.states.push_back({std::move(name), std::move(does)});
             return std::move(*this);
         }
 
@@ -113,7 +121,15 @@ namespace tests
         std::string name,
         simple_platformer::NpcState does) &&
     {
-        built.states.push_back({std::move(name), does});
+        built.states.push_back({std::move(name), simple_platformer::BuiltInNpcActivity{does}});
+        return Stated(std::move(built));
+    }
+
+    inline NpcMachineBuilder::Stated NpcMachineBuilder::state(
+        std::string name,
+        simple_platformer::LuaNpcActivity does) &&
+    {
+        built.states.push_back({std::move(name), std::move(does)});
         return Stated(std::move(built));
     }
 

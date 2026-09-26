@@ -53,7 +53,7 @@ namespace simple_platformer
         std::optional<RangedWeapon> rangedWeapon;
         std::optional<BiteAttack> bite;
         std::optional<NpcBrain> brain;
-        // A data-driven machine that decides the brain's state instead of its tactic.
+        // A data-driven machine that chooses the activity instead of asking the tactic.
         std::optional<NpcMachine> machine;
         std::optional<NpcSenses> senses;
         std::optional<Patrol> patrol;

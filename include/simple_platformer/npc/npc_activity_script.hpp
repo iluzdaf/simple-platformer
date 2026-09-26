@@ -8,16 +8,11 @@
 
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
 
 namespace simple_platformer
 {
-    struct LuaNpcActivity
-    {
-        std::string script;
-        std::string activity;
-    };
-
     // The engine-owned knowledge copied into one script update. Lua can change its copy,
     // but none of those changes reach the simulation.
     struct NpcActivitySnapshot

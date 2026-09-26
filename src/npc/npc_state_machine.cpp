@@ -9,8 +9,10 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 
 #include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_fact_rows.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
 
@@ -52,6 +54,19 @@ namespace simple_platformer
             if (!names.insert(state.name).second)
             {
                 throw std::invalid_argument("The state \"" + state.name + "\" is declared twice");
+            }
+            if (const auto* scripted = std::get_if<LuaNpcActivity>(&state.does))
+            {
+                if (scripted->script.empty())
+                {
+                    throw std::invalid_argument(
+                        "The state \"" + state.name + "\" needs a Lua script name");
+                }
+                if (scripted->activity.empty())
+                {
+                    throw std::invalid_argument(
+                        "The state \"" + state.name + "\" needs a Lua activity name");
+                }
             }
         }
         for (const NpcMachineTransition& transition : machine.transitions)
@@ -154,6 +169,7 @@ namespace simple_platformer
             }
             machine.active = npcMachineStateNamed(definition, transition.to);
             machine.heldFor.assign(definition.transitions.size(), 0.0F);
+            machine.stateElapsed = 0.0F;
             machine.lastFired = index;
             return index;
         }

@@ -58,6 +58,11 @@ namespace simple_platformer
                projectileBurstRemovals.empty() && pickupCollections.empty() && itemUses.empty();
     }
 
+    const std::vector<ActorId>& WorldRequests::actorsToRemove() const
+    {
+        return removalRequests;
+    }
+
     void WorldRequests::collectPickup(std::size_t index)
     {
         pickupCollections.push_back(index);

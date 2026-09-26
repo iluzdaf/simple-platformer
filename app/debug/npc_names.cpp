@@ -1,6 +1,10 @@
 #include "npc_names.hpp"
 
+#include <string>
+#include <variant>
+
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 
 namespace simple_platformer
 {
@@ -40,5 +44,15 @@ namespace simple_platformer
         }
 
         return "Unknown";
+    }
+
+    std::string nameOf(const NpcActivity& activity)
+    {
+        if (const auto* builtIn = std::get_if<BuiltInNpcActivity>(&activity))
+        {
+            return "builtin: " + std::string(nameOf(builtIn->state));
+        }
+        const LuaNpcActivity& scripted = std::get<LuaNpcActivity>(activity);
+        return "lua: " + scripted.script + "." + scripted.activity;
     }
 }

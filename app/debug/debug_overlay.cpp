@@ -286,7 +286,7 @@ namespace simple_platformer
             {
                 info.animation = actor.animator->current;
             }
-            if (actor.brain.has_value())
+            if (actor.brain.has_value() && !actor.machine.has_value())
             {
                 info.npcState = actor.brain->state;
             }
@@ -295,6 +295,9 @@ namespace simple_platformer
             if (actor.machine.has_value())
             {
                 info.machine = actor.machine->definition.name;
+                const NpcMachineState& state = activeNpcMachineState(*actor.machine);
+                info.machineState = state.name;
+                info.npcActivity = state.does;
             }
             else if (actor.brain.has_value())
             {

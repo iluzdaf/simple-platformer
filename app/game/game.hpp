@@ -12,6 +12,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "simple_platformer/scripting/lua_npc_scripts.hpp"
 
 namespace simple_platformer
 {
@@ -75,6 +76,7 @@ namespace simple_platformer
         LevelCatalog levelCatalog;
         // Loaded once: definitions stay consistent across transitions and restarts.
         GameCatalogs catalogs;
+        LuaNpcScripts npcScripts;
         GameLevel level;
         std::optional<CameraController> cameraController;
         int atlasTextureId = 0;

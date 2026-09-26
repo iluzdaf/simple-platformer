@@ -22,6 +22,8 @@ namespace simple_platformer
         void collectPickup(std::size_t index);
         void useItem(ActorId actor, std::size_t slot);
         bool empty() const;
+        // Cleanup systems inspect this before the requests remove the actors from World.
+        const std::vector<ActorId>& actorsToRemove() const;
 
     private:
         struct DamageRequest

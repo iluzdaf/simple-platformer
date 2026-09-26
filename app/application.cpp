@@ -19,6 +19,7 @@
 #include "graphics/imgui_session.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "ui/interface_ui.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
@@ -270,6 +271,24 @@ namespace simple_platformer
                 }
                 context.breakTileRequested = false;
             }
+            if (context.showDebugOverlay && context.debugToolVisibility.stateMachine &&
+                internalCursor.has_value() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
+                !ImGui::GetIO().WantCaptureMouse)
+            {
+                const std::optional<ActorId> clicked = game.machineActorAt(*internalCursor);
+                if (clicked.has_value())
+                {
+                    if (debugTools.machineActor == clicked)
+                    {
+                        debugTools.machineActor.reset();
+                    }
+                    else
+                    {
+                        debugTools.machineActor = clicked;
+                    }
+                    context.input.clearButton(InputButton::PrimaryAttack);
+                }
+            }
             // The game has the cursor while it is over the image and no UI wants the mouse.
             std::optional<glm::vec2> gameCursor = internalCursor;
             if (ImGui::GetIO().WantCaptureMouse || context.inventoryOpen)
@@ -332,7 +351,8 @@ namespace simple_platformer
                     game.debugOverlay(
                         static_cast<float>(atlasTexture.width),
                         internalCursor,
-                        context.debugBodyIndex),
+                        context.debugBodyIndex,
+                        debugTools.machineActor),
                     windowViewport,
                     context.debugToolVisibility);
             }

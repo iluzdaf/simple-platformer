@@ -26,15 +26,20 @@ namespace simple_platformer
 {
     namespace
     {
-        constexpr float RingRadiusPerState = 40.0F;
+        constexpr float RingRadiusPerState = 20.0F;
         constexpr float RingRadiusLeast = 120.0F;
-        constexpr float WindowHeightFraction = 1.0F / 3.0F;
+        constexpr float WindowHeightFraction = 2.0F / 3.0F;
         constexpr float LinkThickness = 1.5F;
         constexpr float FiredLinkThickness = 3.0F;
         constexpr float ActiveBorderWidth = 3.0F;
+        constexpr float PinHitSize = 12.0F;
+        constexpr float PinRadius = 7.0F;
+        constexpr float StateTextScale = 3.0F;
         const ImVec4 LinkColour = {0.7F, 0.7F, 0.7F, 0.8F};
         const ImVec4 FiredLinkColour = {1.0F, 0.85F, 0.25F, 1.0F};
         const ImVec4 ActiveBorderColour = {0.3F, 1.0F, 0.4F, 1.0F};
+        constexpr ImU32 InputPinColour = IM_COL32(90, 190, 255, 255);
+        constexpr ImU32 OutputPinColour = IM_COL32(190, 195, 205, 255);
 
         // Ids the editor tells apart: nodes by state, one input pin per state, and an
         // output pin and a link per transition, each in its own range.
@@ -60,6 +65,35 @@ namespace simple_platformer
         ed::LinkId linkId(std::size_t transition)
         {
             return ed::LinkId(LinkIds + transition);
+        }
+
+        std::optional<std::size_t> transitionIndex(
+            std::uintptr_t id,
+            std::uintptr_t firstId,
+            std::size_t transitionCount)
+        {
+            if (id < firstId || id - firstId >= transitionCount)
+            {
+                return std::nullopt;
+            }
+            return id - firstId;
+        }
+
+        void drawPin(ed::PinId id, ed::PinKind kind)
+        {
+            ed::BeginPin(id, kind);
+            const ImVec2 topLeft = ImGui::GetCursorScreenPos();
+            ImGui::Dummy({PinHitSize, PinHitSize});
+            const ImVec2 center = {topLeft.x + PinHitSize * 0.5F, topLeft.y + PinHitSize * 0.5F};
+            if (kind == ed::PinKind::Input)
+            {
+                ImGui::GetWindowDrawList()->AddCircle(center, PinRadius, InputPinColour, 12, 2.0F);
+            }
+            else
+            {
+                ImGui::GetWindowDrawList()->AddCircleFilled(center, PinRadius, OutputPinColour);
+            }
+            ed::EndPin();
         }
 
         std::string conditionText(const NpcMachineTransition& transition)
@@ -112,10 +146,9 @@ namespace simple_platformer
                 ed::PushStyleVar(ed::StyleVar_NodeBorderWidth, ActiveBorderWidth);
             }
             ed::BeginNode(nodeId(index));
-            ed::BeginPin(inputPinId(index), ed::PinKind::Input);
-            ImGui::TextUnformatted(">");
-            ed::EndPin();
-            ImGui::SameLine();
+
+            const ImVec2 labelTopLeft = ImGui::GetCursorScreenPos();
+            ImGui::SetWindowFontScale(StateTextScale);
             ImGui::TextUnformatted(state.name.c_str());
             const std::string activity = nameOf(state.does);
             if (state.name != activity)
@@ -123,17 +156,38 @@ namespace simple_platformer
                 ImGui::SameLine();
                 ImGui::TextDisabled("(%s)", activity.c_str());
             }
+            const float labelWidth = ImGui::GetItemRectMax().x - labelTopLeft.x;
+            ImGui::SetWindowFontScale(1.0F);
+
+            const auto outputCount = static_cast<std::size_t>(std::count_if(
+                machine.transitions.begin(),
+                machine.transitions.end(),
+                [&state](const NpcMachineTransition& transition)
+                { return transition.from == state.name; }));
+            const float itemSpacing = ImGui::GetStyle().ItemSpacing.x;
+            const float outputsWidth =
+                static_cast<float>(outputCount) * PinHitSize +
+                static_cast<float>(outputCount > 0 ? outputCount - 1 : 0) * itemSpacing;
+            const float pinsWidth =
+                PinHitSize + (outputCount > 0 ? itemSpacing + outputsWidth : 0.0F);
+            const float contentWidth = std::max(labelWidth, pinsWidth);
+            const float pinRowLeft = ImGui::GetCursorPosX();
+            drawPin(inputPinId(index), ed::PinKind::Input);
+
+            bool firstOutput = true;
             for (std::size_t transition = 0; transition < machine.transitions.size(); ++transition)
             {
                 if (machine.transitions[transition].from != state.name)
                 {
                     continue;
                 }
-                ImGui::TextUnformatted(conditionText(machine.transitions[transition]).c_str());
                 ImGui::SameLine();
-                ed::BeginPin(outputPinId(transition), ed::PinKind::Output);
-                ImGui::TextUnformatted(">");
-                ed::EndPin();
+                if (firstOutput)
+                {
+                    ImGui::SetCursorPosX(pinRowLeft + contentWidth - outputsWidth);
+                    firstOutput = false;
+                }
+                drawPin(outputPinId(transition), ed::PinKind::Output);
             }
             ed::EndNode();
             if (active)
@@ -155,6 +209,43 @@ namespace simple_platformer
                     fired ? FiredLinkColour : LinkColour,
                     fired ? FiredLinkThickness : LinkThickness);
             }
+        }
+
+        std::optional<std::size_t> selectedTransition(const NpcStateMachine& machine)
+        {
+            const ed::PinId hoveredPin = ed::GetHoveredPin();
+            if (hoveredPin && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            {
+                const std::optional<std::size_t> transition =
+                    transitionIndex(hoveredPin.Get(), OutputPinIds, machine.transitions.size());
+                if (transition.has_value())
+                {
+                    ed::SelectLink(linkId(transition.value_or(0)));
+                }
+            }
+
+            ed::LinkId selectedLink;
+            if (ed::GetSelectedLinks(&selectedLink, 1) == 0)
+            {
+                return std::nullopt;
+            }
+            return transitionIndex(selectedLink.Get(), LinkIds, machine.transitions.size());
+        }
+
+        void drawTransitionDetails(
+            const NpcStateMachine& machine,
+            std::optional<std::size_t> selected)
+        {
+            ImGui::Separator();
+            if (!selected.has_value())
+            {
+                ImGui::TextDisabled("Select a transition or its output pin.");
+                return;
+            }
+
+            const NpcMachineTransition& transition = machine.transitions[selected.value_or(0)];
+            ImGui::Text("%s -> %s", transition.from.c_str(), transition.to.c_str());
+            ImGui::TextWrapped("Requires: %s", conditionText(transition).c_str());
         }
     }
 
@@ -185,7 +276,8 @@ namespace simple_platformer
 
     void drawMachineGraph(
         MachineGraphEditors& editors,
-        const std::optional<MachineDebugInfo>& machine)
+        const std::optional<MachineDebugInfo>& machine,
+        bool locked)
     {
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
         const float textPanelWidth =
@@ -219,11 +311,17 @@ namespace simple_platformer
         }
 
         const MachineDebugInfo& shown = machine.value_or(MachineDebugInfo{});
-        ImGui::Text("%s of NPC %u", shown.definition.name.c_str(), shown.actor.value);
+        ImGui::Text(
+            "%s of NPC %u%s",
+            shown.definition.name.c_str(),
+            shown.actor.value,
+            locked ? " (locked)" : "");
 
         MachineGraphEditor& editor = editors.editorFor(shown.definition.name);
         ed::SetCurrentEditor(editor.context);
-        ed::Begin("##machine");
+        const ImVec2 available = ImGui::GetContentRegionAvail();
+        const float detailsHeight = ImGui::GetTextLineHeightWithSpacing() * 2.0F;
+        ed::Begin("##machine", {available.x, std::max(1.0F, available.y - detailsHeight)});
         if (editor.layingOut && editor.framesDrawn == 0)
         {
             layOutInRing(shown.definition);
@@ -240,6 +338,7 @@ namespace simple_platformer
         }
         const ImVec2 canvasSize = ed::GetScreenSize();
         ed::End();
+        const std::optional<std::size_t> inspected = selectedTransition(shown.definition);
         // Only after End are the states' sizes known, so the view fits them now.
         if (editor.layingOut && editor.framesDrawn > 0 && canvasSize.x == editor.canvasSize.x &&
             canvasSize.y == editor.canvasSize.y)
@@ -252,6 +351,7 @@ namespace simple_platformer
         ++editor.framesDrawn;
         editor.shownActor = shown.actor;
         editor.shownFired = shown.lastFired;
+        drawTransitionDetails(shown.definition, inspected);
         ImGui::End();
     }
 }

@@ -49,5 +49,6 @@ namespace simple_platformer
 
     void drawMachineGraph(
         MachineGraphEditors& editors,
-        const std::optional<MachineDebugInfo>& machine);
+        const std::optional<MachineDebugInfo>& machine,
+        bool locked);
 }

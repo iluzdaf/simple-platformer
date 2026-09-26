@@ -169,12 +169,27 @@ namespace simple_platformer
             return shown;
         }
 
-        // The NPC whose machine is shown: the one under the cursor when it has a machine,
-        // otherwise the one with a machine nearest the player, or nearest the camera's
-        // centre without a player. Nothing while none of the shown actors has a machine.
-        const Actor* followedNpc(
+        const Actor* machineNpcUnderCursor(
             const std::vector<const Actor*>& shown,
-            std::optional<glm::vec2> cursorWorld,
+            std::optional<glm::vec2> cursorWorld)
+        {
+            if (!cursorWorld.has_value())
+            {
+                return nullptr;
+            }
+            for (const Actor* actor : shown)
+            {
+                if (actor->machine.has_value() &&
+                    contains(actor->body.bounds, cursorWorld.value_or(glm::vec2{})))
+                {
+                    return actor;
+                }
+            }
+            return nullptr;
+        }
+
+        const Actor* nearestNpcWithMachine(
+            const std::vector<const Actor*>& shown,
             const Aabb& nearTo)
         {
             const Actor* nearest = nullptr;
@@ -183,11 +198,6 @@ namespace simple_platformer
                 if (!actor->machine.has_value())
                 {
                     continue;
-                }
-                if (cursorWorld.has_value() &&
-                    contains(actor->body.bounds, cursorWorld.value_or(glm::vec2{})))
-                {
-                    return actor;
                 }
                 const glm::vec2 target = centerOf(nearTo);
                 if (nearest == nullptr || glm::distance(centerOf(actor->body.bounds), target) <
@@ -233,7 +243,8 @@ namespace simple_platformer
         const CameraController& cameraController,
         float atlasWidth,
         float simulationStepSeconds,
-        const NavigationDebugView& navigation)
+        const NavigationDebugView& navigation,
+        std::optional<ActorId> lockedMachineActor)
     {
         if (!isFinitePositive(simulationStepSeconds))
         {
@@ -330,10 +341,25 @@ namespace simple_platformer
             }
         }
 
-        const Actor* followed = followedNpc(
-            shown,
-            navigation.cursorWorld,
-            player != nullptr ? player->body.bounds : scene.cameraBounds);
+        const Actor* underCursor = machineNpcUnderCursor(shown, navigation.cursorWorld);
+        const Actor* followed = nullptr;
+        if (lockedMachineActor.has_value())
+        {
+            const Actor* locked = world.findActor(*lockedMachineActor);
+            if (locked != nullptr && locked->machine.has_value())
+            {
+                followed = locked;
+            }
+        }
+        else if (underCursor != nullptr)
+        {
+            followed = underCursor;
+        }
+        else
+        {
+            followed = nearestNpcWithMachine(
+                shown, player != nullptr ? player->body.bounds : scene.cameraBounds);
+        }
         if (followed != nullptr)
         {
             const NpcMachine& machine = followed->machine.value_or(NpcMachine{});

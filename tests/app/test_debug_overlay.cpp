@@ -465,7 +465,8 @@ namespace
 
     simple_platformer::DebugOverlay overlayOf(
         const simple_platformer::World& world,
-        std::optional<glm::vec2> cursorWorld = std::nullopt)
+        std::optional<glm::vec2> cursorWorld = std::nullopt,
+        std::optional<simple_platformer::ActorId> lockedMachineActor = std::nullopt)
     {
         const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "######"});
         const simple_platformer::CameraController cameraController{
@@ -473,7 +474,13 @@ namespace
         simple_platformer::NavigationDebugView view;
         view.cursorWorld = cursorWorld;
         return simple_platformer::makeDebugOverlay(
-            world, map, cameraController, 128.0F, tests::FixedStepSeconds, view);
+            world,
+            map,
+            cameraController,
+            128.0F,
+            tests::FixedStepSeconds,
+            view,
+            lockedMachineActor);
     }
 }
 
@@ -565,7 +572,8 @@ TEST_CASE("The machine window follows the NPC under the cursor instead", "[app][
     world.addActor(machineNpc({60.0F, 20.0F}));
     const simple_platformer::ActorId further = world.addActor(machineNpc({200.0F, 20.0F}));
 
-    REQUIRE(followedBy(overlayOf(world, glm::vec2{206.0F, 26.0F})) == further);
+    const simple_platformer::DebugOverlay underCursor = overlayOf(world, glm::vec2{206.0F, 26.0F});
+    REQUIRE(followedBy(underCursor) == further);
     // The cursor over an NPC without a machine, or over nothing, changes nothing.
     world.addActor(
         tests::ActorBuilder::sized({12.0F, 12.0F}).at({150.0F, 20.0F}).walking().thinking({}));
@@ -573,14 +581,30 @@ TEST_CASE("The machine window follows the NPC under the cursor instead", "[app][
     REQUIRE(followedBy(overlayOf(world, glm::vec2{10.0F, 10.0F})) != further);
 }
 
+TEST_CASE("A locked machine actor overrides the cursor", "[app][debug]")
+{
+    simple_platformer::World world;
+    tests::addPlayer(
+        world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).walking());
+    const simple_platformer::ActorId locked = world.addActor(machineNpc({60.0F, 20.0F}));
+    world.addActor(machineNpc({200.0F, 20.0F}));
+
+    const simple_platformer::DebugOverlay debug =
+        overlayOf(world, glm::vec2{206.0F, 26.0F}, locked);
+
+    REQUIRE(followedBy(debug) == locked);
+}
+
 TEST_CASE("The machine window follows nothing off screen", "[app][debug]")
 {
     simple_platformer::World world;
     tests::addPlayer(
         world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).walking());
-    world.addActor(machineNpc({simple_platformer::InternalViewportSize.x + 100.0F, 20.0F}));
+    const simple_platformer::ActorId offScreen =
+        world.addActor(machineNpc({simple_platformer::InternalViewportSize.x + 100.0F, 20.0F}));
 
     REQUIRE_FALSE(overlayOf(world).machine.has_value());
+    REQUIRE(followedBy(overlayOf(world, std::nullopt, offScreen)) == offScreen);
 }
 
 TEST_CASE("The machine window is told which transition fired last", "[app][debug]")

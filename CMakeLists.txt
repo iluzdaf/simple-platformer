@@ -42,6 +42,20 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/external/nlohmann/single_include
 )
 
+set(LUA_ENABLE_SHARED OFF CACHE BOOL "" FORCE)
+set(LUA_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+set(LUA_BUILD_BINARY OFF CACHE BOOL "" FORCE)
+set(LUA_BUILD_COMPILER OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/lua EXCLUDE_FROM_ALL)
+
+add_library(simple_platformer_sol2 INTERFACE)
+target_include_directories(
+    simple_platformer_sol2
+    SYSTEM INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/sol2/include
+)
+target_link_libraries(simple_platformer_sol2 INTERFACE Lua::Library)
+
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -149,6 +163,20 @@ target_compile_features(simple_platformer_core PUBLIC cxx_std_17)
 target_link_libraries(simple_platformer_core PUBLIC simple_platformer_glm)
 enable_project_warnings(simple_platformer_core)
 
+add_library(simple_platformer_scripting src/scripting/lua_npc_scripts.cpp)
+target_include_directories(
+    simple_platformer_scripting
+    PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(simple_platformer_scripting PUBLIC cxx_std_17)
+target_link_libraries(
+    simple_platformer_scripting
+    PUBLIC simple_platformer_core
+    PRIVATE simple_platformer_sol2
+)
+enable_project_warnings(simple_platformer_scripting)
+
 add_executable(
     simple_platformer
     app/application.cpp
@@ -198,7 +226,7 @@ target_include_directories(simple_platformer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 target_link_libraries(
     simple_platformer
     PRIVATE
-    simple_platformer_core
+    simple_platformer_scripting
     simple_platformer_glad
     simple_platformer_imgui
     simple_platformer_json
@@ -508,6 +536,7 @@ if(BUILD_TESTING)
         tests/render/test_cover_fade.cpp
         tests/render/test_presentation.cpp
         tests/render/test_render_scene.cpp
+        tests/scripting/test_lua_npc_scripts.cpp
         tests/support/test_actor_builder.cpp
         tests/support/test_npc_machine_builder.cpp
         tests/support/test_tile_map_builder.cpp
@@ -530,7 +559,7 @@ if(BUILD_TESTING)
     target_link_libraries(
         simple_platformer_tests
         PRIVATE
-        simple_platformer_core
+        simple_platformer_scripting
         simple_platformer_json
         Catch2::Catch2WithMain
     )

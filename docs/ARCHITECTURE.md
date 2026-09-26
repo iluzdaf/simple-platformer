@@ -47,9 +47,11 @@ The current example includes:
 - 360-degree projectiles and a timed bite attack
 - health, death, respawning, pickups, inventory, and three connected levels
 - sprite animation, an ImGui HUD, and an optional debug overlay
+- a protected Lua activity runtime with a copied snapshot-and-command boundary, not yet
+  connected to NPC state machines
 
 The project deliberately does not try to provide slopes, one-way or moving platforms,
-dynamic rigid-body physics, actor pushing, multiplayer, scripting, save games, an
+dynamic rigid-body physics, actor pushing, multiplayer, scripted gameplay, save games, an
 editor, an animation graph, a general ECS, or advanced projectile modifiers such as
 homing and piercing. OpenGL submission is checked manually rather than with automated
 graphics integration tests. Sketches for a few of these, including an editor and
@@ -60,10 +62,12 @@ them are implemented.
 
 ### Targets and dependency boundary
 
-The project has three main CMake targets:
+The project has four main CMake targets:
 
 - `simple_platformer_core` contains simulation and render-scene construction. It has
   no dependency on GLFW, OpenGL, ImGui, or JSON parsing.
+- `simple_platformer_scripting` owns the Lua VM and implements the NPC activity scripting
+  boundary without exposing Lua types to the core.
 - `simple_platformer` contains the executable, window, input adapter, OpenGL renderer,
   and ImGui presentation.
 - `simple_platformer_tests` contains Catch2 tests for the core and for the application
@@ -75,7 +79,8 @@ simulation tick, and inspect the result without needing a window or graphics con
 All third-party source is vendored under `external/` so the project builds offline and
 everyone works from the same releases. The current dependencies include GLFW, glad, GLM, ImGui,
 ImPlot for the debug overlay's plots, imgui-node-editor for its machine window, Catch2,
-stb image loading, and nlohmann/json.
+stb image loading, nlohmann/json, Lua, and sol2. Lua and sol2 are private to the scripting
+target rather than leaking through public headers.
 
 ### Application folders
 
@@ -535,6 +540,27 @@ gathered, and a new behaviour is still a state and its function in C++ first.
 Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
 edge and loses its path, navigation can recover to a supported cell before repathing;
 regression tests cover this case.
+
+### Lua activity boundary
+
+The scripting target provides the protected Lua runtime needed by future scripted NPC
+activities, but no actor or state machine invokes it yet. The core-facing boundary contains
+no Lua types. `NpcActivitySnapshot` is a copied, read-only-in-effect view of position, target,
+facts, state time, path completion, and authored tuning. `NpcActivityCommand` carries only
+intentions and requests to aim, route, or clear a route. Applying those requests remains
+engine work.
+
+`LuaNpcScripts` loads each script into its own environment and requires it to return named
+activities with an `update` function; `enter` and `exit` are optional. Only the base, math,
+string, and table libraries are available, with dynamic loading and filesystem functions
+removed. Snapshots become fresh Lua tables, and returned command tables reject unknown
+fields, wrong types, and non-finite vectors.
+
+Every visit has a `self` table keyed by stable `ActorId`, script, and activity. Calls are
+protected and have an instruction budget. A hook error or invalid command records its source,
+script, activity, hook, and actor, then produces no command instead of escaping into the
+simulation. A failed script replacement leaves the previous script in place. The runtime can
+forget all state for a removed actor; the later NPC integration must call that ownership hook.
 
 ## Navigation
 

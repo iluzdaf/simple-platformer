@@ -1,6 +1,7 @@
 # Future work
 
-None of the designs in this document are implemented. They are recorded so that
+Most of the designs in this document are not implemented. A proposal states when groundwork
+already exists. They are recorded so that
 [ARCHITECTURE.md](ARCHITECTURE.md) continues to describe the repository as it is, and
 so the reasoning behind a deliberately smaller current design is not lost.
 
@@ -22,6 +23,139 @@ validated JSON consumed by the example game. The loader should still produce
 `LevelData`, and composition should still create the core's map and world.
 Simulation must not depend on the editor or JSON, so handwritten and tool-generated
 levels remain equivalent.
+
+## Lua-authored NPC behaviour
+
+The protected Lua runtime and copied snapshot-and-command boundary are implemented, but no
+actor or state machine invokes them yet. The remaining work connects that boundary to NPC
+activities and adds the behaviours and engine capabilities below.
+
+Lua can add game-specific decisions without moving simulation mechanics out of the
+engine. It should extend the existing teaching progression rather than replace it:
+
+1. The zombie keeps the explicit enum-and-switch state machine in C++, so a student can
+   see facts become transitions and activities directly in code.
+2. The zombie soldier keeps its machine in `machines.json`, showing the same kind of
+   transition graph as validated data over built-in C++ activities.
+3. The rat, boar, and spider can then show scripted state policy over capabilities
+   supplied by the engine.
+
+The boundary should be that Lua decides what an NPC wants to do, while C++ determines
+how it is done. A scripted activity can have `enter`, `update`, and `exit` functions,
+with fresh state-local memory on entry. `update` receives an immutable snapshot of
+facts and tuning and returns a small command value: intentions, an aim or destination,
+an attack request, or a request to follow a route. It must not move bodies, resolve
+collision, search the navigation graph, apply damage, or add and remove world objects.
+
+Machine-state identity should therefore be separated from the activity that implements
+it. A state can run either a named built-in C++ activity or a named Lua activity. The
+existing C++ transition runner, validation, timing, priority, and debug view should work
+for both. The existing JSON format remains useful; if Lua later authors a machine, the
+script should return declarative states and transitions which are converted to the same
+validated `NpcStateMachine`, rather than execute unrestricted transition callbacks every
+update.
+
+One possible representation keeps `NpcState` as the identifier understood by the
+existing C++ activity switch:
+
+```cpp
+struct BuiltInNpcActivity
+{
+    NpcState state;
+};
+
+struct LuaNpcActivity
+{
+    std::string script;
+    std::string activity;
+};
+
+using NpcActivity = std::variant<BuiltInNpcActivity, LuaNpcActivity>;
+
+struct NpcMachineState
+{
+    std::string name;
+    NpcActivity does;
+};
+```
+
+`BuiltInNpcActivity{NpcState::Patrol}` means to run the existing Patrol branch; it does
+not introduce another implementation of patrol. A Lua activity instead identifies a
+function table in a loaded script. The current string form can remain the concise form
+for a built-in activity, preserving the zombie soldier as the intermediate example:
+
+```json
+{ "name": "patrol", "does": "patrol" }
+```
+
+A scripted rat state needs an explicit tagged form so loading can validate its script
+and activity:
+
+```json
+{
+  "name": "fleeing",
+  "does": { "kind": "lua", "script": "rat", "activity": "flee" }
+}
+```
+
+The two decision paths should remain visible. An NPC without an `NpcMachine` uses
+`nextNpcState` and the explicit C++ transition switch, then runs the built-in activity
+for its `NpcBrain::state`. A machine-controlled NPC advances its declarative graph and
+dispatches the active state's `NpcActivity`: a built-in value calls that same C++
+activity switch, while a Lua value calls its `enter`, `update`, or `exit` hook. Both
+paths ultimately produce intentions or narrow engine commands consumed by the same
+navigation, movement, and combat systems.
+
+The machine should own its active state's elapsed time and activity lifecycle. A Lua
+state cannot be represented honestly by `NpcBrain::state`, so machine-controlled NPCs
+should not copy their activity back into that enum. The debug overlay can instead show
+the machine state name and an activity label such as `builtin: patrol` or `lua: rat.flee`.
+
+The old Platformer provides a useful order for introducing the enemies, but its code
+should be adapted to this engine rather than copied:
+
+- The rat is the smallest first scripted NPC. Lua chooses patrol and flee destinations,
+  while the C++ path follower walks there and a C++ pounce activity owns the leap,
+  collision, and attack consequences.
+- The boar adds event-driven policy and the Sleep, Charge, and Stunned states. Sensing,
+  charge movement, collision, and damage remain C++; Lua reacts to engine-provided facts
+  such as a heard noise or nearby target. New facts should be added deliberately to the
+  immutable snapshot rather than letting scripts create arbitrary world truth.
+- The spider comes after surface movement and navigation are engine capabilities. Lua
+  chooses whether and where to patrol, chase, or pounce; C++ gets it across floors,
+  walls, ceilings, and corners.
+
+Wall and ceiling crawling is therefore a prerequisite for the spider, not part of the
+Lua integration. It needs explicit C++ movement state and collision contacts, navigation
+connections between compatible floor, wall, and ceiling surfaces, and a path follower
+that turns those connections into intentions. The same capability should be testable
+without Lua before a scripted spider uses it.
+
+Script calls have protected error handling and an instruction budget. A failed update reports
+the script, actor, activity, and hook, then produces no commands for that update instead of
+damaging the simulation. Loading rejects missing required hooks, and command parsing rejects
+unknown fields and invalid values. Machine integration must also reject unknown facts or
+activities when it loads their definitions.
+State-local memory, pending work, and any delayed actions must be discarded with their
+actor. Tests should cover lifecycle calls, fresh memory on re-entry, returned commands,
+navigation through the C++ façade, deterministic transition order, error fallback, and
+debug-overlay state names.
+
+A practical remaining delivery order is:
+
+1. Add scripted activities beside built-in activities, without changing either shipped
+   zombie implementation.
+2. Add a C++ pounce activity and implement the rat using existing ground movement and
+   navigation.
+3. Add the event and fact boundary needed by the boar, then implement its charge in C++
+   and its policy in Lua.
+4. Implement and test wall and ceiling movement, surface navigation, and following in
+   C++.
+5. Implement the spider as the first scripted user of that surface-navigation
+   capability.
+6. Consider Lua-authored declarative machine definitions only after the state boundary
+   has proved useful; keep runtime transition evaluation in C++ unless a concrete rule
+   cannot be expressed by facts and timed conditions.
 
 ## Optional movement abilities
 

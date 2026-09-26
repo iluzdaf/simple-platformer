@@ -52,11 +52,13 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("Animated actors require a sprite");
             }
-            if (actor.animator.has_value() &&
-                (!std::isfinite(actor.animator->elapsed) || actor.animator->elapsed < 0.0F ||
-                 actor.animator->animationSet.clips.empty()))
+            if (actor.animator.has_value())
             {
-                throw std::invalid_argument("Actor animation data is invalid");
+                requireSeconds(actor.animator->elapsed, "Actor animation elapsed");
+                if (actor.animator->animationSet.clips.empty())
+                {
+                    throw std::invalid_argument("Actor animation data is invalid");
+                }
             }
         }
 
@@ -65,13 +67,13 @@ namespace simple_platformer
             if (actor.rangedWeapon.has_value())
             {
                 const RangedWeapon& weapon = *actor.rangedWeapon;
+                requireSeconds(weapon.phaseTimeRemaining, "Ranged weapon phase time remaining");
                 if (weapon.damage <= 0 || !isFinite(weapon.projectileSize) ||
                     weapon.projectileSize.x <= 0.0F || weapon.projectileSize.y <= 0.0F ||
                     !isFinitePositive(weapon.projectileSpeed) ||
                     !isFinitePositive(weapon.projectileLifetime) ||
                     !isFinitePositive(weapon.shootDuration) ||
                     !isFinitePositive(weapon.recoveryDuration) ||
-                    !std::isfinite(weapon.phaseTimeRemaining) || weapon.phaseTimeRemaining < 0.0F ||
                     !isFinite(weapon.projectileSprite.size) ||
                     weapon.projectileSprite.size.x <= 0.0F ||
                     weapon.projectileSprite.size.y <= 0.0F)
@@ -82,12 +84,12 @@ namespace simple_platformer
             if (actor.bite.has_value())
             {
                 const BiteAttack& bite = *actor.bite;
+                requireSeconds(bite.phaseTimeRemaining, "Bite phase time remaining");
                 if (bite.damage <= 0 || !isFinite(bite.hitboxSize) || bite.hitboxSize.x <= 0.0F ||
                     bite.hitboxSize.y <= 0.0F || !std::isfinite(bite.reach) || bite.reach < 0.0F ||
                     !isFinitePositive(bite.windupDuration) ||
                     !isFinitePositive(bite.activeDuration) ||
-                    !isFinitePositive(bite.recoveryDuration) ||
-                    !std::isfinite(bite.phaseTimeRemaining) || bite.phaseTimeRemaining < 0.0F)
+                    !isFinitePositive(bite.recoveryDuration))
                 {
                     throw std::invalid_argument("Actor bite data is invalid");
                 }
@@ -135,24 +137,26 @@ namespace simple_platformer
                     throw std::invalid_argument("An NPC state machine must be started");
                 }
             }
-            if (actor.brain.has_value() &&
-                (!std::isfinite(actor.brain->stateElapsed) || actor.brain->stateElapsed < 0.0F ||
-                 !isFinite(actor.brain->lastSeenTargetFeet) ||
-                 !std::isfinite(actor.brain->targetMemoryRemaining) ||
-                 actor.brain->targetMemoryRemaining < 0.0F))
+            if (actor.brain.has_value())
             {
-                throw std::invalid_argument("NPC brain runtime data is invalid");
+                requireSeconds(actor.brain->stateElapsed, "NPC state elapsed");
+                requireSeconds(actor.brain->targetMemoryRemaining, "NPC target memory remaining");
+                if (!isFinite(actor.brain->lastSeenTargetFeet))
+                {
+                    throw std::invalid_argument("NPC brain runtime data is invalid");
+                }
             }
-            if (actor.senses.has_value() && (!std::isfinite(actor.senses->noticeDistance) ||
-                                             actor.senses->noticeDistance < 0.0F ||
-                                             !std::isfinite(actor.senses->targetMemoryDuration) ||
-                                             actor.senses->targetMemoryDuration < 0.0F ||
-                                             !std::isfinite(actor.senses->searchDuration) ||
-                                             actor.senses->searchDuration < 0.0F ||
-                                             !std::isfinite(actor.senses->standoffDistance) ||
-                                             actor.senses->standoffDistance < 0.0F))
+            if (actor.senses.has_value())
             {
-                throw std::invalid_argument("NPC senses data is invalid");
+                requireSeconds(actor.senses->targetMemoryDuration, "NPC target memory duration");
+                requireSeconds(actor.senses->searchDuration, "NPC search duration");
+                if (!std::isfinite(actor.senses->noticeDistance) ||
+                    actor.senses->noticeDistance < 0.0F ||
+                    !std::isfinite(actor.senses->standoffDistance) ||
+                    actor.senses->standoffDistance < 0.0F)
+                {
+                    throw std::invalid_argument("NPC senses data is invalid");
+                }
             }
             if (actor.patrol.has_value() &&
                 (!isFinite(actor.patrol->firstFeet) || !isFinite(actor.patrol->secondFeet)))
@@ -163,15 +167,14 @@ namespace simple_platformer
 
         void validatePathFollower(const Actor& actor)
         {
-            if (actor.pathFollower.has_value() &&
-                (!std::isfinite(actor.pathFollower->repathCooldown) ||
-                 actor.pathFollower->repathCooldown <= 0.0F ||
-                 !std::isfinite(actor.pathFollower->repathRemaining) ||
-                 actor.pathFollower->repathRemaining < 0.0F ||
-                 !std::isfinite(actor.pathFollower->programElapsed) ||
-                 actor.pathFollower->programElapsed < 0.0F))
+            if (actor.pathFollower.has_value())
             {
-                throw std::invalid_argument("NPC path timing is invalid");
+                requireSeconds(actor.pathFollower->repathRemaining, "NPC repath time remaining");
+                requireSeconds(actor.pathFollower->programElapsed, "NPC path program elapsed");
+                if (!isFinitePositive(actor.pathFollower->repathCooldown))
+                {
+                    throw std::invalid_argument("NPC path timing is invalid");
+                }
             }
         }
     }

@@ -4,5 +4,8 @@
 /.vs/
 /out/
 /.DS_Store
+/.ruff_cache/
+__pycache__/
+*.py[cod]
 imgui.ini
 machine_layout_*.json

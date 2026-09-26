@@ -174,13 +174,15 @@ built as generated. None of this affects local builds.
 
 ## Formatting
 
-`.clang-format` defines the C and C++ style and `.prettierrc` the JSON style.
-`.editorconfig` supplies the indentation and line endings shared by both.
+`.clang-format` defines the C and C++ style and `.prettierrc` the JSON style. Ruff
+formats and checks first-party Python. `.editorconfig` supplies shared whitespace rules.
 
 | | Config | Tool | VS Code | Visual Studio |
 | --- | --- | --- | --- | --- |
 | C and C++ | `.clang-format` | clang-format 18 | on save, through clangd | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
 | JSON | `.prettierrc` | Prettier 3.9.8 | on save, through the Prettier extension | not supported, use the command line |
+| YAML | `.prettierrc` | Prettier 3.9.8 | on save, through the Prettier extension | not supported, use the command line |
+| Python | Ruff defaults | Ruff 0.16.8 | on save, through the Ruff extension | not supported, use the command line |
 
 Both editors read `.clang-format` and `.editorconfig` without an extension. Visual
 Studio does not read `.prettierrc`, so JSON there is formatted from the command line
@@ -200,14 +202,29 @@ cmake --build --preset mac-debug --target format-json
 cmake --build --preset mac-debug --target format-json-check
 ```
 
-The C++ targets skip `external/`; the JSON targets cover `assets/` and
-`tests/fixtures/`. CMake looks for both tools while configuring and reports any it
-cannot find, leaving those targets unavailable. Use `-DCLANG_FORMAT_EXECUTABLE=` or
-`-DPRETTIER_EXECUTABLE=` to choose a specific one.
+Format first-party YAML, or check it without changing files:
 
-CI runs clang-format 18 and Prettier 3.9.8, and a pull request cannot merge until both
-checks pass. Local versions do not have to match. If yours formats differently, CI
-fails and you reformat with the commands above.
+```sh
+cmake --build --preset mac-debug --target format-yaml
+cmake --build --preset mac-debug --target format-yaml-check
+```
+
+Format first-party Python, or check its formatting and lint findings:
+
+```sh
+cmake --build --preset mac-debug --target format-python
+cmake --build --preset mac-debug --target format-python-check lint-python
+```
+
+The C++ targets skip `external/`; the JSON targets cover `assets/` and
+`tests/fixtures/`; the YAML targets cover `.github/`; the Python targets cover
+`tools/`. CMake looks for all three tools while configuring and reports any it cannot
+find, leaving those targets unavailable. Use `-DCLANG_FORMAT_EXECUTABLE=`,
+`-DPRETTIER_EXECUTABLE=`, or `-DRUFF_EXECUTABLE=` to choose a specific one.
+
+CI runs clang-format 18, Prettier 3.9.8, and Ruff 0.16.8, and a pull request cannot
+merge until their checks pass. Local versions do not have to match. If yours formats
+differently, CI fails and you reformat with the commands above.
 
 ## Static analysis
 
@@ -222,6 +239,11 @@ builds. Developers with clang-tidy installed can run it with:
 ```sh
 cmake --build --preset mac-debug --target tidy
 ```
+
+Pull-request CI checks each changed C++ file and every first-party file which
+transitively includes a changed header. Changes to the analysis rules, CI workflow,
+build configuration, or target-selection script check the complete tree. Local
+`tidy` builds also continue to check the complete tree.
 
 For matching local quality tools, set `CLANG_FORMAT_EXECUTABLE` and
 `CLANG_TIDY_EXECUTABLE` to LLVM 18 executables in a personal `CMakeUserPresets.json`
@@ -247,6 +269,7 @@ assets/        runtime sprite atlas, content catalogues, and editable level JSON
 include/       public core headers
 src/           core implementations
 tests/         Catch2 tests for core systems and testable application code
+tools/         repository quality and maintenance scripts
 docs/          reading route, architecture, content format, and future work
 external/      fixed third-party source releases
 .github/       continuous-integration workflow

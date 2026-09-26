@@ -273,9 +273,15 @@ cmake --build --preset mac-debug --target tidy
 ```
 
 Pull-request CI checks each changed C++ file and every first-party file which
-transitively includes a changed header. Changes to the analysis rules, CI workflow,
-build configuration, or target-selection script check the complete tree. Local
-`tidy` builds also continue to check the complete tree.
+transitively includes a changed header. Target source membership lives in the
+source-only manifests under `cmake/sources/`; adding a source there alongside its new
+`.cpp` file does not widen analysis beyond the changed code. CMake configuration fails
+with a focused error if an `app/`, `src/`, or enabled `tests/` source is missing from a
+target. A manifest-only edit remains a conservative full-tree fallback.
+
+Changes to the analysis rules, CI workflow, global build configuration, or
+target-selection script check the complete tree. Local `tidy` builds also continue to
+check the complete tree.
 
 For matching local quality tools, set `CLANG_FORMAT_EXECUTABLE` and
 `CLANG_TIDY_EXECUTABLE` to LLVM 18 executables in a personal `CMakeUserPresets.json`
@@ -298,6 +304,7 @@ app/           application shell, graphics, UI, and debug tools
   game/        game flow, level transitions, and level composition
   content/     JSON loaders, catalogues, and content validators
 assets/        runtime sprite atlas, content catalogues, and editable level JSON
+cmake/         dependencies, quality rules, and explicit target source manifests
 include/       public core headers
 src/           core implementations
 tests/         Catch2 tests for core systems and testable application code

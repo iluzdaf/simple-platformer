@@ -1,0 +1,47 @@
+# Keep this file source-only so clang-tidy can scope manifest changes safely.
+target_sources(
+    simple_platformer
+    PRIVATE
+    ${PROJECT_SOURCE_DIR}/app/application.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/debug_draw.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/debug_overlay.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/debug_overlay_ui.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/debug_tools.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/navigation_debug.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/navigation_debug_ui.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/frame_axes.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/frame_profile_ui.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/frame_selection.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/machine_graph_ui.cpp
+    ${PROJECT_SOURCE_DIR}/app/debug/npc_names.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/actor_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/actor_definition.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/animation_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/content_diagnostics.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/content_json.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/content_validation.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/exit_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/game_catalogs.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/item_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/level_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/level_data.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/machine_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/npc_script_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/pickup_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/tile_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/app/game/game.cpp
+    ${PROJECT_SOURCE_DIR}/app/game/level_composition.cpp
+    ${PROJECT_SOURCE_DIR}/app/graphics/display_viewport.cpp
+    ${PROJECT_SOURCE_DIR}/app/graphics/game_window.cpp
+    ${PROJECT_SOURCE_DIR}/app/graphics/imgui_session.cpp
+    ${PROJECT_SOURCE_DIR}/app/graphics/sprite_renderer.cpp
+    ${PROJECT_SOURCE_DIR}/app/main.cpp
+    ${PROJECT_SOURCE_DIR}/app/ui/completion_ui.cpp
+    ${PROJECT_SOURCE_DIR}/app/ui/exit_hint_ui.cpp
+    ${PROJECT_SOURCE_DIR}/app/ui/health_hud_ui.cpp
+    ${PROJECT_SOURCE_DIR}/app/ui/hud_draw.cpp
+    ${PROJECT_SOURCE_DIR}/app/ui/interface_ui.cpp
+    ${PROJECT_SOURCE_DIR}/app/ui/inventory_layout.cpp
+    ${PROJECT_SOURCE_DIR}/app/ui/inventory_ui.cpp
+    ${PROJECT_SOURCE_DIR}/app/ui/pause_ui.cpp
+)

@@ -5,7 +5,8 @@ that includes it, directly or through other headers. This walks the project incl
 graph backwards and prints that complete set.
 
 With no --since, every first-party C++ source and header is printed. Changes to the
-analysis rules or build configuration also select the whole tree.
+analysis rules or global build configuration also select the whole tree. Source-only
+manifest changes rely on the changed C++ paths, unless no C++ path changed with them.
 """
 
 import argparse
@@ -15,12 +16,18 @@ import sys
 from pathlib import Path
 
 ROOTS = ("app", "src", "include", "tests")
-RULES = (
+FULL_TREE_RULES = (
     ".clang-tidy",
     ".github/workflows/ci.yml",
     "CMakeLists.txt",
+    "CMakePresets.json",
+    "cmake/Dependencies.cmake",
+    "cmake/ProjectOptions.cmake",
+    "cmake/Quality.cmake",
+    "cmake/SourceRegistration.cmake",
     "tools/tidy_targets.py",
 )
+SOURCE_MANIFEST_DIRECTORY = Path("cmake/sources")
 INCLUDE = re.compile(r'^\s*#\s*include\s*"([^"]+)"', re.MULTILINE)
 
 
@@ -78,18 +85,15 @@ def merge_base(reference):
 
 
 def changed_since(reference):
+    watched = list(ROOTS) + list(FULL_TREE_RULES) + [str(SOURCE_MANIFEST_DIRECTORY)]
     result = subprocess.run(
-        ["git", "diff", "--name-only", "--no-renames", reference, "--"]
-        + list(ROOTS)
-        + list(RULES),
+        ["git", "diff", "--name-only", "--no-renames", reference, "--"] + watched,
         capture_output=True,
         text=True,
         check=True,
     )
     untracked = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard", "--"]
-        + list(ROOTS)
-        + list(RULES),
+        ["git", "ls-files", "--others", "--exclude-standard", "--"] + watched,
         capture_output=True,
         text=True,
         check=True,
@@ -98,6 +102,31 @@ def changed_since(reference):
         Path(name)
         for name in result.stdout.splitlines() + untracked.stdout.splitlines()
     ]
+
+
+def selected_paths(paths, changed):
+    """Select changed C++ paths, preserving conservative configuration fallbacks."""
+    if any(str(path) in FULL_TREE_RULES for path in changed):
+        return paths
+
+    available = set(paths)
+    changed_cpp = [path for path in changed if path.suffix in (".cpp", ".hpp")]
+    # The current include graph cannot prove the reach of a removed or renamed path.
+    if any(path not in available for path in changed_cpp):
+        return paths
+
+    manifests_changed = any(
+        path.parent == SOURCE_MANIFEST_DIRECTORY and path.suffix == ".cmake"
+        for path in changed
+    )
+    if manifests_changed and not changed_cpp:
+        return paths
+
+    changed_sources = [path for path in changed_cpp if path in available]
+    if not changed_sources:
+        return []
+
+    return sorted(reaching(changed_sources, included_by(paths)))
 
 
 def main():
@@ -113,23 +142,9 @@ def main():
         return 0
 
     changed = changed_since(merge_base(arguments.since))
-    if any(str(path) in RULES for path in changed):
-        print("\n".join(str(path) for path in paths))
-        return 0
-
-    available = set(paths)
-    changed_cpp = [path for path in changed if path.suffix in (".cpp", ".hpp")]
-    # The current include graph cannot prove the reach of a removed or renamed path.
-    if any(path not in available for path in changed_cpp):
-        print("\n".join(str(path) for path in paths))
-        return 0
-
-    changed_sources = [path for path in changed_cpp if path in available]
-    if not changed_sources:
-        return 0
-
-    affected = reaching(changed_sources, included_by(paths))
-    print("\n".join(sorted(str(path) for path in affected)))
+    selected = selected_paths(paths, changed)
+    if selected:
+        print("\n".join(str(path) for path in selected))
     return 0
 
 

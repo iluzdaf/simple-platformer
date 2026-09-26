@@ -137,7 +137,7 @@ jobs:
           -DCMAKE_C_COMPILER_LAUNCHER="$SCCACHE_PATH"
           -DCMAKE_CXX_COMPILER_LAUNCHER="$SCCACHE_PATH"
       - name: Build
-        run: cmake --build --preset mac-debug
+        run: cmake --build --preset mac-debug --parallel 3
       - name: Show compiler cache statistics
         run: '"$SCCACHE_PATH" --show-stats'
       - name: Test

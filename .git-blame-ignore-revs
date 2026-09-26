@@ -15,3 +15,6 @@
 
 # Nest file-local helpers inside simple_platformer (#43)
 6d3a42e6d0f623f2ecaa58625e5f7b7a0ce45318
+
+# Format Markdown with Prettier (#145)
+cd42883e87bca79093dab75aecae41e1bc23dee0

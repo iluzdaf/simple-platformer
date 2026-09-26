@@ -174,19 +174,21 @@ built as generated. None of this affects local builds.
 
 ## Formatting
 
-`.clang-format` defines the C and C++ style and `.prettierrc` the JSON style. Ruff
-formats and checks first-party Python. `.editorconfig` supplies shared whitespace rules.
+`.clang-format` defines the C and C++ style; `.prettierrc` covers JSON, YAML, and
+Markdown. Ruff formats and checks first-party Python. `.editorconfig` supplies shared
+whitespace rules.
 
 |           | Config          | Tool            | VS Code                                 | Visual Studio                            |
 | --------- | --------------- | --------------- | --------------------------------------- | ---------------------------------------- |
 | C and C++ | `.clang-format` | clang-format 18 | on save, through clangd                 | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
 | JSON      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
 | YAML      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
+| Markdown  | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
 | Python    | Ruff defaults   | Ruff 0.16.8     | on save, through the Ruff extension     | not supported, use the command line      |
 
 Both editors read `.clang-format` and `.editorconfig` without an extension. Visual
-Studio does not read `.prettierrc`, so JSON there is formatted from the command line
-or caught by CI.
+Studio does not read `.prettierrc`, so JSON, YAML, and Markdown there are formatted
+from the command line or caught by CI.
 
 Format first-party C++, or check it without changing files:
 
@@ -209,6 +211,13 @@ cmake --build --preset mac-debug --target format-yaml
 cmake --build --preset mac-debug --target format-yaml-check
 ```
 
+Format first-party Markdown, or check it without changing files:
+
+```sh
+cmake --build --preset mac-debug --target format-markdown
+cmake --build --preset mac-debug --target format-markdown-check
+```
+
 Format first-party Python, or check its formatting and lint findings:
 
 ```sh
@@ -217,10 +226,11 @@ cmake --build --preset mac-debug --target format-python-check lint-python
 ```
 
 The C++ targets skip `external/`; the JSON targets cover `assets/` and
-`tests/fixtures/`; the YAML targets cover `.github/`; the Python targets cover
-`tools/`. CMake looks for all three tools while configuring and reports any it cannot
-find, leaving those targets unavailable. Use `-DCLANG_FORMAT_EXECUTABLE=`,
-`-DPRETTIER_EXECUTABLE=`, or `-DRUFF_EXECUTABLE=` to choose a specific one.
+`tests/fixtures/`; the YAML targets cover `.github/`; the Markdown targets cover the
+root documentation and `docs/`; the Python targets cover `tools/`. CMake looks for all
+three tools while configuring and reports any it cannot find, leaving those targets
+unavailable. Use `-DCLANG_FORMAT_EXECUTABLE=`, `-DPRETTIER_EXECUTABLE=`, or
+`-DRUFF_EXECUTABLE=` to choose a specific one.
 
 CI runs clang-format 18, Prettier 3.9.8, and Ruff 0.16.8, and a pull request cannot
 merge until their checks pass. Local versions do not have to match. If yours formats

@@ -51,6 +51,8 @@ jobs:
         run: cmake --build build/quality --target format-json-check
       - name: Check YAML formatting
         run: cmake --build build/quality --target format-yaml-check
+      - name: Check Markdown formatting
+        run: cmake --build build/quality --target format-markdown-check
       - name: Check Python formatting and lint
         run: cmake --build build/quality --target format-python-check lint-python
 

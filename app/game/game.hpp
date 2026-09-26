@@ -9,6 +9,7 @@
 #include "game/level_composition.hpp"
 #include "content/level_catalog.hpp"
 #include "content/game_catalogs.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
 

@@ -19,6 +19,7 @@
 #include "graphics/imgui_session.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "ui/interface_ui.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"

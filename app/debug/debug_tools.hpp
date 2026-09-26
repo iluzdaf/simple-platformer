@@ -5,6 +5,7 @@
 #include "debug/frame_axes.hpp"
 #include "debug/frame_selection.hpp"
 #include "debug/machine_graph_ui.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 
 namespace simple_platformer

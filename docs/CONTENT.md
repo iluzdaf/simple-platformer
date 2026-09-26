@@ -28,9 +28,9 @@ IDs to files:
 {
   "startLevel": 1,
   "levels": [
-    {"number": 1, "file": "level_1.json"},
-    {"number": 2, "file": "level_2.json"},
-    {"number": 3, "file": "level_3.json"}
+    { "number": 1, "file": "level_1.json" },
+    { "number": 2, "file": "level_2.json" },
+    { "number": 3, "file": "level_3.json" }
   ]
 }
 ```
@@ -48,17 +48,17 @@ updating the catalogue without changing C++.
 
 Shared catalogues sit beside `levels.json` in `assets`:
 
-| File | What to change here | Loader or composition code |
-| --- | --- | --- |
-| [`levels.json`](../assets/levels.json) | Starting level and level ID-to-file mapping | [`level_catalog.cpp`](../app/content/level_catalog.cpp) |
-| A level file, such as [`level_1.json`](../assets/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings | [`level_data.cpp`](../app/content/level_data.cpp) |
-| [`tiles.json`](../assets/tiles.json) | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp) |
-| [`actors.json`](../assets/actors.json) | Player definition, actor capabilities, and tuning | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp) |
-| [`animations.json`](../assets/animations.json) | Named animation sets, frame rectangles, timing, and looping | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp) |
-| [`machines.json`](../assets/machines.json) | Named data-driven NPC state machines | [`machine_catalog.cpp`](../app/content/machine_catalog.cpp) |
-| [`items.json`](../assets/items.json) | Inventory names, icons, stacking, and effect settings | [`item_catalog.cpp`](../app/content/item_catalog.cpp) |
-| [`pickups.json`](../assets/pickups.json) | World pickup quantities, bounds, and optional sprites | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp) |
-| [`exits.json`](../assets/exits.json) | Exit bounds and sprites | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp) |
+| File                                                           | What to change here                                                  | Loader or composition code                                                                                             |
+| -------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [`levels.json`](../assets/levels.json)                         | Starting level and level ID-to-file mapping                          | [`level_catalog.cpp`](../app/content/level_catalog.cpp)                                                                |
+| A level file, such as [`level_1.json`](../assets/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings       | [`level_data.cpp`](../app/content/level_data.cpp)                                                                      |
+| [`tiles.json`](../assets/tiles.json)                           | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp)                                                                  |
+| [`actors.json`](../assets/actors.json)                         | Player definition, actor capabilities, and tuning                    | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp) |
+| [`animations.json`](../assets/animations.json)                 | Named animation sets, frame rectangles, timing, and looping          | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp)                                                        |
+| [`machines.json`](../assets/machines.json)                     | Named data-driven NPC state machines                                 | [`machine_catalog.cpp`](../app/content/machine_catalog.cpp)                                                            |
+| [`items.json`](../assets/items.json)                           | Inventory names, icons, stacking, and effect settings                | [`item_catalog.cpp`](../app/content/item_catalog.cpp)                                                                  |
+| [`pickups.json`](../assets/pickups.json)                       | World pickup quantities, bounds, and optional sprites                | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp)                                                              |
+| [`exits.json`](../assets/exits.json)                           | Exit bounds and sprites                                              | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp)                                                                  |
 
 [`level_composition.cpp`](../app/game/level_composition.cpp) combines definitions and placements
 into runtime objects. Catalogues and JSON conventions belong to the application;
@@ -82,11 +82,7 @@ A minimal level looks like this:
 ```json
 {
   "tileLegend": { ".": "empty", "#": "stone" },
-  "map": [
-    "........",
-    "........",
-    "########"
-  ],
+  "map": ["........", "........", "########"],
   "playerSpawnCell": [1, 1],
   "actors": [],
   "pickups": [],
@@ -222,13 +218,22 @@ Shared definitions live in `actors.json` beside the level catalogue:
   "player": "hero",
   "actors": {
     "hero": {
-      "bodySize": [12, 20], "team": "player", "health": 3,
-      "inventorySlots": 6, "animations": "player", "platformer": {}
+      "bodySize": [12, 20],
+      "team": "player",
+      "health": 3,
+      "inventorySlots": 6,
+      "animations": "player",
+      "platformer": {}
     },
     "scout": {
-      "bodySize": [12, 8], "team": "enemy", "health": 1,
-      "animations": "bat", "spriteAnchor": "center",
-      "flying": { "speed": 40 }, "senses": { "noticeDistance": 60 }, "bite": {}
+      "bodySize": [12, 8],
+      "team": "enemy",
+      "health": 1,
+      "animations": "bat",
+      "spriteAnchor": "center",
+      "flying": { "speed": 40 },
+      "senses": { "noticeDistance": 60 },
+      "bite": {}
     }
   }
 }
@@ -455,36 +460,36 @@ function takes, what it returns, and whether it touches the filesystem.
 functions every error message is built from. It has no JSON dependency, so the plain C++
 validators use it as well.
 
-| Name | Takes | Returns | Notes |
-| --- | --- | --- | --- |
-| `fieldPath` | a path and a key | `"parent.child"` | The diagnostic path, not a filesystem path. |
-| `indexPath` | a path and an index | `"parent[2]"` | Used for array elements. |
-| `failJson` | a source name, a path, and a message | nothing; it throws | Reports `source: path: message`, omitting either part when it is empty. |
+| Name        | Takes                                | Returns            | Notes                                                                   |
+| ----------- | ------------------------------------ | ------------------ | ----------------------------------------------------------------------- |
+| `fieldPath` | a path and a key                     | `"parent.child"`   | The diagnostic path, not a filesystem path.                             |
+| `indexPath` | a path and an index                  | `"parent[2]"`      | Used for array elements.                                                |
+| `failJson`  | a source name, a path, and a message | nothing; it throws | Reports `source: path: message`, omitting either part when it is empty. |
 
 [`content_json.cpp`](../app/content/content_json.cpp) supplies the JSON shape readers on top
 of those. A `json` function receives a value; a `read` function finds one by key.
 
-| Name | Takes | Returns | Notes |
-| --- | --- | --- | --- |
-| `jsonText`, `jsonVector`, `jsonSprite`, ... | a JSON value | the converted value | The caller already holds the value. |
-| `readText`, `readVector`, `readName`, ... | an object and a key | the converted value | A missing key is an error. |
-| `jsonName`, `readName` | a value or a key, and a description | the name | A name that identifies an entry; an empty one is an error. A converted word uses `jsonText`, and a field whose empty string means none uses `readOptionalText`. |
-| `readOptionalText`, `readOptionalVector`, ... | an object, a key, and a reference | nothing | A missing key keeps the caller's value; a present but invalid one is an error. |
-| `checkJsonFields`, `checkJsonObject`, `checkJsonPair` | a JSON value | nothing | Shape assertions. They extract no value. |
-| `requiredJsonMember` | an object and a key | the member | Throws when the key is absent. |
-| `optionalJsonMember` | an object and a key | the member, or `nullptr` when the key is absent | The lookup every `readOptional...` and `requiredJsonMember` is built on. Parsers use those; only a new `readOptional...` calls this directly. |
-| `parseContentRoot` | the file text | the JSON document | The single place a syntax error is reported with its line and column. |
+| Name                                                  | Takes                               | Returns                                         | Notes                                                                                                                                                           |
+| ----------------------------------------------------- | ----------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsonText`, `jsonVector`, `jsonSprite`, ...           | a JSON value                        | the converted value                             | The caller already holds the value.                                                                                                                             |
+| `readText`, `readVector`, `readName`, ...             | an object and a key                 | the converted value                             | A missing key is an error.                                                                                                                                      |
+| `jsonName`, `readName`                                | a value or a key, and a description | the name                                        | A name that identifies an entry; an empty one is an error. A converted word uses `jsonText`, and a field whose empty string means none uses `readOptionalText`. |
+| `readOptionalText`, `readOptionalVector`, ...         | an object, a key, and a reference   | nothing                                         | A missing key keeps the caller's value; a present but invalid one is an error.                                                                                  |
+| `checkJsonFields`, `checkJsonObject`, `checkJsonPair` | a JSON value                        | nothing                                         | Shape assertions. They extract no value.                                                                                                                        |
+| `requiredJsonMember`                                  | an object and a key                 | the member                                      | Throws when the key is absent.                                                                                                                                  |
+| `optionalJsonMember`                                  | an object and a key                 | the member, or `nullptr` when the key is absent | The lookup every `readOptional...` and `requiredJsonMember` is built on. Parsers use those; only a new `readOptional...` calls this directly.                   |
+| `parseContentRoot`                                    | the file text                       | the JSON document                               | The single place a syntax error is reported with its line and column.                                                                                           |
 
 The catalogues and [`level_data.cpp`](../app/content/level_data.cpp) build on those with a
 second set of verbs.
 
-| Verb | Example | Meaning |
-| --- | --- | --- |
-| `parse...` | `parseItemCatalog(text, sourceName)` | Text to typed data. Never opens a file. |
-| `load...` | `loadItemCatalog(path)` | Reads the file, then calls the matching `parse...`. Every name that touches the filesystem begins with `load`, including `loadContentText`, the primitive the others build on. |
-| `validate...` | `validateItemCatalog(catalog)` | Authoring rules applied to typed data. |
-| `compose...` | `composeActor(definition, ...)` | Authoring data plus runtime context, such as a texture ID and a spawn position, to a runtime value. The family has no fixed parameter list: `composeItemStack(catalog, stack)` resolves an authoring name to an `ItemId` and takes neither. It continues into `app/game`, where `composeGameLevel` and `composePlayer` assemble a whole level from the same catalogues. |
-| a noun | `itemDefinition(catalog, name)` | A lookup. Returns the entry, or throws when the name is unknown. `animationSet` and `levelPath` read the same way. |
+| Verb          | Example                              | Meaning                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parse...`    | `parseItemCatalog(text, sourceName)` | Text to typed data. Never opens a file.                                                                                                                                                                                                                                                                                                                                 |
+| `load...`     | `loadItemCatalog(path)`              | Reads the file, then calls the matching `parse...`. Every name that touches the filesystem begins with `load`, including `loadContentText`, the primitive the others build on.                                                                                                                                                                                          |
+| `validate...` | `validateItemCatalog(catalog)`       | Authoring rules applied to typed data.                                                                                                                                                                                                                                                                                                                                  |
+| `compose...`  | `composeActor(definition, ...)`      | Authoring data plus runtime context, such as a texture ID and a spawn position, to a runtime value. The family has no fixed parameter list: `composeItemStack(catalog, stack)` resolves an authoring name to an `ItemId` and takes neither. It continues into `app/game`, where `composeGameLevel` and `composePlayer` assemble a whole level from the same catalogues. |
+| a noun        | `itemDefinition(catalog, name)`      | A lookup. Returns the entry, or throws when the name is unknown. `animationSet` and `levelPath` read the same way.                                                                                                                                                                                                                                                      |
 
 `parse...` never opens a file, so every loader can be tested with a string literal instead of
 a fixture. `validate...` is separate from `parse...`, so the same rules apply whether content
@@ -495,6 +500,6 @@ The file-local helpers use the same vocabulary. `jsonActorPlacement` and `jsonEx
 in `level_data.cpp` convert a value, `readFeetPosition` finds one of two spellings by key,
 and `checkLegendSymbols` asserts and returns nothing. `level_data.cpp` adds one more verb:
 
-| Verb | Example | Meaning |
-| --- | --- | --- |
+| Verb        | Example                         | Meaning                                                                                                                                                             |
+| ----------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `expand...` | `expandObjectLegend(root, ...)` | A JSON document to a rewritten JSON document. It turns the map-symbol shorthand into explicit placements so both authoring forms reach the parse in the same shape. |

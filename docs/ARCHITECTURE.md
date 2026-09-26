@@ -8,25 +8,25 @@ reading this document from top to bottom.
 
 Use this as a reference when working on a particular feature:
 
-| Area | Section | What it covers |
-| --- | --- | --- |
-| Orientation | [Purpose and scope](#purpose-and-scope) | What the repository is and is not. |
-| | [Project shape](#project-shape) | Targets, folders, and the dependency boundary. |
-| | [Runtime flow](#runtime-flow) | The fixed step and the order systems run in. |
-| | [Coordinates](#coordinates) | Axes and feet positions. |
-| | [Time](#time) | The step, timers, stamps, and which to use. |
-| The data model | [World ownership and identity](#world-ownership-and-identity) | What the world owns. |
-| | [Actor composition](#actor-composition) | How capabilities fit together. |
-| Gameplay systems | [Input and movement](#input-and-movement) | Intentions, platformer and flying movement. |
-| | [Tile map, collision, and validation](#tile-map-collision-and-validation) | Terrain and sweeps. |
-| | [NPC behaviour](#npc-behaviour) | Sensing, memory, and the explicit state machine. |
-| | [Navigation](#navigation) | Path search, following, simulated jumps, and the connection cache. |
-| | [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle) | Attacks and death. |
-| | [Inventory, pickups, and levels](#inventory-pickups-and-levels) | The level loop and the [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the file-by-file authoring reference. |
-| Presentation and practice | [Presentation](#presentation) | Animation, rendering, camera, and UI. |
-| | [Extension recipes](#extension-recipes-for-project-work) | Where to make a gameplay change. |
-| | [Error handling and validation](#error-handling-and-validation) | Which layer rejects what. |
-| | [Testing and quality checks](#testing-and-quality-checks) | How to verify it. |
+| Area                      | Section                                                                   | What it covers                                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Orientation               | [Purpose and scope](#purpose-and-scope)                                   | What the repository is and is not.                                                                                                            |
+|                           | [Project shape](#project-shape)                                           | Targets, folders, and the dependency boundary.                                                                                                |
+|                           | [Runtime flow](#runtime-flow)                                             | The fixed step and the order systems run in.                                                                                                  |
+|                           | [Coordinates](#coordinates)                                               | Axes and feet positions.                                                                                                                      |
+|                           | [Time](#time)                                                             | The step, timers, stamps, and which to use.                                                                                                   |
+| The data model            | [World ownership and identity](#world-ownership-and-identity)             | What the world owns.                                                                                                                          |
+|                           | [Actor composition](#actor-composition)                                   | How capabilities fit together.                                                                                                                |
+| Gameplay systems          | [Input and movement](#input-and-movement)                                 | Intentions, platformer and flying movement.                                                                                                   |
+|                           | [Tile map, collision, and validation](#tile-map-collision-and-validation) | Terrain and sweeps.                                                                                                                           |
+|                           | [NPC behaviour](#npc-behaviour)                                           | Sensing, memory, and the explicit state machine.                                                                                              |
+|                           | [Navigation](#navigation)                                                 | Path search, following, simulated jumps, and the connection cache.                                                                            |
+|                           | [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle) | Attacks and death.                                                                                                                            |
+|                           | [Inventory, pickups, and levels](#inventory-pickups-and-levels)           | The level loop and the [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the file-by-file authoring reference. |
+| Presentation and practice | [Presentation](#presentation)                                             | Animation, rendering, camera, and UI.                                                                                                         |
+|                           | [Extension recipes](#extension-recipes-for-project-work)                  | Where to make a gameplay change.                                                                                                              |
+|                           | [Error handling and validation](#error-handling-and-validation)           | Which layer rejects what.                                                                                                                     |
+|                           | [Testing and quality checks](#testing-and-quality-checks)                 | How to verify it.                                                                                                                             |
 
 ## Purpose and scope
 
@@ -284,12 +284,12 @@ struct Actor
 When creating a new actor, start with `Body` and add only the data required by its
 capabilities:
 
-| Role | Movement | Control | Combat and life | Presentation |
-| --- | --- | --- | --- | --- |
-| Player | `PlatformerMovement` | application writes `InputIntentions` | `Health`, `Inventory`, `Team::Player`, `RangedWeapon` | `Sprite`, `Animator` |
-| Zombie | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
-| Bat | `FlyingMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `BiteAttack` | `Sprite`, `Animator` |
-| Zombie soldier | `PlatformerMovement` | `NpcBrain`, `NpcMachine` (`keep_distance`), `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon` | `Sprite`, `Animator` |
+| Role           | Movement             | Control                                                                           | Combat and life                                       | Presentation         |
+| -------------- | -------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------- |
+| Player         | `PlatformerMovement` | application writes `InputIntentions`                                              | `Health`, `Inventory`, `Team::Player`, `RangedWeapon` | `Sprite`, `Animator` |
+| Zombie         | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower`                                 | `Health`, `Team::Enemy`, `BiteAttack`                 | `Sprite`, `Animator` |
+| Bat            | `FlyingMovement`     | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower`                                 | `Health`, `Team::Enemy`, `BiteAttack`                 | `Sprite`, `Animator` |
+| Zombie soldier | `PlatformerMovement` | `NpcBrain`, `NpcMachine` (`keep_distance`), `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon`               | `Sprite`, `Animator` |
 
 The recipe is additive. For example, making a second zombie does not require another
 type: reference the same definition with different spawn and patrol data. A bat can use a
@@ -373,12 +373,12 @@ jumping, or acceleration state.
 Each nonzero tile definition supplies a sprite region, `blocksMovement`, and
 `blocksSight`. The same map layer supports rendering, collision, and sensing.
 
-| Tile | Movement and projectiles | Sight | Hides what stands in it |
-| --- | --- | --- | --- |
-| Empty | pass | passes | no |
-| Stone | blocked | blocked | nothing can stand in it |
-| Glass | blocked | passes | nothing can stand in it |
-| Grass | pass | blocked | yes |
+| Tile  | Movement and projectiles | Sight   | Hides what stands in it |
+| ----- | ------------------------ | ------- | ----------------------- |
+| Empty | pass                     | passes  | no                      |
+| Stone | blocked                  | blocked | nothing can stand in it |
+| Glass | blocked                  | passes  | nothing can stand in it |
+| Grass | pass                     | blocked | yes                     |
 
 Only a sight-blocking tile that can be walked into hides anything, since nothing can
 stand in a tile that blocks movement. Anyone inside grass can see out and across it.
@@ -945,18 +945,18 @@ once for every tactic to use.
 
 ### Choosing the layer
 
-| Change | Primary location |
-| --- | --- |
-| Input binding or mouse conversion | `app/application.cpp` |
-| Movement or collision rule | `src/movement` or `src/physics` |
-| NPC perception or decision | `src/npc` |
-| Generic search or movement-specific neighbours | `src/navigation` |
-| Damage, attacks, or projectiles | `src/combat` |
-| Animation definitions | `assets/animations.json` |
-| Content loading and validation | `app/content` |
-| Playable level composition and session flow | `app/game` |
-| Actor, tile, item, pickup, and exit definitions; level geometry and placements | `assets` |
-| HUD or debugging presentation | `app/ui` or `app/debug` |
+| Change                                                                         | Primary location                |
+| ------------------------------------------------------------------------------ | ------------------------------- |
+| Input binding or mouse conversion                                              | `app/application.cpp`           |
+| Movement or collision rule                                                     | `src/movement` or `src/physics` |
+| NPC perception or decision                                                     | `src/npc`                       |
+| Generic search or movement-specific neighbours                                 | `src/navigation`                |
+| Damage, attacks, or projectiles                                                | `src/combat`                    |
+| Animation definitions                                                          | `assets/animations.json`        |
+| Content loading and validation                                                 | `app/content`                   |
+| Playable level composition and session flow                                    | `app/game`                      |
+| Actor, tile, item, pickup, and exit definitions; level geometry and placements | `assets`                        |
+| HUD or debugging presentation                                                  | `app/ui` or `app/debug`         |
 
 When a feature crosses layers, keep its rule in the simulation and pass plain state to
 presentation. Add the smallest test at the layer that owns the rule before adding an
@@ -1025,14 +1025,14 @@ without discovering a large shared fixture full of unrelated defaults.
 
 For a new rule, start beside the code you changed:
 
-| Change | Test starting point |
-| --- | --- |
+| Change                                   | Test starting point                                                                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------------ |
 | Content parsing or definition validation | `tests/app/test_*_catalog.cpp`, `test_level_data.cpp`, `test_content_validation.cpp` |
-| Composing catalogue entries into levels | `tests/app/test_level_composition.cpp` |
-| Carrying player state between levels | `tests/app/test_level_transition.cpp` |
-| Core pickup collection or exit rules | `tests/world/test_level_objects.cpp` |
-| Behaviour involving multiple systems | `tests/world/test_world_simulation.cpp` |
-| Visual state converted to draw commands | `tests/render/test_render_scene.cpp` |
+| Composing catalogue entries into levels  | `tests/app/test_level_composition.cpp`                                               |
+| Carrying player state between levels     | `tests/app/test_level_transition.cpp`                                                |
+| Core pickup collection or exit rules     | `tests/world/test_level_objects.cpp`                                                 |
+| Behaviour involving multiple systems     | `tests/world/test_world_simulation.cpp`                                              |
+| Visual state converted to draw commands  | `tests/render/test_render_scene.cpp`                                                 |
 
 Use small independent data in tests rather than asserting the example campaign's
 enemy count, item values, or inventory capacity. Its own checks should test validity,

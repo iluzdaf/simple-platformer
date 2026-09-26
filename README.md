@@ -8,12 +8,12 @@ and ImGui debugging tools.
 
 ## Documentation
 
-| Document | What it covers |
-| --- | --- |
-| [START_HERE.md](docs/START_HERE.md) | A recommended route through the code, and which details can wait until later. |
+| Document                                | What it covers                                                                    |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| [START_HERE.md](docs/START_HERE.md)     | A recommended route through the code, and which details can wait until later.     |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design, ownership rules, runtime flow, and the reasons behind the main decisions. |
-| [CONTENT.md](docs/CONTENT.md) | The authoring reference for the JSON level and definition files under `assets`. |
-| [FUTURE_WORK.md](docs/FUTURE_WORK.md) | Designs the repository deliberately does not implement. |
+| [CONTENT.md](docs/CONTENT.md)           | The authoring reference for the JSON level and definition files under `assets`.   |
+| [FUTURE_WORK.md](docs/FUTURE_WORK.md)   | Designs the repository deliberately does not implement.                           |
 
 New to the project? Start with START_HERE.md.
 
@@ -108,20 +108,20 @@ configured. Omit `-R "Pickup"` to run the complete suite.
 
 ## Playing the example game
 
-| Action | Controls |
-| --- | --- |
-| Move | A and D, or the left and right arrow keys |
-| Jump | W, Up, or Space |
-| Aim | Mouse |
-| Fire | Left mouse button |
-| Collect an item | Walk over it |
-| Open or close the inventory (pauses the game) | Q, or click the bag at the bottom-left |
-| Drink a health potion | Click it in the open inventory |
-| Restart from the starting level | R, at the completion message |
-| Pause or resume the simulation | P |
-| Run one simulation step while paused | . (full stop) |
-| Toggle the debug overlay | F1 |
-| Close the window | Escape |
+| Action                                        | Controls                                  |
+| --------------------------------------------- | ----------------------------------------- |
+| Move                                          | A and D, or the left and right arrow keys |
+| Jump                                          | W, Up, or Space                           |
+| Aim                                           | Mouse                                     |
+| Fire                                          | Left mouse button                         |
+| Collect an item                               | Walk over it                              |
+| Open or close the inventory (pauses the game) | Q, or click the bag at the bottom-left    |
+| Drink a health potion                         | Click it in the open inventory            |
+| Restart from the starting level               | R, at the completion message              |
+| Pause or resume the simulation                | P                                         |
+| Run one simulation step while paused          | . (full stop)                             |
+| Toggle the debug overlay                      | F1                                        |
+| Close the window                              | Escape                                    |
 
 The hearts at the top-left show the player's current and maximum health.
 
@@ -134,22 +134,22 @@ F1 opens the debug tools with only the frame plot visible. It shows the last two
 against the 60 Hz budget, with simulation costs stacked by category. Number keys add
 independent plot details, world and camera drawing, text, and state-machine layers.
 
-| Action | Controls |
-| --- | --- |
-| Show or hide the frame details and legend | 1 |
-| Show or hide the world-space and camera overlay | 2 |
-| Show or hide actor text | 3 |
-| Show or hide navigation-cache totals | 4 |
-| Show or hide the state-machine window | 5 |
-| Lock or unlock the machine window to an NPC | Click the NPC |
-| Inspect a frame or scrub along the frames | Press or drag on the plot |
-| Return to the live plot | Click the picked frame again |
-| Show or hide a plotted series | Click it in the plot's legend |
-| Show the next NPC's navigation cache | N |
-| Break a labelled tile under the cursor | B |
-| Move a state in the machine window | Drag it |
-| Pan or zoom the machine window | Drag with the right button, or scroll |
-| Fit the machine window to its graph | F, with the cursor over it |
+| Action                                          | Controls                              |
+| ----------------------------------------------- | ------------------------------------- |
+| Show or hide the frame details and legend       | 1                                     |
+| Show or hide the world-space and camera overlay | 2                                     |
+| Show or hide actor text                         | 3                                     |
+| Show or hide navigation-cache totals            | 4                                     |
+| Show or hide the state-machine window           | 5                                     |
+| Lock or unlock the machine window to an NPC     | Click the NPC                         |
+| Inspect a frame or scrub along the frames       | Press or drag on the plot             |
+| Return to the live plot                         | Click the picked frame again          |
+| Show or hide a plotted series                   | Click it in the plot's legend         |
+| Show the next NPC's navigation cache            | N                                     |
+| Break a labelled tile under the cursor          | B                                     |
+| Move a state in the machine window              | Drag it                               |
+| Pan or zoom the machine window                  | Drag with the right button, or scroll |
+| Fit the machine window to its graph             | F, with the cursor over it            |
 
 Timings are only meaningful from a release build.
 
@@ -157,11 +157,11 @@ Timings are only meaningful from a release build.
 
 GitHub Actions runs three jobs. The names below are the ones shown on a pull request.
 
-| Job | Runner | What it does | Runs on |
-| --- | --- | --- | --- |
-| macOS / Apple Clang | `macos-latest` | Configures, builds, and runs the whole test suite. | pushes to `main` and pull requests |
-| Windows / Visual Studio 2022 | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds the `.sln` with MSBuild, then builds its `run_tests` project. | pushes to `main` and pull requests |
-| Formatting and static analysis | `ubuntu-24.04` | Checks C++ and JSON formatting, runs clang-tidy, and verifies that every public header compiles on its own. | pull requests only |
+| Job                            | Runner         | What it does                                                                                                             | Runs on                            |
+| ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| macOS / Apple Clang            | `macos-latest` | Configures, builds, and runs the whole test suite.                                                                       | pushes to `main` and pull requests |
+| Windows / Visual Studio 2022   | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds the `.sln` with MSBuild, then builds its `run_tests` project. | pushes to `main` and pull requests |
+| Formatting and static analysis | `ubuntu-24.04` | Checks C++ and JSON formatting, runs clang-tidy, and verifies that every public header compiles on its own.              | pull requests only                 |
 
 The quality job is skipped on pushes because branch protection already ran it on the
 pull request. Its checks add no tools to the macOS or Visual Studio build, and Linux is
@@ -177,12 +177,12 @@ built as generated. None of this affects local builds.
 `.clang-format` defines the C and C++ style and `.prettierrc` the JSON style. Ruff
 formats and checks first-party Python. `.editorconfig` supplies shared whitespace rules.
 
-| | Config | Tool | VS Code | Visual Studio |
-| --- | --- | --- | --- | --- |
-| C and C++ | `.clang-format` | clang-format 18 | on save, through clangd | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
-| JSON | `.prettierrc` | Prettier 3.9.8 | on save, through the Prettier extension | not supported, use the command line |
-| YAML | `.prettierrc` | Prettier 3.9.8 | on save, through the Prettier extension | not supported, use the command line |
-| Python | Ruff defaults | Ruff 0.16.8 | on save, through the Ruff extension | not supported, use the command line |
+|           | Config          | Tool            | VS Code                                 | Visual Studio                            |
+| --------- | --------------- | --------------- | --------------------------------------- | ---------------------------------------- |
+| C and C++ | `.clang-format` | clang-format 18 | on save, through clangd                 | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
+| JSON      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
+| YAML      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
+| Python    | Ruff defaults   | Ruff 0.16.8     | on save, through the Ruff extension     | not supported, use the command line      |
 
 Both editors read `.clang-format` and `.editorconfig` without an extension. Visual
 Studio does not read `.prettierrc`, so JSON there is formatted from the command line

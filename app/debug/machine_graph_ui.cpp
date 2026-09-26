@@ -1,6 +1,7 @@
 #include "machine_graph_ui.hpp"
 
 #include "debug_overlay.hpp"
+#include "debug_ui_layout.hpp"
 #include "npc_names.hpp"
 
 #include <algorithm>
@@ -25,13 +26,9 @@ namespace simple_platformer
 {
     namespace
     {
-        constexpr float WindowWidth = 440.0F;
-        constexpr float WindowHeight = 300.0F;
-        constexpr float WindowMargin = 8.0F;
-        // The overlay's text column, at the right edge, which the window sits beside.
-        constexpr float ActorTextWidth = 188.0F;
         constexpr float RingRadiusPerState = 40.0F;
         constexpr float RingRadiusLeast = 120.0F;
+        constexpr float WindowHeightFraction = 1.0F / 3.0F;
         constexpr float LinkThickness = 1.5F;
         constexpr float FiredLinkThickness = 3.0F;
         constexpr float ActiveBorderWidth = 3.0F;
@@ -65,8 +62,6 @@ namespace simple_platformer
             return ed::LinkId(LinkIds + transition);
         }
 
-        // The conditions as the data reads them: the facts that must hold, a ! before
-        // one that must not, and the hold when there is one.
         std::string conditionText(const NpcMachineTransition& transition)
         {
             std::string text;
@@ -95,7 +90,6 @@ namespace simple_platformer
             return text;
         }
 
-        // The states around a ring in the order the data lists them, the first at the top.
         void layOutInRing(const NpcStateMachine& machine)
         {
             const auto count = static_cast<float>(machine.states.size());
@@ -123,7 +117,6 @@ namespace simple_platformer
             ed::EndPin();
             ImGui::SameLine();
             ImGui::TextUnformatted(state.name.c_str());
-            // The activity is only worth a mention when the state is not named after it.
             const std::string activity = nameOf(state.does);
             if (state.name != activity)
             {
@@ -194,16 +187,21 @@ namespace simple_platformer
         MachineGraphEditors& editors,
         const std::optional<MachineDebugInfo>& machine)
     {
-        // Anchored at the top, left of the actor text, without a frame or background,
-        // so it sits over the scene like the overlay's other panels. The wheel zooms
-        // the graph rather than scrolling the window.
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(
-            {viewport->WorkPos.x + viewport->WorkSize.x - ActorTextWidth - WindowWidth -
-                 WindowMargin,
-             viewport->WorkPos.y + WindowMargin},
-            ImGuiCond_Always);
-        ImGui::SetNextWindowSize({WindowWidth, WindowHeight}, ImGuiCond_Always);
+        const float textPanelWidth =
+            DebugTextContentWidth + 2.0F * ImGui::GetStyle().WindowPadding.x;
+        const ImVec2 topLeft = {
+            viewport->WorkPos.x + FrameProfilePanelWidth + DebugPanelGap,
+            viewport->WorkPos.y + DebugPanelGap};
+        const ImVec2 size = {
+            viewport->WorkSize.x - FrameProfilePanelWidth - textPanelWidth - 2.0F * DebugPanelGap,
+            (viewport->WorkSize.y - 2.0F * DebugPanelGap) * WindowHeightFraction};
+        if (size.x <= 0.0F || size.y <= 0.0F)
+        {
+            return;
+        }
+        ImGui::SetNextWindowPos(topLeft, ImGuiCond_Always);
+        ImGui::SetNextWindowSize(size, ImGuiCond_Always);
         constexpr ImGuiWindowFlags Flags =
             ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground |
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
@@ -222,8 +220,6 @@ namespace simple_platformer
 
         const MachineDebugInfo& shown = machine.value_or(MachineDebugInfo{});
         ImGui::Text("%s of NPC %u", shown.definition.name.c_str(), shown.actor.value);
-        ImGui::SameLine();
-        ImGui::TextDisabled("(under the cursor, else nearest the player)");
 
         MachineGraphEditor& editor = editors.editorFor(shown.definition.name);
         ed::SetCurrentEditor(editor.context);

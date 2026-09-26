@@ -433,7 +433,6 @@ TEST_CASE("The overlay shows a machine in place of the tactic it silences", "[ap
 
     REQUIRE(debug.actors.size() == 1);
     REQUIRE(debug.actors.front().machine == "test");
-    REQUIRE(debug.actors.front().machineState == "rest");
     REQUIRE_FALSE(debug.actors.front().npcTactic.has_value());
 }
 

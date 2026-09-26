@@ -1,5 +1,6 @@
 #include "frame_profile_ui.hpp"
 
+#include "debug_ui_layout.hpp"
 #include "frame_axes.hpp"
 #include "frame_selection.hpp"
 
@@ -22,7 +23,6 @@ namespace simple_platformer
     namespace
     {
         // Frame panel layout, in window pixels. Adjust these to resize the panel.
-        constexpr float PanelWidth = 420.0F;
         constexpr float PlotHeight = 160.0F;
         constexpr int LegendColumns = 3;
         // A legend swatch sits inside its text row by this fraction of the row height.
@@ -396,7 +396,7 @@ namespace simple_platformer
         // see this window, so clicks over it reach the game like clicks over the rest of
         // the overlay; the picker and optional lower panel are windows of their own.
         ImGui::SetNextWindowSizeConstraints(
-            {PanelWidth, 0.0F}, {PanelWidth, mainViewport->WorkSize.y});
+            {FrameProfilePanelWidth, 0.0F}, {FrameProfilePanelWidth, mainViewport->WorkSize.y});
         if (!ImGui::Begin(
                 "Frame##profile",
                 nullptr,

@@ -141,6 +141,7 @@ independent plot details, world and camera drawing, text, and state-machine laye
 | Show or hide actor text | 3 |
 | Show or hide navigation-cache totals | 4 |
 | Show or hide the state-machine window | 5 |
+| Lock or unlock the machine window to an NPC | Click the NPC |
 | Inspect a frame or scrub along the frames | Press or drag on the plot |
 | Return to the live plot | Click the picked frame again |
 | Show or hide a plotted series | Click it in the plot's legend |

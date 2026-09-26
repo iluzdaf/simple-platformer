@@ -18,6 +18,11 @@ namespace simple_platformer
         const std::optional<WindowViewport>& viewport,
         const DebugToolVisibility& visibility)
     {
+        if (tools.machineActor.has_value() &&
+            (!overlay.machine.has_value() || overlay.machine->actor != *tools.machineActor))
+        {
+            tools.machineActor.reset();
+        }
         if (visibility.worldAndCameraOverlay || visibility.actorText ||
             visibility.navigationCacheText)
         {
@@ -31,7 +36,7 @@ namespace simple_platformer
         }
         if (visibility.stateMachine)
         {
-            drawMachineGraph(tools.machineEditors, overlay.machine);
+            drawMachineGraph(tools.machineEditors, overlay.machine, tools.machineActor.has_value());
         }
         tools.frameHistory.push(profile);
         drawFrameProfile(

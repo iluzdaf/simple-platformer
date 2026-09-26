@@ -44,7 +44,9 @@ namespace simple_platformer
         DebugOverlay debugOverlay(
             float atlasWidth,
             std::optional<glm::vec2> internalCursor,
-            std::size_t navigationBodyIndex) const;
+            std::size_t navigationBodyIndex,
+            std::optional<ActorId> lockedMachineActor = std::nullopt) const;
+        std::optional<ActorId> machineActorAt(glm::vec2 internalPosition) const;
         Health playerHealth() const;
         // Use these references immediately. Changing or restarting the level replaces the World,
         // so do not store a returned reference for later.

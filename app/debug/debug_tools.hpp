@@ -24,13 +24,14 @@ namespace simple_platformer
     };
 
     // What the debug tools keep between frames: the frame history, the picked frame
-    // and the axes' tops of the frame panel, and the machine window's editors.
+    // and axes, and the machine window's editors and optional actor lock.
     struct DebugTools
     {
         FrameHistory frameHistory;
         FrameSelection frameSelection;
         FrameAxes frameAxes;
         MachineGraphEditors machineEditors;
+        std::optional<ActorId> machineActor;
     };
 
     // The debug tools over the scene while the overlay is open, in a fixed order: the

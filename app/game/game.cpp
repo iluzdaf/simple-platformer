@@ -149,7 +149,8 @@ namespace simple_platformer
     DebugOverlay Game::debugOverlay(
         float atlasWidth,
         std::optional<glm::vec2> internalCursor,
-        std::size_t navigationBodyIndex) const
+        std::size_t navigationBodyIndex,
+        std::optional<ActorId> lockedMachineActor) const
     {
         NavigationDebugView navigation;
         if (internalCursor.has_value())
@@ -176,7 +177,21 @@ namespace simple_platformer
             cameraControllerValue(),
             atlasWidth,
             simulationStepSeconds,
-            navigation);
+            navigation,
+            lockedMachineActor);
+    }
+
+    std::optional<ActorId> Game::machineActorAt(glm::vec2 internalPosition) const
+    {
+        const glm::vec2 worldPosition = screenToWorld(currentCamera(), internalPosition);
+        for (const Actor& actor : level.world.actors())
+        {
+            if (actor.machine.has_value() && contains(actor.body.bounds, worldPosition))
+            {
+                return actor.id;
+            }
+        }
+        return std::nullopt;
     }
 
     Health Game::playerHealth() const

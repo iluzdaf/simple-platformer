@@ -123,8 +123,7 @@ namespace simple_platformer
         std::optional<NavigationCacheDebugInfo> navigationCache;
         // The cell under the cursor when its tile can break, for the hint that B breaks it.
         std::optional<Aabb> breakableCellUnderCursor;
-        // The machine of the NPC under the cursor, or else of the NPC with a machine
-        // nearest the player; absent while no NPC on screen has one.
+        // The locked machine, otherwise the one under the cursor or nearest the player.
         std::optional<MachineDebugInfo> machine;
         Aabb cameraBounds;
         Aabb cameraDeadZone;
@@ -140,5 +139,6 @@ namespace simple_platformer
         const CameraController& cameraController,
         float atlasWidth,
         float simulationStepSeconds,
-        const NavigationDebugView& navigation = {});
+        const NavigationDebugView& navigation = {},
+        std::optional<ActorId> lockedMachineActor = std::nullopt);
 }

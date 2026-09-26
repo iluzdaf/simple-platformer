@@ -9,7 +9,9 @@ package manager or a network connection.
 | `external/glfw`     | GLFW 3.4                     | tag `3.4`, commit `7b6aead9fb88b3623e3b3725ebb42670cbe4c579`                                                 |
 | `external/glm`      | GLM 1.0.1                    | tag `1.0.1`, commit `0af55ccecd98d4e5a8d1fad7de25ba429d60e863`                                               |
 | `external/imgui`    | Dear ImGui 1.91.8            | tag `v1.91.8`, commit `dbb5eeaadffb6a3ba6a60de1290312e5802dba5a`                                             |
+| `external/lua`      | Lua 5.4.9                    | official `lua-5.4.9.tar.gz`, SHA-256 `2335b6c582a52654f94612bf10d2f4672805d05329aa6568b1d8cd9e5c6fb8e6`      |
 | `external/nlohmann` | JSON for Modern C++ 3.12.0   | tag `v3.12.0`, release `json.hpp` SHA-256 `aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63` |
+| `external/sol2`     | sol2 3.5.0                   | tag `v3.5.0`, commit `9190880c593dfb018ccf5cc9729ab87739709862`                                              |
 | `external/glad`     | GLAD 0.1.36 generated loader | OpenGL 4.6 core loader generated 2025-05-20                                                                  |
 | `external/stb`      | stb_image 2.30               | `stb_image.h` plus its implementation translation unit                                                       |
 
@@ -17,4 +19,5 @@ Each dependency retains its upstream licence or licensing notice in its source t
 The core uses GLM for vector mathematics, and the tests use Catch2.
 The application uses GLFW for its window and input, GLAD to load OpenGL functions,
 stb_image for texture loading, ImGui for UI, and JSON for Modern C++ to read level
-files and content catalogues. JSON parsing stays in `app/game`, outside the core.
+files and content catalogues. Lua and sol2 provide the protected NPC activity scripting
+boundary. JSON parsing stays in `app/game`, outside the core.

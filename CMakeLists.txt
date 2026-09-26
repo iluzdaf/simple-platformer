@@ -224,6 +224,7 @@ set_target_properties(
 
 find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
 find_program(PRETTIER_EXECUTABLE NAMES prettier)
+find_program(RUFF_EXECUTABLE NAMES ruff)
 find_program(
     CLANG_TIDY_EXECUTABLE
     NAMES clang-tidy
@@ -257,6 +258,19 @@ file(
     CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/*.json
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/*.json
+)
+
+file(
+    GLOB_RECURSE PROJECT_YAML_FILES
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/.github/*.yml
+    ${CMAKE_CURRENT_SOURCE_DIR}/.github/*.yaml
+)
+
+file(
+    GLOB_RECURSE PROJECT_PYTHON_FILES
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/*.py
 )
 
 if(CLANG_FORMAT_EXECUTABLE)
@@ -293,8 +307,47 @@ if(PRETTIER_EXECUTABLE)
         COMMENT "Checking first-party JSON formatting"
         VERBATIM
     )
+
+    add_custom_target(
+        format-yaml
+        COMMAND ${PRETTIER_EXECUTABLE} --write --log-level warn ${PROJECT_YAML_FILES}
+        COMMENT "Formatting first-party YAML"
+        VERBATIM
+    )
+
+    add_custom_target(
+        format-yaml-check
+        COMMAND ${PRETTIER_EXECUTABLE} --check --log-level warn ${PROJECT_YAML_FILES}
+        COMMENT "Checking first-party YAML formatting"
+        VERBATIM
+    )
 else()
-    message(STATUS "prettier not found; JSON format targets are unavailable")
+    message(STATUS "prettier not found; JSON and YAML format targets are unavailable")
+endif()
+
+if(RUFF_EXECUTABLE)
+    add_custom_target(
+        format-python
+        COMMAND ${RUFF_EXECUTABLE} format ${PROJECT_PYTHON_FILES}
+        COMMENT "Formatting first-party Python source"
+        VERBATIM
+    )
+
+    add_custom_target(
+        format-python-check
+        COMMAND ${RUFF_EXECUTABLE} format --check ${PROJECT_PYTHON_FILES}
+        COMMENT "Checking first-party Python formatting"
+        VERBATIM
+    )
+
+    add_custom_target(
+        lint-python
+        COMMAND ${RUFF_EXECUTABLE} check ${PROJECT_PYTHON_FILES}
+        COMMENT "Checking first-party Python source with Ruff"
+        VERBATIM
+    )
+else()
+    message(STATUS "ruff not found; Python quality targets are unavailable")
 endif()
 
 set(CLANG_TIDY_EXTRA_ARGUMENTS)

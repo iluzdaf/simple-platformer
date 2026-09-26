@@ -16,6 +16,7 @@ jobs:
     env:
       LLVM: 18
       PRETTIER: 3.9.8
+      RUFF: 0.16.8
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -29,6 +30,11 @@ jobs:
           npm install --global --no-fund --no-audit prettier@$PRETTIER
           prettier --version
           echo "PRETTIER_BIN=$(command -v prettier)" >> "$GITHUB_ENV"
+      - name: Install the pinned Ruff
+        uses: astral-sh/ruff-action@v4.1.0
+        with:
+          version: ${{ env.RUFF }}
+          args: --version
       - name: Configure
         run: >
           cmake -S . -B build/quality
@@ -43,6 +49,10 @@ jobs:
         run: cmake --build build/quality --target format-check
       - name: Check JSON formatting
         run: cmake --build build/quality --target format-json-check
+      - name: Check YAML formatting
+        run: cmake --build build/quality --target format-yaml-check
+      - name: Check Python formatting and lint
+        run: cmake --build build/quality --target format-python-check lint-python
 
   headers:
     name: Headers stand alone
@@ -64,12 +74,12 @@ jobs:
           -DGLFW_BUILD_X11=OFF
           -DGLFW_BUILD_WAYLAND=OFF
       - name: Check headers stand alone
-        run: cmake --build build/quality --target header_self_containment
+        run: cmake --build build/quality --target header_self_containment --parallel "$(nproc)"
 
   static-analysis:
     name: Static analysis (${{ matrix.shard }}/3)
-    # Analysing every file takes several minutes on one runner, so each shard takes
-    # every third file of the sorted list.
+    # Header changes bring their transitive includers with them. Three shards keep
+    # broad changes and full-tree fallbacks from returning to one long-running job.
     if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     strategy:
@@ -81,12 +91,32 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Select affected files
+        id: targets
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: |
+          targets="$RUNNER_TEMP/tidy-targets.txt"
+          python3 tools/tidy_targets.py --since "$BASE_REF" \
+            | split -n r/${{ matrix.shard }}/3 > "$targets"
+
+          count=$(wc -l < "$targets" | tr -d ' ')
+          echo "$count files in this shard"
+          if [ "$count" -eq 0 ]; then
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Select preinstalled LLVM tools
+        if: steps.targets.outputs.has_files == 'true'
         run: |
           clang-$LLVM --version
           clang-tidy-$LLVM --version
           echo "CLANG_TIDY=$(command -v clang-tidy-$LLVM)" >> "$GITHUB_ENV"
       - name: Configure
+        if: steps.targets.outputs.has_files == 'true'
         run: >
           cmake -S . -B build/quality
           -DCMAKE_BUILD_TYPE=Debug
@@ -96,17 +126,15 @@ jobs:
           -DGLFW_BUILD_X11=OFF
           -DGLFW_BUILD_WAYLAND=OFF
       - name: Run static analysis
+        if: steps.targets.outputs.has_files == 'true'
         shell: bash
         run: |
-          {
-            find app src tests -type f -name '*.cpp'
-            find app include tests -type f -name '*.hpp'
-          } | sort | split -n r/${{ matrix.shard }}/3 \
-            | xargs -P"$(nproc)" -n1 \
-              "$CLANG_TIDY" \
-              -p build/quality \
-              --warnings-as-errors='*' \
-              --quiet
+          xargs -P"$(nproc)" -n1 \
+            "$CLANG_TIDY" \
+            -p build/quality \
+            --warnings-as-errors='*' \
+            --quiet \
+            < "$RUNNER_TEMP/tidy-targets.txt"
 
   static-analysis-result:
     name: Static analysis
@@ -191,4 +219,4 @@ jobs:
           /p:TrackFileAccess=false
           /p:UseMultiToolTask=true
       - name: Show compiler cache statistics
-        run: '& $env:SCCACHE_PATH --show-stats'
+        run: "& $env:SCCACHE_PATH --show-stats"

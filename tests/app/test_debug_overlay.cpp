@@ -572,8 +572,7 @@ TEST_CASE("The machine window follows the NPC under the cursor instead", "[app][
     world.addActor(machineNpc({60.0F, 20.0F}));
     const simple_platformer::ActorId further = world.addActor(machineNpc({200.0F, 20.0F}));
 
-    const simple_platformer::DebugOverlay underCursor =
-        overlayOf(world, glm::vec2{206.0F, 26.0F});
+    const simple_platformer::DebugOverlay underCursor = overlayOf(world, glm::vec2{206.0F, 26.0F});
     REQUIRE(followedBy(underCursor) == further);
     // The cursor over an NPC without a machine, or over nothing, changes nothing.
     world.addActor(
@@ -601,8 +600,8 @@ TEST_CASE("The machine window follows nothing off screen", "[app][debug]")
     simple_platformer::World world;
     tests::addPlayer(
         world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).walking());
-    const simple_platformer::ActorId offScreen = world.addActor(
-        machineNpc({simple_platformer::InternalViewportSize.x + 100.0F, 20.0F}));
+    const simple_platformer::ActorId offScreen =
+        world.addActor(machineNpc({simple_platformer::InternalViewportSize.x + 100.0F, 20.0F}));
 
     REQUIRE_FALSE(overlayOf(world).machine.has_value());
     REQUIRE(followedBy(overlayOf(world, std::nullopt, offScreen)) == offScreen);

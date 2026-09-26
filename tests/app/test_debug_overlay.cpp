@@ -19,6 +19,7 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
@@ -434,12 +435,14 @@ TEST_CASE("The overlay shows a machine in place of the tactic it silences", "[ap
     REQUIRE(debug.actors.size() == 1);
     REQUIRE(debug.actors.front().machine == "test");
     REQUIRE(debug.actors.front().machineState == "rest");
-    if (!debug.actors.front().npcActivity.has_value())
+    const std::optional<simple_platformer::NpcActivity>& npcActivity =
+        debug.actors.front().npcActivity;
+    if (!npcActivity.has_value())
     {
         throw std::logic_error("Missing machine activity in debug overlay");
     }
     REQUIRE(
-        std::get<simple_platformer::BuiltInNpcActivity>(*debug.actors.front().npcActivity).state ==
+        std::get<simple_platformer::BuiltInNpcActivity>(*npcActivity).state ==
         simple_platformer::NpcState::Idle);
     REQUIRE_FALSE(debug.actors.front().npcState.has_value());
     REQUIRE_FALSE(debug.actors.front().npcTactic.has_value());

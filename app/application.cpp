@@ -34,8 +34,7 @@ namespace simple_platformer
             InputState input;
             glm::vec2 aimDirection = {1.0F, 0.0F};
             bool showDebugOverlay = false;
-            // 1 expands the frame plot's legend and scrollable breakdown.
-            bool showFrameProfileDetails = false;
+            DebugToolVisibility debugToolVisibility;
             // Which NPC body's navigation the overlay shows; N moves to the next.
             std::size_t debugBodyIndex = 0;
             // B with the overlay open breaks the tile under the cursor, as a shot would.
@@ -111,7 +110,31 @@ namespace simple_platformer
             }
             if (key == GLFW_KEY_1 && action == GLFW_PRESS && context->showDebugOverlay)
             {
-                context->showFrameProfileDetails = !context->showFrameProfileDetails;
+                context->debugToolVisibility.frameProfileDetails =
+                    !context->debugToolVisibility.frameProfileDetails;
+                return;
+            }
+            if (key == GLFW_KEY_2 && action == GLFW_PRESS && context->showDebugOverlay)
+            {
+                context->debugToolVisibility.worldAndCameraOverlay =
+                    !context->debugToolVisibility.worldAndCameraOverlay;
+                return;
+            }
+            if (key == GLFW_KEY_3 && action == GLFW_PRESS && context->showDebugOverlay)
+            {
+                context->debugToolVisibility.actorText = !context->debugToolVisibility.actorText;
+                return;
+            }
+            if (key == GLFW_KEY_4 && action == GLFW_PRESS && context->showDebugOverlay)
+            {
+                context->debugToolVisibility.navigationCacheText =
+                    !context->debugToolVisibility.navigationCacheText;
+                return;
+            }
+            if (key == GLFW_KEY_5 && action == GLFW_PRESS && context->showDebugOverlay)
+            {
+                context->debugToolVisibility.stateMachine =
+                    !context->debugToolVisibility.stateMachine;
                 return;
             }
             if (key == GLFW_KEY_N && action == GLFW_PRESS)
@@ -311,7 +334,7 @@ namespace simple_platformer
                         internalCursor,
                         context.debugBodyIndex),
                     windowViewport,
-                    context.showFrameProfileDetails);
+                    context.debugToolVisibility);
             }
             imgui.render();
             window.present();

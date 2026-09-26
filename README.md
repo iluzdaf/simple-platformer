@@ -130,28 +130,25 @@ one key; the third exit completes the example campaign.
 
 ## Debug overlay
 
-F1 opens the overlay. It draws colliders, NPC sensing, patrol points, navigation paths,
-and the navigation cache's cells for one NPC body, for what the camera can see, and
-shows a frame panel that plots the last two seconds of frame times against the 60 Hz
-budget and stacks the simulation's cost by category on a second axis. Its optional
-legend and wheel-scrollable breakdown show the latest frame's simulation, scene
-building, rendering, and interface time, with every simulation phase listed under its
-category. A machine window draws the state machine of the NPC under the cursor, or else
-of the one with a machine nearest the player, with its active state lit and the
-transition that fired last flowing.
+F1 opens the debug tools with only the frame plot visible. It shows the last two seconds
+against the 60 Hz budget, with simulation costs stacked by category. Number keys add
+independent plot details, world and camera drawing, text, and state-machine layers.
 
 | Action | Controls |
 | --- | --- |
-| Show the navigation cache for the next NPC body | N |
-| Break a breakable tile under the cursor | B, while the tile is labelled |
+| Show or hide the frame details and legend | 1 |
+| Show or hide the world-space and camera overlay | 2 |
+| Show or hide actor text | 3 |
+| Show or hide navigation-cache totals | 4 |
+| Show or hide the state-machine window | 5 |
+| Inspect a frame or scrub along the frames | Press or drag on the plot |
+| Return to the live plot | Click the picked frame again |
+| Show or hide a plotted series | Click it in the plot's legend |
+| Show the next NPC's navigation cache | N |
+| Break a labelled tile under the cursor | B |
 | Move a state in the machine window | Drag it |
 | Pan or zoom the machine window | Drag with the right button, or scroll |
 | Fit the machine window to its graph | F, with the cursor over it |
-| Show or hide the frame details and legend | 1 |
-| Hold the frame plot on a frame and show its costs | Press on the plot |
-| Scrub along the frames | Drag on the plot |
-| Resume the live plot | Click the picked frame again |
-| Hide or show a plotted series | Click it in the plot's legend |
 
 Timings are only meaningful from a release build.
 

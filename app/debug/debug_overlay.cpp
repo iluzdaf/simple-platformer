@@ -284,7 +284,6 @@ namespace simple_platformer
             if (actor.machine.has_value())
             {
                 info.machine = actor.machine->definition.name;
-                info.machineState = activeNpcMachineState(*actor.machine).name;
             }
             else if (actor.brain.has_value())
             {

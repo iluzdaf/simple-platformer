@@ -2,6 +2,7 @@
 
 #include "debug_draw.hpp"
 #include "debug_overlay.hpp"
+#include "debug_ui_layout.hpp"
 #include "navigation_debug.hpp"
 #include "navigation_debug_ui.hpp"
 #include "npc_names.hpp"
@@ -404,14 +405,9 @@ namespace simple_platformer
                 std::snprintf(text, sizeof(text), "tactic: %s", nameOf(actor.npcTactic.value()));
                 drawTextLine(drawList, position, text, TextDetailColour, Indentation);
             }
-            if (actor.machine.has_value() && actor.machineState.has_value())
+            if (actor.machine.has_value())
             {
-                std::snprintf(
-                    text,
-                    sizeof(text),
-                    "machine: %s, %s",
-                    actor.machine->c_str(),
-                    actor.machineState->c_str());
+                std::snprintf(text, sizeof(text), "machine: %s", actor.machine->c_str());
                 drawTextLine(drawList, position, text, TextDetailColour, Indentation);
             }
             position.y += ActorTextGap;
@@ -433,10 +429,9 @@ namespace simple_platformer
                 return;
             }
 
-            constexpr float TextWidth = 180.0F;
             const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
             const ImVec2 padding = ImGui::GetStyle().WindowPadding;
-            const float windowWidth = TextWidth + 2.0F * padding.x;
+            const float windowWidth = DebugTextContentWidth + 2.0F * padding.x;
             ImGui::SetNextWindowPos(
                 {mainViewport->WorkPos.x + mainViewport->WorkSize.x - windowWidth,
                  mainViewport->WorkPos.y},
@@ -463,7 +458,7 @@ namespace simple_platformer
                 {
                     drawNavigationTotals(*drawList, *scene.navigationCache, position);
                 }
-                ImGui::Dummy({TextWidth, position.y - contentTop});
+                ImGui::Dummy({DebugTextContentWidth, position.y - contentTop});
             }
             ImGui::End();
         }

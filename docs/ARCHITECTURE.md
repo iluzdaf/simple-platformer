@@ -570,19 +570,19 @@ against a platform corner.
 
 ### Platformer connections
 
-Platformer nodes are standable cells: the cell and what the body covers standing in
-it block nothing, and the cell below blocks movement. Connections are a walk, a fall
-or a jump. Each is found by simulating it with the real platformer movement and
-collision code at the step the caller passes in. The NPC system passes its current
-tick's step, so a predicted jump and the real one run the same physics. A walk goes
-to every cell along the floor either way, from a standstill to a stop. A
-fall or a jump is accepted only when it lands on another standable cell and stops
-there, and records the intentions it was simulated with as an `InputProgram` for the
-follower to replay. Costs are the movement ticks the simulation took, and the
-heuristic is the ticks the body would need at top speed across the columns between,
-which never overestimates. The search adds a jump-start penalty, also in ticks, so a
-marginal shortcut does not make a grounded NPC hop; setting it to zero selects
-strictly by simulated travel time.
+`platformer_cells` selects standable, start, and chase cells. A standable cell and
+what the body covers standing in it block nothing, and the cell below blocks movement.
+`platformer_connections` simulates walks, falls, and jumps from those cells using the
+real platformer movement and collision code at the caller's step. The NPC system
+passes its current tick's step, so a predicted jump and the real one run the same
+physics. A walk goes to every cell along the floor either way, from a standstill to
+a stop. A fall or jump is accepted only when it lands on another standable cell and
+stops there. It records the simulated intentions as an `InputProgram` for the follower
+to replay. Costs are the movement ticks the simulation took, and the
+heuristic in `platformer_navigation` estimates the ticks needed at top speed across
+the columns between, which never overestimates. The search adds a jump-start penalty,
+also in ticks, so a marginal shortcut does not make a grounded NPC hop. Setting it
+to zero selects strictly by simulated travel time.
 
 ### The connection cache
 

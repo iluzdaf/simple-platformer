@@ -14,7 +14,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
+#include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/pickup.hpp"

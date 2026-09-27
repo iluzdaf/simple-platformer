@@ -255,10 +255,15 @@ machine and ordinary movement. Then read:
    neighbour policy;
 3. [`path_follower.cpp`](../src/navigation/path_follower.cpp) for turning a path into
    intentions;
-4. [`platformer_navigation.cpp`](../src/navigation/platformer_navigation.cpp) for the
-   advanced walk, fall, and simulated-jump policy, and the search that reads a cache;
-5. [`connection_cache.cpp`](../src/navigation/connection_cache.cpp) for what platformer
-   searches remember, and how a broken tile or the fill phase changes it.
+4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for standable,
+   start, and chase cells;
+5. [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp) for
+   simulated walks, falls, and jumps;
+6. [`platformer_navigation.cpp`](../src/navigation/platformer_navigation.cpp) for the
+   search that reads those connections;
+7. [`connection_cache.cpp`](../src/navigation/connection_cache.cpp) and
+   [`navigation_fill.cpp`](../src/navigation/navigation_fill.cpp) for what searches
+   remember and how queued cells are filled or invalidated.
 
 The platformer navigation code reuses the real movement and collision functions. It is
 valuable, but it is not the best first example of the engine's general style. With the

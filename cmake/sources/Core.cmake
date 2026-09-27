@@ -25,6 +25,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/src/navigation/navigation_fill.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/path_follower.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/platformer_cells.cpp
+    ${PROJECT_SOURCE_DIR}/src/navigation/platformer_connections.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/platformer_navigation.cpp
     ${PROJECT_SOURCE_DIR}/src/npc/npc_senses.cpp
     ${PROJECT_SOURCE_DIR}/src/npc/npc_system.cpp

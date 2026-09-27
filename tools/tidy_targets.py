@@ -7,6 +7,8 @@ graph backwards and prints that complete set.
 With no --since, every first-party C++ source and header is printed. Changes to the
 analysis rules or global build configuration also select the whole tree. Source-only
 manifest changes rely on the changed C++ paths, unless no C++ path changed with them.
+Removed headers select the whole tree because their former includers cannot be traced;
+removed source files do not select files that no longer exist.
 """
 
 import argparse
@@ -111,8 +113,8 @@ def selected_paths(paths, changed):
 
     available = set(paths)
     changed_cpp = [path for path in changed if path.suffix in (".cpp", ".hpp")]
-    # The current include graph cannot prove the reach of a removed or renamed path.
-    if any(path not in available for path in changed_cpp):
+    # The current include graph cannot prove the reach of a removed header.
+    if any(path.suffix == ".hpp" and path not in available for path in changed_cpp):
         return paths
 
     manifests_changed = any(

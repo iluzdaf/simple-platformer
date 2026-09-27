@@ -25,9 +25,24 @@ class TidyTargetSelectionTests(unittest.TestCase):
             selected_paths(self.paths, [Path("CMakeLists.txt")]), self.paths
         )
 
-    def test_removed_source_selects_everything(self):
+    def test_removed_source_selects_nothing(self):
         self.assertEqual(
-            selected_paths(self.paths, [Path("src/removed.cpp")]), self.paths
+            selected_paths(self.paths, [Path("src/removed.cpp")]), []
+        )
+
+    def test_removed_source_and_manifest_select_only_changed_code(self):
+        self.assertEqual(
+            selected_paths(
+                self.paths,
+                [Path("src/removed.cpp"), self.changed_source, self.manifest],
+            ),
+            [self.changed_source],
+        )
+
+    def test_removed_header_selects_everything(self):
+        self.assertEqual(
+            selected_paths(self.paths, [Path("include/simple_platformer/removed.hpp")]),
+            self.paths,
         )
 
     def test_unrelated_change_selects_nothing(self):

@@ -10,7 +10,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
-#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 
 namespace simple_platformer
@@ -84,7 +84,6 @@ namespace simple_platformer
     struct NavigationCacheDebugInfo
     {
         glm::vec2 bodySize = {0.0F, 0.0F};
-        // Empty when no name was given for the body.
         std::string bodyName;
         std::size_t bodyIndex = 0;
         std::size_t bodyCount = 0;
@@ -102,7 +101,6 @@ namespace simple_platformer
         std::size_t cellsDropped = 0;
         std::size_t cellsKeptSoFar = 0;
         std::vector<NavigationCellDebugInfo> cells;
-        // Present while the cursor is over the map.
         std::optional<CursorCellDebugInfo> cursorCell;
     };
 

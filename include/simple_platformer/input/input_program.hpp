@@ -6,15 +6,14 @@
 
 namespace simple_platformer
 {
-    // Intentions to hold for a stretch of time. A jump or a fall is recorded as a run of
-    // these when its connection is simulated, and the path follower replays them.
+    // One set of intentions held for a duration. Replay returns edge flags on every
+    // call within that duration, so callers must choose their step lengths accordingly.
     struct InputStep
     {
         float duration = 0.0F;
         InputIntentions intentions;
     };
 
-    // The steps in the order they are held.
     using InputProgram = std::vector<InputStep>;
 
     // How long the whole program takes. Every step must last a finite, positive time.

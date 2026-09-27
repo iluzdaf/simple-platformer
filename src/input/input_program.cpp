@@ -1,4 +1,4 @@
-#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/input/input_program.hpp"
 
 #include <cmath>
 #include <stdexcept>

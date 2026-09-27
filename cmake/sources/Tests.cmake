@@ -60,6 +60,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/app/game/test_level_transition.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/graphics/test_display_viewport.cpp
     ${PROJECT_SOURCE_DIR}/tests/input/test_input_state.cpp
+    ${PROJECT_SOURCE_DIR}/tests/input/test_input_program.cpp
     ${PROJECT_SOURCE_DIR}/tests/inventory/test_inventory.cpp
     ${PROJECT_SOURCE_DIR}/tests/math/test_coordinates.cpp
     ${PROJECT_SOURCE_DIR}/tests/math/test_validation.cpp
@@ -70,7 +71,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_connection_cache_search.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_path_search.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_flying_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_input_program.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_navigation_fill.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_path_follower.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_platformer_navigation.cpp

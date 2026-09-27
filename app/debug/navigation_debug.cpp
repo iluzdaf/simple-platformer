@@ -14,7 +14,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
-#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/physics/body.hpp"
@@ -33,7 +33,6 @@ namespace simple_platformer
                 {size, size}};
         }
 
-        // What the cache keeps for the cell under the cursor.
         CursorCellDebugInfo cursorCellDebugInfo(
             const TileMap& map,
             const PlatformerConnectionCache& cache,

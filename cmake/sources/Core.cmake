@@ -10,6 +10,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/src/combat/combat.cpp
     ${PROJECT_SOURCE_DIR}/src/combat/projectile_system.cpp
     ${PROJECT_SOURCE_DIR}/src/input/input_state.cpp
+    ${PROJECT_SOURCE_DIR}/src/input/input_program.cpp
     ${PROJECT_SOURCE_DIR}/src/inventory/inventory.cpp
     ${PROJECT_SOURCE_DIR}/src/inventory/item.cpp
     ${PROJECT_SOURCE_DIR}/src/inventory/item_use.cpp
@@ -21,7 +22,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/src/navigation/connection_cache.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/path_search.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/flying_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/src/navigation/input_program.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/navigation_fill.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/path_follower.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/platformer_navigation.cpp

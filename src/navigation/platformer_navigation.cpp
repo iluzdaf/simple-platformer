@@ -18,7 +18,7 @@
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
-#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/path_search.hpp"
@@ -50,6 +50,8 @@ namespace simple_platformer
             }
         }
 
+        // Airborne simulation leaves ledge avoidance and contact damage off, so only its
+        // recorded intention fields need comparing when consecutive ticks are merged.
         bool sameIntentions(const InputIntentions& first, const InputIntentions& second)
         {
             return first.direction == second.direction &&
@@ -169,8 +171,6 @@ namespace simple_platformer
             return walk;
         }
 
-        // Whether the bounds have reached the map's edge in the direction travelled, past
-        // which a traversal cannot go.
         bool touchesHorizontalMapEdge(const TileMap& map, const Aabb& bounds, float direction)
         {
             return (direction < 0.0F && bounds.position.x <= EdgeTolerance) ||
@@ -197,7 +197,6 @@ namespace simple_platformer
             return intentions;
         }
 
-        // The standable cell under the feet, unless it is the cell the traversal left.
         std::optional<GridPosition> tryFindLandingCell(
             const TileMap& map,
             GridPosition start,
@@ -276,8 +275,6 @@ namespace simple_platformer
             return std::nullopt;
         }
 
-        // Adds the connection, or replaces the one already found to the same cell by the
-        // same traversal when this one is cheaper.
         void keepCheapest(std::vector<NavigationNeighbor>& neighbors, NavigationNeighbor candidate)
         {
             const auto existing = std::find_if(
@@ -436,7 +433,6 @@ namespace simple_platformer
             };
         }
 
-        // The connections the search reads without a cache: simulated for this search alone.
         ConnectionSource connectionsSimulatedFor(
             const TileMap& map,
             const ConnectionBody& body,

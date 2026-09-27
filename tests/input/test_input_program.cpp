@@ -3,9 +3,9 @@
 #include <stdexcept>
 
 #include "simple_platformer/input/input_state.hpp"
-#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/input/input_program.hpp"
 
-TEST_CASE("An input program replays consecutive intentions", "[navigation][program]")
+TEST_CASE("An input program replays consecutive intentions", "[input][program]")
 {
     simple_platformer::InputIntentions jump;
     jump.jumpPressed = true;
@@ -20,7 +20,7 @@ TEST_CASE("An input program replays consecutive intentions", "[navigation][progr
     REQUIRE(simple_platformer::replayInput(program, 0.3F).direction.x == 0.0F);
 }
 
-TEST_CASE("Input programs reject invalid time", "[navigation][program]")
+TEST_CASE("Input programs reject invalid time", "[input][program]")
 {
     REQUIRE_THROWS_AS(simple_platformer::durationOf({{0.0F, {}}}), std::invalid_argument);
     REQUIRE_THROWS_AS(simple_platformer::replayInput({}, -0.1F), std::invalid_argument);

@@ -289,6 +289,10 @@ Player input and NPC decisions produce the same
 carry movement and aim, jump and primary-attack input, and requests for ledge
 avoidance and contact damage.
 
+An [`InputProgram`](../include/simple_platformer/input/input_program.hpp) holds a timed sequence
+of intentions. Navigation currently records and replays these for jumps and falls; the
+sequence and replay rules belong to input, not to pathfinding.
+
 Platformer movement reads the horizontal direction; flying movement reads both axes.
 Aim is independent of travel direction. Facing is left or right, for sprite flipping and
 for which side a bite reaches, and one rule decides it after each movement update: aim

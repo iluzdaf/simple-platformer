@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
-#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/input/input_program.hpp"
 
 namespace simple_platformer
 {

@@ -14,7 +14,7 @@
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/physics/body.hpp"
 
@@ -29,7 +29,6 @@ namespace simple_platformer
         // In pixels per second: slower than this is stopped, as a takeoff requires.
         constexpr float StoppedSpeed = 0.001F;
 
-        // Minus one, zero or one: which way along an axis leads from one place to another.
         float directionTowards(float from, float to)
         {
             if (to < from)
@@ -39,7 +38,6 @@ namespace simple_platformer
             return to > from ? 1.0F : 0.0F;
         }
 
-        // Standing within arrival distance of the cell's feet position.
         bool arrivedAt(
             int tileSize,
             const Body& body,
@@ -52,7 +50,7 @@ namespace simple_platformer
                    std::abs(target.y - feet.y) <= ArrivalDistance;
         }
 
-        // Standing still at the takeoff cell, which is where every recorded program began.
+        // Navigation records airborne inputs from a stationary takeoff at the previous cell.
         bool readyForInputProgram(
             int tileSize,
             const Body& body,

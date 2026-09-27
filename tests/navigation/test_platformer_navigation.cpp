@@ -17,7 +17,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/input_program.hpp"
+#include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/path_search.hpp"
@@ -50,7 +50,6 @@ namespace
             { return neighbor.destinationCell == destination && neighbor.traversal == traversal; });
     }
 
-    // The jump that lands above the row it leaves from, or a failure if none does.
     const NavigationNeighbor& jumpUpFrom(const std::vector<NavigationNeighbor>& neighbors, int row)
     {
         const auto jump = std::find_if(
@@ -124,7 +123,6 @@ TEST_CASE("A standable cell has support below and room for the body", "[navigati
     REQUIRE(simple_platformer::canStandAt(map, {1, 1}, SmallBody));
     // The tall body would reach into the tile above.
     REQUIRE_FALSE(simple_platformer::canStandAt(map, {1, 1}, TallBody));
-    // Nothing below.
     REQUIRE_FALSE(simple_platformer::canStandAt(map, {1, 0}, SmallBody));
 }
 
@@ -135,7 +133,6 @@ TEST_CASE(
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "........", "..###..."});
 
-    // Standing on the platform, the cell under the feet.
     REQUIRE(
         simple_platformer::findPlatformerStartCell(
             map, simple_platformer::boxInCell(tests::TileSize, {3, 1}, TallBody)) ==
@@ -155,7 +152,6 @@ TEST_CASE(
         GridPosition{5, 1});
     REQUIRE(simple_platformer::findPlatformerStartCell(map, hanging) == GridPosition{4, 1});
 
-    // In the air there is no start cell.
     REQUIRE(
         simple_platformer::findPlatformerStartCell(
             map, simple_platformer::boxInCell(tests::TileSize, {0, 0}, TallBody)) == std::nullopt);

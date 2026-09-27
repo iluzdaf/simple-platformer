@@ -83,7 +83,10 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/render/test_level_object_render.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_presentation.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_render_scene.cpp
+    ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_npc_script_loading.cpp
+    ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_npc_script_validation.cpp
     ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_npc_scripts.cpp
+    ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_npc_world_integration.cpp
     ${PROJECT_SOURCE_DIR}/tests/support/test_actor_builder.cpp
     ${PROJECT_SOURCE_DIR}/tests/support/test_npc_machine_builder.cpp
     ${PROJECT_SOURCE_DIR}/tests/support/test_tile_map_builder.cpp

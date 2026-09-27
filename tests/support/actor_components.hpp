@@ -192,6 +192,23 @@ namespace tests
         return rangedWeapon(actor(world, id));
     }
 
+    inline simple_platformer::ContactDamage& contactDamage(simple_platformer::Actor& actor)
+    {
+        std::optional<simple_platformer::ContactDamage>& component = actor.contactDamage;
+        if (!component.has_value())
+        {
+            throw std::logic_error("The test actor has no contact damage");
+        }
+        return *component;
+    }
+
+    inline simple_platformer::ContactDamage& contactDamage(
+        simple_platformer::World& world,
+        simple_platformer::ActorId id)
+    {
+        return contactDamage(actor(world, id));
+    }
+
     inline simple_platformer::PathFollower& pathFollower(simple_platformer::Actor& actor)
     {
         std::optional<simple_platformer::PathFollower>& component = actor.pathFollower;

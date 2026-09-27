@@ -10,6 +10,7 @@
 #include "content/actor_definition.hpp"
 #include "game/level_composition.hpp"
 #include "content/level_catalog.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
@@ -73,15 +74,18 @@ TEST_CASE("Contact damage definitions compose fresh independent state", "[app][a
         "contact damage",
         {});
     auto definition = simple_platformer::actorDefinition(catalog, "runner");
-    REQUIRE(definition.contactDamage.has_value());
-    definition.contactDamage->active = true;
-    definition.contactDamage->actorsHit.push_back(simple_platformer::ActorId{7});
+    if (!definition.contactDamage.has_value())
+    {
+        throw std::logic_error("Contact damage was not parsed");
+    }
+    auto& contactDamage = *definition.contactDamage;
+    contactDamage.active = true;
+    contactDamage.actorsHit.push_back(simple_platformer::ActorId{7});
 
-    const auto composed = simple_platformer::composeActor(definition, {}, 0);
-    REQUIRE(composed.contactDamage.has_value());
-    REQUIRE(composed.contactDamage->damage == 2);
-    REQUIRE_FALSE(composed.contactDamage->active);
-    REQUIRE(composed.contactDamage->actorsHit.empty());
+    auto composed = simple_platformer::composeActor(definition, {}, 0);
+    REQUIRE(tests::contactDamage(composed).damage == 2);
+    REQUIRE_FALSE(tests::contactDamage(composed).active);
+    REQUIRE(tests::contactDamage(composed).actorsHit.empty());
 }
 
 TEST_CASE(

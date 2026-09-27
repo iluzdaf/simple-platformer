@@ -81,7 +81,7 @@ namespace simple_platformer
 
         std::string actorTextLabelFor(const ActorDebugInfo& actor)
         {
-            const std::string label = labelFor(actor);
+            std::string label = labelFor(actor);
             if (actor.definitionName.has_value())
             {
                 return label + " (" + *actor.definitionName + ")";

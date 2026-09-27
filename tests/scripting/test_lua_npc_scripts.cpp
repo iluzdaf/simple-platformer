@@ -6,6 +6,7 @@
 
 #include "content/npc_script_catalog.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
@@ -188,7 +189,7 @@ TEST_CASE(
 
     simple_platformer::updateWorldSimulation(map, world, 0.05F, nullptr, &scripts);
     REQUIRE_NEAR(tests::actor(world, npc).body.velocity.x, 40.0F);
-    REQUIRE(tests::actor(world, npc).contactDamage->active);
+    REQUIRE(tests::contactDamage(world, npc).active);
     for (int tick = 0;
          tick < 20 &&
          simple_platformer::activeNpcMachineState(tests::machine(world, npc)).name == "moving";
@@ -197,7 +198,7 @@ TEST_CASE(
         simple_platformer::updateWorldSimulation(map, world, 0.05F, nullptr, &scripts);
     }
     REQUIRE(simple_platformer::activeNpcMachineState(tests::machine(world, npc)).name == "resting");
-    REQUIRE_FALSE(tests::actor(world, npc).contactDamage->active);
+    REQUIRE_FALSE(tests::contactDamage(world, npc).active);
     REQUIRE(tests::actor(world, npc).intentions.direction.x == 0.0F);
     REQUIRE(tests::actor(world, npc).body.velocity.x == 0.0F);
     REQUIRE(tests::platformerMovement(tests::actor(world, npc)).grounded);

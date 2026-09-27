@@ -88,14 +88,14 @@ TEST_CASE("Contact damage hits an opponent once per activation, not allies", "[c
     simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::health(world, targetId).current == 2);
-    REQUIRE(tests::actor(world, chargerId).contactDamage->actorsHit.size() == 1);
+    REQUIRE(tests::contactDamage(world, chargerId).actorsHit.size() == 1);
     REQUIRE(tests::actor(world, chargerId).body.velocity == glm::vec2{0.0F, 0.0F});
 
     tests::actor(world, chargerId).intentions.contactDamage = false;
     simple_platformer::updateAttacks(world, requests, 0.1F);
     simple_platformer::applyWorldRequests(world, requests);
-    REQUIRE_FALSE(tests::actor(world, chargerId).contactDamage->active);
-    REQUIRE(tests::actor(world, chargerId).contactDamage->actorsHit.empty());
+    REQUIRE_FALSE(tests::contactDamage(world, chargerId).active);
+    REQUIRE(tests::contactDamage(world, chargerId).actorsHit.empty());
     REQUIRE(tests::health(world, targetId).current == 2);
 
     tests::actor(world, chargerId).intentions.contactDamage = true;
@@ -121,13 +121,13 @@ TEST_CASE("Contact damage requires an intention and a living owner", "[combat][c
     SECTION("Dying despite a stale request")
     {
         tests::actor(world, attackerId).intentions.contactDamage = true;
-        tests::actor(world, attackerId).contactDamage->active = true;
+        tests::contactDamage(world, attackerId).active = true;
         tests::actor(world, attackerId).life = simple_platformer::LifeState::Dying;
     }
     simple_platformer::updateAttacks(world, requests, 0.1F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::health(world, targetId).current == 3);
-    REQUIRE_FALSE(tests::actor(world, attackerId).contactDamage->active);
+    REQUIRE_FALSE(tests::contactDamage(world, attackerId).active);
 }
 
 TEST_CASE("A ranged weapon normalises a diagonal aim direction", "[combat][weapon]")

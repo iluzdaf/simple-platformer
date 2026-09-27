@@ -218,10 +218,10 @@ namespace simple_platformer
             const TileMap& map,
             const Actor& actor,
             const NpcBrain& brain,
+            const NpcPerception& perception,
             const Actor* target,
             float stateElapsed)
         {
-            const NpcPerception& perception = *actor.perception;
             NpcFacts facts;
             facts.targetKnown = target != nullptr;
             facts.targetVisible = perception.targetVisible;
@@ -552,6 +552,7 @@ namespace simple_platformer
             const NpcUpdate& update,
             Actor& actor,
             NpcBrain& brain,
+            const NpcPerception& perception,
             PathFollower& follower,
             const Actor* target,
             NpcMachine& machine,
@@ -568,8 +569,8 @@ namespace simple_platformer
             NpcFacts activeFacts = facts;
             if (fired)
             {
-                activeFacts =
-                    gatherNpcFacts(update.map, actor, brain, target, machine.stateElapsed);
+                activeFacts = gatherNpcFacts(
+                    update.map, actor, brain, perception, target, machine.stateElapsed);
             }
             if (!machine.activityEntered)
             {
@@ -603,14 +604,17 @@ namespace simple_platformer
                 throw std::logic_error("An NPC is missing behaviour components");
             }
             NpcBrain& brain = *actor.brain;
+            const NpcPerception& perception = *actor.perception;
             PathFollower& follower = *actor.pathFollower;
             const Actor* target = livingTarget(update.world, brain);
             const float stateElapsed =
                 actor.machine.has_value() ? actor.machine->stateElapsed : brain.stateElapsed;
-            const NpcFacts facts = gatherNpcFacts(update.map, actor, brain, target, stateElapsed);
+            const NpcFacts facts =
+                gatherNpcFacts(update.map, actor, brain, perception, target, stateElapsed);
             if (actor.machine.has_value())
             {
-                updateMachineState(update, actor, brain, follower, target, *actor.machine, facts);
+                updateMachineState(
+                    update, actor, brain, perception, follower, target, *actor.machine, facts);
             }
             else
             {

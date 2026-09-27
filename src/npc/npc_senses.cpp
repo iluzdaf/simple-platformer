@@ -25,6 +25,14 @@ namespace simple_platformer
 {
     namespace
     {
+        struct SensingNpc
+        {
+            Actor& actor;
+            NpcBrain& brain;
+            NpcPerception& perception;
+            const NpcSenses& senses;
+        };
+
         bool withinNoticeDistance(const Aabb& observer, const Aabb& target, const NpcSenses& senses)
         {
             if (!std::isfinite(senses.noticeDistance) || senses.noticeDistance < 0.0F)
@@ -45,13 +53,10 @@ namespace simple_platformer
 
         bool hearNoises(
             const TileMap& map,
-            Actor& actor,
+            SensingNpc& npc,
             const Actor& target,
             const std::vector<NoiseEvent>& noises)
         {
-            NpcBrain& brain = *actor.brain;
-            NpcPerception& perception = *actor.perception;
-            const NpcSenses& senses = *actor.senses;
             bool heardNoise = false;
             for (const NoiseEvent& noise : noises)
             {
@@ -61,37 +66,37 @@ namespace simple_platformer
                 }
                 Aabb noiseBounds = target.body.bounds;
                 placeFeetAt(noiseBounds, noise.feet);
-                if (!withinNoticeDistance(actor.body.bounds, noiseBounds, senses))
+                if (!withinNoticeDistance(npc.actor.body.bounds, noiseBounds, npc.senses))
                 {
                     continue;
                 }
                 // Shots travel through walls; landings are heard only on this run.
                 if (noise.kind == NoiseKind::Landing)
                 {
-                    if (!actor.platformerMovement.has_value() ||
-                        !actor.platformerMovement->grounded ||
-                        !onSameGroundRun(map, actor.body.bounds, noiseBounds))
+                    if (!npc.actor.platformerMovement.has_value() ||
+                        !npc.actor.platformerMovement->grounded ||
+                        !onSameGroundRun(map, npc.actor.body.bounds, noiseBounds))
                     {
                         continue;
                     }
-                    perception.heardLanding = true;
+                    npc.perception.heardLanding = true;
                 }
                 heardNoise = true;
-                rememberTarget(brain, target, senses);
-                brain.lastKnownTargetFeet = noise.feet;
+                rememberTarget(npc.brain, target, npc.senses);
+                npc.brain.lastKnownTargetFeet = noise.feet;
             }
             return heardNoise;
         }
 
-        bool observeTarget(const TileMap& map, Actor& actor, const Actor& target)
+        bool observeTarget(const TileMap& map, SensingNpc& npc, const Actor& target)
         {
-            if (!canSeeTarget(map, actor.body.bounds, target.body.bounds, *actor.senses))
+            if (!canSeeTarget(map, npc.actor.body.bounds, target.body.bounds, npc.senses))
             {
                 return false;
             }
 
-            rememberTarget(*actor.brain, target, *actor.senses);
-            actor.perception->targetVisible = true;
+            rememberTarget(npc.brain, target, npc.senses);
+            npc.perception.targetVisible = true;
             return true;
         }
 
@@ -187,6 +192,7 @@ namespace simple_platformer
             NpcBrain& brain = *actor.brain;
             NpcPerception& perception = *actor.perception;
             perception = {};
+            SensingNpc npc{actor, brain, perception, *actor.senses};
             const bool livingPlayer = player != nullptr && player->life == LifeState::Alive;
             const bool sensesPlayer = actor.life == LifeState::Alive && livingPlayer &&
                                       areOpponents(actor.team, player->team);
@@ -196,8 +202,8 @@ namespace simple_platformer
             {
                 // Hearing still records events when the target is visible; fresh sight
                 // then takes priority over the last heard position.
-                heardNoise = hearNoises(map, actor, *player, noises);
-                sawTarget = observeTarget(map, actor, *player);
+                heardNoise = hearNoises(map, npc, *player, noises);
+                sawTarget = observeTarget(map, npc, *player);
             }
             if (!heardNoise && !sawTarget)
             {

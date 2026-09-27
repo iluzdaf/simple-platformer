@@ -21,6 +21,20 @@ namespace simple_platformer
         int jumpStartPenaltyTicks = 30;
     };
 
+    enum class PlatformerPathStatus
+    {
+        Found,
+        Unreachable,
+        Deferred
+    };
+
+    // Only Found carries a path; Deferred means the background fill may change the answer.
+    struct PlatformerPathResult
+    {
+        PlatformerPathStatus status = PlatformerPathStatus::Unreachable;
+        std::optional<NavigationPath> path;
+    };
+
     // Every search below takes the fixed step the actor is moved with, in seconds.
     // Connections are simulated tick by tick at that step with the real movement code
     // and costs are counted in its ticks, so a predicted jump and the real one run the
@@ -35,16 +49,15 @@ namespace simple_platformer
         float stepSeconds);
 
     // The cheapest route for a platformer body from one cell to another, each of its
-    // steps a walk, a fall or a jump. No path when either cell is off the map. With
+    // steps a walk, a fall or a jump. An off-map cell is Unreachable. With
     // statistics, reports what the search cost. With a cache for this map, reads each
     // cell's connections from it, simulating and keeping them first when it lacks them;
     // answers a query it has answered before with the path it kept; and when a search
     // from the start has failed before, answers without searching unless the goal is
-    // among the cells that start reaches. A cell still waiting for the fill is not
-    // simulated: the search moves it to the front of the queue and, if it found no path
-    // without it, reports itself deferred in the statistics and keeps nothing, so the
-    // caller asks again once the fill has caught up.
-    std::optional<NavigationPath> findPlatformerPath(
+    // among the cells that start reaches. A search waiting for the fill is Deferred,
+    // so the caller should retry without its normal repath cooldown. Only Found has
+    // a path.
+    PlatformerPathResult findPlatformerPath(
         const TileMap& map,
         GridPosition start,
         GridPosition goal,

@@ -274,6 +274,103 @@ namespace simple_platformer
             CellRange footprint;
         };
 
+        struct ConnectionSimulation
+        {
+            const TileMap& map;
+            GridPosition start;
+            glm::vec2 bodySize;
+            const PlatformerMovementConfig& movement;
+            float stepSeconds;
+            PathSearchStatistics* statistics;
+            PlatformerConnectionCache* cache;
+            SimulatedConnections result;
+        };
+
+        bool canStandAndTrack(ConnectionSimulation& simulation, GridPosition cell)
+        {
+            const int tileSize = simulation.map.tileSize();
+            sweep(
+                simulation.result.footprint,
+                tileSize,
+                boxInCell(tileSize, cell, simulation.bodySize));
+            return canStandAt(simulation.map, cell, simulation.bodySize);
+        }
+
+        // The adjacent cell has already passed the standability check.
+        void addWalkConnections(ConnectionSimulation& simulation, int direction)
+        {
+            GridPosition destination{simulation.start.x + direction, simulation.start.y};
+            do
+            {
+                const RememberedWalk walk = walkBetween(
+                    simulation.map,
+                    simulation.start,
+                    destination,
+                    simulation.bodySize,
+                    simulation.movement,
+                    simulation.stepSeconds,
+                    simulation.statistics,
+                    simulation.cache);
+                simulation.result.footprint = unionOf(
+                    simulation.result.footprint,
+                    {{simulation.start.x + walk.sweep.first.x,
+                      simulation.start.y + walk.sweep.first.y},
+                     {simulation.start.x + walk.sweep.last.x,
+                      simulation.start.y + walk.sweep.last.y}});
+                if (!walk.cost.has_value())
+                {
+                    // Destinations are checked nearest first. Once a continuous walk
+                    // exceeds the simulation limit, farther destinations are excluded.
+                    break;
+                }
+                simulation.result.connections.push_back(
+                    {destination, Traversal::Walk, walk.cost.value(), {}});
+                destination.x += direction;
+            } while (canStandAndTrack(simulation, destination));
+        }
+
+        void addFallConnection(ConnectionSimulation& simulation, int direction)
+        {
+            const std::optional<NavigationNeighbor> fall = trySimulateAirborneConnection(
+                simulation.map,
+                simulation.start,
+                simulation.bodySize,
+                simulation.movement,
+                Traversal::Fall,
+                static_cast<float>(direction),
+                0,
+                simulation.stepSeconds,
+                simulation.statistics,
+                simulation.result.footprint);
+            if (fall.has_value())
+            {
+                keepCheapest(simulation.result.connections, fall.value());
+            }
+        }
+
+        void addJumpConnections(ConnectionSimulation& simulation, int direction)
+        {
+            constexpr std::array<int, 2> JumpHoldTicks{1, MaximumConnectionSimulationTicks};
+            for (const int holdTicks : JumpHoldTicks)
+            {
+                const std::optional<NavigationNeighbor> jump = trySimulateAirborneConnection(
+                    simulation.map,
+                    simulation.start,
+                    simulation.bodySize,
+                    simulation.movement,
+                    Traversal::Jump,
+                    static_cast<float>(direction),
+                    holdTicks,
+                    simulation.stepSeconds,
+                    simulation.statistics,
+                    simulation.result.footprint);
+                if (jump.has_value())
+                {
+                    keepCheapest(simulation.result.connections, jump.value());
+                }
+            }
+        }
+
         // Every connection leaving a cell, simulated with the real movement code, with the
         // footprint of the cells that decided them. A cell that cannot be stood on has
         // no connections, and a footprint of itself and its surroundings. With a cache,
@@ -288,95 +385,35 @@ namespace simple_platformer
             PlatformerConnectionCache* cache)
         {
             const int tileSize = map.tileSize();
-            SimulatedConnections result{
-                {}, cellsCovered(tileSize, boxInCell(tileSize, cell, bodySize))};
-            std::vector<NavigationNeighbor>& neighbors = result.connections;
-            CellRange& footprint = result.footprint;
-            // Standing reads the cell, what it covers and what is under it.
-            const auto standable = [&](GridPosition candidate)
+            ConnectionSimulation simulation{
+                map,
+                cell,
+                bodySize,
+                movement,
+                stepSeconds,
+                statistics,
+                cache,
+                {{}, cellsCovered(tileSize, boxInCell(tileSize, cell, bodySize))}};
+            if (!canStandAndTrack(simulation, cell))
             {
-                sweep(footprint, tileSize, boxInCell(tileSize, candidate, bodySize));
-                return canStandAt(map, candidate, bodySize);
-            };
-            if (!standable(cell))
-            {
-                return result;
+                return simulation.result;
             }
 
             constexpr std::array<int, 2> Directions{-1, 1};
             for (const int direction : Directions)
             {
                 const GridPosition adjacent{cell.x + direction, cell.y};
-                if (standable(adjacent))
+                if (canStandAndTrack(simulation, adjacent))
                 {
-                    GridPosition walkDestination = adjacent;
-                    while (standable(walkDestination))
-                    {
-                        const RememberedWalk walk = walkBetween(
-                            map,
-                            cell,
-                            walkDestination,
-                            bodySize,
-                            movement,
-                            stepSeconds,
-                            statistics,
-                            cache);
-                        footprint = unionOf(
-                            footprint,
-                            {{cell.x + walk.sweep.first.x, cell.y + walk.sweep.first.y},
-                             {cell.x + walk.sweep.last.x, cell.y + walk.sweep.last.y}});
-                        if (!walk.cost.has_value())
-                        {
-                            // Destinations are checked nearest first. Once a continuous walk
-                            // exceeds the simulation limit, farther destinations are excluded.
-                            break;
-                        }
-
-                        neighbors.push_back(
-                            {walkDestination, Traversal::Walk, walk.cost.value_or(1), {}});
-                        walkDestination.x += direction;
-                    }
+                    addWalkConnections(simulation, direction);
                 }
                 else
                 {
-                    const std::optional<NavigationNeighbor> fall = trySimulateAirborneConnection(
-                        map,
-                        cell,
-                        bodySize,
-                        movement,
-                        Traversal::Fall,
-                        static_cast<float>(direction),
-                        0,
-                        stepSeconds,
-                        statistics,
-                        footprint);
-                    if (fall.has_value())
-                    {
-                        keepCheapest(neighbors, fall.value());
-                    }
+                    addFallConnection(simulation, direction);
                 }
-
-                constexpr std::array<int, 2> JumpHoldTicks{1, MaximumConnectionSimulationTicks};
-                for (const int holdTicks : JumpHoldTicks)
-                {
-                    const std::optional<NavigationNeighbor> jump = trySimulateAirborneConnection(
-                        map,
-                        cell,
-                        bodySize,
-                        movement,
-                        Traversal::Jump,
-                        static_cast<float>(direction),
-                        holdTicks,
-                        stepSeconds,
-                        statistics,
-                        footprint);
-                    if (jump.has_value())
-                    {
-                        keepCheapest(neighbors, jump.value());
-                    }
-                }
+                addJumpConnections(simulation, direction);
             }
-            return result;
+            return simulation.result;
         }
     }
 

@@ -159,7 +159,9 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
     };
 
     PathSearchStatistics blocked;
-    REQUIRE_FALSE(search(blocked).has_value());
+    const auto blockedResult = search(blocked);
+    REQUIRE(blockedResult.status == simple_platformer::PlatformerPathStatus::Unreachable);
+    REQUIRE_FALSE(blockedResult.path.has_value());
     REQUIRE(blocked.simulatedTicks == 0);
     REQUIRE(cache.reachableFrom(start, body) != nullptr);
 
@@ -168,7 +170,9 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
     // The search syncs with the map, meets the dropped start and waits rather than
     // simulate it: nothing is simulated or kept, and the start is first in line.
     PathSearchStatistics waiting;
-    REQUIRE_FALSE(search(waiting).has_value());
+    const auto waitingResult = search(waiting);
+    REQUIRE(waitingResult.status == simple_platformer::PlatformerPathStatus::Deferred);
+    REQUIRE_FALSE(waitingResult.path.has_value());
     REQUIRE(waiting.deferred == 1);
     REQUIRE(waiting.simulatedTicks == 0);
     REQUIRE(cache.find(start, body) == nullptr);
@@ -185,7 +189,9 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
     REQUIRE(work.simulatedTicks > 0);
     REQUIRE(cache.cellsPending(body) == 0);
     PathSearchStatistics opened;
-    REQUIRE(search(opened).has_value());
+    const auto openedResult = search(opened);
+    REQUIRE(openedResult.status == simple_platformer::PlatformerPathStatus::Found);
+    REQUIRE(openedResult.path.has_value());
     REQUIRE(opened.deferred == 0);
     REQUIRE(opened.simulatedTicks == 0);
     REQUIRE(opened.pathsRemembered == 0);

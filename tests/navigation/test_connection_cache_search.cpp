@@ -54,14 +54,16 @@ TEST_CASE(
     PathSearchStatistics uncached;
     const std::optional<simple_platformer::NavigationPath> expected =
         simple_platformer::findPlatformerPath(
-            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &uncached);
+            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &uncached)
+            .path;
     REQUIRE(expected.has_value());
 
     PlatformerConnectionCache cache;
     PathSearchStatistics filling;
     const std::optional<simple_platformer::NavigationPath> filled =
         simple_platformer::findPlatformerPath(
-            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &filling, &cache);
+            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {}, &filling, &cache)
+            .path;
     REQUIRE(filled.has_value());
     requireSameSteps(filled, expected);
     // Filling simulates every cell it expands, though fewer ticks than a search without
@@ -75,11 +77,13 @@ TEST_CASE(
     PathSearchStatistics uncachedNext;
     const std::optional<simple_platformer::NavigationPath> expectedNext =
         simple_platformer::findPlatformerPath(
-            map, nextStart, goal, BodySize, {}, tests::FixedStepSeconds, {}, &uncachedNext);
+            map, nextStart, goal, BodySize, {}, tests::FixedStepSeconds, {}, &uncachedNext)
+            .path;
     PathSearchStatistics reusing;
     const std::optional<simple_platformer::NavigationPath> reused =
         simple_platformer::findPlatformerPath(
-            map, nextStart, goal, BodySize, {}, tests::FixedStepSeconds, {}, &reusing, &cache);
+            map, nextStart, goal, BodySize, {}, tests::FixedStepSeconds, {}, &reusing, &cache)
+            .path;
     REQUIRE(reused.has_value());
     requireSameSteps(reused, expectedNext);
     REQUIRE(reusing.simulatedTicks == 0);
@@ -112,7 +116,7 @@ TEST_CASE("What a failed search learned spares the next one", "[navigation][cach
     REQUIRE_FALSE(
         simple_platformer::findPlatformerPath(
             map, start, ledge, BodySize, {}, tests::FixedStepSeconds, {}, &failing, &cache)
-            .has_value());
+            .path.has_value());
     REQUIRE(failing.nodesExpanded > 0);
     const std::vector<GridPosition>* reachable = cache.reachableFrom(start, body);
     REQUIRE(reachable != nullptr);
@@ -129,7 +133,7 @@ TEST_CASE("What a failed search learned spares the next one", "[navigation][cach
     PathSearchStatistics spared;
     REQUIRE_FALSE(simple_platformer::findPlatformerPath(
                       map, start, ledge, BodySize, {}, tests::FixedStepSeconds, {}, &spared, &cache)
-                      .has_value());
+                      .path.has_value());
     REQUIRE(spared.nodesExpanded == 0);
     REQUIRE(spared.cellsReused == 0);
     REQUIRE(spared.simulatedTicks == 0);
@@ -138,7 +142,7 @@ TEST_CASE("What a failed search learned spares the next one", "[navigation][cach
     PathSearchStatistics reaching;
     REQUIRE(simple_platformer::findPlatformerPath(
                 map, start, farRight, BodySize, {}, tests::FixedStepSeconds, {}, &reaching, &cache)
-                .has_value());
+                .path.has_value());
     REQUIRE(reaching.nodesExpanded > 0);
 
     // A goal off the map is no path, and teaches nothing.
@@ -147,7 +151,7 @@ TEST_CASE("What a failed search learned spares the next one", "[navigation][cach
     REQUIRE_FALSE(
         simple_platformer::findPlatformerPath(
             map, start, {3, -1}, BodySize, {}, tests::FixedStepSeconds, {}, &offMap, &fresh)
-            .has_value());
+            .path.has_value());
     REQUIRE(offMap.nodesExpanded == 0);
     REQUIRE(fresh.reachableFrom(start, body) == nullptr);
 
@@ -155,7 +159,7 @@ TEST_CASE("What a failed search learned spares the next one", "[navigation][cach
     PathSearchStatistics uncached;
     REQUIRE_FALSE(simple_platformer::findPlatformerPath(
                       map, start, ledge, BodySize, {}, tests::FixedStepSeconds, {}, &uncached)
-                      .has_value());
+                      .path.has_value());
     REQUIRE(uncached.nodesExpanded == failing.nodesExpanded);
 
     cache.clear();
@@ -176,7 +180,8 @@ TEST_CASE("A found path answers the same search again without expanding", "[navi
     PathSearchStatistics first;
     const std::optional<simple_platformer::NavigationPath> found =
         simple_platformer::findPlatformerPath(
-            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {30}, &first, &cache);
+            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {30}, &first, &cache)
+            .path;
     REQUIRE(found.has_value());
     REQUIRE(first.nodesExpanded > 0);
     REQUIRE(first.pathsRemembered == 0);
@@ -185,7 +190,8 @@ TEST_CASE("A found path answers the same search again without expanding", "[navi
     PathSearchStatistics second;
     const std::optional<simple_platformer::NavigationPath> remembered =
         simple_platformer::findPlatformerPath(
-            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {30}, &second, &cache);
+            map, start, goal, BodySize, {}, tests::FixedStepSeconds, {30}, &second, &cache)
+            .path;
     REQUIRE(remembered.has_value());
     requireSameSteps(remembered, found);
     REQUIRE(second.nodesExpanded == 0);

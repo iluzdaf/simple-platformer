@@ -613,8 +613,9 @@ query outright from what it remembers. During it, the search is handed the cache
 connections instead of ones simulated for that search alone, which is what the tests
 of the policies get. After it, the cache keeps what the search learned. The cache and
 everything built on it can be taken out by removing those three helpers and the
-branches that call them. The profile counts searches answered from memory, cells
-reused, and ticks simulated.
+branches that call them. The result distinguishes a found path, an unreachable goal,
+and a search deferred until pending connections are filled. The profile counts searches
+answered from memory, cells reused, and ticks simulated.
 
 ### Filling the cache
 

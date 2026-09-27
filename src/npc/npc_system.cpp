@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -142,6 +143,7 @@ namespace simple_platformer
             }
 
             std::optional<NavigationPath> path;
+            bool pathDeferred = false;
             PathSearchStatistics statistics;
             const Stopwatch stopwatch;
             if (actor.flyingMovement.has_value())
@@ -150,7 +152,7 @@ namespace simple_platformer
             }
             else if (actor.platformerMovement.has_value())
             {
-                path = findPlatformerPath(
+                PlatformerPathResult result = findPlatformerPath(
                     map,
                     start,
                     goal,
@@ -160,6 +162,8 @@ namespace simple_platformer
                     PlatformerNavigationConfig{},
                     &statistics,
                     &update.world.platformerConnections());
+                pathDeferred = result.status == PlatformerPathStatus::Deferred;
+                path = std::move(result.path);
             }
             NpcBehaviourCost& cost = update.cost;
             ++cost.pathSearches;
@@ -172,7 +176,7 @@ namespace simple_platformer
             follower.destinationCell = goal;
             follower.breaksWhenPlanned = map.brokenCells().size();
             // A deferred search is asked again next step, once the fill has caught up.
-            follower.repathRemaining = statistics.deferred > 0 ? 0.0F : follower.repathCooldown;
+            follower.repathRemaining = pathDeferred ? 0.0F : follower.repathCooldown;
             if (path.has_value())
             {
                 setPath(follower, path.value(), goal);

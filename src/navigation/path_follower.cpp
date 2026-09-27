@@ -99,6 +99,65 @@ namespace simple_platformer
             }
             return intentions;
         }
+
+        struct StepProgress
+        {
+            bool complete = false;
+            InputIntentions intentions;
+        };
+
+        StepProgress followWalkStep(
+            int tileSize,
+            const Body& body,
+            const PlatformerMovement& movement,
+            GridPosition destination)
+        {
+            if (readyForInputProgram(tileSize, body, movement, destination))
+            {
+                return {true, {}};
+            }
+            return {false, approachAndBrake(tileSize, body, movement, destination)};
+        }
+
+        StepProgress followAirborneStep(
+            int tileSize,
+            const Body& body,
+            const PlatformerMovement& movement,
+            PathFollower& follower,
+            const NavigationStep& step,
+            GridPosition takeoff,
+            float deltaTime)
+        {
+            if (step.inputs.empty())
+            {
+                throw std::invalid_argument("Jump and fall path steps require an input program");
+            }
+            // The recorded inputs assume a stationary takeoff at the previous cell.
+            if (follower.programElapsed == 0.0F &&
+                !readyForInputProgram(tileSize, body, movement, takeoff))
+            {
+                return {false, approachAndBrake(tileSize, body, movement, takeoff)};
+            }
+
+            const float programDuration = durationOf(step.inputs);
+            if (follower.programElapsed < programDuration)
+            {
+                const InputIntentions intentions =
+                    replayInput(step.inputs, follower.programElapsed);
+                follower.programElapsed =
+                    std::min(programDuration, follower.programElapsed + deltaTime);
+                return {false, intentions};
+            }
+            // After the program runs out, wait without input until the actor lands in
+            // the destination cell.
+            if (movement.grounded &&
+                cellAtFeet(tileSize, feetOf(body.bounds)) == step.destinationCell)
+            {
+                follower.programElapsed = 0.0F;
+                return {true, {}};
+            }
+            return {};
+        }
     }
 
     void setPath(PathFollower& follower, NavigationPath path, GridPosition destinationCell)
@@ -194,54 +253,25 @@ namespace simple_platformer
                 throw std::invalid_argument("A platformer actor cannot follow a flying path step");
             }
 
-            // A walk is done once the actor stands still in its cell.
+            StepProgress progress;
             if (step.traversal == Traversal::Walk)
             {
-                if (readyForInputProgram(tileSize, body, movement, step.destinationCell))
-                {
-                    ++follower.nextStep;
-                    continue;
-                }
-                return approachAndBrake(tileSize, body, movement, step.destinationCell);
+                progress = followWalkStep(tileSize, body, movement, step.destinationCell);
             }
-
-            if (step.inputs.empty())
-            {
-                throw std::invalid_argument("Jump and fall path steps require an input program");
-            }
-            // A jump or a fall replays the inputs recorded when it was simulated, from a
-            // standstill at its takeoff: where the previous step ended, or the path's start.
-            if (follower.programElapsed == 0.0F)
+            else
             {
                 const GridPosition takeoff =
                     follower.nextStep == 0
                         ? follower.path->start
                         : follower.path->steps[follower.nextStep - 1].destinationCell;
-                if (!readyForInputProgram(tileSize, body, movement, takeoff))
-                {
-                    return approachAndBrake(tileSize, body, movement, takeoff);
-                }
+                progress = followAirborneStep(
+                    tileSize, body, movement, follower, step, takeoff, deltaTime);
             }
-
-            const float programDuration = durationOf(step.inputs);
-            if (follower.programElapsed < programDuration)
+            if (!progress.complete)
             {
-                const InputIntentions intentions =
-                    replayInput(step.inputs, follower.programElapsed);
-                follower.programElapsed =
-                    std::min(programDuration, follower.programElapsed + deltaTime);
-                return intentions;
+                return progress.intentions;
             }
-            // The program has run out. The step is done once the actor stands in its
-            // cell; until it lands, nothing is pressed.
-            if (movement.grounded &&
-                cellAtFeet(tileSize, feetOf(body.bounds)) == step.destinationCell)
-            {
-                ++follower.nextStep;
-                follower.programElapsed = 0.0F;
-                continue;
-            }
-            return {};
+            ++follower.nextStep;
         }
         return {};
     }

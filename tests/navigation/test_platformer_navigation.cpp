@@ -94,7 +94,8 @@ TEST_CASE(
 
     const std::optional<simple_platformer::NavigationPath> path =
         simple_platformer::findPlatformerPath(
-            map, {1, 0}, {3, 0}, SmallBody, movement, tests::FixedStepSeconds);
+            map, {1, 0}, {3, 0}, SmallBody, movement, tests::FixedStepSeconds)
+            .path;
     REQUIRE(path.has_value());
     const simple_platformer::NavigationPath route =
         path.value_or(simple_platformer::NavigationPath{});
@@ -140,7 +141,7 @@ TEST_CASE(
     const simple_platformer::NavigationPath preferred =
         simple_platformer::findPlatformerPath(
             hop, {12, 2}, {4, 2}, TallBody, movement, tests::FixedStepSeconds)
-            .value_or(simple_platformer::NavigationPath{});
+            .path.value_or(simple_platformer::NavigationPath{});
     REQUIRE_FALSE(preferred.steps.empty());
     REQUIRE_FALSE(hasStep(preferred, Traversal::Jump));
     simple_platformer::PlatformerNavigationConfig noPenalty;
@@ -148,7 +149,7 @@ TEST_CASE(
     const simple_platformer::NavigationPath fastest =
         simple_platformer::findPlatformerPath(
             hop, {12, 2}, {4, 2}, TallBody, movement, tests::FixedStepSeconds, noPenalty)
-            .value_or(simple_platformer::NavigationPath{});
+            .path.value_or(simple_platformer::NavigationPath{});
     REQUIRE(hasStep(fastest, Traversal::Jump));
 
     // A goal on a platform is reached only by jumping, penalty or not.
@@ -161,7 +162,7 @@ TEST_CASE(
     const simple_platformer::NavigationPath climbed =
         simple_platformer::findPlatformerPath(
             platform, {2, 2}, up.destinationCell, SmallBody, ordinary, tests::FixedStepSeconds)
-            .value_or(simple_platformer::NavigationPath{});
+            .path.value_or(simple_platformer::NavigationPath{});
     REQUIRE(hasStep(climbed, Traversal::Jump));
 }
 
@@ -219,7 +220,8 @@ TEST_CASE("Platformer searches report what they cost", "[navigation][platformer]
     simple_platformer::PathSearchStatistics searchCost;
     const std::optional<simple_platformer::NavigationPath> path =
         simple_platformer::findPlatformerPath(
-            map, {2, 2}, {7, 2}, SmallBody, movement, tests::FixedStepSeconds, {}, &searchCost);
+            map, {2, 2}, {7, 2}, SmallBody, movement, tests::FixedStepSeconds, {}, &searchCost)
+            .path;
     REQUIRE(path.has_value());
     // The search expands at least its start cell, and simulating that cell's connections
     // is part of what it cost.

@@ -308,6 +308,8 @@ cmake/         dependencies, quality rules, and explicit target source manifests
 include/       public core headers
 src/           core implementations
 tests/         Catch2 tests for core systems and testable application code
+  app/         application tests grouped like app/ (content, debug, game, graphics, UI)
+  support/     test-only builders and simulation helpers
 tools/         repository quality and maintenance scripts
 docs/          reading route, architecture, content format, and future work
 external/      fixed third-party source releases

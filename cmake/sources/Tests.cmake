@@ -25,39 +25,40 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/game/level_composition.cpp
     ${PROJECT_SOURCE_DIR}/app/graphics/display_viewport.cpp
     ${PROJECT_SOURCE_DIR}/app/ui/inventory_layout.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_debug_overlay.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_debug_overlay_machine.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_debug_overlay_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_navigation_debug.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_display_viewport.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_frame_axes.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_frame_selection.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_content_integrity.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_level_composition.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_inventory_layout.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_level_data.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_level_data_diagnostics.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_level_data_object_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_level_data_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_level_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_tile_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_content_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_content_json.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_actor_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_actor_definition.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_machine_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_npc_script_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_animation_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_item_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_pickup_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_exit_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/test_level_transition.cpp
     ${PROJECT_SOURCE_DIR}/tests/actor/test_actor_system.cpp
     ${PROJECT_SOURCE_DIR}/tests/actor/test_lifecycle.cpp
     ${PROJECT_SOURCE_DIR}/tests/combat/test_bite_attack.cpp
     ${PROJECT_SOURCE_DIR}/tests/combat/test_contact_damage.cpp
     ${PROJECT_SOURCE_DIR}/tests/combat/test_projectile_system.cpp
     ${PROJECT_SOURCE_DIR}/tests/combat/test_ranged_attack.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_actor_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_actor_definition.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_animation_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_integrity.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_json.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_validation.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_exit_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_item_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data_diagnostics.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data_object_validation.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data_validation.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_machine_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_npc_script_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_pickup_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_tile_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay_machine.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay_navigation.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_frame_axes.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_frame_selection.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_game_debug.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_navigation_debug.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/game/test_level_composition.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/game/test_level_object_composition.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/game/test_level_transition.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/graphics/test_display_viewport.cpp
     ${PROJECT_SOURCE_DIR}/tests/input/test_input_state.cpp
     ${PROJECT_SOURCE_DIR}/tests/inventory/test_inventory.cpp
     ${PROJECT_SOURCE_DIR}/tests/math/test_coordinates.cpp
@@ -99,6 +100,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/timing/test_fixed_step.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_frame_history.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_stopwatch.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/ui/test_inventory_layout.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_level_exit.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_pickups.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_level_validation.cpp

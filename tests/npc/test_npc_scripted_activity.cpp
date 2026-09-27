@@ -1,3 +1,4 @@
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
@@ -101,79 +102,95 @@ namespace
 
 TEST_CASE("Same-run and notice-distance facts are independent", "[npc][facts]")
 {
-    simple_platformer::TileMap map =
-        tests::TileMapBuilder({"............", "............", "############"});
-    glm::vec2 targetFeet{56.0F, 32.0F};
-    bool targetGrounded = true;
-    bool hasTarget = true;
-    bool targetAlive = true;
-    bool sameRun = true;
-    bool withinRange = true;
-    SECTION("Same run at the inclusive notice boundary")
+    struct ExpectedFacts
     {
-    }
-    SECTION("Same run beyond notice distance")
+        bool sameRun;
+        bool withinNoticeDistance;
+    };
+
+    struct Scenario
     {
-        targetFeet.x = 120.0F;
-        withinRange = false;
-    }
-    SECTION("Nearby across a gap")
+        std::string name;
+        ExpectedFacts expected;
+        std::string floor = "############";
+        glm::vec2 targetFeet{56.0F, 32.0F};
+        bool targetGrounded = true;
+        bool rememberTarget = true;
+        bool targetAlive = true;
+    };
+
+    const auto observeFacts = [](const Scenario& scenario)
     {
-        map = tests::TileMapBuilder({"............", "............", "##.#########"});
-        sameRun = false;
-    }
-    SECTION("Distant across a gap")
+        const simple_platformer::TileMap map =
+            tests::TileMapBuilder({"............", "............", scenario.floor});
+        simple_platformer::World world;
+        const auto targetId = world.addActor(makePlayer(scenario.targetFeet));
+        tests::platformerMovement(actor(world, targetId)).grounded = scenario.targetGrounded;
+        if (!scenario.targetAlive)
+        {
+            actor(world, targetId).life = simple_platformer::LifeState::Dying;
+        }
+        const auto npcId = world.addActor(
+            tests::ActorBuilder::sized({12.0F, 12.0F})
+                .atFeet({24.0F, 32.0F})
+                .walking()
+                .thinking({32.0F, 1.0F})
+                .running(
+                    tests::NpcMachineBuilder::named("observer")
+                        .state("observe", simple_platformer::LuaNpcActivity{"test", "observe"})));
+        tests::platformerMovement(actor(world, npcId)).grounded = true;
+        if (scenario.rememberTarget)
+        {
+            brain(world, npcId).target = targetId;
+        }
+        // These facts intentionally use current geometry, not visibility or last-known feet.
+        brain(world, npcId).lastKnownTargetFeet = {24.0F, 32.0F};
+        RecordingNpcScripts scripts;
+        simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
+        REQUIRE_FALSE(scripts.calls.empty());
+        return scripts.calls.back().snapshot.facts;
+    };
+
+    constexpr ExpectedFacts SameRunAndWithinNotice{true, true};
+    constexpr ExpectedFacts SameRunOnly{true, false};
+    constexpr ExpectedFacts WithinNoticeOnly{false, true};
+    constexpr ExpectedFacts Neither{false, false};
+    std::vector<Scenario> scenarios{
+        {"Same run at the inclusive notice boundary", SameRunAndWithinNotice}};
+
+    Scenario beyondNotice{"Same run beyond notice distance", SameRunOnly};
+    beyondNotice.targetFeet.x = 120.0F;
+    scenarios.push_back(beyondNotice);
+
+    Scenario nearbyGap{"Nearby across a gap", WithinNoticeOnly};
+    nearbyGap.floor = "##.#########";
+    scenarios.push_back(nearbyGap);
+
+    Scenario distantGap{"Distant across a gap", Neither};
+    distantGap.floor = "##.#########";
+    distantGap.targetFeet.x = 120.0F;
+    scenarios.push_back(distantGap);
+
+    Scenario airborne{"Nearby but airborne", WithinNoticeOnly};
+    airborne.targetGrounded = false;
+    scenarios.push_back(airborne);
+
+    Scenario forgotten{"No remembered target", Neither};
+    forgotten.rememberTarget = false;
+    scenarios.push_back(forgotten);
+
+    Scenario dying{"A dead remembered target", Neither};
+    dying.targetAlive = false;
+    scenarios.push_back(dying);
+
+    for (const Scenario& scenario : scenarios)
     {
-        map = tests::TileMapBuilder({"............", "............", "##.#########"});
-        targetFeet.x = 120.0F;
-        sameRun = false;
-        withinRange = false;
+        INFO(scenario.name);
+        const auto facts = observeFacts(scenario);
+        REQUIRE_FALSE(facts.targetVisible);
+        REQUIRE(facts.targetOnSameRun == scenario.expected.sameRun);
+        REQUIRE(facts.targetWithinNoticeDistance == scenario.expected.withinNoticeDistance);
     }
-    SECTION("Nearby but airborne")
-    {
-        targetGrounded = false;
-        sameRun = false;
-    }
-    SECTION("No remembered target")
-    {
-        hasTarget = false;
-        sameRun = false;
-        withinRange = false;
-    }
-    SECTION("A dead remembered target")
-    {
-        targetAlive = false;
-        sameRun = false;
-        withinRange = false;
-    }
-    simple_platformer::World world;
-    const auto targetId = world.addActor(makePlayer(targetFeet));
-    tests::platformerMovement(actor(world, targetId)).grounded = targetGrounded;
-    if (!targetAlive)
-    {
-        actor(world, targetId).life = simple_platformer::LifeState::Dying;
-    }
-    const auto npcId = world.addActor(
-        tests::ActorBuilder::sized({12.0F, 12.0F})
-            .atFeet({24.0F, 32.0F})
-            .walking()
-            .thinking({32.0F, 1.0F})
-            .running(tests::NpcMachineBuilder::named("observer")
-                         .state("observe", simple_platformer::LuaNpcActivity{"test", "observe"})));
-    tests::platformerMovement(actor(world, npcId)).grounded = true;
-    if (hasTarget)
-    {
-        brain(world, npcId).target = targetId;
-    }
-    // These facts intentionally use current geometry, not visibility or last-known feet.
-    brain(world, npcId).lastKnownTargetFeet = {24.0F, 32.0F};
-    RecordingNpcScripts scripts;
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
-    REQUIRE_FALSE(scripts.calls.empty());
-    const auto& facts = scripts.calls.back().snapshot.facts;
-    REQUIRE_FALSE(facts.targetVisible);
-    REQUIRE(facts.targetOnSameRun == sameRun);
-    REQUIRE(facts.targetWithinNoticeDistance == withinRange);
 }
 
 TEST_CASE("A machine reacts to landing and blocked walking facts", "[npc][machine][movement]")

@@ -1034,6 +1034,7 @@ For a new rule, start beside the code you changed:
 | Carrying player state between levels     | `tests/app/test_level_transition.cpp`                                                |
 | Core pickup collection or exit rules     | `tests/world/test_level_objects.cpp`                                                 |
 | Behaviour involving multiple systems     | `tests/world/test_world_simulation.cpp`                                              |
+| NPC behaviour across a simulation step   | `tests/world/test_npc_world_simulation.cpp`                                          |
 | Visual state converted to draw commands  | `tests/render/test_render_scene.cpp`                                                 |
 
 Use small independent data in tests rather than asserting the example campaign's

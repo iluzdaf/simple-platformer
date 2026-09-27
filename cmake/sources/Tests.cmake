@@ -26,6 +26,8 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/graphics/display_viewport.cpp
     ${PROJECT_SOURCE_DIR}/app/ui/inventory_layout.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_debug_overlay.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/test_debug_overlay_machine.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/test_debug_overlay_navigation.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_navigation_debug.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_display_viewport.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_frame_axes.cpp
@@ -66,6 +68,8 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_senses.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_state_machine.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_system.cpp
+    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_navigation.cpp
+    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_scripted_activity.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_transitions.cpp
     ${PROJECT_SOURCE_DIR}/tests/physics/test_body.cpp
     ${PROJECT_SOURCE_DIR}/tests/physics/test_collision.cpp
@@ -89,4 +93,5 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/world/test_tile_map.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_world.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_world_simulation.cpp
+    ${PROJECT_SOURCE_DIR}/tests/world/test_npc_world_simulation.cpp
 )

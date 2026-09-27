@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <string>
 #include <stdexcept>
-#include <utility>
 #include <vector>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -16,12 +15,9 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_activity.hpp"
-#include "simple_platformer/npc/npc_activity_script.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
@@ -33,7 +29,6 @@
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/add_player.hpp"
-#include "support/fill_navigation.hpp"
 #include "support/fixed_step.hpp"
 #include "support/npc_machine_builder.hpp"
 
@@ -58,55 +53,6 @@ namespace
             .flying(20.0F)
             .thinking({64.0F, 1.0F});
     }
-
-    struct ScriptCall
-    {
-        std::string hook;
-        simple_platformer::ActorId actor;
-        simple_platformer::LuaNpcActivity activity;
-        simple_platformer::NpcActivitySnapshot snapshot;
-    };
-
-    class RecordingNpcScripts final : public simple_platformer::NpcActivityScripts
-    {
-    public:
-        void enter(
-            simple_platformer::ActorId actor,
-            const simple_platformer::LuaNpcActivity& activity,
-            const simple_platformer::NpcActivitySnapshot& snapshot) override
-        {
-            calls.push_back({"enter", actor, activity, snapshot});
-        }
-
-        simple_platformer::NpcActivityCommand update(
-            simple_platformer::ActorId actor,
-            const simple_platformer::LuaNpcActivity& activity,
-            const simple_platformer::NpcActivitySnapshot& snapshot,
-            float deltaTime) override
-        {
-            updateSteps.push_back(deltaTime);
-            calls.push_back({"update", actor, activity, snapshot});
-            return command;
-        }
-
-        void exit(
-            simple_platformer::ActorId actor,
-            const simple_platformer::LuaNpcActivity& activity,
-            const simple_platformer::NpcActivitySnapshot& snapshot) override
-        {
-            calls.push_back({"exit", actor, activity, snapshot});
-        }
-
-        void forget(simple_platformer::ActorId actor) override
-        {
-            forgotten.push_back(actor);
-        }
-
-        simple_platformer::NpcActivityCommand command;
-        std::vector<ScriptCall> calls;
-        std::vector<float> updateSteps;
-        std::vector<simple_platformer::ActorId> forgotten;
-    };
 }
 
 TEST_CASE("NPC behaviour rejects invalid timing", "[npc][validation]")
@@ -116,142 +62,6 @@ TEST_CASE("NPC behaviour rejects invalid timing", "[npc][validation]")
 
     REQUIRE_THROWS_AS(
         simple_platformer::updateNpcBehaviour(map, world, -0.1F), std::invalid_argument);
-}
-
-TEST_CASE("Same-run and notice-distance facts are independent", "[npc][facts]")
-{
-    simple_platformer::TileMap map =
-        tests::TileMapBuilder({"............", "............", "############"});
-    glm::vec2 targetFeet{56.0F, 32.0F};
-    bool targetGrounded = true;
-    bool hasTarget = true;
-    bool targetAlive = true;
-    bool sameRun = true;
-    bool withinRange = true;
-    SECTION("Same run at the inclusive notice boundary")
-    {
-    }
-    SECTION("Same run beyond notice distance")
-    {
-        targetFeet.x = 120.0F;
-        withinRange = false;
-    }
-    SECTION("Nearby across a gap")
-    {
-        map = tests::TileMapBuilder({"............", "............", "##.#########"});
-        sameRun = false;
-    }
-    SECTION("Distant across a gap")
-    {
-        map = tests::TileMapBuilder({"............", "............", "##.#########"});
-        targetFeet.x = 120.0F;
-        sameRun = false;
-        withinRange = false;
-    }
-    SECTION("Nearby but airborne")
-    {
-        targetGrounded = false;
-        sameRun = false;
-    }
-    SECTION("No remembered target")
-    {
-        hasTarget = false;
-        sameRun = false;
-        withinRange = false;
-    }
-    SECTION("A dead remembered target")
-    {
-        targetAlive = false;
-        sameRun = false;
-        withinRange = false;
-    }
-    simple_platformer::World world;
-    const auto targetId = world.addActor(makePlayer(targetFeet));
-    tests::platformerMovement(actor(world, targetId)).grounded = targetGrounded;
-    if (!targetAlive)
-    {
-        actor(world, targetId).life = simple_platformer::LifeState::Dying;
-    }
-    const auto npcId = world.addActor(
-        tests::ActorBuilder::sized({12.0F, 12.0F})
-            .atFeet({24.0F, 32.0F})
-            .walking()
-            .thinking({32.0F, 1.0F})
-            .running(tests::NpcMachineBuilder::named("observer")
-                         .state("observe", simple_platformer::LuaNpcActivity{"test", "observe"})));
-    tests::platformerMovement(actor(world, npcId)).grounded = true;
-    if (hasTarget)
-    {
-        brain(world, npcId).target = targetId;
-    }
-    // These facts intentionally use current geometry, not visibility or last-known feet.
-    brain(world, npcId).lastKnownTargetFeet = {24.0F, 32.0F};
-    RecordingNpcScripts scripts;
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
-    REQUIRE_FALSE(scripts.calls.empty());
-    const auto& facts = scripts.calls.back().snapshot.facts;
-    REQUIRE_FALSE(facts.targetVisible);
-    REQUIRE(facts.targetOnSameRun == sameRun);
-    REQUIRE(facts.targetWithinNoticeDistance == withinRange);
-}
-
-TEST_CASE("A machine reacts to landing and blocked walking facts", "[npc][machine][movement]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"..........", ".....#....", "##########"});
-    simple_platformer::World world;
-    const auto playerId = tests::addPlayer(world, makePlayer({56.0F, 32.0F}));
-    actor(world, playerId).team = simple_platformer::Team::Player;
-    auto charger =
-        tests::ActorBuilder::sized({12.0F, 12.0F})
-            .atFeet({24.0F, 32.0F})
-            .walking()
-            .onTeam(simple_platformer::Team::Enemy)
-            .thinking({80.0F, 1.0F})
-            .running(tests::NpcMachineBuilder::named("charger")
-                         .state("sleep", simple_platformer::LuaNpcActivity{"test", "rest"})
-                         .state("charge", simple_platformer::LuaNpcActivity{"test", "walk"})
-                         .state("stunned", simple_platformer::LuaNpcActivity{"test", "rest"})
-                         .transition("sleep", "charge")
-                         .when("heardLanding", true)
-                         .when("targetOnSameRun", true)
-                         .when("targetWithinNoticeDistance", true)
-                         .transition("charge", "stunned")
-                         .when("movementBlocked", true))
-            .withContactDamage();
-    const auto npcId = world.addActor(std::move(charger));
-    tests::platformerMovement(actor(world, npcId)).grounded = true;
-    tests::platformerMovement(actor(world, playerId)).grounded = true;
-    RecordingNpcScripts scripts;
-    scripts.command.intentions.direction.x = 1.0F;
-    scripts.command.intentions.avoidLedges = true;
-    scripts.command.intentions.contactDamage = true;
-    world.emitNoise({playerId, {56.0F, 32.0F}, simple_platformer::NoiseKind::Landing});
-
-    simple_platformer::updateNpcSenses(map, world, 0.1F);
-    REQUIRE(tests::perception(world, npcId).heardLanding);
-    REQUIRE(brain(world, npcId).target == playerId);
-    REQUIRE(simple_platformer::onSameGroundRun(
-        map, actor(world, npcId).body.bounds, actor(world, playerId).body.bounds));
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
-    REQUIRE(machine(world, npcId).definition.states[machine(world, npcId).active].name == "charge");
-    REQUIRE(actor(world, npcId).intentions.direction.x == 1.0F);
-    REQUIRE(actor(world, npcId).intentions.contactDamage);
-    REQUIRE(actor(world, npcId).intentions.avoidLedges);
-
-    for (int tick = 0; tick < 8 && !tests::platformerMovement(actor(world, npcId)).blocked; ++tick)
-    {
-        simple_platformer::updateActorMovement(map, world, 0.1F);
-    }
-    REQUIRE(tests::platformerMovement(actor(world, npcId)).blocked);
-    scripts.command = {};
-    simple_platformer::updateNpcSenses(map, world, 0.1F);
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
-    REQUIRE(
-        machine(world, npcId).definition.states[machine(world, npcId).active].name == "stunned");
-    REQUIRE(scripts.calls.back().snapshot.facts.movementBlocked);
-    REQUIRE_FALSE(actor(world, npcId).intentions.contactDamage);
-    REQUIRE(actor(world, npcId).intentions.direction.x == 0.0F);
 }
 
 TEST_CASE("A chasing NPC searches for a lost target, then patrols again", "[npc][fsm]")
@@ -299,13 +109,13 @@ TEST_CASE(
         tests::TileMapBuilder({"........", "........", "..####.."});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({40.0F, 32.0F}));
-    const simple_platformer::ActorId npcId =
-        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                           .atFeet({72.0F, 32.0F})
-                           .walking()
-                           .onTeam(simple_platformer::Team::Enemy)
-                           .shooting()
-                           .thinking({96.0F, 1.0F}));
+    const simple_platformer::ActorId npcId = world.addActor(
+        tests::ActorBuilder::sized({12.0F, 12.0F})
+            .atFeet({72.0F, 32.0F})
+            .walking()
+            .onTeam(simple_platformer::Team::Enemy)
+            .shooting()
+            .thinking({96.0F, 1.0F}));
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
     tests::senses(actor(world, npcId)).standoffDistance = 64.0F;
     brain(world, npcId).target = playerId;
@@ -355,11 +165,12 @@ TEST_CASE("An NPC with a machine takes its activity from the machine, not its ta
     const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({70.0F, 28.0F}));
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({24.0F, 32.0F})
-                           .running(tests::NpcMachineBuilder::named("test")
-                                        .state("nap", simple_platformer::NpcState::Watch)
-                                        .state("hunt", simple_platformer::NpcState::Chase)
-                                        .transition("nap", "hunt")
-                                        .when("targetKnown", true)));
+                           .running(
+                               tests::NpcMachineBuilder::named("test")
+                                   .state("nap", simple_platformer::NpcState::Watch)
+                                   .state("hunt", simple_platformer::NpcState::Chase)
+                                   .transition("nap", "hunt")
+                                   .when("targetKnown", true)));
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
@@ -386,127 +197,15 @@ TEST_CASE("A machine-controlled NPC does not copy its activity into the enum bra
     simple_platformer::World world;
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({24.0F, 32.0F})
-                           .running(tests::NpcMachineBuilder::named("test").state(
-                               "watch", simple_platformer::NpcState::Watch)));
+                           .running(
+                               tests::NpcMachineBuilder::named("test").state(
+                                   "watch", simple_platformer::NpcState::Watch)));
     brain(world, npcId).lastKnownTargetFeet = {70.0F, 32.0F};
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
 
     REQUIRE(actor(world, npcId).intentions.aimDirection.x > 0.0F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Idle);
-}
-
-TEST_CASE(
-    "A scripted machine activity receives snapshots and returns engine commands",
-    "[npc][lua]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"........", "........", "........", "########"});
-    simple_platformer::World world;
-    const simple_platformer::ActorId npcId = world.addActor(
-        makeNpc({24.0F, 32.0F})
-            .running(tests::NpcMachineBuilder::named("scripted")
-                         .state("roam", simple_platformer::LuaNpcActivity{"rat", "roam"}))
-            .patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
-    RecordingNpcScripts scripts;
-    scripts.command.routeTo = glm::vec2{72.0F, 32.0F};
-    scripts.command.aimAt = glm::vec2{80.0F, 16.0F};
-    scripts.command.intentions.primaryAttackPressed = true;
-
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
-
-    REQUIRE(scripts.calls.size() == 2);
-    REQUIRE(scripts.calls[0].hook == "enter");
-    REQUIRE(scripts.calls[1].hook == "update");
-    REQUIRE(scripts.calls[0].actor == npcId);
-    REQUIRE(scripts.calls[0].activity == simple_platformer::LuaNpcActivity{"rat", "roam"});
-    REQUIRE(scripts.calls[0].snapshot.feet == glm::vec2{24.0F, 32.0F});
-    REQUIRE(scripts.calls[0].snapshot.facts.stateElapsed == 0.0F);
-    REQUIRE(scripts.calls[1].snapshot.facts.stateElapsed == 0.0F);
-    REQUIRE_FALSE(scripts.calls[0].snapshot.pathComplete);
-    REQUIRE_FALSE(scripts.calls[0].snapshot.targetFeet.has_value());
-    REQUIRE(scripts.calls[0].snapshot.patrol.has_value());
-    const simple_platformer::Patrol scriptedPatrol =
-        scripts.calls[0].snapshot.patrol.value_or(simple_platformer::Patrol{});
-    REQUIRE(scriptedPatrol.firstFeet == glm::vec2{24.0F, 32.0F});
-    REQUIRE(scriptedPatrol.secondFeet == glm::vec2{72.0F, 32.0F});
-    REQUIRE(scripts.updateSteps == std::vector<float>{0.1F});
-    REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
-    REQUIRE(actor(world, npcId).intentions.aimDirection == glm::vec2{56.0F, -16.0F});
-    REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
-    REQUIRE(machine(world, npcId).stateElapsed == 0.1F);
-    REQUIRE(brain(world, npcId).stateElapsed == 0.0F);
-
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
-    REQUIRE(scripts.calls.size() == 3);
-    REQUIRE(scripts.calls.back().hook == "update");
-    REQUIRE(scripts.calls.back().snapshot.facts.stateElapsed == 0.1F);
-}
-
-TEST_CASE("A scripted machine exits and enters around a transition", "[npc][lua]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
-    simple_platformer::World world;
-    const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({56.0F, 32.0F}));
-    const simple_platformer::ActorId npcId = world.addActor(
-        makeNpc({24.0F, 32.0F})
-            .running(tests::NpcMachineBuilder::named("scripted")
-                         .state("waiting", simple_platformer::LuaNpcActivity{"rat", "wait"})
-                         .state("moving", simple_platformer::LuaNpcActivity{"rat", "move"})
-                         .transition("waiting", "moving")
-                         .when("targetKnown", true)));
-    RecordingNpcScripts scripts;
-
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
-    brain(world, npcId).target = playerId;
-    brain(world, npcId).lastKnownTargetFeet = {56.0F, 32.0F};
-    tests::perception(world, npcId).targetVisible = true;
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
-
-    REQUIRE(scripts.calls.size() == 5);
-    REQUIRE(scripts.calls[0].hook == "enter");
-    REQUIRE(scripts.calls[0].activity.activity == "wait");
-    REQUIRE(scripts.calls[1].hook == "update");
-    REQUIRE(scripts.calls[2].hook == "exit");
-    REQUIRE(scripts.calls[2].activity.activity == "wait");
-    REQUIRE(scripts.calls[2].snapshot.facts.stateElapsed == 0.1F);
-    REQUIRE(scripts.calls[3].hook == "enter");
-    REQUIRE(scripts.calls[3].activity.activity == "move");
-    REQUIRE(scripts.calls[3].snapshot.facts.stateElapsed == 0.0F);
-    REQUIRE(scripts.calls[3].snapshot.targetFeet == glm::vec2{56.0F, 32.0F});
-    REQUIRE(scripts.calls[4].hook == "update");
-    REQUIRE(scripts.calls[4].snapshot.facts.stateElapsed == 0.0F);
-    REQUIRE(simple_platformer::activeNpcMachineState(machine(world, npcId)).name == "moving");
-}
-
-TEST_CASE("A scripted machine activity requires a scripting runtime", "[npc][lua][validation]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", "...", "###"});
-    simple_platformer::World world;
-    world.addActor(
-        makeNpc({24.0F, 32.0F})
-            .running(tests::NpcMachineBuilder::named("scripted")
-                         .state("waiting", simple_platformer::LuaNpcActivity{"rat", "wait"})));
-
-    REQUIRE_THROWS_WITH(
-        simple_platformer::updateNpcBehaviour(map, world, 0.1F),
-        "A scripted NPC activity needs the scripting runtime");
-}
-
-TEST_CASE("Removing an actor forgets its scripted activity state", "[npc][lua][lifecycle]")
-{
-    simple_platformer::World world;
-    const simple_platformer::ActorId npcId = world.addActor(makeNpc({24.0F, 32.0F}));
-    simple_platformer::WorldRequests requests;
-    requests.remove(npcId);
-    RecordingNpcScripts scripts;
-
-    simple_platformer::forgetNpcActivities(requests.actorsToRemove(), scripts);
-    REQUIRE(world.findActor(npcId) != nullptr);
-    simple_platformer::applyWorldRequests(world, requests);
-
-    REQUIRE(scripts.forgotten == std::vector<simple_platformer::ActorId>{npcId});
-    REQUIRE(world.findActor(npcId) == nullptr);
 }
 
 TEST_CASE("A watching NPC looks about without leaving where it stands", "[npc][fsm]")
@@ -583,10 +282,11 @@ TEST_CASE(
     const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
     // A walking NPC as tall as a zombie, standing on the floor at y = 32. Its height decides
     // where it can stand.
-    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
-                                          .atFeet({56.0F, 32.0F})
-                                          .walking()
-                                          .thinking({64.0F, 1.0F}));
+    const auto npcId = world.addActor(
+        tests::ActorBuilder::sized({12.0F, 20.0F})
+            .atFeet({56.0F, 32.0F})
+            .walking()
+            .thinking({64.0F, 1.0F}));
     tests::platformerMovement(world, npcId).grounded = true;
     const glm::vec2 lastKnownFeet{8.0F, 20.0F};
     brain(world, npcId).target = playerId;
@@ -598,143 +298,6 @@ TEST_CASE(
     REQUIRE(actor(world, npcId).intentions.direction.x < 0.0F);
     REQUIRE(pathFollower(world, npcId).destinationCell == simple_platformer::GridPosition{0, 1});
     REQUIRE(brain(world, npcId).lastKnownTargetFeet == lastKnownFeet);
-}
-
-TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][navigation]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
-    simple_platformer::World world;
-    const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
-    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                                          .atFeet({56.0F, 32.0F})
-                                          .walking()
-                                          .thinking({64.0F, 1.0F}));
-    tests::platformerMovement(world, npcId).grounded = true;
-    brain(world, npcId).target = playerId;
-    brain(world, npcId).lastKnownTargetFeet = {8.0F, 32.0F};
-    tests::perception(world, npcId).targetVisible = false;
-    REQUIRE(world.platformerConnections().size() == 0);
-
-    const simple_platformer::NpcBehaviourCost first =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(first.pathSearches == 1);
-    REQUIRE(first.searches.cellsReused == 0);
-    REQUIRE(first.searches.simulatedTicks > 0);
-    REQUIRE(world.platformerConnections().size() > 0);
-
-    // A search to a new destination reuses what the first one simulated.
-    brain(world, npcId).lastKnownTargetFeet = {24.0F, 32.0F};
-    pathFollower(world, npcId).repathRemaining = 0.0F;
-    const simple_platformer::NpcBehaviourCost second =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(second.pathSearches == 1);
-    REQUIRE(second.searches.cellsReused > 0);
-    REQUIRE(second.searches.simulatedTicks == 0);
-
-    // Back to the first destination, the path is remembered and nothing is expanded.
-    brain(world, npcId).lastKnownTargetFeet = {8.0F, 32.0F};
-    pathFollower(world, npcId).repathRemaining = 0.0F;
-    const simple_platformer::NpcBehaviourCost third =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(third.pathSearches == 1);
-    REQUIRE(third.searches.pathsRemembered == 1);
-    REQUIRE(third.searches.nodesExpanded == 0);
-}
-
-TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[npc][navigation]")
-{
-    simple_platformer::TileMap map =
-        tests::TileMapBuilder({".....", ".....", "##g##"})
-            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
-    simple_platformer::World world;
-    const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
-    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                                          .atFeet({8.0F, 32.0F})
-                                          .walking()
-                                          .thinking({64.0F, 1.0F}));
-    tests::fillNavigation(map, world);
-    const simple_platformer::ConnectionBody body{
-        {12.0F, 12.0F}, simple_platformer::PlatformerMovementConfig{}, tests::FixedStepSeconds};
-    REQUIRE(world.platformerConnections().find({2, 1}, body) != nullptr);
-
-    REQUIRE(map.breakTile({2, 2}));
-    tests::platformerMovement(world, npcId).grounded = true;
-    brain(world, npcId).target = playerId;
-    brain(world, npcId).lastKnownTargetFeet = {72.0F, 32.0F};
-    tests::perception(world, npcId).targetVisible = false;
-    const simple_platformer::NpcBehaviourCost waiting =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-
-    // The search synced with the map first, so the cells the break touched were dropped;
-    // it met one and gave up rather than simulate it, and the NPC asks again next step
-    // instead of waiting out its cooldown.
-    REQUIRE(waiting.pathSearches == 1);
-    REQUIRE(waiting.searches.deferred == 1);
-    REQUIRE(waiting.searches.simulatedTicks == 0);
-    REQUIRE(world.platformerConnections().cellsPending(body) > 0);
-    REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
-    REQUIRE(pathFollower(world, npcId).repathRemaining == 0.0F);
-
-    // The fill keeps the dropped cells again over the steps that follow, charged to
-    // the profile, and the next search goes through. The cell over the hole, which
-    // nothing can stand on now, is kept as having no connections.
-    int filledTicks = 0;
-    const std::size_t pending = world.platformerConnections().cellsPending(body);
-    for (std::size_t step = 0;
-         step < pending && world.platformerConnections().cellsPending(body) > 0;
-         ++step)
-    {
-        filledTicks +=
-            simple_platformer::fillNavigation(
-                map, world.platformerConnections(), simple_platformer::NavigationFillTicksPerStep)
-                .simulatedTicks;
-    }
-    REQUIRE(filledTicks > 0);
-    REQUIRE(world.platformerConnections().cellsPending(body) == 0);
-    const std::vector<simple_platformer::NavigationNeighbor>* overTheHole =
-        world.platformerConnections().find({2, 1}, body);
-    REQUIRE(overTheHole != nullptr);
-    REQUIRE(overTheHole->empty());
-    const simple_platformer::NpcBehaviourCost searched =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(searched.pathSearches == 1);
-    REQUIRE(searched.searches.deferred == 0);
-    REQUIRE(pathFollower(world, npcId).repathRemaining > 0.0F);
-}
-
-TEST_CASE("An NPC plans its path again after a break, cooldown or not", "[npc][navigation]")
-{
-    simple_platformer::TileMap map =
-        tests::TileMapBuilder({"..........", "..........", "#######g##"})
-            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
-    simple_platformer::World world;
-    const auto playerId = world.addActor(makePlayer({40.0F, 32.0F}));
-    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                                          .atFeet({8.0F, 32.0F})
-                                          .walking()
-                                          .thinking({64.0F, 1.0F}));
-    tests::fillNavigation(map, world);
-    tests::platformerMovement(world, npcId).grounded = true;
-    brain(world, npcId).target = playerId;
-    brain(world, npcId).lastKnownTargetFeet = {40.0F, 32.0F};
-    tests::perception(world, npcId).targetVisible = false;
-    const simple_platformer::NpcBehaviourCost planned =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(planned.pathSearches == 1);
-    REQUIRE(pathFollower(world, npcId).path.has_value());
-    REQUIRE(pathFollower(world, npcId).repathRemaining > 0.0F);
-
-    // With the path planned and the map as it was, the next step searches nothing.
-    const simple_platformer::NpcBehaviourCost settled =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(settled.pathSearches == 0);
-
-    // A break may have cut the path, so it is planned again before the cooldown is up.
-    REQUIRE(map.breakTile({7, 2}));
-    const simple_platformer::NpcBehaviourCost broken =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(broken.pathSearches == 1);
-    REQUIRE(pathFollower(world, npcId).breaksWhenPlanned == 1);
 }
 
 TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][fsm]")

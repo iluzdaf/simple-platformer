@@ -93,6 +93,36 @@ TEST_CASE("Explicit level placements reject unknown fields", "[app][content][jso
         simple_platformer::parseLevelData(level.dump(), "placements.json"), std::invalid_argument);
 }
 
+TEST_CASE("Present placement lists must be arrays", "[app][content][json]")
+{
+    auto level = minimalLevel();
+    level["actors"] = nlohmann::json::object();
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseLevelData(level.dump(), "placements.json"),
+        Catch::Matchers::ContainsSubstring("actors: expected an array"));
+
+    level = minimalLevel();
+    level["pickups"] = nullptr;
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseLevelData(level.dump(), "placements.json"),
+        Catch::Matchers::ContainsSubstring("pickups: expected an array"));
+}
+
+TEST_CASE("Levels without object markers may omit placement arrays", "[app][content][json]")
+{
+    const auto data = simple_platformer::parseLevelData(
+        R"({
+            "tileLegend": {".": "empty"},
+            "map": ["..."],
+            "playerSpawnCell": [0, 0],
+            "exit": {"definition": "test_door", "spawnCell": [2, 0]}
+        })",
+        "empty level");
+
+    REQUIRE(data.actors.empty());
+    REQUIRE(data.pickups.empty());
+}
+
 TEST_CASE("Tile legend keys must be one character", "[app][content][json]")
 {
     auto level = minimalLevel();

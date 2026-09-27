@@ -435,7 +435,8 @@ namespace simple_platformer
             result.playerSpawn =
                 readPosition(root, "playerSpawnCell", "playerSpawnFeet", sourceName, "root");
 
-            const Json& actors = requiredJsonMember(root, "actors", sourceName, "root");
+            const Json emptyPlacements = Json::array();
+            const Json& actors = root.contains("actors") ? root.at("actors") : emptyPlacements;
             if (!actors.is_array())
             {
                 failJson(sourceName, "actors", "expected an array");
@@ -454,7 +455,7 @@ namespace simple_platformer
                     fieldPath(origin, "definition"), result.actors.back().definitionName);
             }
 
-            const Json& pickups = requiredJsonMember(root, "pickups", sourceName, "root");
+            const Json& pickups = root.contains("pickups") ? root.at("pickups") : emptyPlacements;
             if (!pickups.is_array())
             {
                 failJson(sourceName, "pickups", "expected an array");

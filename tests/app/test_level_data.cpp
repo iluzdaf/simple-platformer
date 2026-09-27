@@ -126,7 +126,6 @@ TEST_CASE(
                 {"definition": "bat", "spawnFeet": [17, 9],
                  "patrol": {"firstFeet": [17, 9], "secondFeet": [25, 13]}}
             ],
-            "pickups": [],
             "exit": {"definition": "test_door", "spawnCell": [3, 0]}
         })",
         "test level");
@@ -155,7 +154,6 @@ TEST_CASE("Explicit pickups and exits retain item requirements", "[app][content]
             "tileLegend": {".": "empty", "#": "stone"},
             "map": ["....", "####"],
             "playerSpawnCell": [1, 0],
-            "actors": [],
             "pickups": [{"item": "key", "quantity": 1, "bodySize": [8, 8],
                          "spawnCell": [1, 0]}],
             "exit": {"definition": "test_door", "spawnCell": [2, 0],

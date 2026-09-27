@@ -86,8 +86,6 @@ A minimal level looks like this:
   "tileLegend": { ".": "empty", "#": "stone" },
   "map": ["........", "........", "########"],
   "playerSpawnCell": [1, 1],
-  "actors": [],
-  "pickups": [],
   "exit": {
     "definition": "bunker_door",
     "spawnCell": [6, 1]
@@ -95,9 +93,15 @@ A minimal level looks like this:
 }
 ```
 
-Every level requires `tileLegend`, `map`, one player spawn, `actors`, `pickups`, and
-`exit`. The actor and pickup arrays may be empty. An exit without `nextLevel` completes
-the game.
+Every level requires `tileLegend`, `map`, one player spawn, and `exit`. An exit
+without `nextLevel` completes the game.
+
+To place actors or pickups explicitly, add either or both arrays to the level object:
+
+```json
+"actors": [{ "definition": "zombie", "spawnCell": [5, 1] }],
+"pickups": [{ "definition": "medicine_box", "spawnCell": [4, 1] }]
+```
 
 ## Maps and positions
 
@@ -142,7 +146,6 @@ Do not put `spawnCell` or `spawnFeet` in a legend entry: the marker supplies its
 Explicit actors and pickups are kept first, followed by markers in row order, left to
 right. They are added, not merged or deduplicated. Use explicit placements for overlaps
 (such as a zombie inside grass), fractional positions, or individually configured objects.
-When using `objectLegend`, empty `actors` and `pickups` arrays may be omitted.
 The loader expands markers into ordinary placements and resolves their terrain to empty;
 the simulation does not interpret object symbols.
 

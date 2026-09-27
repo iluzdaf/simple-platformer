@@ -44,6 +44,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/app/test_content_validation.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_content_json.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_actor_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/test_actor_definition.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_machine_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_npc_script_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_animation_catalog.cpp

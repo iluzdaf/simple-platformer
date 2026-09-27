@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <stdexcept>
 #include <filesystem>
@@ -12,6 +13,7 @@
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "support/actor_components.hpp"
 
 TEST_CASE("A catalog entry must reference an existing level file", "[app][content]")
 {
@@ -64,4 +66,29 @@ TEST_CASE("A level's cells become the feet of those cells on its map", "[app][co
     REQUIRE(
         simple_platformer::feetOf(levelExit->bounds) ==
         simple_platformer::feetInCell(tileSize, {5, 2}));
+}
+
+TEST_CASE("A level composes an actor from its catalogue definition", "[app][actors]")
+{
+    const auto levels = simple_platformer::parseLevelCatalog(
+        R"({"startLevel":1,"levels":[{"number":1,"file":"actor_placement.json"}]})",
+        "fixture",
+        "tests/fixtures");
+    auto level = simple_platformer::composeGameLevel(levels, 1, 0);
+    REQUIRE(level.world.actors().size() == 1);
+    auto& actor = level.world.actors().front();
+    REQUIRE(tests::platformerMovement(actor).config.maximumSpeed == 23);
+    REQUIRE(simple_platformer::feetOf(actor.body.bounds).x == 56);
+}
+
+TEST_CASE("Level composition reports unknown actor definitions", "[app][actors]")
+{
+    const auto invalid = simple_platformer::parseLevelCatalog(
+        R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_actor.json"}]})",
+        "fixture",
+        "tests/fixtures");
+    REQUIRE_THROWS_WITH(
+        simple_platformer::composeGameLevel(invalid, 1, 0),
+        Catch::Matchers::ContainsSubstring(
+            "objectLegend.Z.definition: unknown actor definition 'missing'"));
 }

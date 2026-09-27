@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 
 namespace simple_platformer

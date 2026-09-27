@@ -11,6 +11,7 @@
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"

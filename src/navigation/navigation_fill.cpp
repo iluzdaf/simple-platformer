@@ -7,10 +7,12 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"

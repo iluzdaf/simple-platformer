@@ -88,6 +88,61 @@ TEST_CASE("Ground movement accelerates and decelerates", "[movement][platformer]
     REQUIRE_NEAR(body.velocity.x, 15.0F);
 }
 
+TEST_CASE("Ledge avoidance cannot skip a gap in either direction", "[movement][platformer]")
+{
+    const TileMap map = tests::TileMapBuilder({"........", "........", "###..###"});
+    float side = 1.0F;
+    SECTION("Walking right")
+    {
+        side = 1.0F;
+    }
+    SECTION("Walking left")
+    {
+        side = -1.0F;
+    }
+    const float start = side > 0.0F ? 18.0F : 98.0F;
+    Body body{{{start, 20.0F}, {12.0F, 12.0F}}, {side * 400.0F, 0.0F}};
+    PlatformerMovement movement;
+    movement.config.maximumSpeed = 400.0F;
+    movement.grounded = true;
+    InputIntentions intentions;
+    intentions.direction.x = side;
+    intentions.avoidLedges = true;
+
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
+
+    REQUIRE(movement.blocked);
+    REQUIRE(movement.grounded);
+    REQUIRE(body.bounds.position.x == start);
+    REQUIRE(body.velocity.x == 0.0F);
+}
+
+TEST_CASE("Ledge avoidance is opt-in and does not prevent jumping", "[movement][platformer]")
+{
+    const TileMap map =
+        tests::TileMapBuilder({"........", "........", "###.....", "........", "########"});
+    Body body{{{36.0F, 20.0F}, {12.0F, 12.0F}}, {100.0F, 0.0F}};
+    PlatformerMovement movement;
+    movement.grounded = true;
+    InputIntentions intentions;
+    intentions.direction.x = 1.0F;
+    SECTION("Ordinary walking can leave the floor")
+    {
+    }
+    SECTION("A requested jump bypasses the ledge guard")
+    {
+        intentions.avoidLedges = true;
+        intentions.jumpPressed = true;
+        intentions.jumpHeld = true;
+    }
+
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
+
+    REQUIRE_FALSE(movement.blocked);
+    REQUIRE(body.bounds.position.x > 36.0F);
+    REQUIRE(body.velocity.x > 0.0F);
+}
+
 TEST_CASE("Air movement uses its separate acceleration", "[movement][platformer]")
 {
     const TileMap map = makeFloorMap();

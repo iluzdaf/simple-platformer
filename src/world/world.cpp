@@ -100,6 +100,22 @@ namespace simple_platformer
         return elapsedSimulationTimeSeconds;
     }
 
+    void World::emitNoise(NoiseEvent event)
+    {
+        if (!isValid(event.source) || !isFinite(event.feet))
+        {
+            throw std::invalid_argument("Noise events require a source and finite feet");
+        }
+        pendingNoises.push_back(event);
+    }
+
+    std::vector<NoiseEvent> World::takeNoises()
+    {
+        std::vector<NoiseEvent> events = std::move(pendingNoises);
+        pendingNoises.clear();
+        return events;
+    }
+
     std::optional<float> World::secondsSince(const std::optional<double>& timeSeconds) const
     {
         requireWithinSimulationTime(timeSeconds, "Stamp");

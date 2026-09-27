@@ -56,6 +56,18 @@
       },
       "machine": "rat"
     },
+    "boar": {
+      "bodySize": [16, 12],
+      "team": "enemy",
+      "facing": "left",
+      "animations": "boar",
+      "spriteAnchor": "feet",
+      "health": 3,
+      "platformer": { "maximumSpeed": 125 },
+      "senses": { "noticeDistance": 200, "targetMemoryDuration": 1.5 },
+      "contactDamage": { "damage": 1 },
+      "machine": "boar"
+    },
     "zombie_soldier": {
       "bodySize": [12, 20],
       "team": "enemy",

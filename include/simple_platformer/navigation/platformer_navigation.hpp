@@ -70,7 +70,7 @@ namespace simple_platformer
     // This selects a chase destination, not a guaranteed path to it.
     std::optional<GridPosition> findPlatformerChaseCell(
         const TileMap& map,
-        glm::vec2 lastSeenFeet,
+        glm::vec2 lastKnownFeet,
         glm::vec2 bodySize);
 
     // The connections leaving a cell, as a copy the caller owns: walks to every cell

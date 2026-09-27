@@ -36,14 +36,45 @@ namespace
     }
 }
 
+TEST_CASE("Machine conditions compose run and range facts independently", "[npc][fsm]")
+{
+    simple_platformer::NpcFacts facts;
+    SECTION("Neither condition")
+    {
+    }
+    SECTION("Only the same run")
+    {
+        facts.targetOnSameRun = true;
+    }
+    SECTION("Only notice distance")
+    {
+        facts.targetWithinNoticeDistance = true;
+    }
+    SECTION("Both conditions")
+    {
+        facts.targetOnSameRun = true;
+        facts.targetWithinNoticeDistance = true;
+    }
+    REQUIRE(
+        simple_platformer::npcConditionsHold({{"targetOnSameRun", true}}, facts) ==
+        facts.targetOnSameRun);
+    REQUIRE(
+        simple_platformer::npcConditionsHold({{"targetWithinNoticeDistance", true}}, facts) ==
+        facts.targetWithinNoticeDistance);
+    REQUIRE(
+        simple_platformer::npcConditionsHold(
+            {{"targetOnSameRun", true}, {"targetWithinNoticeDistance", true}}, facts) ==
+        (facts.targetOnSameRun && facts.targetWithinNoticeDistance));
+}
+
 TEST_CASE("Every fact row answers from the facts and an unknown name has no row", "[npc][fsm]")
 {
     for (const NpcFactRow& row : simple_platformer::npcFactRows())
     {
         REQUIRE_FALSE(row.holds(NpcFactsBuilder::facts()));
     }
-    REQUIRE(simple_platformer::npcFactRow("targetTooClose")
-                ->holds(NpcFactsBuilder::facts().targetTooClose()));
+    REQUIRE(simple_platformer::npcFactRow("targetWithinStandoffDistance")
+                ->holds(NpcFactsBuilder::facts().targetWithinStandoffDistance()));
     REQUIRE(
         simple_platformer::npcFactRow("hasPatrol")->holds(NpcFactsBuilder::facts().withPatrol()));
     REQUIRE(simple_platformer::npcFactRow("cornered") == nullptr);
@@ -150,19 +181,20 @@ TEST_CASE("A transition with a hold fires once its conditions have held that lon
 
 TEST_CASE("Among transitions from one state the first that holds wins", "[npc][fsm]")
 {
-    NpcMachine machine = simple_platformer::startNpcMachine(NpcMachineBuilder::named("test")
-                                                                .state("rest", NpcState::Idle)
-                                                                .state("hunt", NpcState::Chase)
-                                                                .state("flee", NpcState::Retreat)
-                                                                .transition("rest", "flee")
-                                                                .when("targetTooClose", true)
-                                                                .transition("rest", "hunt")
-                                                                .when("targetKnown", true));
+    NpcMachine machine =
+        simple_platformer::startNpcMachine(NpcMachineBuilder::named("test")
+                                               .state("rest", NpcState::Idle)
+                                               .state("hunt", NpcState::Chase)
+                                               .state("flee", NpcState::Retreat)
+                                               .transition("rest", "flee")
+                                               .when("targetWithinStandoffDistance", true)
+                                               .transition("rest", "hunt")
+                                               .when("targetKnown", true));
 
     // Both the flee and the hunt transitions hold; the flee is listed first.
     REQUIRE(
         simple_platformer::advanceNpcMachine(
-            machine, NpcFactsBuilder::facts().targetTooClose(), 0.1F) == 0);
+            machine, NpcFactsBuilder::facts().targetWithinStandoffDistance(), 0.1F) == 0);
     REQUIRE(
         std::get<simple_platformer::BuiltInNpcActivity>(
             simple_platformer::activeNpcMachineState(machine).does)

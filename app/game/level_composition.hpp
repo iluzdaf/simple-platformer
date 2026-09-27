@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/world/tile_map.hpp"
@@ -18,6 +22,8 @@ namespace simple_platformer
         TileMap map;
         World world;
         glm::vec2 playerSpawnFeet = {0.0F, 0.0F};
+        // Content names stay outside core actors; debug views resolve them by ID.
+        std::unordered_map<std::uint32_t, std::string> actorDefinitionNames;
     };
 
     // Neither overload inserts the player; Game::startLevel places and adds it.

@@ -150,9 +150,31 @@ TEST_CASE("World rejects invalid actor composition", "[world][actor]")
     {
         actor.brain = simple_platformer::NpcBrain{};
     }
+    SECTION("Perception without the other NPC components")
+    {
+        actor.perception = simple_platformer::NpcPerception{};
+    }
+    SECTION("An NPC without perception")
+    {
+        actor.brain = simple_platformer::NpcBrain{};
+        actor.senses = simple_platformer::NpcSenses{};
+        actor.pathFollower = simple_platformer::PathFollower{};
+    }
     SECTION("Damage taken in the future")
     {
         actor.lastDamageTimeSeconds = 1.0F;
+    }
+    SECTION("Shot time in the future")
+    {
+        actor.team = simple_platformer::Team::Player;
+        actor.rangedWeapon = simple_platformer::RangedWeapon{};
+        actor.rangedWeapon->lastFiredTimeSeconds = 1.0;
+    }
+    SECTION("Non-finite shot time")
+    {
+        actor.team = simple_platformer::Team::Player;
+        actor.rangedWeapon = simple_platformer::RangedWeapon{};
+        actor.rangedWeapon->lastFiredTimeSeconds = std::numeric_limits<double>::infinity();
     }
 
     REQUIRE_THROWS_AS(world.addActor(actor), std::invalid_argument);
@@ -163,6 +185,7 @@ TEST_CASE("NPC composition does not require a bite attack", "[world][actor]")
     simple_platformer::World world;
     simple_platformer::Actor npc = makeActor();
     npc.brain = simple_platformer::NpcBrain{};
+    npc.perception = simple_platformer::NpcPerception{};
     npc.senses = simple_platformer::NpcSenses{};
     npc.pathFollower = simple_platformer::PathFollower{};
 

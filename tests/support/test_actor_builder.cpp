@@ -82,6 +82,8 @@ TEST_CASE("An NPC from the actor builder is one World accepts", "[support][actor
     simple_platformer::Actor& npc = tests::actor(world, id);
     REQUIRE(npc.team == simple_platformer::Team::Enemy);
     REQUIRE(tests::brain(npc).state == simple_platformer::NpcState::Idle);
+    REQUIRE_FALSE(tests::perception(npc).targetVisible);
+    REQUIRE_FALSE(tests::perception(npc).heardLanding);
     REQUIRE(tests::senses(npc).noticeDistance == 64.0F);
     REQUIRE(tests::senses(npc).targetMemoryDuration == 2.0F);
     REQUIRE_FALSE(tests::pathFollower(npc).path.has_value());

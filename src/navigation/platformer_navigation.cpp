@@ -29,8 +29,8 @@ namespace simple_platformer
 {
     namespace
     {
-        // Two seconds at 60 Hz. A traversal that has not landed and stopped by then is not
-        // a connection.
+        // Limit a traversal to 120 simulated updates (two seconds at 60 Hz).
+        // It must land and stop within that budget to become a connection.
         constexpr int MaximumConnectionSimulationTicks = 120;
 
         void countSimulatedTick(PathSearchStatistics* statistics)
@@ -82,7 +82,6 @@ namespace simple_platformer
             footprint = unionOf(footprint, cellsCovered(tileSize, around));
         }
 
-        // No cell the bounds cover blocks movement.
         bool bodyFits(const TileMap& map, const Aabb& bounds)
         {
             const CellRange cells = cellsCovered(map.tileSize(), bounds);
@@ -330,7 +329,6 @@ namespace simple_platformer
 
     namespace
     {
-        // Hands the search the connections leaving a cell, one at a time.
         using ConnectionVisitor = std::function<void(const NavigationNeighbor& neighbor)>;
         using ConnectionSource =
             std::function<void(GridPosition cell, const ConnectionVisitor& visit)>;
@@ -502,7 +500,6 @@ namespace simple_platformer
         {
             throw std::invalid_argument("A jump start penalty cannot be negative");
         }
-        // A goal off the map has no path, and there is nothing to learn from searching.
         if (!map.contains(start) || !map.contains(goal))
         {
             return std::nullopt;
@@ -510,7 +507,6 @@ namespace simple_platformer
         const ConnectionBody body{bodySize, movement, stepSeconds};
         const PathQuery query{start, goal, navigation.jumpStartPenaltyTicks};
 
-        // With a cache, what it remembers may answer the query outright.
         if (cache != nullptr)
         {
             cache->syncWith(map);
@@ -521,7 +517,6 @@ namespace simple_platformer
             }
         }
 
-        // One search either way; only where its connections come from differs.
         bool incomplete = false;
         const ConnectionSource connectionsOf =
             cache != nullptr ? connectionsReadFrom(*cache, map, body, statistics, incomplete)
@@ -596,10 +591,10 @@ namespace simple_platformer
 
     std::optional<GridPosition> findPlatformerChaseCell(
         const TileMap& map,
-        glm::vec2 lastSeenFeet,
+        glm::vec2 lastKnownFeet,
         glm::vec2 bodySize)
     {
-        if (!isFinite(lastSeenFeet) || !isFinite(bodySize) || bodySize.x <= 0.0F ||
+        if (!isFinite(lastKnownFeet) || !isFinite(bodySize) || bodySize.x <= 0.0F ||
             bodySize.y <= 0.0F)
         {
             throw std::invalid_argument(
@@ -607,10 +602,10 @@ namespace simple_platformer
         }
 
         // Avoid converting an out-of-map world position to an integer grid cell.
-        if (lastSeenFeet.x >= 0.0F && lastSeenFeet.x < map.pixelWidth() && lastSeenFeet.y >= 0.0F &&
-            lastSeenFeet.y <= map.pixelHeight())
+        if (lastKnownFeet.x >= 0.0F && lastKnownFeet.x < map.pixelWidth() &&
+            lastKnownFeet.y >= 0.0F && lastKnownFeet.y <= map.pixelHeight())
         {
-            const GridPosition targetCell = cellAtFeet(map.tileSize(), lastSeenFeet);
+            const GridPosition targetCell = cellAtFeet(map.tileSize(), lastKnownFeet);
             if (canStandAt(map, targetCell, bodySize))
             {
                 return targetCell;
@@ -625,9 +620,9 @@ namespace simple_platformer
         const auto tileSize = static_cast<float>(map.tileSize());
         const GridPosition anchor{
             static_cast<int>(
-                std::floor(std::clamp(lastSeenFeet.x, 0.0F, map.pixelWidth() - 1.0F) / tileSize)),
-            static_cast<int>(
-                std::floor(std::clamp(lastSeenFeet.y, 0.0F, map.pixelHeight() - 1.0F) / tileSize))};
+                std::floor(std::clamp(lastKnownFeet.x, 0.0F, map.pixelWidth() - 1.0F) / tileSize)),
+            static_cast<int>(std::floor(
+                std::clamp(lastKnownFeet.y, 0.0F, map.pixelHeight() - 1.0F) / tileSize))};
         const int farthestRing =
             std::max({anchor.x, map.width() - 1 - anchor.x, anchor.y, map.height() - 1 - anchor.y});
 
@@ -640,8 +635,8 @@ namespace simple_platformer
                 return;
             }
             const glm::vec2 candidateFeet = feetInCell(map.tileSize(), candidate);
-            const double dx = static_cast<double>(candidateFeet.x) - lastSeenFeet.x;
-            const double dy = static_cast<double>(candidateFeet.y) - lastSeenFeet.y;
+            const double dx = static_cast<double>(candidateFeet.x) - lastKnownFeet.x;
+            const double dy = static_cast<double>(candidateFeet.y) - lastKnownFeet.y;
             const double distanceSquared = dx * dx + dy * dy;
             const bool earlierInScanOrder =
                 closest.has_value() && (candidate.y < closest->y ||

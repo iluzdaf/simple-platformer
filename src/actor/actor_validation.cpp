@@ -94,12 +94,17 @@ namespace simple_platformer
                     throw std::invalid_argument("Actor bite data is invalid");
                 }
             }
-            if (actor.rangedWeapon.has_value() && actor.bite.has_value())
+            if (actor.contactDamage.has_value() && actor.contactDamage->damage <= 0)
+            {
+                throw std::invalid_argument("Actor contact damage must be positive");
+            }
+            const int attacks = static_cast<int>(actor.rangedWeapon.has_value()) +
+                                static_cast<int>(actor.bite.has_value());
+            if (attacks > 1)
             {
                 throw std::invalid_argument("An actor can have only one primary attack");
             }
-            if ((actor.rangedWeapon.has_value() || actor.bite.has_value()) &&
-                actor.team == Team::Neutral)
+            if ((attacks > 0 || actor.contactDamage.has_value()) && actor.team == Team::Neutral)
             {
                 throw std::invalid_argument("Actors with attacks require a non-neutral team");
             }
@@ -114,15 +119,16 @@ namespace simple_platformer
         void validateNpc(const Actor& actor)
         {
             const bool hasAnyNpcComponent = actor.brain.has_value() || actor.senses.has_value() ||
+                                            actor.perception.has_value() ||
                                             actor.patrol.has_value() ||
                                             actor.pathFollower.has_value();
-            const bool hasRequiredNpcComponents = actor.brain.has_value() &&
-                                                  actor.senses.has_value() &&
-                                                  actor.pathFollower.has_value();
+            const bool hasRequiredNpcComponents =
+                actor.brain.has_value() && actor.perception.has_value() &&
+                actor.senses.has_value() && actor.pathFollower.has_value();
             if (hasAnyNpcComponent && !hasRequiredNpcComponents)
             {
                 throw std::invalid_argument(
-                    "NPC actors require a brain, senses, and path follower");
+                    "NPC actors require a brain, perception, senses, and path follower");
             }
             if (actor.machine.has_value())
             {
@@ -142,7 +148,7 @@ namespace simple_platformer
             {
                 requireSeconds(actor.brain->stateElapsed, "NPC state elapsed");
                 requireSeconds(actor.brain->targetMemoryRemaining, "NPC target memory remaining");
-                if (!isFinite(actor.brain->lastSeenTargetFeet))
+                if (!isFinite(actor.brain->lastKnownTargetFeet))
                 {
                     throw std::invalid_argument("NPC brain runtime data is invalid");
                 }

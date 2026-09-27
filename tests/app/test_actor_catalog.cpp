@@ -55,7 +55,7 @@ TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[
         throw std::logic_error("Weapon was not parsed");
     }
     definition.ranged->phase = simple_platformer::RangedPhase::Recovery;
-    definition.ranged->lastFiredTimeSeconds = 3.0F;
+    definition.ranged->lastFiredTimeSeconds = 3.0;
     auto actor = simple_platformer::composeActor(definition, {}, 9);
     REQUIRE(tests::rangedWeapon(actor).damage == 2);
     REQUIRE(tests::rangedWeapon(actor).projectileSpeed == 120);
@@ -63,6 +63,46 @@ TEST_CASE("Ranged definitions create fresh weapons with runtime texture IDs", "[
     REQUIRE(tests::rangedWeapon(actor).projectileSprite.region.position.x == 4);
     REQUIRE(tests::rangedWeapon(actor).phase == simple_platformer::RangedPhase::Ready);
     REQUIRE_FALSE(tests::rangedWeapon(actor).lastFiredTimeSeconds.has_value());
+}
+
+TEST_CASE("Contact damage definitions compose fresh independent state", "[app][actors][contact]")
+{
+    const auto catalog = simple_platformer::parseActorCatalog(
+        R"({"player":"runner","actors":{"runner":{"bodySize":[12,12],"team":"player",
+             "health":3,"inventorySlots":1,"platformer":{},"contactDamage":{"damage":2}}}})",
+        "contact damage",
+        {});
+    auto definition = simple_platformer::actorDefinition(catalog, "runner");
+    REQUIRE(definition.contactDamage.has_value());
+    definition.contactDamage->active = true;
+    definition.contactDamage->actorsHit.push_back(simple_platformer::ActorId{7});
+
+    const auto composed = simple_platformer::composeActor(definition, {}, 0);
+    REQUIRE(composed.contactDamage.has_value());
+    REQUIRE(composed.contactDamage->damage == 2);
+    REQUIRE_FALSE(composed.contactDamage->active);
+    REQUIRE(composed.contactDamage->actorsHit.empty());
+}
+
+TEST_CASE(
+    "Contact damage coexists with primary attacks and either movement",
+    "[app][actors][contact]")
+{
+    simple_platformer::ActorDefinition definition;
+    definition.bodySize = {12.0F, 12.0F};
+    definition.team = simple_platformer::Team::Enemy;
+    definition.contactDamage = simple_platformer::ContactDamage{};
+    SECTION("Walking with a bite")
+    {
+        definition.platformer = simple_platformer::PlatformerMovementConfig{};
+        definition.bite = simple_platformer::BiteAttack{};
+    }
+    SECTION("Flying with a ranged weapon")
+    {
+        definition.flying = simple_platformer::FlyingMovement{};
+        definition.ranged = simple_platformer::RangedWeapon{};
+    }
+    REQUIRE_NOTHROW(simple_platformer::validateActorDefinition(definition, {}));
 }
 
 TEST_CASE("Actor composition creates fresh independent runtime state", "[app][actors]")
@@ -84,6 +124,12 @@ TEST_CASE("Actor composition creates fresh independent runtime state", "[app][ac
     REQUIRE(tests::platformerMovement(first).config.maximumSpeed == 42);
     REQUIRE(simple_platformer::feetOf(first.body.bounds).x == 24);
     REQUIRE(first.brain.has_value());
+    REQUIRE_FALSE(tests::perception(first).targetVisible);
+    REQUIRE_FALSE(tests::perception(first).heardLanding);
+    tests::perception(first).targetVisible = true;
+    tests::perception(first).heardLanding = true;
+    REQUIRE_FALSE(tests::perception(second).targetVisible);
+    REQUIRE_FALSE(tests::perception(second).heardLanding);
     REQUIRE(first.pathFollower.has_value());
     REQUIRE(first.patrol.has_value());
     REQUIRE_FALSE(second.patrol.has_value());
@@ -126,6 +172,16 @@ TEST_CASE("Actor definitions reuse engine component validation", "[app][actors]"
     SECTION("Neutral attacker")
     {
         definition.bite = simple_platformer::BiteAttack{};
+    }
+    SECTION("Invalid contact damage")
+    {
+        definition.team = simple_platformer::Team::Enemy;
+        definition.contactDamage = simple_platformer::ContactDamage{};
+        definition.contactDamage->damage = 0;
+    }
+    SECTION("Neutral contact damage")
+    {
+        definition.contactDamage = simple_platformer::ContactDamage{};
     }
     SECTION("A tactic without senses")
     {

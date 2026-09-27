@@ -198,7 +198,11 @@ namespace simple_platformer
             facts["targetInBiteRange"] = snapshot.facts.targetInBiteRange;
             facts["biteReady"] = snapshot.facts.biteReady;
             facts["targetInSights"] = snapshot.facts.targetInSights;
-            facts["targetTooClose"] = snapshot.facts.targetTooClose;
+            facts["targetWithinStandoffDistance"] = snapshot.facts.targetWithinStandoffDistance;
+            facts["heardLanding"] = snapshot.facts.heardLanding;
+            facts["targetOnSameRun"] = snapshot.facts.targetOnSameRun;
+            facts["targetWithinNoticeDistance"] = snapshot.facts.targetWithinNoticeDistance;
+            facts["movementBlocked"] = snapshot.facts.movementBlocked;
             facts["hasPatrol"] = snapshot.facts.hasPatrol;
             facts["searches"] = snapshot.facts.searches;
             facts["searchTimeUp"] = snapshot.facts.searchTimeUp;
@@ -227,12 +231,14 @@ namespace simple_platformer
             }
 
             const sol::table table = object.as<sol::table>();
-            constexpr std::array<std::string_view, 8> Fields{
+            constexpr std::array<std::string_view, 10> Fields{
                 "direction",
                 "aimDirection",
                 "jumpPressed",
                 "jumpHeld",
                 "primaryAttackPressed",
+                "avoidLedges",
+                "contactDamage",
                 "routeTo",
                 "aimAt",
                 "clearRoute"};
@@ -269,6 +275,8 @@ namespace simple_platformer
             readBoolean("jumpPressed", command.intentions.jumpPressed);
             readBoolean("jumpHeld", command.intentions.jumpHeld);
             readBoolean("primaryAttackPressed", command.intentions.primaryAttackPressed);
+            readBoolean("avoidLedges", command.intentions.avoidLedges);
+            readBoolean("contactDamage", command.intentions.contactDamage);
             readOptionalVector("routeTo", command.routeTo);
             readOptionalVector("aimAt", command.aimAt);
             readBoolean("clearRoute", command.clearRoute);

@@ -54,11 +54,12 @@ namespace simple_platformer
             const Actor& actor,
             RangedWeapon& weapon,
             WorldRequests& requests,
-            double simulationTimeSeconds)
+            World& world)
         {
             weapon.phase = RangedPhase::Shoot;
             weapon.phaseTimeRemaining = weapon.shootDuration;
-            weapon.lastFiredTimeSeconds = simulationTimeSeconds;
+            weapon.lastFiredTimeSeconds = world.simulationTimeSeconds();
+            world.emitNoise({actor.id, feetOf(actor.body.bounds), NoiseKind::Shot});
             requests.spawnProjectile(makeProjectile(actor, weapon));
         }
 
@@ -150,6 +151,117 @@ namespace simple_platformer
             }
             return activeDuringUpdate;
         }
+
+        void updateContactDamage(Actor& actor, const World& world, WorldRequests& requests)
+        {
+            if (!actor.contactDamage.has_value())
+            {
+                return;
+            }
+
+            ContactDamage& contact = *actor.contactDamage;
+            const bool requested = actor.life == LifeState::Alive && actor.intentions.contactDamage;
+            if (!requested || !contact.active)
+            {
+                contact.actorsHit.clear();
+            }
+            contact.active = requested;
+            if (contact.active)
+            {
+                for (const Actor& target : world.actors())
+                {
+                    if (target.id == actor.id || target.life != LifeState::Alive ||
+                        !target.health.has_value() || !areOpponents(actor.team, target.team) ||
+                        std::find(contact.actorsHit.begin(), contact.actorsHit.end(), target.id) !=
+                            contact.actorsHit.end() ||
+                        !overlaps(actor.body.bounds, target.body.bounds))
+                    {
+                        continue;
+                    }
+                    requests.damage(target.id, contact.damage);
+                    contact.actorsHit.push_back(target.id);
+                }
+            }
+        }
+
+        void updateRangedAttack(
+            Actor& actor,
+            World& world,
+            WorldRequests& requests,
+            float deltaTime)
+        {
+            if (!actor.rangedWeapon.has_value())
+            {
+                return;
+            }
+
+            RangedWeapon& weapon = *actor.rangedWeapon;
+            if (actor.life != LifeState::Alive)
+            {
+                weapon.phase = RangedPhase::Ready;
+                weapon.phaseTimeRemaining = 0.0F;
+            }
+            else if (
+                weapon.phase == RangedPhase::Ready && actor.intentions.primaryAttackPressed &&
+                hasAimDirection(actor))
+            {
+                beginShot(actor, weapon, requests, world);
+            }
+            else
+            {
+                advanceShot(weapon, deltaTime);
+            }
+        }
+
+        void updateBiteAttack(
+            Actor& actor,
+            const World& world,
+            WorldRequests& requests,
+            float deltaTime)
+        {
+            if (!actor.bite.has_value())
+            {
+                return;
+            }
+
+            BiteAttack& bite = *actor.bite;
+            if (actor.life != LifeState::Alive)
+            {
+                bite.phase = BitePhase::Ready;
+                bite.phaseTimeRemaining = 0.0F;
+                bite.actorsHit.clear();
+                return;
+            }
+
+            bool activeDuringUpdate = false;
+            if (bite.phase == BitePhase::Ready && actor.intentions.primaryAttackPressed)
+            {
+                beginBite(bite);
+            }
+            else
+            {
+                activeDuringUpdate = advanceBite(bite, deltaTime);
+            }
+
+            if (!activeDuringUpdate)
+            {
+                return;
+            }
+
+            const Aabb hitbox = biteHitbox(actor.body.bounds, bite, actor.facing);
+            for (const Actor& target : world.actors())
+            {
+                if (target.id == actor.id || target.life != LifeState::Alive ||
+                    !target.health.has_value() || !areOpponents(actor.team, target.team) ||
+                    hasHit(bite, target.id) || !overlaps(hitbox, target.body.bounds))
+                {
+                    continue;
+                }
+
+                requests.damage(target.id, bite.damage);
+                bite.actorsHit.push_back(target.id);
+            }
+        }
     }
 
     Aabb biteHitbox(const Aabb& actorBounds, const BiteAttack& bite, Facing facing)
@@ -166,68 +278,9 @@ namespace simple_platformer
 
         for (Actor& actor : world.actors())
         {
-            if (actor.rangedWeapon.has_value())
-            {
-                RangedWeapon& weapon = *actor.rangedWeapon;
-                if (actor.life != LifeState::Alive)
-                {
-                    weapon.phase = RangedPhase::Ready;
-                    weapon.phaseTimeRemaining = 0.0F;
-                }
-                else if (
-                    weapon.phase == RangedPhase::Ready && actor.intentions.primaryAttackPressed &&
-                    hasAimDirection(actor))
-                {
-                    beginShot(actor, weapon, requests, world.simulationTimeSeconds());
-                }
-                else
-                {
-                    advanceShot(weapon, deltaTime);
-                }
-            }
-
-            if (!actor.bite.has_value())
-            {
-                continue;
-            }
-
-            BiteAttack& bite = *actor.bite;
-            if (actor.life != LifeState::Alive)
-            {
-                bite.phase = BitePhase::Ready;
-                bite.phaseTimeRemaining = 0.0F;
-                bite.actorsHit.clear();
-                continue;
-            }
-
-            bool activeDuringUpdate = false;
-            if (bite.phase == BitePhase::Ready && actor.intentions.primaryAttackPressed)
-            {
-                beginBite(bite);
-            }
-            else
-            {
-                activeDuringUpdate = advanceBite(bite, deltaTime);
-            }
-
-            if (!activeDuringUpdate)
-            {
-                continue;
-            }
-
-            const Aabb hitbox = biteHitbox(actor.body.bounds, bite, actor.facing);
-            for (const Actor& target : world.actors())
-            {
-                if (target.id == actor.id || target.life != LifeState::Alive ||
-                    !target.health.has_value() || !areOpponents(actor.team, target.team) ||
-                    hasHit(bite, target.id) || !overlaps(hitbox, target.body.bounds))
-                {
-                    continue;
-                }
-
-                requests.damage(target.id, bite.damage);
-                bite.actorsHit.push_back(target.id);
-            }
+            updateContactDamage(actor, world, requests);
+            updateRangedAttack(actor, world, requests, deltaTime);
+            updateBiteAttack(actor, world, requests, deltaTime);
         }
     }
 }

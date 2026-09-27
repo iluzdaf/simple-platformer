@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <string>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -23,6 +24,7 @@
 #include "simple_platformer/npc/npc_activity_script.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
+#include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
@@ -44,13 +46,11 @@ using tests::patrol;
 
 namespace
 {
-    // An actor the world can treat as the player.
     tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
     }
 
-    // The NPC these tests measure their maps against.
     tests::ActorBuilder::Thinking makeNpc(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})
@@ -118,6 +118,142 @@ TEST_CASE("NPC behaviour rejects invalid timing", "[npc][validation]")
         simple_platformer::updateNpcBehaviour(map, world, -0.1F), std::invalid_argument);
 }
 
+TEST_CASE("Same-run and notice-distance facts are independent", "[npc][facts]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"............", "............", "############"});
+    glm::vec2 targetFeet{56.0F, 32.0F};
+    bool targetGrounded = true;
+    bool hasTarget = true;
+    bool targetAlive = true;
+    bool sameRun = true;
+    bool withinRange = true;
+    SECTION("Same run at the inclusive notice boundary")
+    {
+    }
+    SECTION("Same run beyond notice distance")
+    {
+        targetFeet.x = 120.0F;
+        withinRange = false;
+    }
+    SECTION("Nearby across a gap")
+    {
+        map = tests::TileMapBuilder({"............", "............", "##.#########"});
+        sameRun = false;
+    }
+    SECTION("Distant across a gap")
+    {
+        map = tests::TileMapBuilder({"............", "............", "##.#########"});
+        targetFeet.x = 120.0F;
+        sameRun = false;
+        withinRange = false;
+    }
+    SECTION("Nearby but airborne")
+    {
+        targetGrounded = false;
+        sameRun = false;
+    }
+    SECTION("No remembered target")
+    {
+        hasTarget = false;
+        sameRun = false;
+        withinRange = false;
+    }
+    SECTION("A dead remembered target")
+    {
+        targetAlive = false;
+        sameRun = false;
+        withinRange = false;
+    }
+    simple_platformer::World world;
+    const auto targetId = world.addActor(makePlayer(targetFeet));
+    tests::platformerMovement(actor(world, targetId)).grounded = targetGrounded;
+    if (!targetAlive)
+    {
+        actor(world, targetId).life = simple_platformer::LifeState::Dying;
+    }
+    const auto npcId = world.addActor(
+        tests::ActorBuilder::sized({12.0F, 12.0F})
+            .atFeet({24.0F, 32.0F})
+            .walking()
+            .thinking({32.0F, 1.0F})
+            .running(tests::NpcMachineBuilder::named("observer")
+                         .state("observe", simple_platformer::LuaNpcActivity{"test", "observe"})));
+    tests::platformerMovement(actor(world, npcId)).grounded = true;
+    if (hasTarget)
+    {
+        brain(world, npcId).target = targetId;
+    }
+    // These facts intentionally use current geometry, not visibility or last-known feet.
+    brain(world, npcId).lastKnownTargetFeet = {24.0F, 32.0F};
+    RecordingNpcScripts scripts;
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
+    REQUIRE_FALSE(scripts.calls.empty());
+    const auto& facts = scripts.calls.back().snapshot.facts;
+    REQUIRE_FALSE(facts.targetVisible);
+    REQUIRE(facts.targetOnSameRun == sameRun);
+    REQUIRE(facts.targetWithinNoticeDistance == withinRange);
+}
+
+TEST_CASE("A machine reacts to landing and blocked walking facts", "[npc][machine][movement]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"..........", ".....#....", "##########"});
+    simple_platformer::World world;
+    const auto playerId = tests::addPlayer(world, makePlayer({56.0F, 32.0F}));
+    actor(world, playerId).team = simple_platformer::Team::Player;
+    auto charger =
+        tests::ActorBuilder::sized({12.0F, 12.0F})
+            .atFeet({24.0F, 32.0F})
+            .walking()
+            .onTeam(simple_platformer::Team::Enemy)
+            .thinking({80.0F, 1.0F})
+            .running(tests::NpcMachineBuilder::named("charger")
+                         .state("sleep", simple_platformer::LuaNpcActivity{"test", "rest"})
+                         .state("charge", simple_platformer::LuaNpcActivity{"test", "walk"})
+                         .state("stunned", simple_platformer::LuaNpcActivity{"test", "rest"})
+                         .transition("sleep", "charge")
+                         .when("heardLanding", true)
+                         .when("targetOnSameRun", true)
+                         .when("targetWithinNoticeDistance", true)
+                         .transition("charge", "stunned")
+                         .when("movementBlocked", true))
+            .withContactDamage();
+    const auto npcId = world.addActor(std::move(charger));
+    tests::platformerMovement(actor(world, npcId)).grounded = true;
+    tests::platformerMovement(actor(world, playerId)).grounded = true;
+    RecordingNpcScripts scripts;
+    scripts.command.intentions.direction.x = 1.0F;
+    scripts.command.intentions.avoidLedges = true;
+    scripts.command.intentions.contactDamage = true;
+    world.emitNoise({playerId, {56.0F, 32.0F}, simple_platformer::NoiseKind::Landing});
+
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(tests::perception(world, npcId).heardLanding);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE(simple_platformer::onSameGroundRun(
+        map, actor(world, npcId).body.bounds, actor(world, playerId).body.bounds));
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
+    REQUIRE(machine(world, npcId).definition.states[machine(world, npcId).active].name == "charge");
+    REQUIRE(actor(world, npcId).intentions.direction.x == 1.0F);
+    REQUIRE(actor(world, npcId).intentions.contactDamage);
+    REQUIRE(actor(world, npcId).intentions.avoidLedges);
+
+    for (int tick = 0; tick < 8 && !tests::platformerMovement(actor(world, npcId)).blocked; ++tick)
+    {
+        simple_platformer::updateActorMovement(map, world, 0.1F);
+    }
+    REQUIRE(tests::platformerMovement(actor(world, npcId)).blocked);
+    scripts.command = {};
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
+    REQUIRE(
+        machine(world, npcId).definition.states[machine(world, npcId).active].name == "stunned");
+    REQUIRE(scripts.calls.back().snapshot.facts.movementBlocked);
+    REQUIRE_FALSE(actor(world, npcId).intentions.contactDamage);
+    REQUIRE(actor(world, npcId).intentions.direction.x == 0.0F);
+}
+
 TEST_CASE("A chasing NPC searches for a lost target, then patrols again", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =
@@ -126,7 +262,7 @@ TEST_CASE("A chasing NPC searches for a lost target, then patrols again", "[npc]
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({22.0F, 28.0F}).patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
     brain(world, npcId).state = simple_platformer::NpcState::Chase;
-    brain(world, npcId).lastSeenTargetFeet = {22.0F, 28.0F};
+    brain(world, npcId).lastKnownTargetFeet = {22.0F, 28.0F};
     tests::senses(actor(world, npcId)).searchDuration = 0.25F;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
@@ -173,8 +309,8 @@ TEST_CASE(
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
     tests::senses(actor(world, npcId)).standoffDistance = 64.0F;
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {40.0F, 32.0F};
-    brain(world, npcId).targetVisible = true;
+    brain(world, npcId).lastKnownTargetFeet = {40.0F, 32.0F};
+    tests::perception(world, npcId).targetVisible = true;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Retreat);
@@ -202,8 +338,8 @@ TEST_CASE("A KeepDistance NPC shoots once its target is at its standoff", "[npc]
     tests::senses(actor(world, npcId)).standoffDistance = 48.0F;
     brain(world, npcId).state = simple_platformer::NpcState::Retreat;
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {24.0F, 32.0F};
-    brain(world, npcId).targetVisible = true;
+    brain(world, npcId).lastKnownTargetFeet = {24.0F, 32.0F};
+    tests::perception(world, npcId).targetVisible = true;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Shoot);
@@ -233,8 +369,8 @@ TEST_CASE("An NPC with a machine takes its activity from the machine, not its ta
     // This target is close enough for the KeepDistance tactic to retreat, but the machine
     // enters Chase and moves towards it instead.
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {70.0F, 28.0F};
-    brain(world, npcId).targetVisible = true;
+    brain(world, npcId).lastKnownTargetFeet = {70.0F, 28.0F};
+    tests::perception(world, npcId).targetVisible = true;
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(
         simple_platformer::activeNpcMachineState(
@@ -252,7 +388,7 @@ TEST_CASE("A machine-controlled NPC does not copy its activity into the enum bra
         world.addActor(makeNpc({24.0F, 32.0F})
                            .running(tests::NpcMachineBuilder::named("test").state(
                                "watch", simple_platformer::NpcState::Watch)));
-    brain(world, npcId).lastSeenTargetFeet = {70.0F, 32.0F};
+    brain(world, npcId).lastKnownTargetFeet = {70.0F, 32.0F};
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
 
@@ -323,8 +459,8 @@ TEST_CASE("A scripted machine exits and enters around a transition", "[npc][lua]
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {56.0F, 32.0F};
-    brain(world, npcId).targetVisible = true;
+    brain(world, npcId).lastKnownTargetFeet = {56.0F, 32.0F};
+    tests::perception(world, npcId).targetVisible = true;
     simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
 
     REQUIRE(scripts.calls.size() == 5);
@@ -381,7 +517,7 @@ TEST_CASE("A watching NPC looks about without leaving where it stands", "[npc][f
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({24.0F, 32.0F}));
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
     brain(world, npcId).state = simple_platformer::NpcState::Chase;
-    brain(world, npcId).lastSeenTargetFeet = {72.0F, 32.0F};
+    brain(world, npcId).lastKnownTargetFeet = {72.0F, 32.0F};
 
     simple_platformer::updateNpcBehaviour(map, world, 0.3F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Watch);
@@ -397,7 +533,7 @@ TEST_CASE("A watching NPC looks about without leaving where it stands", "[npc][f
 }
 
 TEST_CASE(
-    "A searching NPC where the target was last seen looks one way, then the other",
+    "A searching NPC where the target was last known looks one way, then the other",
     "[npc][fsm]")
 {
     const simple_platformer::TileMap map =
@@ -405,7 +541,7 @@ TEST_CASE(
     simple_platformer::World world;
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({24.0F, 32.0F}));
     brain(world, npcId).state = simple_platformer::NpcState::Chase;
-    brain(world, npcId).lastSeenTargetFeet = {24.0F, 32.0F};
+    brain(world, npcId).lastKnownTargetFeet = {24.0F, 32.0F};
 
     // Entering the search, then a turn's worth of looking.
     simple_platformer::updateNpcBehaviour(map, world, 0.3F);
@@ -419,7 +555,7 @@ TEST_CASE(
     REQUIRE(actor(world, npcId).intentions.aimDirection.x < 0.0F);
 }
 
-TEST_CASE("A chasing NPC follows the last seen target feet", "[npc][fsm]")
+TEST_CASE("A chasing NPC follows the last known target feet", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "........", "########"});
@@ -427,8 +563,8 @@ TEST_CASE("A chasing NPC follows the last seen target feet", "[npc][fsm]")
     const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({70.0F, 28.0F}));
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({24.0F, 32.0F}));
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {72.0F, 32.0F};
-    brain(world, npcId).targetVisible = false;
+    brain(world, npcId).lastKnownTargetFeet = {72.0F, 32.0F};
+    tests::perception(world, npcId).targetVisible = false;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
 
@@ -452,16 +588,16 @@ TEST_CASE(
                                           .walking()
                                           .thinking({64.0F, 1.0F}));
     tests::platformerMovement(world, npcId).grounded = true;
-    const glm::vec2 lastSeenFeet{8.0F, 20.0F};
+    const glm::vec2 lastKnownFeet{8.0F, 20.0F};
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = lastSeenFeet;
-    brain(world, npcId).targetVisible = false;
+    brain(world, npcId).lastKnownTargetFeet = lastKnownFeet;
+    tests::perception(world, npcId).targetVisible = false;
 
     simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
 
     REQUIRE(actor(world, npcId).intentions.direction.x < 0.0F);
     REQUIRE(pathFollower(world, npcId).destinationCell == simple_platformer::GridPosition{0, 1});
-    REQUIRE(brain(world, npcId).lastSeenTargetFeet == lastSeenFeet);
+    REQUIRE(brain(world, npcId).lastKnownTargetFeet == lastKnownFeet);
 }
 
 TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][navigation]")
@@ -475,8 +611,8 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
                                           .thinking({64.0F, 1.0F}));
     tests::platformerMovement(world, npcId).grounded = true;
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {8.0F, 32.0F};
-    brain(world, npcId).targetVisible = false;
+    brain(world, npcId).lastKnownTargetFeet = {8.0F, 32.0F};
+    tests::perception(world, npcId).targetVisible = false;
     REQUIRE(world.platformerConnections().size() == 0);
 
     const simple_platformer::NpcBehaviourCost first =
@@ -487,7 +623,7 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
     REQUIRE(world.platformerConnections().size() > 0);
 
     // A search to a new destination reuses what the first one simulated.
-    brain(world, npcId).lastSeenTargetFeet = {24.0F, 32.0F};
+    brain(world, npcId).lastKnownTargetFeet = {24.0F, 32.0F};
     pathFollower(world, npcId).repathRemaining = 0.0F;
     const simple_platformer::NpcBehaviourCost second =
         simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
@@ -496,7 +632,7 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
     REQUIRE(second.searches.simulatedTicks == 0);
 
     // Back to the first destination, the path is remembered and nothing is expanded.
-    brain(world, npcId).lastSeenTargetFeet = {8.0F, 32.0F};
+    brain(world, npcId).lastKnownTargetFeet = {8.0F, 32.0F};
     pathFollower(world, npcId).repathRemaining = 0.0F;
     const simple_platformer::NpcBehaviourCost third =
         simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
@@ -524,8 +660,8 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
     REQUIRE(map.breakTile({2, 2}));
     tests::platformerMovement(world, npcId).grounded = true;
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {72.0F, 32.0F};
-    brain(world, npcId).targetVisible = false;
+    brain(world, npcId).lastKnownTargetFeet = {72.0F, 32.0F};
+    tests::perception(world, npcId).targetVisible = false;
     const simple_platformer::NpcBehaviourCost waiting =
         simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
 
@@ -580,8 +716,8 @@ TEST_CASE("An NPC plans its path again after a break, cooldown or not", "[npc][n
     tests::fillNavigation(map, world);
     tests::platformerMovement(world, npcId).grounded = true;
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {40.0F, 32.0F};
-    brain(world, npcId).targetVisible = false;
+    brain(world, npcId).lastKnownTargetFeet = {40.0F, 32.0F};
+    tests::perception(world, npcId).targetVisible = false;
     const simple_platformer::NpcBehaviourCost planned =
         simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
     REQUIRE(planned.pathSearches == 1);
@@ -609,8 +745,8 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({22.0F, 28.0F}).onTeam(simple_platformer::Team::Enemy).biting());
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
-    brain(world, npcId).targetVisible = true;
+    brain(world, npcId).lastKnownTargetFeet = {38.0F, 28.0F};
+    tests::perception(world, npcId).targetVisible = true;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Bite);
@@ -636,8 +772,8 @@ TEST_CASE("An NPC without a bite continues chasing at close range", "[npc][fsm]"
     const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({38.0F, 28.0F}));
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({22.0F, 28.0F}));
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {38.0F, 28.0F};
-    brain(world, npcId).targetVisible = true;
+    brain(world, npcId).lastKnownTargetFeet = {38.0F, 28.0F};
+    tests::perception(world, npcId).targetVisible = true;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
 
@@ -654,8 +790,8 @@ TEST_CASE("A ranged NPC shoots a visible target where it stands", "[npc][fsm]")
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({22.0F, 28.0F}).onTeam(simple_platformer::Team::Enemy).shooting());
     brain(world, npcId).target = playerId;
-    brain(world, npcId).lastSeenTargetFeet = {54.0F, 12.0F};
-    brain(world, npcId).targetVisible = true;
+    brain(world, npcId).lastKnownTargetFeet = {54.0F, 12.0F};
+    tests::perception(world, npcId).targetVisible = true;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     // Facing is decided by the movement update from what the NPC intends.

@@ -17,8 +17,9 @@ namespace simple_platformer
         const Aabb& observer,
         const Aabb& target,
         const NpcSenses& senses);
-    // Whether any NPC's senses reached the player this update. Reads what updateNpcSenses
-    // stamped on each brain, so gameplay and the screen agree on who is seen.
+    // Checks for a supported walk run beneath both feet; does not check grounded state.
+    bool onSameGroundRun(const TileMap& map, const Aabb& observer, const Aabb& target);
+    // Reads the latest sensing result used by gameplay and cover presentation.
     bool playerSeenByAnyNpc(const World& world);
     void updateNpcSenses(const TileMap& map, World& world, float deltaTime);
 }

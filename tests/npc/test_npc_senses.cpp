@@ -4,6 +4,7 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/npc/npc.hpp"
@@ -19,11 +20,9 @@
 
 using tests::actor;
 using tests::brain;
-using tests::rangedWeapon;
 
 namespace
 {
-    // An actor the world can treat as the player.
     tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})
@@ -32,7 +31,6 @@ namespace
             .onTeam(simple_platformer::Team::Player);
     }
 
-    // The NPC these tests measure their maps against.
     tests::ActorBuilder makeNpc(glm::vec2 feet)
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})
@@ -56,6 +54,80 @@ TEST_CASE("NPC sight observes distance and solid tiles", "[npc][senses]")
     REQUIRE(simple_platformer::canSeeTarget(clear, observer, target, {64.0F, 1.0F}));
     REQUIRE_FALSE(simple_platformer::canSeeTarget(blocked, observer, target, {64.0F, 1.0F}));
     REQUIRE_FALSE(simple_platformer::canSeeTarget(clear, observer, target, {32.0F, 1.0F}));
+}
+
+TEST_CASE("A landing is heard once by a ground NPC on the same run", "[npc][senses][noise]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "........", "########"});
+    simple_platformer::World world;
+    const auto playerId = tests::addPlayer(world, makePlayer({72.0F, 47.0F}));
+    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                                          .atFeet({24.0F, 48.0F})
+                                          .walking()
+                                          .onTeam(simple_platformer::Team::Enemy)
+                                          .thinking({64.0F, 1.0F}));
+    tests::platformerMovement(actor(world, playerId)).grounded = false;
+    actor(world, playerId).body.velocity.y = 40.0F;
+    simple_platformer::updateActorMovement(map, world, 0.1F);
+    REQUIRE(tests::platformerMovement(actor(world, playerId)).grounded);
+
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(tests::perception(world, npcId).heardLanding);
+    REQUIRE(brain(world, npcId).target == playerId);
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(tests::perception(world, npcId).heardLanding);
+}
+
+TEST_CASE("Perception refreshes without clearing brain memory or decision state", "[npc][senses]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"............", "............", "...c........", "############"})
+            .where('c', tests::Tile().blocksSight());
+    simple_platformer::World world;
+    const auto playerId = tests::addPlayer(world, makePlayer({72.0F, 48.0F}));
+    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                                          .atFeet({24.0F, 48.0F})
+                                          .walking()
+                                          .onTeam(simple_platformer::Team::Enemy)
+                                          .thinking({64.0F, 1.0F}));
+    tests::platformerMovement(actor(world, npcId)).grounded = true;
+    brain(world, npcId).state = simple_platformer::NpcState::Watch;
+    brain(world, npcId).stateElapsed = 0.25F;
+    world.emitNoise({playerId, {72.0F, 48.0F}, simple_platformer::NoiseKind::Landing});
+
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(tests::perception(world, npcId).heardLanding);
+    REQUIRE_FALSE(tests::perception(world, npcId).targetVisible);
+    REQUIRE(brain(world, npcId).target == playerId);
+    const auto rememberedFeet = brain(world, npcId).lastKnownTargetFeet;
+    const float memoryRemaining = brain(world, npcId).targetMemoryRemaining;
+
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(tests::perception(world, npcId).heardLanding);
+    REQUIRE_FALSE(tests::perception(world, npcId).targetVisible);
+    REQUIRE(brain(world, npcId).target == playerId);
+    REQUIRE(brain(world, npcId).lastKnownTargetFeet == rememberedFeet);
+    REQUIRE_NEAR(brain(world, npcId).targetMemoryRemaining, memoryRemaining - 0.1F);
+    REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Watch);
+    REQUIRE(brain(world, npcId).stateElapsed == 0.25F);
+}
+
+TEST_CASE("A landing across a broken run is not heard", "[npc][senses][noise]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "........", "###..###"});
+    simple_platformer::World world;
+    const auto playerId = tests::addPlayer(world, makePlayer({104.0F, 48.0F}));
+    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                                          .atFeet({24.0F, 48.0F})
+                                          .walking()
+                                          .onTeam(simple_platformer::Team::Enemy)
+                                          .thinking({128.0F, 1.0F}));
+    tests::platformerMovement(actor(world, npcId)).grounded = true;
+    world.emitNoise({playerId, {104.0F, 48.0F}, simple_platformer::NoiseKind::Landing});
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(tests::perception(world, npcId).heardLanding);
 }
 
 TEST_CASE("Sight-blocking cover hides whoever stands in it", "[npc][senses]")
@@ -125,12 +197,12 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
 
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE(brain(world, npcId).target == playerId);
-    REQUIRE(brain(world, npcId).targetVisible);
+    REQUIRE(tests::perception(world, npcId).targetVisible);
 
     simple_platformer::placeFeetAt(actor(world, playerId).body.bounds, {166.0F, 28.0F});
     simple_platformer::updateNpcSenses(map, world, 0.4F);
     REQUIRE(brain(world, npcId).target == playerId);
-    REQUIRE_FALSE(brain(world, npcId).targetVisible);
+    REQUIRE_FALSE(tests::perception(world, npcId).targetVisible);
     REQUIRE_NEAR(brain(world, npcId).targetMemoryRemaining, 0.6F);
 
     simple_platformer::updateNpcSenses(map, world, 0.7F);
@@ -139,7 +211,7 @@ TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]"
     simple_platformer::placeFeetAt(actor(world, playerId).body.bounds, {38.0F, 28.0F});
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE(brain(world, npcId).target == playerId);
-    REQUIRE(brain(world, npcId).targetVisible);
+    REQUIRE(tests::perception(world, npcId).targetVisible);
     actor(world, playerId).life = simple_platformer::LifeState::Dying;
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
@@ -155,26 +227,39 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
         tests::addPlayer(world, makePlayer({40.0F, 30.0F}).shooting());
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
     const glm::vec2 shotFeet{40.0F, 30.0F};
+    const auto secondNpc = world.addActor(makeNpc({16.0F, 30.0F}));
 
+    // A presentation stamp alone must never synthesize a hearing event.
+    tests::rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
 
-    // The attack system stamps the shot after senses ran; the next update hears it.
-    rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
-    world.advanceSimulationTime(0.1F);
-    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    // Noise is delivered on the next sensing update, at its emission position.
+    world.emitNoise(
+        {playerId,
+         simple_platformer::feetOf(actor(world, playerId).body.bounds),
+         simple_platformer::NoiseKind::Shot});
+    // Delivery depends on the next sensing update, not a timestamp window, and uses
+    // the source's old position even after it has moved out of hearing range.
+    simple_platformer::placeFeetAt(actor(world, playerId).body.bounds, {118.0F, 30.0F});
+    world.advanceSimulationTime(0.5F);
+    simple_platformer::updateNpcSenses(map, world, 0.01F);
     REQUIRE(brain(world, npcId).target == playerId);
-    REQUIRE_FALSE(brain(world, npcId).targetVisible);
-    REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
+    REQUIRE_FALSE(tests::perception(world, npcId).targetVisible);
+    REQUIRE(brain(world, npcId).lastKnownTargetFeet == shotFeet);
     REQUIRE_NEAR(brain(world, npcId).targetMemoryRemaining, 1.0F);
+    REQUIRE(brain(world, secondNpc).lastKnownTargetFeet == shotFeet);
+    REQUIRE_NEAR(brain(world, secondNpc).targetMemoryRemaining, 1.0F);
+    REQUIRE_FALSE(tests::perception(world, secondNpc).heardLanding);
 
-    // An older shot is not heard again, so moving away doesn't update the remembered spot.
+    // The consumed shot is not heard again; memory decays without another observation.
     simple_platformer::placeFeetAt(actor(world, playerId).body.bounds, {118.0F, 30.0F});
     world.advanceSimulationTime(0.4F);
     simple_platformer::updateNpcSenses(map, world, 0.4F);
     REQUIRE(brain(world, npcId).target == playerId);
-    REQUIRE(brain(world, npcId).lastSeenTargetFeet == shotFeet);
+    REQUIRE(brain(world, npcId).lastKnownTargetFeet == shotFeet);
     REQUIRE_NEAR(brain(world, npcId).targetMemoryRemaining, 0.6F);
+    REQUIRE_NEAR(brain(world, secondNpc).targetMemoryRemaining, 0.6F);
 }
 
 TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
@@ -186,12 +271,15 @@ TEST_CASE("An NPC hears a shot through a wall", "[npc][senses]")
         tests::addPlayer(world, makePlayer({56.0F, 30.0F}).shooting());
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 
-    rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
+    world.emitNoise(
+        {playerId,
+         simple_platformer::feetOf(actor(world, playerId).body.bounds),
+         simple_platformer::NoiseKind::Shot});
     world.advanceSimulationTime(0.1F);
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE(brain(world, npcId).target == playerId);
-    REQUIRE_FALSE(brain(world, npcId).targetVisible);
-    REQUIRE(brain(world, npcId).lastSeenTargetFeet == glm::vec2{56.0F, 30.0F});
+    REQUIRE_FALSE(tests::perception(world, npcId).targetVisible);
+    REQUIRE(brain(world, npcId).lastKnownTargetFeet == glm::vec2{56.0F, 30.0F});
 }
 
 TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][senses]")
@@ -203,9 +291,53 @@ TEST_CASE("An NPC does not hear a shot beyond its notice distance", "[npc][sense
         tests::addPlayer(world, makePlayer({104.0F, 30.0F}).shooting());
     const simple_platformer::ActorId npcId = world.addActor(makeNpc({8.0F, 30.0F}));
 
-    rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
+    world.emitNoise(
+        {playerId,
+         simple_platformer::feetOf(actor(world, playerId).body.bounds),
+         simple_platformer::NoiseKind::Shot});
     world.advanceSimulationTime(0.1F);
     simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(brain(world, npcId).target.has_value());
+}
+
+TEST_CASE("A noise batch preserves landing facts alongside shots", "[npc][senses][noise]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "...c....", "########"})
+            .where('c', tests::Tile().blocksSight());
+    simple_platformer::World world;
+    const auto playerId = tests::addPlayer(world, makePlayer({72.0F, 48.0F}));
+    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                                          .atFeet({24.0F, 48.0F})
+                                          .walking()
+                                          .onTeam(simple_platformer::Team::Enemy)
+                                          .thinking({96.0F, 1.0F}));
+    tests::platformerMovement(actor(world, npcId)).grounded = true;
+    world.emitNoise({playerId, {72.0F, 48.0F}, simple_platformer::NoiseKind::Landing});
+    world.emitNoise({playerId, {80.0F, 48.0F}, simple_platformer::NoiseKind::Shot});
+
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE(tests::perception(world, npcId).heardLanding);
+    REQUIRE_FALSE(tests::perception(world, npcId).targetVisible);
+    REQUIRE(brain(world, npcId).lastKnownTargetFeet == glm::vec2{80.0F, 48.0F});
+    simple_platformer::updateNpcSenses(map, world, 0.1F);
+    REQUIRE_FALSE(tests::perception(world, npcId).heardLanding);
+    REQUIRE_NEAR(brain(world, npcId).targetMemoryRemaining, 0.9F);
+}
+
+TEST_CASE(
+    "Sensing discards unheard noise rather than leaving it for future NPCs",
+    "[npc][senses][noise]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "..c.....", "........"})
+            .where('c', tests::Tile().blocksSight());
+    simple_platformer::World world;
+    const auto playerId = tests::addPlayer(world, makePlayer({40.0F, 30.0F}));
+    world.emitNoise({playerId, {40.0F, 30.0F}, simple_platformer::NoiseKind::Shot});
+    simple_platformer::updateNpcSenses(map, world, 0.0F);
+    const auto npcId = world.addActor(makeNpc({8.0F, 30.0F}));
+    simple_platformer::updateNpcSenses(map, world, 0.0F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
 }
 
@@ -222,7 +354,6 @@ TEST_CASE("Whether any NPC sees the player is what the senses update decided", "
         return simple_platformer::playerSeenByAnyNpc(world);
     };
 
-    // Nobody looking.
     REQUIRE_FALSE(sensed());
 
     // An NPC outside the patch cannot see in.

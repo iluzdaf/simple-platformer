@@ -1,17 +1,16 @@
 # Content and Level Format
 
-This is the authoring reference for the JSON under `assets`. It covers the level catalogue,
-each shared definition file, the map and placement syntax, and the loader vocabulary in
-`app/content`.
+This is the authoring reference for levels, shared JSON definitions, NPC machines, and
+Lua activity files under `assets`.
 
 The files select and place known game concepts rather than defining new engine behaviour.
 For example, `"definition": "zombie"` in an actor placement selects a named definition in
-`actors.json`. Definitions select and configure supported components; behaviour
-implementations remain C++.
+`actors.json`. Definitions configure supported components. Machines choose activities;
+Lua scripts may decide what an NPC requests, while movement and combat run in C++.
 
-Two rules hold for every file described here. Unknown fields are rejected, so a
-misspelling is reported rather than ignored. Every definition is checked in full, so a
-mistake in an entry the level never places is still reported.
+JSON loaders reject unknown fields, so misspellings are reported. Shared definitions
+are validated even when no level places them. Referenced Lua scripts and activities
+are checked when the game loads.
 
 [ARCHITECTURE.md](ARCHITECTURE.md) explains why this boundary exists and what the engine
 does with the loaded data. [README.md](../README.md) covers building and running.
@@ -48,29 +47,32 @@ updating the catalogue without changing C++.
 
 Shared catalogues sit beside `levels.json` in `assets`:
 
-| File                                                           | What to change here                                                  | Loader or composition code                                                                                             |
-| -------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| [`levels.json`](../assets/levels.json)                         | Starting level and level ID-to-file mapping                          | [`level_catalog.cpp`](../app/content/level_catalog.cpp)                                                                |
-| A level file, such as [`level_1.json`](../assets/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings       | [`level_data.cpp`](../app/content/level_data.cpp)                                                                      |
-| [`tiles.json`](../assets/tiles.json)                           | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp)                                                                  |
-| [`actors.json`](../assets/actors.json)                         | Player definition, actor capabilities, and tuning                    | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp) |
-| [`animations.json`](../assets/animations.json)                 | Named animation sets, frame rectangles, timing, and looping          | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp)                                                        |
-| [`machines.json`](../assets/machines.json)                     | Named data-driven NPC state machines                                 | [`machine_catalog.cpp`](../app/content/machine_catalog.cpp)                                                            |
-| [`items.json`](../assets/items.json)                           | Inventory names, icons, stacking, and effect settings                | [`item_catalog.cpp`](../app/content/item_catalog.cpp)                                                                  |
-| [`pickups.json`](../assets/pickups.json)                       | World pickup quantities, bounds, and optional sprites                | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp)                                                              |
-| [`exits.json`](../assets/exits.json)                           | Exit bounds and sprites                                              | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp)                                                                  |
+| File                                                           | What to change here                                                  | Loader or composition code                                                                                                       |
+| -------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| [`levels.json`](../assets/levels.json)                         | Starting level and level ID-to-file mapping                          | [`level_catalog.cpp`](../app/content/level_catalog.cpp)                                                                          |
+| A level file, such as [`level_1.json`](../assets/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings       | [`level_data.cpp`](../app/content/level_data.cpp)                                                                                |
+| [`tiles.json`](../assets/tiles.json)                           | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp)                                                                            |
+| [`actors.json`](../assets/actors.json)                         | Player definition, actor capabilities, and tuning                    | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp)           |
+| [`animations.json`](../assets/animations.json)                 | Named animation sets, frame rectangles, timing, and looping          | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp)                                                                  |
+| [`machines.json`](../assets/machines.json)                     | Named data-driven NPC state machines                                 | [`machine_catalog.cpp`](../app/content/machine_catalog.cpp)                                                                      |
+| [`scripts/`](../assets/scripts)                                | Lua activities referenced by machine states                          | [`npc_script_catalog.cpp`](../app/content/npc_script_catalog.cpp), [`lua_npc_scripts.cpp`](../src/scripting/lua_npc_scripts.cpp) |
+| [`items.json`](../assets/items.json)                           | Inventory names, icons, stacking, and effect settings                | [`item_catalog.cpp`](../app/content/item_catalog.cpp)                                                                            |
+| [`pickups.json`](../assets/pickups.json)                       | World pickup quantities, bounds, and optional sprites                | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp)                                                                        |
+| [`exits.json`](../assets/exits.json)                           | Exit bounds and sprites                                              | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp)                                                                            |
 
 [`level_composition.cpp`](../app/game/level_composition.cpp) combines definitions and placements
 into runtime objects. Catalogues and JSON conventions belong to the application;
-the core receives C++ values and does not read these files. Shared files are required
-even when a particular level uses no pickups or NPCs; item and pickup catalogues can
-contain empty definitions objects.
+the core receives C++ values and does not read these files. Shared JSON catalogues
+are required even when a level uses no pickups or NPCs; item and pickup catalogues
+can contain empty definitions objects. Lua files are loaded only when a machine
+references them.
 
 `Game` owns a `GameCatalogs` value loaded once by
 [`loadGameCatalogs`](../app/content/game_catalogs.cpp). Tile, animation, actor, item, pickup, and exit
 definitions are reused across transitions and restarts. Each level file is loaded
 when entering that level; the game does not construct every world at startup.
-Restart the game application to reload shared definitions after editing their files.
+Restart the game application to reload shared definitions or Lua scripts after editing
+their files.
 
 Actor animation clips are configured in `animations.json`.
 See [Actors](#actors), [Exits](#exits), and [Animation](ARCHITECTURE.md#animation) for those boundaries.
@@ -246,18 +248,20 @@ top-level `player` chooses the player definition, which must have health and inv
 for the game's HUD, and must not enable NPC sensing. Level patrols remain per-instance.
 
 Exactly one of `platformer` or `flying` is required. Empty component objects use C++
-defaults; omitted optional components are absent. `senses` adds the existing NPC brain,
-sensing and path follower together. `tactic` is that brain's policy, `pursuer` or
-`keepDistance`, and requires `senses`. `machine`
+defaults; omitted optional components are absent. `senses` adds the NPC brain,
+transient perception, sensing configuration and path follower together. `tactic` is
+that brain's policy, `pursuer` or `keepDistance`, and requires `senses`. `machine`
 names a state machine in `machines.json` to run instead of the tactic; it requires
 `senses` too. `health` and `inventorySlots` are positive integers.
-Attacks use either `bite` or `ranged`, and require a non-neutral team. There is no
+Primary attacks use either `bite` or `ranged`. Optional `contactDamage` is independent
+and can coexist with either; all require a non-neutral team. There is no
 inheritance or arbitrary per-placement override mechanism.
 
 Platformer fields match `PlatformerMovementConfig`; flying exposes `speed`. Sensing
 exposes `noticeDistance`, `standoffDistance`, `targetMemoryDuration`, and
 `searchDuration`. Bite exposes `damage`, `hitboxSize`, `reach`,
-`windupDuration`, `activeDuration`, and `recoveryDuration`. Ranged exposes `damage`,
+`windupDuration`, `activeDuration`, and `recoveryDuration`. `contactDamage` exposes
+only `damage`; movement speed belongs to the movement component. Ranged exposes `damage`,
 `projectileSize`, `projectileSpeed`, `projectileLifetime`, `shootDuration`,
 `recoveryDuration`, `breaksTiles`, and an optional `sprite` object with `position`, `size`,
 optional `displaySize`, and optional `anchor`. Sprite coordinates use atlas pixels.
@@ -271,8 +275,8 @@ is `feet` or `center`.
 field. A machine has `states`, an array of `{ "name", "does" }` in the order they are
 declared, and `transitions`, an array of `{ "from", "to", "when", "after" }`. The
 first state is the one the NPC starts in. A string `does` value names the built-in
-activity the state runs: `idle`, `patrol`, `chase`, `bite`, `shoot`, `search`, `retreat`
-or `watch`. A Lua activity uses
+activity the state runs: `idle`, `patrol`, `chase`, `bite`, `shoot`, `search`,
+`retreat` or `watch`. A Lua activity uses
 `{"kind":"lua","script":"rat","activity":"flee"}`.
 
 `from` is a state name or an array of them, which declares one transition per name.
@@ -281,11 +285,41 @@ that always holds. `after` is optional and is how many seconds every condition m
 hold before the transition fires. Among the transitions from one state, the first in
 the array whose conditions have held long enough wins.
 
-The facts are `targetKnown`, `targetVisible`, `targetInBiteRange`, `biteReady`,
-`targetInSights`, `targetTooClose`, `hasPatrol` and `searchTimeUp`. They are answered
-by the engine from the NPC's senses, memory, attacks and patrol, and the distances they
-compare against are the senses' `noticeDistance` and `standoffDistance`.
-The soldier's `keep_distance` machine is the shipped example.
+A Lua reference named `"script": "rat"` loads `assets/scripts/rat.lua`. The script
+returns an `activities` table; each referenced activity needs an `update` function,
+while `enter` and `exit` are optional. Loading rejects missing scripts or activities.
+An update returns intentions or narrow requests such as an aim or route; the engine
+performs movement, pathfinding, and damage. See the [Lua boundary](ARCHITECTURE.md#lua-activity-boundary)
+for the runtime details.
+
+The engine supplies these boolean facts to machine `when` conditions:
+
+| Fact                           | True when                                                                              | Position or timing                                                                           |
+| ------------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `targetKnown`                  | The NPC remembers a living target.                                                     | Sight or an eligible noise refreshes target memory; it expires after `targetMemoryDuration`. |
+| `targetVisible`                | The NPC sees the target.                                                               | Rechecked each sensing update using notice distance and line of sight.                       |
+| `targetInBiteRange`            | The visible target overlaps the NPC's bite hitbox.                                     | Uses current actor bounds and facing; requires a bite component.                             |
+| `biteReady`                    | The NPC has a bite in its ready phase.                                                 | Does not require a target.                                                                   |
+| `targetInSights`               | The target is visible and the NPC has a ranged weapon.                                 | Does not test aim alignment or weapon readiness.                                             |
+| `targetWithinStandoffDistance` | A living remembered target is closer than `standoffDistance`.                          | Compares the NPC's current feet with the target's last known feet; strict `<`.               |
+| `heardLanding`                 | The NPC heard a player land on its supported ground run.                               | Set for one sensing update.                                                                  |
+| `targetOnSameRun`              | The living remembered target and NPC are grounded on the same continuous walkable run. | Uses their current bounds, regardless of distance or visibility.                             |
+| `targetWithinNoticeDistance`   | The living remembered target is within `noticeDistance`.                               | Compares current feet, regardless of ground or visibility; inclusive `<=`.                   |
+| `movementBlocked`              | Movement hit a wall or the ledge guard stopped the NPC.                                | Reports the previous movement update.                                                        |
+| `hasPatrol`                    | The NPC has a patrol component.                                                        | Independent of its current state.                                                            |
+| `searchTimeUp`                 | Time in the current state is at least `searchDuration`.                                | True immediately when the duration is zero.                                                  |
+
+The two run and notice-distance facts are independent; policy decides how to combine
+them. Both are false without a living remembered target. Sight refreshes the last
+known feet before behavior runs; without sight or a new noise that position stays fixed
+until the target is forgotten. Lua snapshots also expose `searches` and `stateElapsed`;
+they are not boolean machine `when` conditions.
+
+For an example, compare the [boar machine](../assets/machines.json) with its
+[Lua activities](../assets/scripts/boar.lua). It combines the run and notice-distance
+facts to charge, then requests walking, ledge avoidance, and contact damage in Lua.
+Its two stunned-to-sleep transitions each hold for 1.5 seconds independently, so
+alternating failure reasons do not share elapsed time.
 
 Loading reports a machine with no states, a state declared twice, a transition from or
 to a state the machine lacks, a fact no row answers, an activity that does not exist,

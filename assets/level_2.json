@@ -35,12 +35,8 @@
       }
     },
     {
-      "definition": "zombie_soldier",
-      "spawnCell": [34, 20],
-      "patrol": {
-        "firstCell": [29, 20],
-        "secondCell": [36, 20]
-      }
+      "definition": "boar",
+      "spawnCell": [34, 20]
     },
     {
       "definition": "zombie",

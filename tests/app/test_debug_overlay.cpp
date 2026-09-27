@@ -7,8 +7,10 @@
 
 #include <glm/vec2.hpp>
 
+#include "content/level_catalog.hpp"
 #include "debug/debug_overlay.hpp"
 #include "debug/navigation_debug.hpp"
+#include "game/game.hpp"
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -19,7 +21,6 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
@@ -66,6 +67,32 @@ TEST_CASE("Debug overlay data supports actors without presentation components", 
     REQUIRE_FALSE(debug.actors.front().sensor.has_value());
     REQUIRE_FALSE(debug.actors.front().patrol.has_value());
     REQUIRE_FALSE(debug.actors.front().biteHitbox.has_value());
+}
+
+TEST_CASE("Game debug data retains actor definition names", "[app][debug]")
+{
+    const auto levels = simple_platformer::parseLevelCatalog(
+        R"({"startLevel":1,"levels":[{"number":1,"file":"actor_placement.json"}]})",
+        "test catalog",
+        "tests/fixtures");
+    simple_platformer::Game game(0, levels, tests::FixedStepSeconds);
+
+    const simple_platformer::DebugOverlay debug = game.debugOverlay(128.0F, std::nullopt, 0);
+    const auto npc = std::find_if(
+        debug.actors.begin(),
+        debug.actors.end(),
+        [](const simple_platformer::ActorDebugInfo& actor)
+        { return actor.kind == simple_platformer::ActorDebugKind::Npc; });
+    REQUIRE(npc != debug.actors.end());
+    REQUIRE(npc->definitionName == "test_guard");
+
+    const auto player = std::find_if(
+        debug.actors.begin(),
+        debug.actors.end(),
+        [](const simple_platformer::ActorDebugInfo& actor)
+        { return actor.kind == simple_platformer::ActorDebugKind::Player; });
+    REQUIRE(player != debug.actors.end());
+    REQUIRE(player->definitionName == "test_player");
 }
 
 TEST_CASE("Debug overlay data marks a breakable tile under the cursor", "[app][debug]")
@@ -165,7 +192,7 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     REQUIRE(npcDebug.kind == simple_platformer::ActorDebugKind::Npc);
     REQUIRE(npcDebug.npcState == simple_platformer::NpcState::Chase);
     REQUIRE(npcDebug.npcTactic == simple_platformer::NpcTactic::Pursuer);
-    REQUIRE_FALSE(npcDebug.machine.has_value());
+    REQUIRE_FALSE(npcDebug.machineState.has_value());
     REQUIRE(npcDebug.pathFollower.has_value());
     const simple_platformer::PathFollowerDebugInfo emptyPath =
         npcDebug.pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});
@@ -193,14 +220,14 @@ TEST_CASE("Debug overlay data describes visible and remembered targets", "[app][
                                               .onTeam(simple_platformer::Team::Enemy)
                                               .thinking({80.0F, 1.5F});
     tests::brain(visibleNpc).target = playerId;
-    tests::brain(visibleNpc).targetVisible = true;
+    tests::perception(visibleNpc).targetVisible = true;
     tests::brain(visibleNpc).targetMemoryRemaining = 1.5F;
     world.addActor(visibleNpc);
 
     simple_platformer::Actor rememberedNpc = visibleNpc;
     rememberedNpc.body.bounds.position = {80.0F, 20.0F};
-    tests::brain(rememberedNpc).targetVisible = false;
-    tests::brain(rememberedNpc).lastSeenTargetFeet = {40.0F, 32.0F};
+    tests::perception(rememberedNpc).targetVisible = false;
+    tests::brain(rememberedNpc).lastKnownTargetFeet = {40.0F, 32.0F};
     tests::brain(rememberedNpc).targetMemoryRemaining = 0.6F;
     world.addActor(rememberedNpc);
 
@@ -416,7 +443,7 @@ TEST_CASE("Debug overlay data rejects an invalid atlas width", "[app][debug]")
         std::invalid_argument);
 }
 
-TEST_CASE("The overlay shows a machine in place of the tactic it silences", "[app][debug]")
+TEST_CASE("The overlay shows a machine state in place of the built-in state", "[app][debug]")
 {
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
@@ -433,17 +460,7 @@ TEST_CASE("The overlay shows a machine in place of the tactic it silences", "[ap
         world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.actors.size() == 1);
-    REQUIRE(debug.actors.front().machine == "test");
     REQUIRE(debug.actors.front().machineState == "rest");
-    const std::optional<simple_platformer::NpcActivity>& npcActivity =
-        debug.actors.front().npcActivity;
-    if (!npcActivity.has_value())
-    {
-        throw std::logic_error("Missing machine activity in debug overlay");
-    }
-    REQUIRE(
-        std::get<simple_platformer::BuiltInNpcActivity>(*npcActivity).state ==
-        simple_platformer::NpcState::Idle);
     REQUIRE_FALSE(debug.actors.front().npcState.has_value());
     REQUIRE_FALSE(debug.actors.front().npcTactic.has_value());
 }

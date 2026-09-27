@@ -37,11 +37,8 @@ namespace simple_platformer
 {
     namespace
     {
-        // How often a searching NPC turns to look the other way.
         constexpr float SearchTurnSeconds = 0.5F;
 
-        // Everything one NPC update needs, passed as one so the state functions carry
-        // nothing they do not use themselves.
         struct NpcUpdate
         {
             const TileMap& map;
@@ -66,6 +63,28 @@ namespace simple_platformer
             }
             return overlaps(
                 biteHitbox(actor.body.bounds, *actor.bite, actor.facing), target.body.bounds);
+        }
+
+        bool targetIsWithinStandoffDistance(const Actor& actor, const NpcBrain& brain)
+        {
+            const float standoffDistance =
+                actor.senses.has_value() ? actor.senses->standoffDistance : 0.0F;
+            return glm::distance(feetOf(actor.body.bounds), brain.lastKnownTargetFeet) <
+                   standoffDistance;
+        }
+
+        bool targetIsOnSameRun(const TileMap& map, const Actor& actor, const Actor& target)
+        {
+            return actor.platformerMovement.has_value() && actor.platformerMovement->grounded &&
+                   target.platformerMovement.has_value() && target.platformerMovement->grounded &&
+                   onSameGroundRun(map, actor.body.bounds, target.body.bounds);
+        }
+
+        bool targetIsWithinNoticeDistance(const Actor& actor, const Actor& target)
+        {
+            return actor.senses.has_value() &&
+                   glm::distance(feetOf(actor.body.bounds), feetOf(target.body.bounds)) <=
+                       actor.senses->noticeDistance;
         }
 
         glm::vec2 patrolDestination(const Patrol& patrol)
@@ -196,25 +215,29 @@ namespace simple_platformer
         }
 
         NpcFacts gatherNpcFacts(
+            const TileMap& map,
             const Actor& actor,
             const NpcBrain& brain,
             const Actor* target,
             float stateElapsed)
         {
+            const NpcPerception& perception = *actor.perception;
             NpcFacts facts;
             facts.targetKnown = target != nullptr;
-            facts.targetVisible = brain.targetVisible;
-            facts.targetInBiteRange =
-                target != nullptr && brain.targetVisible && targetIsInBiteRange(actor, *target);
+            facts.targetVisible = perception.targetVisible;
+            facts.targetInBiteRange = target != nullptr && perception.targetVisible &&
+                                      targetIsInBiteRange(actor, *target);
             facts.biteReady = actor.bite.has_value() && actor.bite->phase == BitePhase::Ready;
             facts.targetInSights =
-                target != nullptr && brain.targetVisible && actor.rangedWeapon.has_value();
-            const float standoffDistance =
-                actor.senses.has_value() ? actor.senses->standoffDistance : 0.0F;
-            facts.targetTooClose =
-                target != nullptr &&
-                glm::distance(feetOf(actor.body.bounds), brain.lastSeenTargetFeet) <
-                    standoffDistance;
+                target != nullptr && perception.targetVisible && actor.rangedWeapon.has_value();
+            facts.targetWithinStandoffDistance =
+                target != nullptr && targetIsWithinStandoffDistance(actor, brain);
+            facts.heardLanding = perception.heardLanding;
+            facts.targetOnSameRun = target != nullptr && targetIsOnSameRun(map, actor, *target);
+            facts.targetWithinNoticeDistance =
+                target != nullptr && targetIsWithinNoticeDistance(actor, *target);
+            facts.movementBlocked =
+                actor.platformerMovement.has_value() && actor.platformerMovement->blocked;
             facts.hasPatrol = actor.patrol.has_value();
             const float searchDuration =
                 actor.senses.has_value() ? actor.senses->searchDuration : 0.0F;
@@ -257,19 +280,19 @@ namespace simple_platformer
             }
         }
 
-        // Where the last seen feet send a pursuer. A platformer needs a standable cell
+        // Where the last known feet send a pursuer. A platformer needs a standable cell
         // near them, and has nowhere to go when there is none.
-        std::optional<glm::vec2> lastSeenDestination(
+        std::optional<glm::vec2> lastKnownDestination(
             const NpcUpdate& update,
             const Actor& actor,
             const NpcBrain& brain)
         {
             if (!actor.platformerMovement.has_value())
             {
-                return brain.lastSeenTargetFeet;
+                return brain.lastKnownTargetFeet;
             }
             const std::optional<GridPosition> chaseCell = findPlatformerChaseCell(
-                update.map, brain.lastSeenTargetFeet, actor.body.bounds.size);
+                update.map, brain.lastKnownTargetFeet, actor.body.bounds.size);
             if (!chaseCell.has_value())
             {
                 return std::nullopt;
@@ -289,8 +312,8 @@ namespace simple_platformer
                 throw std::logic_error("A chasing NPC has no target");
             }
 
-            aimToward(actor, brain.lastSeenTargetFeet);
-            const std::optional<glm::vec2> destination = lastSeenDestination(update, actor, brain);
+            aimToward(actor, brain.lastKnownTargetFeet);
+            const std::optional<glm::vec2> destination = lastKnownDestination(update, actor, brain);
             if (!destination.has_value())
             {
                 clearPath(follower);
@@ -300,10 +323,10 @@ namespace simple_platformer
         }
 
         // Looking about is an aim that turns every SearchTurnSeconds, first towards where
-        // the target was last seen.
+        // the target was last known to be.
         void lookAbout(Actor& actor, const NpcBrain& brain, float stateElapsed)
         {
-            const float toward = brain.lastSeenTargetFeet.x - feetOf(actor.body.bounds).x;
+            const float toward = brain.lastKnownTargetFeet.x - feetOf(actor.body.bounds).x;
             float side = toward < 0.0F ? -1.0F : 1.0F;
             const int turns = static_cast<int>(stateElapsed / SearchTurnSeconds);
             if (turns % 2 == 1)
@@ -313,7 +336,7 @@ namespace simple_platformer
             actor.intentions.aimDirection = {side, 0.0F};
         }
 
-        // A search finishes the walk to where the target was last seen, and looks about
+        // A search finishes the walk to where the target was last known to be, and looks about
         // once it is there or cannot get there.
         void updateSearchState(
             const NpcUpdate& update,
@@ -322,7 +345,7 @@ namespace simple_platformer
             PathFollower& follower,
             float stateElapsed)
         {
-            const std::optional<glm::vec2> destination = lastSeenDestination(update, actor, brain);
+            const std::optional<glm::vec2> destination = lastKnownDestination(update, actor, brain);
             if (destination.has_value())
             {
                 followDestination(update, actor, follower, *destination);
@@ -337,8 +360,8 @@ namespace simple_platformer
             }
         }
 
-        // The target is visible for as long as this state lasts, since the transitions
-        // leave it on the update sight is lost, so the aim may read the target's body.
+        // The tactic leaves Shoot when sight is lost. A machine using this activity
+        // must handle lost sight and lost targets in its own transitions.
         void updateShootState(Actor& actor, const Actor* target)
         {
             if (target == nullptr)
@@ -350,12 +373,12 @@ namespace simple_platformer
             actor.intentions.primaryAttackPressed = true;
         }
 
-        // A retreat backs straight away from where the target was last seen, facing it and
-        // firing. A walker holds at a ledge rather than step off it.
+        // Retreat aims at the last known target feet and requests a primary attack.
+        // A walker stops at a ledge instead of stepping off it.
         void updateRetreatState(const NpcUpdate& update, Actor& actor, const NpcBrain& brain)
         {
             const glm::vec2 feet = feetOf(actor.body.bounds);
-            glm::vec2 away = feet - brain.lastSeenTargetFeet;
+            glm::vec2 away = feet - brain.lastKnownTargetFeet;
             if (actor.platformerMovement.has_value())
             {
                 const float side = away.x < 0.0F ? -1.0F : 1.0F;
@@ -369,7 +392,7 @@ namespace simple_platformer
                 }
             }
             actor.intentions.direction = away;
-            aimToward(actor, brain.lastSeenTargetFeet);
+            aimToward(actor, brain.lastKnownTargetFeet);
             actor.intentions.primaryAttackPressed = true;
         }
 
@@ -393,7 +416,7 @@ namespace simple_platformer
                 updateChaseState(update, actor, brain, follower, target);
                 break;
             case NpcState::Bite:
-                aimToward(actor, brain.lastSeenTargetFeet);
+                aimToward(actor, brain.lastKnownTargetFeet);
                 break;
             case NpcState::Shoot:
                 updateShootState(actor, target);
@@ -405,8 +428,6 @@ namespace simple_platformer
                 updateRetreatState(update, actor, brain);
                 break;
             case NpcState::Watch:
-                // A watch looks about from where the NPC stands; its path was cleared on
-                // entry and nothing here asks for one.
                 lookAbout(actor, brain, stateElapsed);
                 break;
             }
@@ -425,7 +446,7 @@ namespace simple_platformer
             snapshot.pathComplete = pathComplete(follower);
             if (facts.targetKnown)
             {
-                snapshot.targetFeet = brain.lastSeenTargetFeet;
+                snapshot.targetFeet = brain.lastKnownTargetFeet;
             }
             return snapshot;
         }
@@ -547,7 +568,8 @@ namespace simple_platformer
             NpcFacts activeFacts = facts;
             if (fired)
             {
-                activeFacts = gatherNpcFacts(actor, brain, target, machine.stateElapsed);
+                activeFacts =
+                    gatherNpcFacts(update.map, actor, brain, target, machine.stateElapsed);
             }
             if (!machine.activityEntered)
             {
@@ -575,7 +597,8 @@ namespace simple_platformer
         // Which state comes next is decided once, from the facts, before the state acts.
         void updateNpcState(const NpcUpdate& update, Actor& actor)
         {
-            if (!actor.brain.has_value() || !actor.pathFollower.has_value())
+            if (!actor.brain.has_value() || !actor.perception.has_value() ||
+                !actor.pathFollower.has_value())
             {
                 throw std::logic_error("An NPC is missing behaviour components");
             }
@@ -584,7 +607,7 @@ namespace simple_platformer
             const Actor* target = livingTarget(update.world, brain);
             const float stateElapsed =
                 actor.machine.has_value() ? actor.machine->stateElapsed : brain.stateElapsed;
-            const NpcFacts facts = gatherNpcFacts(actor, brain, target, stateElapsed);
+            const NpcFacts facts = gatherNpcFacts(update.map, actor, brain, target, stateElapsed);
             if (actor.machine.has_value())
             {
                 updateMachineState(update, actor, brain, follower, target, *actor.machine, facts);

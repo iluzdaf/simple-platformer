@@ -26,8 +26,8 @@ Keep each change small enough to verify directly:
    [Running focused tests](../README.md#running-focused-tests) for commands.
 4. Launch the example game when the change affects interaction or presentation.
 5. When a change might cost time, such as more NPCs or a larger level, launch the release
-   build and open the frame panel with F1. See
-   [Profiling](../README.md#macos-configure-build-and-test) for the preset.
+   build and open the frame panel with F1. See the
+   [release build instructions](../README.md#macos-configure-build-and-test).
 
 The focused tests provide fast feedback about one rule. The complete suite checks its
 interaction with the rest of the engine, while running the game covers presentation
@@ -110,6 +110,20 @@ senses and memory
   -> the same movement and combat systems
 ```
 
+Choose the smallest behaviour route that meets the requirement:
+
+- **Existing behaviour:** Configure an actor in [`actors.json`](../assets/actors.json)
+  when available states and tactics already fit.
+- **New transitions or shared behaviour:** Define a machine using existing facts and
+  activities in [`machines.json`](../assets/machines.json), or add a reusable C++ state
+  or tactic.
+- **Scripted policy and engine extension:** Run a Lua activity from a machine when
+  existing activities cannot express the policy. Add C++ facts or mechanics only when
+  the policy needs information or capabilities the engine does not yet provide.
+
+These are alternatives, not mandatory stages. A machine can use built-in activities
+without Lua, and a new fact does not require a script.
+
 A practical route through the implementation is:
 
 1. Trace the explicit `NpcState` enum, its transitions in
@@ -119,19 +133,17 @@ A practical route through the implementation is:
    `searchDuration` in an actor definition's `senses` settings in [`actors.json`](../assets/actors.json), using the
    debug overlay to observe visible targets, remembered positions, patrol points,
    destinations, and paths.
-3. Add one state such as Guard or Recover and test its transitions separately from
-   movement. Optionally, write the same rules as a machine in
-   [`machines.json`](../assets/machines.json) and give it to an actor, to compare the
-   switch with the data and watch it run in the overlay's machine window.
+3. Compare the built-in decision path with a machine in
+   [`machines.json`](../assets/machines.json), then choose a route from the table above.
+   Test any new engine rule separately from movement.
 4. Read generic lowest-cost search and flying navigation before studying simulated
    platformer jumps.
-5. Create an enemy with a deliberate combination of movement, senses, tactic, state
-   rules, navigation, attack, and animation.
+5. Create an enemy with the movement, senses, decisions, attack, and animation it needs.
 
 The [NPC-state recipe](ARCHITECTURE.md#adding-an-npc-state) and
 [enemy-composition recipe](ARCHITECTURE.md#creating-a-new-enemy) list the files and
-boundaries involved. More general brain tactics are future work and are not required
-to extend the current NPC behaviour.
+boundaries involved. [CONTENT.md](CONTENT.md#state-machines) explains the machine
+format and available facts.
 
 Movement work does not require reading NPC or navigation code. Enemy work builds on
 the ordinary movement and collision path, so those systems are useful context when an
@@ -153,26 +165,13 @@ and the engine: it passes input into the simulation, updates presentation state,
 levels, and builds a scene for rendering. What it and `GameLevel` own is listed under
 [Application folders](ARCHITECTURE.md#application-folders).
 
-Then open [`assets/levels.json`](../assets/levels.json). It chooses the
-starting level and maps level IDs to filenames, so level files can be freely renamed.
-[`level_catalog.cpp`](../app/content/level_catalog.cpp) validates that catalogue and
-resolves its filenames. Follow its first entry into
-[`assets/level_1.json`](../assets/level_1.json), which contains the map and
-placements for that level. Follow that data into
-[`level_data.cpp`](../app/content/level_data.cpp), which validates the JSON,
-and then [`actor_catalog.cpp`](../app/content/actor_catalog.cpp) and
-[`actor_definition.cpp`](../app/content/actor_definition.cpp), which load named actor settings
-from `actors.json` and compose C++ actors.
-[`level_composition.cpp`](../app/game/level_composition.cpp) brings the catalogues and
-placements together into a `GameLevel`.
-[`item_catalog.cpp`](../app/content/item_catalog.cpp) and
-[`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp) load inventory items and world
-pickup definitions from `items.json` and `pickups.json`.
-[`exit_catalog.cpp`](../app/content/exit_catalog.cpp) loads exit bounds and sprites from
-`exits.json`; positions and completion settings belong to each level.
-These are game-content concerns, not general engine behaviour.
-[CONTENT.md](CONTENT.md) is the complete reference when you are ready to edit or add
-levels.
+Then open [`assets/levels.json`](../assets/levels.json), which selects the starting
+level and maps IDs to files. Follow its first entry into
+[`level_1.json`](../assets/level_1.json), then read
+[`level_data.cpp`](../app/content/level_data.cpp) for parsing and
+[`level_composition.cpp`](../app/game/level_composition.cpp) for building a `GameLevel`.
+Use [CONTENT.md](CONTENT.md) when you need the JSON fields, shared catalogues, or Lua
+script references.
 
 ### 3. Learn the core data model
 
@@ -238,8 +237,12 @@ intentions instead of reading a keyboard. Follow this route:
 5. [`projectile_system.cpp`](../src/combat/projectile_system.cpp)
 6. [`lifecycle.cpp`](../src/actor/lifecycle.cpp)
 
-The enum-and-switch NPC state machine is intentionally explicit. The bite and ranged
-attacks have different gameplay data, but both use the same primary-attack intention.
+The enum-and-switch path teaches the built-in decision flow. For a machine-controlled
+NPC, follow [`machines.json`](../assets/machines.json) into
+[`npc_state_machine.cpp`](../src/npc/npc_state_machine.cpp). A Lua state then calls an
+activity under [`assets/scripts`](../assets/scripts) through
+[`lua_npc_scripts.cpp`](../src/scripting/lua_npc_scripts.cpp). In every path, combat
+still applies the requested attacks and contact damage.
 
 ### 7. Read navigation last
 

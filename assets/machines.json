@@ -1,5 +1,37 @@
 {
   "machines": {
+    "boar": {
+      "states": [
+        { "name": "sleep", "does": { "kind": "lua", "script": "boar", "activity": "sleep" } },
+        { "name": "charge", "does": { "kind": "lua", "script": "boar", "activity": "charge" } },
+        { "name": "stunned", "does": { "kind": "lua", "script": "boar", "activity": "stunned" } }
+      ],
+      "transitions": [
+        {
+          "from": "sleep",
+          "to": "charge",
+          "when": {
+            "heardLanding": true,
+            "targetOnSameRun": true,
+            "targetWithinNoticeDistance": true
+          }
+        },
+        { "from": "charge", "to": "stunned", "when": { "movementBlocked": true } },
+        {
+          "from": "stunned",
+          "to": "charge",
+          "when": { "targetOnSameRun": true, "targetWithinNoticeDistance": true },
+          "after": 1.5
+        },
+        { "from": "stunned", "to": "sleep", "when": { "targetOnSameRun": false }, "after": 1.5 },
+        {
+          "from": "stunned",
+          "to": "sleep",
+          "when": { "targetWithinNoticeDistance": false },
+          "after": 1.5
+        }
+      ]
+    },
     "rat": {
       "states": [
         { "name": "patrol", "does": "patrol" },
@@ -10,7 +42,7 @@
         {
           "from": "patrol",
           "to": "flee",
-          "when": { "targetVisible": true, "targetTooClose": true }
+          "when": { "targetVisible": true, "targetWithinStandoffDistance": true }
         },
         { "from": "flee", "to": "bite", "when": { "targetInBiteRange": true } },
         { "from": "flee", "to": "patrol", "when": { "targetKnown": false }, "after": 1.5 },
@@ -35,12 +67,16 @@
         {
           "from": ["idle", "patrol", "watch"],
           "to": "retreat",
-          "when": { "targetTooClose": true }
+          "when": { "targetWithinStandoffDistance": true }
         },
         { "from": ["idle", "patrol", "watch"], "to": "shoot", "when": { "targetInSights": true } },
         { "from": ["idle", "patrol", "watch"], "to": "chase", "when": { "targetKnown": true } },
         { "from": "idle", "to": "patrol", "when": { "hasPatrol": true } },
-        { "from": ["chase", "shoot"], "to": "retreat", "when": { "targetTooClose": true } },
+        {
+          "from": ["chase", "shoot"],
+          "to": "retreat",
+          "when": { "targetWithinStandoffDistance": true }
+        },
         { "from": "chase", "to": "shoot", "when": { "targetInSights": true } },
         {
           "from": "shoot",
@@ -51,12 +87,12 @@
         {
           "from": "retreat",
           "to": "shoot",
-          "when": { "targetTooClose": false, "targetInSights": true }
+          "when": { "targetWithinStandoffDistance": false, "targetInSights": true }
         },
         {
           "from": "retreat",
           "to": "chase",
-          "when": { "targetTooClose": false, "targetKnown": true }
+          "when": { "targetWithinStandoffDistance": false, "targetKnown": true }
         },
         { "from": "watch", "to": "patrol", "when": { "searchTimeUp": true, "hasPatrol": true } },
         { "from": "watch", "to": "idle", "when": { "searchTimeUp": true } }

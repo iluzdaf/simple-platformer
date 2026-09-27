@@ -32,15 +32,25 @@ namespace simple_platformer
         KeepDistance
     };
 
+    // Decision state and persistent knowledge, retained between sensing updates.
     struct NpcBrain
     {
         NpcTactic tactic = NpcTactic::Pursuer;
         NpcState state = NpcState::Idle;
         float stateElapsed = 0.0F;
         std::optional<ActorId> target;
-        glm::vec2 lastSeenTargetFeet = {0.0F, 0.0F};
+        // Last observed target feet, refreshed by sight or an eligible noise.
+        glm::vec2 lastKnownTargetFeet = {0.0F, 0.0F};
         float targetMemoryRemaining = 0.0F;
+    };
+
+    // Transient observations, replaced on every sensing update. Behaviour copies
+    // these into NpcFacts alongside facts derived from other actor components.
+    struct NpcPerception
+    {
         bool targetVisible = false;
+        // A player landing heard on this run during the latest sensing update.
+        bool heardLanding = false;
     };
 
     struct NpcSenses
@@ -50,8 +60,8 @@ namespace simple_platformer
         // How long a lost target is searched for before the NPC returns to its routine.
         // Zero sends it straight back.
         float searchDuration = 2.0F;
-        // How near a target may come before it counts as too close, which a KeepDistance
-        // brain or a machine answers with a retreat.
+        // Threshold for targetWithinStandoffDistance; tactics and machines decide
+        // what to do when the target crosses it.
         float standoffDistance = 48.0F;
     };
 

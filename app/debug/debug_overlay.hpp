@@ -78,15 +78,14 @@ namespace simple_platformer
     {
         ActorId id;
         ActorDebugKind kind = ActorDebugKind::Actor;
+        std::optional<std::string> definitionName;
         Aabb collider;
         std::optional<ActorSpriteDebugInfo> sprite;
         std::optional<AnimationName> animation;
         std::optional<NpcState> npcState;
-        // Whichever decides the NPC's state: its tactic or its machine.
+        // The tactic is not asked when a machine chooses the state.
         std::optional<NpcTactic> npcTactic;
-        std::optional<std::string> machine;
         std::optional<std::string> machineState;
-        std::optional<NpcActivity> npcActivity;
         std::optional<PathFollowerDebugInfo> pathFollower;
         std::optional<SensorDebugInfo> sensor;
         std::optional<PatrolDebugInfo> patrol;

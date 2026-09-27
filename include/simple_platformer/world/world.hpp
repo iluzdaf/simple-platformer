@@ -17,6 +17,20 @@
 
 namespace simple_platformer
 {
+    enum class NoiseKind
+    {
+        Landing,
+        Shot
+    };
+
+    struct NoiseEvent
+    {
+        ActorId source;
+        // Captured when emitted, not looked up from the actor when heard.
+        glm::vec2 feet = {0.0F, 0.0F};
+        NoiseKind kind = NoiseKind::Landing;
+    };
+
     class World
     {
     public:
@@ -43,6 +57,10 @@ namespace simple_platformer
         std::optional<float> secondsSince(const std::optional<double>& timeSeconds) const;
         // The simulation loop calls this once at the start of each active update.
         void advanceSimulationTime(float deltaTime);
+        // Events emitted after sensing are delivered on the next fixed update.
+        // Sensing takes the batch once and shares it with every NPC before discarding it.
+        void emitNoise(NoiseEvent event);
+        std::vector<NoiseEvent> takeNoises();
 
         ActorId addActor(Actor actor);
         bool removeActor(ActorId id);
@@ -92,6 +110,7 @@ namespace simple_platformer
         bool completed = false;
         double elapsedSimulationTimeSeconds = 0.0;
         std::vector<Actor> actorStorage;
+        std::vector<NoiseEvent> pendingNoises;
         std::vector<Projectile> projectileStorage;
         std::vector<ProjectileBurst> projectileBurstStorage;
         std::uint32_t nextActorId = 1;

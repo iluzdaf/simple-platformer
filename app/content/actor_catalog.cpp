@@ -170,6 +170,17 @@ namespace simple_platformer
             return config;
         }
 
+        ContactDamage jsonContactDamage(
+            const Json& value,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            checkJsonFields(value, {"damage"}, sourceName, path);
+            ContactDamage config;
+            readOptionalInteger(value, "damage", config.damage, sourceName, path);
+            return config;
+        }
+
         RangedWeapon jsonRangedWeapon(
             const Json& value,
             std::string_view sourceName,
@@ -200,9 +211,6 @@ namespace simple_platformer
             readOptionalSprite(value, "sprite", config.projectileSprite, sourceName, path);
             return config;
         }
-
-        // The optional fields, in the readOptional shape: a missing key leaves the field
-        // alone, a present one is converted by the matching json reader.
 
         void readOptionalTeam(
             const Json& object,
@@ -295,6 +303,19 @@ namespace simple_platformer
             }
         }
 
+        void readOptionalContactDamage(
+            const Json& object,
+            std::string_view key,
+            std::optional<ContactDamage>& result,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
+            {
+                result = jsonContactDamage(*found, sourceName, fieldPath(path, key));
+            }
+        }
+
         void readOptionalRangedWeapon(
             const Json& object,
             std::string_view key,
@@ -328,6 +349,7 @@ namespace simple_platformer
                  "tactic",
                  "machine",
                  "bite",
+                 "contactDamage",
                  "ranged"},
                 sourceName,
                 path);
@@ -345,6 +367,8 @@ namespace simple_platformer
             readOptionalNpcTactic(value, "tactic", result.tactic, sourceName, path);
             readOptionalText(value, "machine", result.machine, sourceName, path);
             readOptionalBite(value, "bite", result.bite, sourceName, path);
+            readOptionalContactDamage(
+                value, "contactDamage", result.contactDamage, sourceName, path);
             readOptionalRangedWeapon(value, "ranged", result.ranged, sourceName, path);
             return result;
         }

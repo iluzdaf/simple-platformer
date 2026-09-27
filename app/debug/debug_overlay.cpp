@@ -143,14 +143,15 @@ namespace simple_platformer
             info.noticeDistance = senses.noticeDistance;
             info.memoryRemaining = brain.targetMemoryRemaining;
 
-            if (brain.targetVisible && player != nullptr && player->life == LifeState::Alive &&
+            if (actor.perception.has_value() && actor.perception->targetVisible &&
+                player != nullptr && player->life == LifeState::Alive &&
                 areOpponents(actor.team, player->team))
             {
                 info.visibleTargetCenter = centerOf(player->body.bounds);
             }
             else if (brain.target.has_value() && brain.targetMemoryRemaining > 0.0F)
             {
-                info.rememberedTargetFeet = brain.lastSeenTargetFeet;
+                info.rememberedTargetFeet = brain.lastKnownTargetFeet;
             }
             return info;
         }
@@ -290,14 +291,9 @@ namespace simple_platformer
             {
                 info.npcState = actor.brain->state;
             }
-            // Whichever decides the state is shown: the machine when there is one, since
-            // the tactic is not asked then, and otherwise the tactic.
             if (actor.machine.has_value())
             {
-                info.machine = actor.machine->definition.name;
-                const NpcMachineState& state = activeNpcMachineState(*actor.machine);
-                info.machineState = state.name;
-                info.npcActivity = state.does;
+                info.machineState = activeNpcMachineState(*actor.machine).name;
             }
             else if (actor.brain.has_value())
             {

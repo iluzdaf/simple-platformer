@@ -8,8 +8,11 @@
 #include "content/level_catalog.hpp"
 #include "content/level_data.hpp"
 #include "content/tile_catalog.hpp"
+#include <cstdint>
 #include <optional>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 
@@ -156,17 +159,19 @@ namespace simple_platformer
         }
         TileMap map = composeTileMap(data.mapRows, data.tileLegend, tiles);
         World world(composeItems(items, textureId));
+        std::unordered_map<std::uint32_t, std::string> actorDefinitionNames;
         for (const auto& placement : data.actors)
         {
             try
             {
-                world.addActor(composeActor(
+                const ActorId id = world.addActor(composeActor(
                     actorDefinition(actors, placement.definitionName),
                     catalogs.animations,
                     textureId,
                     feetOf(map, placement.spawn),
                     makePatrol(map, placement.patrol),
                     catalogs.machines));
+                actorDefinitionNames.emplace(id.value, placement.definitionName);
             }
             catch (const std::invalid_argument& error)
             {
@@ -180,7 +185,12 @@ namespace simple_platformer
         }
         world.setExit(makeExit(map, textureId, data.exit, items, exits));
         const glm::vec2 playerSpawnFeet = feetOf(map, data.playerSpawn);
-        return {levelNumber, std::move(map), std::move(world), playerSpawnFeet};
+        return {
+            levelNumber,
+            std::move(map),
+            std::move(world),
+            playerSpawnFeet,
+            std::move(actorDefinitionNames)};
     }
 
     Actor composePlayer(const GameCatalogs& catalogs, int textureId)

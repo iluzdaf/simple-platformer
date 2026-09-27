@@ -27,9 +27,8 @@ namespace simple_platformer
         std::optional<int> inventorySlots;
         std::optional<PlatformerMovementConfig> platformer;
         std::optional<FlyingMovement> flying;
-        // Presence enables the existing NPC brain and path follower together.
+        // Presence creates the brain, perception, and path follower with these senses.
         std::optional<NpcSenses> senses;
-        // The brain's policy.
         NpcTactic tactic = NpcTactic::Pursuer;
         // A data-driven machine in the machine catalog, run instead of the tactic. Empty
         // for none.
@@ -37,6 +36,7 @@ namespace simple_platformer
         // Reuse the engine's attack settings. Composition resets their phase/timer state;
         // JSON exposes only configuration fields, never those runtime fields.
         std::optional<BiteAttack> bite;
+        std::optional<ContactDamage> contactDamage;
         std::optional<RangedWeapon> ranged;
     };
 

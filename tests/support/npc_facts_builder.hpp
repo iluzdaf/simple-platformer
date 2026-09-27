@@ -49,10 +49,10 @@ namespace tests
         }
 
         // A known target nearer than the standoff distance.
-        NpcFactsBuilder targetTooClose() &&
+        NpcFactsBuilder targetWithinStandoffDistance() &&
         {
             built.targetKnown = true;
-            built.targetTooClose = true;
+            built.targetWithinStandoffDistance = true;
             return *this;
         }
 

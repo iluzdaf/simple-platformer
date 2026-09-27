@@ -8,6 +8,8 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/combat/attack_system.hpp"
+#include "simple_platformer/world/world_requests.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/math/coordinates.hpp"
@@ -185,15 +187,27 @@ TEST_CASE("Firing exposes a hidden player for the reveal window", "[render][cove
     simple_platformer::updateCoverFades(map, world, QuarterFade);
     REQUIRE_NEAR(shown(world, player), 0.0F);
 
-    tests::rangedWeapon(world, player).lastFiredTimeSeconds = world.simulationTimeSeconds();
+    simple_platformer::WorldRequests requests;
+    tests::actor(world, player).intentions.primaryAttackPressed = true;
+    tests::actor(world, player).intentions.aimDirection = {1.0F, 0.0F};
+    simple_platformer::updateAttacks(world, requests, 0.0F);
+    tests::actor(world, player).intentions.primaryAttackPressed = false;
+    REQUIRE(world.takeNoises().size() == 1); // Consuming the noise does not end the reveal.
     simple_platformer::updateCoverFades(map, world, QuarterFade);
     REQUIRE_NEAR(shown(world, player), 0.25F);
+    // Rendering (including paused frames) never ages a simulation-clock stamp.
+    REQUIRE_NEAR(
+        world.secondsSince(tests::rangedWeapon(world, player).lastFiredTimeSeconds).value_or(-1.0F),
+        0.0F);
 
     world.advanceSimulationTime(simple_platformer::ShotRevealSeconds * 0.5F);
     simple_platformer::updateCoverFades(map, world, QuarterFade);
     REQUIRE_NEAR(shown(world, player), 0.5F);
 
-    world.advanceSimulationTime(simple_platformer::ShotRevealSeconds);
+    world.advanceSimulationTime(simple_platformer::ShotRevealSeconds * 0.5F);
+    REQUIRE_NEAR(
+        world.secondsSince(tests::rangedWeapon(world, player).lastFiredTimeSeconds).value_or(-1.0F),
+        simple_platformer::ShotRevealSeconds);
     simple_platformer::updateCoverFades(map, world, QuarterFade);
     REQUIRE_NEAR(shown(world, player), 0.25F);
 }

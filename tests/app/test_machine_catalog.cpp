@@ -17,7 +17,9 @@ TEST_CASE("Machine JSON keeps state order, expands from lists and reads holds", 
     auto& machine = root["machines"]["test_machine"];
     machine["states"].push_back({{"name", "flee"}, {"does", "retreat"}});
     machine["transitions"].push_back(
-        {{"from", {"rest", "hunt"}}, {"to", "flee"}, {"when", {{"targetTooClose", true}}}});
+        {{"from", {"rest", "hunt"}},
+         {"to", "flee"},
+         {"when", {{"targetWithinStandoffDistance", true}}}});
     const auto catalog = simple_platformer::parseMachineCatalog(root.dump(), "test machines");
     const simple_platformer::NpcStateMachine& parsed =
         simple_platformer::npcStateMachine(catalog, "test_machine");

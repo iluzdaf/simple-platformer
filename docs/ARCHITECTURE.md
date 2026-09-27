@@ -19,7 +19,7 @@ Use this as a reference when working on a particular feature:
 |                           | [Actor composition](#actor-composition)                                   | How capabilities fit together.                                                                                                                |
 | Gameplay systems          | [Input and movement](#input-and-movement)                                 | Intentions, platformer and flying movement.                                                                                                   |
 |                           | [Tile map, collision, and validation](#tile-map-collision-and-validation) | Terrain and sweeps.                                                                                                                           |
-|                           | [NPC behaviour](#npc-behaviour)                                           | Sensing, memory, and the explicit state machine.                                                                                              |
+|                           | [NPC behaviour](#npc-behaviour)                                           | Sensing, memory, machines, and Lua activities.                                                                                                |
 |                           | [Navigation](#navigation)                                                 | Path search, following, simulated jumps, and the connection cache.                                                                            |
 |                           | [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle) | Attacks and death.                                                                                                                            |
 |                           | [Inventory, pickups, and levels](#inventory-pickups-and-levels)           | The level loop and the [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the file-by-file authoring reference. |
@@ -51,7 +51,8 @@ The current example includes:
   snapshot-and-command boundary
 
 The project deliberately does not try to provide slopes, one-way or moving platforms,
-dynamic rigid-body physics, actor pushing, multiplayer, scripted gameplay, save games, an
+dynamic rigid-body physics, actor pushing, multiplayer, general gameplay scripting beyond
+NPC activities, save games, an
 editor, an animation graph, a general ECS, or advanced projectile modifiers such as
 homing and piercing. OpenGL submission is checked manually rather than with automated
 graphics integration tests. Sketches for a few of these, including an editor and
@@ -209,19 +210,20 @@ happened, empty until it first does (`lastDamageTimeSeconds`, `lastFiredTimeSeco
 `lastLockedTouchTimeSeconds`, `openedTimeSeconds`). `World` advances the clock once at
 the start of every step. A writer takes `simulationTimeSeconds()`; a reader asks
 `secondsSince(stamp)` for its age and compares it against a window the reader owns, so
-one write serves every reader. Senses hear the shot stamp, the cover fade reveals it,
-and the hit flash's length is a rendering constant. A stamp belongs to the clock it was
-taken from. One from the future is rejected, respawn clears the damage stamp, and no
+one write serves every reader. Cover fading reads the shot stamp; hearing uses noise
+events. The hit flash's length is a rendering constant. A stamp belongs to the clock
+it was taken from. One from the future is rejected, respawn clears the damage stamp, and no
 actor carries a stamp into another world. The clock and its stamps are `double`, so a
 stamp keeps its precision however long a session runs, and an age is a `float`, being
 small.
 
 **Which to use.**
 
-- If one system starts the window, ends it and is the only reader, use a timer.
+- If one system owns a window's start, ticking, and end, use a timer. Other systems
+  may read the remaining duration without advancing it.
 - If the question is how long ago something happened, and several systems or rendering
   ask it, use a stamp.
-- Rendering reads stamps and the clock and should not tick anything.
+- Rendering reads stamps, the clock, or simulation-owned timers and should not tick them.
 - Put a length that content tunes in a duration field in seconds, checked like every
   other time.
 
@@ -254,82 +256,38 @@ collection invariants.
 
 ## Actor composition
 
-Player and NPC are roles built from the same `Actor` aggregate, not subclasses:
-
-```cpp
-struct Actor
-{
-    ActorId id;
-    Body body;
-    InputIntentions intentions;
-    std::optional<PlatformerMovement> platformerMovement;
-    std::optional<FlyingMovement> flyingMovement;
-    Facing facing = Facing::Right;
-
-    LifeState life = LifeState::Alive;
-    float deathTimeRemaining = 0.0F;
-    std::optional<float> lastDamageTimeSeconds;
-
-    std::optional<Sprite> sprite;
-    std::optional<Animator> animator;
-    std::optional<Health> health;
-    std::optional<Inventory> inventory;
-    Team team = Team::Neutral;
-    std::optional<RangedWeapon> rangedWeapon;
-    std::optional<BiteAttack> bite;
-    std::optional<NpcBrain> brain;
-    std::optional<NpcSenses> senses;
-    std::optional<Patrol> patrol;
-    std::optional<PathFollower> pathFollower;
-};
-```
+Players and NPCs are configurations of the same [`Actor`](../include/simple_platformer/actor/actor.hpp),
+not subclasses. Every actor has a body, intentions, facing, and team. Optional
+components supply its capabilities.
 
 ### Composition recipe
 
-When creating a new actor, start with `Body` and add only the data required by its
-capabilities:
+| Capability     | Components                                               | Rule                                                                    |
+| -------------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Movement       | `PlatformerMovement` or `FlyingMovement`                 | Exactly one is required.                                                |
+| NPC control    | `NpcBrain`, `NpcPerception`, `NpcSenses`, `PathFollower` | Add these together; a `Patrol` is optional.                             |
+| Machine policy | `NpcMachine`                                             | Requires NPC control; chooses activities instead of the brain's tactic. |
+| Primary attack | `BiteAttack` or `RangedWeapon`                           | At most one is configured.                                              |
+| Contact attack | `ContactDamage`                                          | Can coexist with either primary attack and is requested separately.     |
+| Presentation   | `Sprite` and `Animator`                                  | An animator needs a sprite and a complete animation set.                |
 
-| Role           | Movement             | Control                                                                           | Combat and life                                       | Presentation         |
-| -------------- | -------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------- |
-| Player         | `PlatformerMovement` | application writes `InputIntentions`                                              | `Health`, `Inventory`, `Team::Player`, `RangedWeapon` | `Sprite`, `Animator` |
-| Zombie         | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower`                                 | `Health`, `Team::Enemy`, `BiteAttack`                 | `Sprite`, `Animator` |
-| Bat            | `FlyingMovement`     | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower`                                 | `Health`, `Team::Enemy`, `BiteAttack`                 | `Sprite`, `Animator` |
-| Rat            | `PlatformerMovement` | `NpcBrain`, `NpcMachine` (`rat`), `NpcSenses`, `Patrol`, `PathFollower`           | `Health`, `Team::Enemy`, `BiteAttack`                 | `Sprite`, `Animator` |
-| Zombie soldier | `PlatformerMovement` | `NpcBrain`, `NpcMachine` (`keep_distance`), `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon`               | `Sprite`, `Animator` |
+The application writes player intentions; NPC activities write the same structure.
+An attacking actor needs a non-neutral team for opponent filtering. Health and
+inventory are optional components. Reusing a definition with a different spawn or
+patrol placement creates another actor without a new C++ type.
 
-The recipe is additive. For example, making a second zombie does not require another
-type: reference the same definition with different spawn and patrol data. A bat can use a
-smaller body while keeping a larger sprite because physical and visual sizes are
-independent.
-
-The important composition rules are:
-
-- an actor has exactly one movement component;
-- an NPC needs a brain, senses, and path follower; add a patrol only when it should
-  move between authored patrol points;
-- an actor has at most one configured primary attack in the example;
-- attacks use a non-neutral team so friend-or-foe filtering is defined;
-- an `Animator` is useful only with a `Sprite` and a complete `AnimationSet`.
-
-`World::addActor` rejects combinations that would make runtime dispatch ambiguous;
-level validation separately checks whether composed actors fit at their authored
-positions. Systems check for the component they operate on rather than using virtual
-methods or an inheritance hierarchy.
+`World::addActor` checks component combinations; level validation separately checks
+whether actors fit at their authored positions. Systems use the components they
+need rather than virtual dispatch.
 
 ## Input and movement
 
 ### Shared intentions
 
-```cpp
-struct InputIntentions
-{
-    glm::vec2 direction = {0.0F, 0.0F};
-    glm::vec2 aimDirection = {0.0F, 0.0F};
-    bool jumpPressed = false;
-    bool jumpHeld = false;
-    bool primaryAttackPressed = false;
-};
-```
+Player input and NPC decisions produce the same
+[`InputIntentions`](../include/simple_platformer/input/input_state.hpp). Its fields
+carry movement and aim, jump and primary-attack input, and requests for ledge
+avoidance and contact damage.
 
 Platformer movement reads the horizontal direction; flying movement reads both axes.
 Aim is independent of travel direction. Facing is left or right, for sprite flipping and
@@ -337,21 +295,24 @@ for which side a bite reaches, and one rule decides it after each movement updat
 wins when it points left or right, otherwise the way the actor is trying to move,
 otherwise it stays as it was. NPCs that look at a target express that as an aim.
 
-The application maps keyboard and mouse state to the player's intentions. NPC systems
-write the same structure from their decisions. Movement and attack systems therefore
-do not need separate player and NPC implementations.
+`avoidLedges` asks grounded walking to stop before unsupported floor, without changing
+its acceleration or preventing a deliberate jump. Platformer movement records whether
+a wall or this guard blocked the last update; NPC policy reads that as `movementBlocked`.
+`contactDamage` independently asks the combat system to enable body-overlap damage.
+
+The application maps keyboard and mouse state to the player's intentions. Movement and
+attack systems do not need separate player and NPC implementations.
 
 GLFW events preserve pressed and released edges until a fixed update consumes them.
 The application converts the mouse from window coordinates through the letterboxed
 display viewport and camera into a world-space aim direction. Clicks outside the game
 viewport are ignored. When ImGui captures input, gameplay input is cleared.
 
-The application can pause the simulation and, while paused, run one fixed step, so a
-decision such as a machine's transition can be watched landing in the overlay. The
-interface, the overlay and rendering carry on while the simulation stands still, and
-the fixed step is reset across a pause, as across the inventory, so no burst of
-catch-up steps follows a resume. The pause and the step are the application's: the
-game only sees which steps it is asked to run. The keys are listed in
+The application can pause the simulation and, while paused, run one fixed step.
+Presentation continues while the simulation stands still, and the fixed step is reset
+across a pause, as across the inventory, so no burst of catch-up steps follows a
+resume. The pause and the step are the application's: the game only sees which steps
+it is asked to run. The keys are listed in
 [README.md](../README.md#playing-the-example-game).
 
 ### Platformer movement
@@ -395,14 +356,13 @@ fully visible up to the first `ScreenCoverFade` threshold, not drawn from the se
 fading between. Anything the player has a line of sight to is drawn fully. The screen eases
 towards that target over `CoverFadeSeconds`, so an NPC revealed when the player steps into
 its patch fades in rather than popping. `updateCoverFades` keeps this `screenVisibility`
-and `buildRenderScene` draws it. NPCs still see the
-player by line of sight alone. The debug overlay shows everything.
+and `buildRenderScene` draws it. NPCs still see the player by line of sight alone.
 
 The player's own sprite shows whether the world can see them. Their `screenVisibility`
 eases towards their own cover fade, raised to fully exposed while any NPC saw them this
 update or for `ShotRevealSeconds` after they fire. "Saw them" is read straight from the
-`targetVisible` flag that `updateNpcSenses` stamps on each brain, so there is one rule
-for who sees the player, decided once per tick by gameplay, and the screen only reports it. The renderer draws the player shaded by
+`targetVisible` flag that `updateNpcSenses` records in each `NpcPerception`, so gameplay
+decides who sees the player once per tick. The renderer draws the player shaded by
 `PlayerConcealedShade` rather than faded, so a hidden player darkens instead of
 disappearing.
 
@@ -444,54 +404,61 @@ location.
 
 ### Sensing and memory
 
+`NpcSenses` holds configuration. `NpcPerception` holds transient sensing results
+(`targetVisible` and `heardLanding`), replaced on every sensing update. `NpcBrain`
+holds decision state and persistent target memory. Behaviour assembles `NpcFacts`
+from perception, memory, and other actor components; facts are a policy snapshot,
+not another store of sensing state. Debug visibility reads the same perception.
+
 An NPC detects the living player when the player is within its notice distance and a
-tile segment cast finds clear line of sight. It stores the player's ID and last seen
+tile segment cast finds clear line of sight. It stores the player's ID and last known
 feet. When sight is lost, a configurable timer lets it continue toward the remembered
 position before forgetting the target. Firing gives the player away without making
 them visible: every opponent NPC within notice distance hears the shot through any
-tiles, remembers the player's feet at that moment, and starts the same timer. The
-weapon stamps each shot with the world clock, and senses hear the shot whose stamp is
-one update old.
+tiles, remembers the player's feet at that moment, and starts the same timer.
+Shots and landings emit `NoiseEvent` values containing the source, kind, and feet at
+emission. The next sensing update takes the batch once, offers it to every NPC, then
+discards it. Delivery is tied to simulation updates, not render frames or timestamp
+tolerances. Moving after an emission does not move the noise. Fresh sight takes priority
+over a heard position; otherwise the last eligible noise in the batch refreshes memory.
+Landing hearing additionally requires a grounded observer on the same supported run.
+
+Firing also records `RangedWeapon::lastFiredTimeSeconds` on the simulation clock.
+Cover fading compares its age with `ShotRevealSeconds`, a duration owned by the
+cover-fade module. Combat maintains no reveal countdown. Rendering does not advance
+the clock, and consuming noise does not affect the stamp. Hearing never polls this
+timestamp; no noise event needs to persist for the reveal or target-memory window.
 
 Ground NPCs chase a standable destination using their own collider size. If the
-last-seen feet cell is not standable (for example, during a jump or just past a
+last-known feet cell is not standable (for example, during a jump or just past a
 platform edge), `findPlatformerChaseCell` selects the nearest standable feet position.
 Equal-distance candidates use row, then column order. Pathfinding still determines
 whether that destination is reachable; there is no fallback to a different destination
 if it is disconnected. This selection never reads the hidden player's current position
 or moves either actor directly. Patrol endpoints remain exact, and flyers continue
-to use the last-seen feet cell.
+to use the last-known feet cell.
 
 Sensing only records observations. It does not decide whether to patrol, chase, bite,
 or shoot. This keeps perception and decisions separately testable.
 
 ### Explicit state machine
 
-`NpcState` is an enum with eight states: Idle, Patrol, Chase, Bite, Shoot, Search,
-Retreat, and Watch. `NpcTactic` is an enum with two: Pursuer and KeepDistance. An update
-decides in three steps, each its own function:
+Built-in states are declared in [`npc.hpp`](../include/simple_platformer/npc/npc.hpp).
+`NpcTactic` selects Pursuer or KeepDistance policy. An update has three steps:
 
-1. `gatherNpcFacts` reads what the transitions decide on into `NpcFacts`: whether a
-   living target is remembered or visible, whether it is in bite range or in a ranged
-   weapon's sights, whether it has come nearer than the senses' `standoffDistance`,
-   whether the bite is ready, whether the NPC has a patrol, whether it searches for a
-   lost target and that search's time is up, and how long it has been in its state.
+1. `gatherNpcFacts` collects sensing, target memory, movement, attacks, and state time
+   into `NpcFacts`. [CONTENT.md](CONTENT.md#state-machines) defines the machine-visible
+   facts and their timing.
 2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
    current state that returns the state to enter, or nothing to stay. It reads only the
    tactic and the facts, so a test hands it those and expects a state. An NPC makes at
    most one transition an update. A known target is pursued from whichever state
    notices it, and a lost one leaves the NPC where the brain's [tactic](#tactics)
    answers.
-3. Entering a state resets its timing, clears the follower's path and, for Bite, asks
-   for the attack once. The state's function then acts: Chase chooses a destination and
-   follows its path, Bite aims at the remembered target, and Shoot aims at the visible
-   target and presses the attack. Search finishes the walk to where the target was last
-   seen and looks about there, turning every half second, until its senses'
-   `searchDuration` runs out; a duration of zero sends an NPC that lost its target
-   straight back to Patrol or Idle. Watch looks about the same way from where the NPC
-   stands, for the same time. Retreat backs straight away from where the target was
-   last seen, facing it and firing, and a walker holds at a ledge rather than step off
-   it. None of them decides what comes next.
+3. Entering a state resets its time and route. The activity then requests a destination,
+   aim, or attack through `InputIntentions`. For example, Chase follows a path to the
+   last known target position, while Retreat moves away from it and requests an attack.
+   Movement and combat execute those requests later in the same simulation step.
 
 ### Tactics
 
@@ -531,11 +498,8 @@ machine with no states, a repeated state name, a transition
 from or to a state it lacks, a condition on a fact no row answers, or a hold that is
 not a finite, non-negative time, and names the transition.
 
-The zombie soldier still runs only built-in activities through the `keep_distance`
-machine, which is its KeepDistance tactic written out. It remains the intermediate
-example between the zombie's enum-and-switch brain and later scripted NPCs. The overlay
-shows the active machine state and labels its implementation as `builtin: ...` or
-`lua: script.activity`.
+The zombie soldier runs built-in activities through the `keep_distance` machine, which
+expresses its KeepDistance policy as data.
 
 Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
 edge and loses its path, navigation can recover to a supported cell before repathing;
@@ -564,10 +528,12 @@ removals are applied, an NPC cleanup system discards their script-owned state. L
 and restart discard that state for every actor before replacing the world.
 
 Machine JSON keeps the short string form for built-in activities. A Lua activity uses
-`{"kind":"lua","script":"rat","activity":"flee"}`. The application loads each referenced
-script once from `scripts/<script>.lua` beside the other level content and rejects missing
-scripts or activities before the game starts. The shipped rat uses this form to choose the end
-of its patrol run away from the player; pathfinding, facing, and biting remain C++ work.
+`{"kind":"lua","script":"rat","activity":"flee"}`. The application loads referenced
+files from `assets/scripts` at startup and rejects missing scripts or activities.
+The rat uses Lua to choose a flee destination while C++ follows the path and handles
+biting. The boar's Lua charge activity requests ordinary walking, ledge avoidance,
+and contact damage; its machine uses facts to choose wake and recovery transitions.
+Scripts cannot create noise events or apply damage directly.
 
 ## Navigation
 
@@ -603,10 +569,9 @@ against a platform corner.
 Platformer nodes are standable cells: the cell and what the body covers standing in
 it block nothing, and the cell below blocks movement. Connections are a walk, a fall
 or a jump. Each is found by simulating it with the real platformer movement and
-collision code at the step the caller passes in, which the NPC system takes from the
-tick it is running, so a predicted jump and the real one run the same physics; the
-debug overlay replays recorded jumps at the application's step for the same reason. A
-walk goes to every cell along the floor either way, from a standstill to a stop. A
+collision code at the step the caller passes in. The NPC system passes its current
+tick's step, so a predicted jump and the real one run the same physics. A walk goes
+to every cell along the floor either way, from a standstill to a stop. A
 fall or a jump is accepted only when it lands on another standable cell and stops
 there, and records the intentions it was simulated with as an `InputProgram` for the
 follower to replay. Costs are the movement ticks the simulation took, and the
@@ -643,9 +608,8 @@ query outright from what it remembers. During it, the search is handed the cache
 connections instead of ones simulated for that search alone, which is what the tests
 of the policies get. After it, the cache keeps what the search learned. The cache and
 everything built on it can be taken out by removing those three helpers and the
-branches that call them. The profile counts the searches answered from memory, the cells reused
-and the ticks simulated, so the frame panel shows the cost fall away as the cache
-fills.
+branches that call them. The profile counts searches answered from memory, cells
+reused, and ticks simulated.
 
 ### Filling the cache
 
@@ -712,6 +676,15 @@ would no longer start it; the forward hitbox can still miss.
 A ranged weapon moves through Ready, Shoot, Recovery, and back to Ready. Entering Shoot
 queues exactly one projectile, while the Shoot duration keeps the firing pose visible.
 The aim vector supports the full 360-degree range.
+
+### Contact damage
+
+`ContactDamage` is independent of movement and can coexist with a bite or ranged weapon.
+While the `contactDamage` intention is held, combat queues body-overlap damage once per
+opponent. Releasing it or dying disables damage and clears the hit history, so a later
+activation can hit again. It neither moves the actor nor selects an attack animation.
+The boar's Lua charge activity combines this request with fast ordinary walking; recovery
+requests neither movement nor contact damage.
 
 ### Projectiles and deferred damage
 
@@ -878,10 +851,8 @@ projectile, pickup, navigation, camera and machine data. The UI only projects th
 through `DisplayViewport`; it does not change simulation state. This separation keeps
 collection and selection logic testable without a window.
 
-`app/debug/machine_graph_ui` presents the selected NPC's `NpcMachine` without editing
-it. Selection is resolved while building the debug snapshot, preferring an NPC under
-the cursor and otherwise one near the player. Node arrangements are stored per machine
-name beside `imgui.ini`.
+`app/debug/machine_graph_ui` presents the selected NPC's `NpcMachine` from that snapshot
+without editing it.
 
 The application records frame, simulation, scene, render and interface timing in a
 `FrameHistory`. `app/debug/frame_profile_ui` plots frame time against the 60 Hz budget
@@ -930,8 +901,9 @@ instead of filling
 
 ### Adding an NPC state
 
-`NpcState` represents what an NPC is doing now. To add a state such as Guard, Retreat,
-or Recover:
+To arrange existing activities differently, add named states and transitions to a
+machine; this needs no new C++ enum value. For a new built-in activity that multiple
+NPCs can use, extend the C++ state path:
 
 1. Add the state to the enum.
 2. Add any fact its transitions decide on to `NpcFacts`, and gather it in the NPC
@@ -950,31 +922,28 @@ or Recover:
 Keep the enum and explicit state branches while the number of states is small. A
 behaviour tree, virtual brain hierarchy, or callback registry would make transitions
 and state ownership harder to follow without solving a current requirement.
+A reusable change to how built-in states are chosen can extend a
+[tactic](#tactics); an enemy-specific sequence can stay in its machine.
 
 ### Creating a new enemy
 
-First decide whether the enemy is only a differently configured existing role. If it
-uses the same capabilities, add a named definition in `actors.json`. A
-genuinely new example enemy normally involves:
+First check whether existing components and activities express the enemy. If they do,
+add a named definition in `actors.json` and place it in a level. For an enemy whose
+policy needs a custom activity, the advanced route is a machine with Lua. Extend the
+engine only where that policy needs facts or capabilities it does not already expose:
 
-1. a symbolic actor definition in `actors.json`;
-2. a matching `definition` in the level's `actors` array or an object legend entry
-   with `"type": "actor"`;
-3. an actor composed from only the movement, sensing, path-following, health, attack,
-   and presentation components it needs;
-4. an animation set and atlas regions in the example game;
-5. valid spawn and patrol data in a level JSON file;
-6. focused tests for its new decision rule, with broader simulation coverage only for
-   interactions between systems.
+1. a machine in `machines.json` for new states and transitions;
+2. a Lua activity in `assets/scripts` for policy that existing activities cannot express;
+3. a C++ fact when the policy needs an observation the engine does not yet supply;
+4. a C++ component or system when the engine lacks a movement or combat capability;
+5. animation frames and an animation set when the enemy needs new presentation;
+6. focused tests for new engine rules and interactions, while content-integrity tests
+   check that shipped references resolve.
 
 Species, capabilities, and decisions are separate concerns. Artwork does not determine
-the brain, and possessing a ranged weapon does not require a `Shooter` subclass. The
-decision policy is the brain's [tactic](#tactics) or its machine: the zombie is a
-Pursuer, and the zombie soldier runs the `keep_distance` machine, the KeepDistance tactic
-written as data over the same states and facts. A new tactic, such as
-a guard that pursues only inside a home region or a coward that flees, is an enum value
-and a branch where the table asks the tactic, plus any fact or state it needs, added
-once for every tactic to use.
+the brain, and a ranged weapon needs no `Shooter` subclass. The decision policy is
+the brain's [tactic](#tactics) or its machine. Add a new tactic only for a policy shared
+by multiple actors; it may need new facts or built-in states.
 
 ### Choosing the layer
 

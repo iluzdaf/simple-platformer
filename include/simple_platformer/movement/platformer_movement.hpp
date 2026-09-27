@@ -43,6 +43,8 @@ namespace simple_platformer
         bool grounded = false;
         float coyoteRemaining = 0.0F;
         float jumpBufferRemaining = 0.0F;
+        // The last movement update was stopped horizontally by a wall or ledge guard.
+        bool blocked = false;
     };
 
     CollisionContacts updatePlatformerMovement(

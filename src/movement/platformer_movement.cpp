@@ -7,6 +7,8 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/physics/collision.hpp"
@@ -99,6 +101,48 @@ namespace simple_platformer
             movement.jumpBufferRemaining = 0.0F;
         }
 
+        // Probe every floor tile the leading edge would cross this step, so even a
+        // fast walk cannot skip a narrow gap. This is an opt-in walking constraint.
+        bool wouldWalkOffLedge(const TileMap& map, const Body& body, float deltaTime)
+        {
+            if (body.velocity.x == 0.0F || deltaTime == 0.0F)
+            {
+                return false;
+            }
+            const int side = body.velocity.x < 0.0F ? -1 : 1;
+            const float front = body.bounds.position.x + (side > 0 ? body.bounds.size.x : 0.0F);
+            const float probeX = front + static_cast<float>(side);
+            const float belowFeet = feetOf(body.bounds).y + 1.0F;
+            const GridPosition first = worldToGrid(map.tileSize(), {probeX, belowFeet});
+            const int last =
+                worldToGrid(map.tileSize(), {probeX + body.velocity.x * deltaTime, belowFeet}).x;
+            for (int x = first.x; side > 0 ? x <= last : x >= last; x += side)
+            {
+                if (!map.blocksMovement({x, first.y}))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool stopAtLedge(
+            const TileMap& map,
+            Body& body,
+            const PlatformerMovement& movement,
+            const InputIntentions& intentions,
+            float deltaTime)
+        {
+            if (!intentions.avoidLedges || !movement.grounded ||
+                !wouldWalkOffLedge(map, body, deltaTime))
+            {
+                return false;
+            }
+
+            body.velocity.x = 0.0F;
+            return true;
+        }
+
         // Letting go of jump while rising pulls the actor down harder, for a short hop.
         void applyJumpAwareGravity(
             Body& body,
@@ -174,7 +218,10 @@ namespace simple_platformer
         startBufferedJump(body, movement, intentions.jumpPressed);
         applyJumpAwareGravity(body, movement, intentions, deltaTime);
 
+        const bool stoppedAtLedge = stopAtLedge(map, body, movement, intentions, deltaTime);
+
         const CollisionContacts contacts = moveBody(map, body, deltaTime);
+        movement.blocked = stoppedAtLedge || contacts.left || contacts.right;
         movement.grounded = contacts.ground;
         return contacts;
     }

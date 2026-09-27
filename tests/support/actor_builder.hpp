@@ -20,25 +20,9 @@
 
 namespace tests
 {
-    // Builds an actor that World accepts, from the components and settings a test asks for.
-    // The builder knows how components fit together, such as movement being required and
-    // an NPC needing a brain, senses, and path follower at once. It holds no gameplay values:
-    // a test supplies every size, position, speed, and range it depends on, so a passing test
-    // says which ones mattered. A real player or NPC comes from the game's composition recipe.
-    //
-    // A chain reads what the actor is, where it is, how it moves, then what else it does:
-    //
-    //   ActorBuilder::sized({12.0F, 20.0F}).atFeet({24.0F, 32.0F}).walking().biting()
-    //
-    // A step for something the actor does ends in -ing, and a step for something it has
-    // starts with "with".
-    //
-    // Placement and movement can't be skipped: sized() offers only at() and atFeet(), and
-    // those offer only walking() and flying(). A forgotten placement would silently put the
-    // actor at the origin, and World requires exactly one movement component. What needs a
-    // brain, such as a machine, is offered only by the builder thinking() returns. The chain
-    // works on a fresh builder and converts to an Actor wherever one is expected, such as
-    // World::addActor.
+    // The staged chain requires size, placement, and one movement component before
+    // World can accept the actor. thinking() adds the four NPC components together;
+    // tests choose their own geometry and components instead of loading shipped content.
     class ActorBuilder
     {
     public:
@@ -54,8 +38,6 @@ namespace tests
             return std::move(*this);
         }
 
-        // A brain, senses and a path follower at once, and with them the steps that need
-        // a brain.
         Thinking thinking(simple_platformer::NpcSenses senses) &&;
 
         ActorBuilder patrolling(glm::vec2 firstFeet, glm::vec2 secondFeet) &&
@@ -94,6 +76,12 @@ namespace tests
             return std::move(*this);
         }
 
+        ActorBuilder withContactDamage(simple_platformer::ContactDamage contact = {}) &&
+        {
+            built.contactDamage = std::move(contact);
+            return std::move(*this);
+        }
+
         ActorBuilder shooting(simple_platformer::RangedWeapon weapon = {}) &&
         {
             built.rangedWeapon = weapon;
@@ -114,12 +102,9 @@ namespace tests
         simple_platformer::Actor built;
     };
 
-    // An NPC with a brain, which is what a machine, and anything else that decides for
-    // the brain, needs first.
     class ActorBuilder::Thinking : public ActorBuilder
     {
     public:
-        // A data-driven machine deciding the brain's state.
         Thinking running(simple_platformer::NpcStateMachine machine) &&
         {
             built.machine = simple_platformer::startNpcMachine(std::move(machine));
@@ -138,12 +123,12 @@ namespace tests
     inline ActorBuilder::Thinking ActorBuilder::thinking(simple_platformer::NpcSenses senses) &&
     {
         built.brain = simple_platformer::NpcBrain{};
+        built.perception = simple_platformer::NpcPerception{};
         built.senses = senses;
         built.pathFollower = simple_platformer::PathFollower{};
         return Thinking(std::move(built));
     }
 
-    // A placed body, waiting for the movement World requires.
     class ActorBuilder::Placed
     {
     public:
@@ -170,7 +155,6 @@ namespace tests
         simple_platformer::Actor built;
     };
 
-    // A body's size, waiting for where it is.
     class ActorBuilder::Sized
     {
     public:

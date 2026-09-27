@@ -41,8 +41,7 @@ namespace simple_platformer
 
         RangedPhase phase = RangedPhase::Ready;
         float phaseTimeRemaining = 0.0F;
-        // When the weapon last fired, on the world clock. Senses hear a shot on the update
-        // after it, and the screen shows the shooter exposed for a while.
+        // Simulation-clock stamp for presentation; hearing uses separate noise events.
         std::optional<double> lastFiredTimeSeconds;
         // Its display size is independent of projectileSize, just like an actor sprite and body.
         Sprite projectileSprite = {0, {}, {4.0F, 2.0F}};
@@ -68,6 +67,15 @@ namespace simple_platformer
 
         BitePhase phase = BitePhase::Ready;
         float phaseTimeRemaining = 0.0F;
+        std::vector<ActorId> actorsHit;
+    };
+
+    // Body-overlap damage, independent of movement and the primary attack.
+    // Each uninterrupted contactDamage intention can hit each opponent once.
+    struct ContactDamage
+    {
+        int damage = 1;
+        bool active = false;
         std::vector<ActorId> actorsHit;
     };
 

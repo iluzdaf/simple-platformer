@@ -75,3 +75,57 @@ TEST_CASE("Aim direction controls horizontal facing independently of movement", 
     REQUIRE(moved.body.velocity.x > 0.0F);
     REQUIRE(moved.facing == simple_platformer::Facing::Left);
 }
+
+TEST_CASE("Fast walking accelerates and stops before a ledge", "[actor][movement]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "###..###"});
+    simple_platformer::Actor walker = makeActor({24.0F, 32.0F});
+    tests::platformerMovement(walker).config.maximumSpeed = 125.0F;
+    tests::platformerMovement(walker).grounded = true;
+    walker.intentions.direction.x = 1.0F;
+    walker.intentions.avoidLedges = true;
+    simple_platformer::World world;
+    const auto id = world.addActor(walker);
+
+    simple_platformer::updateActorMovement(map, world, 0.05F);
+    REQUIRE(tests::actor(world, id).body.velocity.x == 40.0F);
+    REQUIRE(tests::actor(world, id).facing == simple_platformer::Facing::Right);
+    REQUIRE_FALSE(tests::platformerMovement(tests::actor(world, id)).blocked);
+    for (int tick = 0; tick < 20 && !tests::platformerMovement(tests::actor(world, id)).blocked;
+         ++tick)
+    {
+        simple_platformer::updateActorMovement(map, world, 0.05F);
+    }
+    REQUIRE(tests::platformerMovement(tests::actor(world, id)).blocked);
+    REQUIRE(tests::platformerMovement(tests::actor(world, id)).grounded);
+    REQUIRE(tests::actor(world, id).body.velocity.x == 0.0F);
+    REQUIRE(tests::actor(world, id).body.bounds.position.x + 12.0F <= 48.0F);
+
+    tests::actor(world, id).intentions.direction.x = -1.0F;
+    simple_platformer::updateActorMovement(map, world, 0.05F);
+    REQUIRE_FALSE(tests::platformerMovement(tests::actor(world, id)).blocked);
+    REQUIRE(tests::actor(world, id).body.velocity.x == -40.0F);
+}
+
+TEST_CASE("Walking reports a wall independently of combat", "[actor][movement]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "....#...", "########"});
+    simple_platformer::Actor walker = makeActor({24.0F, 32.0F});
+    tests::platformerMovement(walker).grounded = true;
+    walker.intentions.direction.x = 1.0F;
+    simple_platformer::World world;
+    const auto id = world.addActor(walker);
+    for (int tick = 0; tick < 6; ++tick)
+    {
+        simple_platformer::updateActorMovement(map, world, 0.1F);
+    }
+    REQUIRE(tests::platformerMovement(tests::actor(world, id)).blocked);
+    REQUIRE(tests::actor(world, id).body.velocity.x == 0.0F);
+    REQUIRE(tests::actor(world, id).body.bounds.position.x <= 52.0F);
+
+    tests::actor(world, id).intentions = {};
+    simple_platformer::updateActorMovement(map, world, 0.1F);
+    REQUIRE_FALSE(tests::platformerMovement(tests::actor(world, id)).blocked);
+}

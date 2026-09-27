@@ -160,6 +160,46 @@
         "looping": false
       }
     },
+    "boar": {
+      "idle": {
+        "frames": [
+          { "position": [160, 72], "size": [32, 24] },
+          { "position": [192, 72], "size": [32, 24] }
+        ],
+        "frameDuration": 0.4,
+        "looping": true
+      },
+      "move": {
+        "frames": [
+          { "position": [160, 96], "size": [32, 24] },
+          { "position": [192, 96], "size": [32, 24] },
+          { "position": [224, 96], "size": [32, 24] },
+          { "position": [192, 96], "size": [32, 24] }
+        ],
+        "frameDuration": 0.09,
+        "looping": true
+      },
+      "jump": {
+        "frames": [{ "position": [160, 120], "size": [32, 24] }],
+        "frameDuration": 0.15,
+        "looping": true
+      },
+      "fall": {
+        "frames": [{ "position": [192, 120], "size": [32, 24] }],
+        "frameDuration": 0.15,
+        "looping": true
+      },
+      "attack": {
+        "frames": [{ "position": [224, 72], "size": [32, 24] }],
+        "frameDuration": 0.1,
+        "looping": true
+      },
+      "death": {
+        "frames": [{ "position": [224, 120], "size": [32, 24] }],
+        "frameDuration": 0.4,
+        "looping": false
+      }
+    },
     "zombie_soldier": {
       "idle": {
         "frames": [

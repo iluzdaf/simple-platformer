@@ -2,9 +2,9 @@
 
 Simple Platformer is a C++17 teaching engine and example game built from independently
 testable systems. The current implementation includes platformer movement, tile collision,
-scrolling, composed actors, NPC finite state machines, flying and platformer pathfinding,
-360-degree projectiles, animation, inventory, automatic pickups, a three-level game loop,
-and ImGui debugging tools.
+scrolling, composed actors, NPC state machines with Lua activities, flying and platformer
+pathfinding, projectiles, animation, inventory, automatic pickups, a three-level game
+loop, and ImGui debugging tools.
 
 ## Documentation
 
@@ -12,10 +12,10 @@ and ImGui debugging tools.
 | --------------------------------------- | --------------------------------------------------------------------------------- |
 | [START_HERE.md](docs/START_HERE.md)     | A recommended route through the code, and which details can wait until later.     |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design, ownership rules, runtime flow, and the reasons behind the main decisions. |
-| [CONTENT.md](docs/CONTENT.md)           | The authoring reference for the JSON level and definition files under `assets`.   |
-| [FUTURE_WORK.md](docs/FUTURE_WORK.md)   | Designs the repository deliberately does not implement.                           |
+| [CONTENT.md](docs/CONTENT.md)           | How to author levels, definitions, machines, and NPC scripts under `assets`.      |
+| [FUTURE_WORK.md](docs/FUTURE_WORK.md)   | Proposed features that are not implemented yet.                                   |
 
-New to the project? Start with START_HERE.md.
+New to the project? Start with [START_HERE.md](docs/START_HERE.md).
 
 ## Requirements
 
@@ -303,7 +303,7 @@ cmake --build --preset mac-debug --target header_self_containment
 app/           application shell, graphics, UI, and debug tools
   game/        game flow, level transitions, and level composition
   content/     JSON loaders, catalogues, and content validators
-assets/        runtime sprite atlas, content catalogues, and editable level JSON
+assets/        runtime sprite atlas, content catalogues, levels, and NPC scripts
 cmake/         dependencies, quality rules, and explicit target source manifests
 include/       public core headers
 src/           core implementations

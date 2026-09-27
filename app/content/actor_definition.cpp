@@ -55,6 +55,7 @@ namespace simple_platformer
         if (definition.senses)
         {
             actor.brain = NpcBrain{};
+            actor.perception = NpcPerception{};
             actor.brain->tactic = definition.tactic;
             actor.senses = definition.senses;
             actor.pathFollower = PathFollower{};
@@ -73,6 +74,12 @@ namespace simple_platformer
         }
         actor.patrol = patrol;
         actor.bite = definition.bite;
+        actor.contactDamage = definition.contactDamage;
+        if (actor.contactDamage)
+        {
+            actor.contactDamage->active = false;
+            actor.contactDamage->actorsHit.clear();
+        }
         if (actor.bite)
         {
             actor.bite->phase = BitePhase::Ready;

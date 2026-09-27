@@ -172,7 +172,7 @@ TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world
     simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     REQUIRE(tests::brain(world, npcId).target == playerId);
-    REQUIRE_FALSE(tests::brain(world, npcId).targetVisible);
+    REQUIRE_FALSE(tests::perception(world, npcId).targetVisible);
     REQUIRE(tests::brain(world, npcId).state == simple_platformer::NpcState::Chase);
 }
 
@@ -304,12 +304,12 @@ TEST_CASE(
                                           .onTeam(simple_platformer::Team::Enemy)
                                           .patrolling(leftPatrolFeet, rightPatrolFeet)
                                           .thinking({16.0F, 0.01F});
-    // Preserve the movement that carried it toward the last-seen player position.
+    // Preserve the movement that carried it toward the last-known player position.
     zombie.body.velocity.x = 100.0F;
     tests::platformerMovement(zombie).grounded = true;
     tests::brain(zombie).state = simple_platformer::NpcState::Chase;
     tests::brain(zombie).target = playerId;
-    tests::brain(zombie).lastSeenTargetFeet = {88.0F, 32.0F};
+    tests::brain(zombie).lastKnownTargetFeet = {88.0F, 32.0F};
     tests::brain(zombie).targetMemoryRemaining = 0.01F;
     // It does not search, so losing the player sends it straight back to its patrol.
     tests::senses(zombie).searchDuration = 0.0F;
@@ -371,22 +371,22 @@ TEST_CASE(
         simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
         seenDuringJump = seenDuringJump ||
-                         (tests::brain(storedZombie).targetVisible &&
+                         (tests::perception(storedZombie).targetVisible &&
                           tests::brain(storedZombie).state == simple_platformer::NpcState::Chase);
     }
     REQUIRE(seenDuringJump);
     simple_platformer::Actor& rememberedZombie = tests::actor(world, zombieId);
-    REQUIRE_FALSE(tests::brain(rememberedZombie).targetVisible);
+    REQUIRE_FALSE(tests::perception(rememberedZombie).targetVisible);
     REQUIRE(tests::brain(rememberedZombie).target == playerId);
     REQUIRE(tests::brain(rememberedZombie).targetMemoryRemaining > 0.0F);
     REQUIRE(tests::brain(rememberedZombie).state == simple_platformer::NpcState::Chase);
-    const glm::vec2 lastSeenFeet = tests::brain(rememberedZombie).lastSeenTargetFeet;
+    const glm::vec2 lastKnownFeet = tests::brain(rememberedZombie).lastKnownTargetFeet;
     REQUIRE_FALSE(simple_platformer::canStandAt(
         map,
-        simple_platformer::cellAtFeet(tests::TileSize, lastSeenFeet),
+        simple_platformer::cellAtFeet(tests::TileSize, lastKnownFeet),
         rememberedZombie.body.bounds.size));
     const float startingDistance =
-        glm::distance(simple_platformer::feetOf(rememberedZombie.body.bounds), lastSeenFeet);
+        glm::distance(simple_platformer::feetOf(rememberedZombie.body.bounds), lastKnownFeet);
 
     // The remembered point is in the air, but the zombie can approach the
     // platform edge toward it. Check progress without prescribing a goal cell.
@@ -395,13 +395,13 @@ TEST_CASE(
     {
         simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
-        REQUIRE_FALSE(tests::brain(storedZombie).targetVisible);
+        REQUIRE_FALSE(tests::perception(storedZombie).targetVisible);
         REQUIRE(tests::brain(storedZombie).target == playerId);
         REQUIRE(tests::brain(storedZombie).targetMemoryRemaining > 0.0F);
-        REQUIRE(tests::brain(storedZombie).lastSeenTargetFeet == lastSeenFeet);
+        REQUIRE(tests::brain(storedZombie).lastKnownTargetFeet == lastKnownFeet);
         REQUIRE(tests::brain(storedZombie).state == simple_platformer::NpcState::Chase);
         distanceToRememberedPosition =
-            glm::distance(simple_platformer::feetOf(storedZombie.body.bounds), lastSeenFeet);
+            glm::distance(simple_platformer::feetOf(storedZombie.body.bounds), lastKnownFeet);
     }
     CAPTURE(startingDistance, distanceToRememberedPosition);
     constexpr float MinimumPursuitProgress = 0.5F * tests::TileSize;
@@ -444,7 +444,7 @@ TEST_CASE(
     simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     simple_platformer::Actor& chasingZombie = tests::actor(world, zombieId);
-    REQUIRE(tests::brain(chasingZombie).targetVisible);
+    REQUIRE(tests::perception(chasingZombie).targetVisible);
     REQUIRE(tests::brain(chasingZombie).state == simple_platformer::NpcState::Chase);
     const float startingDistance =
         glm::distance(simple_platformer::feetOf(chasingZombie.body.bounds), playerFeet);
@@ -457,7 +457,7 @@ TEST_CASE(
         simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
         simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
-        REQUIRE(tests::brain(storedZombie).targetVisible);
+        REQUIRE(tests::perception(storedZombie).targetVisible);
         REQUIRE(tests::platformerMovement(storedPlayer).grounded);
         REQUIRE(simple_platformer::feetOf(storedPlayer.body.bounds) == playerFeet);
         distanceToPlayer =

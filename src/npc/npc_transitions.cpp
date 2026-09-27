@@ -35,7 +35,7 @@ namespace simple_platformer
             {
                 return std::nullopt;
             }
-            if (tactic == NpcTactic::KeepDistance && facts.targetTooClose)
+            if (tactic == NpcTactic::KeepDistance && facts.targetWithinStandoffDistance)
             {
                 return NpcState::Retreat;
             }

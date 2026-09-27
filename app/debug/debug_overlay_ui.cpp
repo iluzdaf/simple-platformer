@@ -79,6 +79,16 @@ namespace simple_platformer
             return "Actor";
         }
 
+        std::string actorTextLabelFor(const ActorDebugInfo& actor)
+        {
+            const std::string label = labelFor(actor);
+            if (actor.definitionName.has_value())
+            {
+                return label + " (" + *actor.definitionName + ")";
+            }
+            return label;
+        }
+
         ImU32 pathColour(const PathConnectionDebugInfo& connection)
         {
             if (connection.completed)
@@ -311,12 +321,11 @@ namespace simple_platformer
                 drawShadowedText(
                     drawList, labelPosition, WorldLabelColour, nameOf(actor.npcState.value()));
             }
-            if (actor.machineState.has_value() && actor.npcActivity.has_value())
+            if (actor.machineState.has_value())
             {
                 labelPosition.y += lineHeight;
-                const std::string state =
-                    *actor.machineState + " (" + nameOf(*actor.npcActivity) + ")";
-                drawShadowedText(drawList, labelPosition, WorldLabelColour, state.c_str());
+                drawShadowedText(
+                    drawList, labelPosition, WorldLabelColour, actor.machineState->c_str());
             }
         }
 
@@ -383,7 +392,7 @@ namespace simple_platformer
         {
             constexpr float Indentation = 12.0F;
 
-            const std::string label = labelFor(actor);
+            const std::string label = actorTextLabelFor(actor);
             drawTextLine(drawList, position, label.c_str(), TextHeadingColour);
 
             char text[96]{};
@@ -410,22 +419,6 @@ namespace simple_platformer
             if (actor.npcTactic.has_value())
             {
                 std::snprintf(text, sizeof(text), "tactic: %s", nameOf(actor.npcTactic.value()));
-                drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-            }
-            if (actor.machine.has_value())
-            {
-                std::snprintf(text, sizeof(text), "machine: %s", actor.machine->c_str());
-                drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-            }
-            if (actor.machineState.has_value())
-            {
-                std::snprintf(text, sizeof(text), "state:   %s", actor.machineState->c_str());
-                drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-            }
-            if (actor.npcActivity.has_value())
-            {
-                const std::string activity = nameOf(*actor.npcActivity);
-                std::snprintf(text, sizeof(text), "does:    %s", activity.c_str());
                 drawTextLine(drawList, position, text, TextDetailColour, Indentation);
             }
             position.y += ActorTextGap;

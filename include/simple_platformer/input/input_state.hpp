@@ -25,6 +25,10 @@ namespace simple_platformer
         bool jumpPressed = false;
         bool jumpHeld = false;
         bool primaryAttackPressed = false;
+        // Keep grounded walking on its current floor; deliberate jumps still work.
+        bool avoidLedges = false;
+        // Request body-overlap damage, if the actor has that component.
+        bool contactDamage = false;
     };
 
     class InputState

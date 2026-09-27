@@ -6,8 +6,8 @@
 
 namespace simple_platformer
 {
-    // What the brain decides on this update, gathered once from the senses' stamps, the
-    // bite attack and the patrol, so the transitions read nothing else.
+    // The policy's snapshot for this update, gathered from perception, brain memory,
+    // and other actor components, so transitions read nothing else.
     struct NpcFacts
     {
         // A living target is remembered, seen or not.
@@ -15,12 +15,18 @@ namespace simple_platformer
         bool targetVisible = false;
         // The target is visible and inside the bite's hitbox.
         bool targetInBiteRange = false;
-        // The NPC has a bite and it is ready to start.
         bool biteReady = false;
         // The target is visible and the NPC has a ranged weapon.
         bool targetInSights = false;
-        // The target was last seen nearer than the brain's standoff distance.
-        bool targetTooClose = false;
+        // The living target's last known feet are strictly within the senses'
+        // standoff distance of the NPC's current feet.
+        bool targetWithinStandoffDistance = false;
+        bool heardLanding = false;
+        // Current geometry of the living remembered target, even when it is not visible.
+        // Range and shared ground are independent; policy chooses how to combine them.
+        bool targetOnSameRun = false;
+        bool targetWithinNoticeDistance = false;
+        bool movementBlocked = false;
         bool hasPatrol = false;
         // The NPC searches for a lost target at all, and its search has run its time.
         bool searches = false;

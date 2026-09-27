@@ -48,7 +48,13 @@ TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][
     simple_platformer::updateAttacks(world, requests, 0.1F);
 
     REQUIRE(world.projectiles().empty());
-    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0F), 0.25F);
+    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0), 0.25);
+    const auto noises = world.takeNoises();
+    REQUIRE(noises.size() == 1);
+    REQUIRE(noises.front().source == shooter);
+    REQUIRE(noises.front().kind == simple_platformer::NoiseKind::Shot);
+    REQUIRE(
+        noises.front().feet == simple_platformer::feetOf(tests::actor(world, shooter).body.bounds));
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 1);
@@ -59,6 +65,69 @@ TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][
     REQUIRE(projectile.bounds.position.x == 16.0F);
     REQUIRE(projectile.bounds.size.x == 4.0F);
     REQUIRE(projectile.sprite.size.x == 8.0F);
+}
+
+TEST_CASE("Contact damage hits an opponent once per activation, not allies", "[combat][contact]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor charger = makeActor({20.0F, 20.0F}, simple_platformer::Team::Enemy);
+    charger.contactDamage = simple_platformer::ContactDamage{};
+    charger.intentions.contactDamage = true;
+    const auto chargerId = world.addActor(charger);
+    const auto targetId =
+        world.addActor(makeActor({26.0F, 20.0F}, simple_platformer::Team::Player));
+    const auto allyId = world.addActor(makeActor({26.0F, 20.0F}, simple_platformer::Team::Enemy));
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateAttacks(world, requests, 0.1F);
+    simple_platformer::updateLifeState(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(tests::health(world, targetId).current == 2);
+    REQUIRE(tests::health(world, allyId).current == 3);
+    simple_platformer::updateAttacks(world, requests, 0.1F);
+    simple_platformer::updateLifeState(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(tests::health(world, targetId).current == 2);
+    REQUIRE(tests::actor(world, chargerId).contactDamage->actorsHit.size() == 1);
+    REQUIRE(tests::actor(world, chargerId).body.velocity == glm::vec2{0.0F, 0.0F});
+
+    tests::actor(world, chargerId).intentions.contactDamage = false;
+    simple_platformer::updateAttacks(world, requests, 0.1F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE_FALSE(tests::actor(world, chargerId).contactDamage->active);
+    REQUIRE(tests::actor(world, chargerId).contactDamage->actorsHit.empty());
+    REQUIRE(tests::health(world, targetId).current == 2);
+
+    tests::actor(world, chargerId).intentions.contactDamage = true;
+    simple_platformer::updateAttacks(world, requests, 0.1F);
+    simple_platformer::updateLifeState(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(tests::health(world, targetId).current == 1);
+}
+
+TEST_CASE("Contact damage requires an intention and a living owner", "[combat][contact]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor attacker = makeActor({20.0F, 20.0F}, simple_platformer::Team::Enemy);
+    attacker.contactDamage = simple_platformer::ContactDamage{};
+    const auto attackerId = world.addActor(attacker);
+    const auto targetId =
+        world.addActor(makeActor({26.0F, 20.0F}, simple_platformer::Team::Player));
+    simple_platformer::WorldRequests requests;
+
+    SECTION("No request")
+    {
+    }
+    SECTION("Dying despite a stale request")
+    {
+        tests::actor(world, attackerId).intentions.contactDamage = true;
+        tests::actor(world, attackerId).contactDamage->active = true;
+        tests::actor(world, attackerId).life = simple_platformer::LifeState::Dying;
+    }
+    simple_platformer::updateAttacks(world, requests, 0.1F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(tests::health(world, targetId).current == 3);
+    REQUIRE_FALSE(tests::actor(world, attackerId).contactDamage->active);
 }
 
 TEST_CASE("A ranged weapon normalises a diagonal aim direction", "[combat][weapon]")
@@ -92,6 +161,8 @@ TEST_CASE("A ranged weapon does not fire without an aim direction", "[combat][we
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(world.projectiles().empty());
+    REQUIRE(world.takeNoises().empty());
+    REQUIRE_FALSE(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.has_value());
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Ready);
 }
 
@@ -111,8 +182,8 @@ TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
 
     world.advanceSimulationTime(0.15F);
     simple_platformer::updateAttacks(world, requests, 0.15F);
-    // The stamp keeps the time of the shot.
-    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0F), 0.0F);
+    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0), 0.0);
+    REQUIRE(world.takeNoises().size() == 1);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Recovery);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 1);
@@ -120,13 +191,15 @@ TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
 
     world.advanceSimulationTime(0.20F);
     simple_platformer::updateAttacks(world, requests, 0.20F);
-    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0F), 0.0F);
+    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0), 0.0);
+    REQUIRE(world.takeNoises().empty());
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Ready);
 
     simple_platformer::Actor& stored = tests::actor(world, shooter);
     stored.intentions.primaryAttackPressed = true;
     simple_platformer::updateAttacks(world, requests, 0.0F);
-    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0F), 0.35F);
+    REQUIRE_NEAR(tests::rangedWeapon(world, shooter).lastFiredTimeSeconds.value_or(-1.0), 0.35);
+    REQUIRE(world.takeNoises().size() == 1);
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 2);

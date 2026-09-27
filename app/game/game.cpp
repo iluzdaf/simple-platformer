@@ -71,6 +71,7 @@ namespace simple_platformer
     {
         placeFeetAt(player.body.bounds, level.playerSpawnFeet);
         const ActorId playerId = level.world.addActor(std::move(player));
+        level.actorDefinitionNames.emplace(playerId.value, catalogs.actors.player);
         level.world.setPlayer(playerId, level.playerSpawnFeet);
         validateLevelActors(level.map, level.world, level.number);
 
@@ -178,7 +179,7 @@ namespace simple_platformer
                       simulationStepSeconds}});
             }
         }
-        return makeDebugOverlay(
+        DebugOverlay overlay = makeDebugOverlay(
             level.world,
             level.map,
             cameraControllerValue(),
@@ -186,6 +187,15 @@ namespace simple_platformer
             simulationStepSeconds,
             navigation,
             lockedMachineActor);
+        for (ActorDebugInfo& actor : overlay.actors)
+        {
+            const auto definition = level.actorDefinitionNames.find(actor.id.value);
+            if (definition != level.actorDefinitionNames.end())
+            {
+                actor.definitionName = definition->second;
+            }
+        }
+        return overlay;
     }
 
     std::optional<ActorId> Game::machineActorAt(glm::vec2 internalPosition) const

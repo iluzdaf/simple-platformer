@@ -170,21 +170,27 @@ TEST_CASE("A search ends in patrol or idle once its time is up", "[npc][fsm]")
 TEST_CASE("A KeepDistance NPC retreats from a target that has come too close", "[npc][fsm]")
 {
     REQUIRE(
-        nextNpcState(KeepDistance, NpcState::Idle, NpcFactsBuilder::facts().targetTooClose()) ==
-        NpcState::Retreat);
+        nextNpcState(
+            KeepDistance,
+            NpcState::Idle,
+            NpcFactsBuilder::facts().targetWithinStandoffDistance()) == NpcState::Retreat);
     REQUIRE(
-        nextNpcState(KeepDistance, NpcState::Chase, NpcFactsBuilder::facts().targetTooClose()) ==
-        NpcState::Retreat);
+        nextNpcState(
+            KeepDistance,
+            NpcState::Chase,
+            NpcFactsBuilder::facts().targetWithinStandoffDistance()) == NpcState::Retreat);
     REQUIRE(
         nextNpcState(
             KeepDistance,
             NpcState::Shoot,
-            NpcFactsBuilder::facts().targetTooClose().targetInSights()) == NpcState::Retreat);
+            NpcFactsBuilder::facts().targetWithinStandoffDistance().targetInSights()) ==
+        NpcState::Retreat);
     REQUIRE(
         nextNpcState(
             KeepDistance,
             NpcState::Search,
-            NpcFactsBuilder::facts().searching().targetTooClose()) == NpcState::Retreat);
+            NpcFactsBuilder::facts().searching().targetWithinStandoffDistance()) ==
+        NpcState::Retreat);
 }
 
 TEST_CASE(
@@ -192,8 +198,10 @@ TEST_CASE(
     "[npc][fsm]")
 {
     REQUIRE(
-        nextNpcState(KeepDistance, NpcState::Retreat, NpcFactsBuilder::facts().targetTooClose()) ==
-        std::nullopt);
+        nextNpcState(
+            KeepDistance,
+            NpcState::Retreat,
+            NpcFactsBuilder::facts().targetWithinStandoffDistance()) == std::nullopt);
     REQUIRE(
         nextNpcState(KeepDistance, NpcState::Retreat, NpcFactsBuilder::facts().targetInSights()) ==
         NpcState::Shoot);
@@ -208,11 +216,14 @@ TEST_CASE(
 TEST_CASE("A Pursuer never retreats", "[npc][fsm]")
 {
     REQUIRE(
-        nextNpcState(Pursuer, NpcState::Chase, NpcFactsBuilder::facts().targetTooClose()) ==
+        nextNpcState(
+            Pursuer, NpcState::Chase, NpcFactsBuilder::facts().targetWithinStandoffDistance()) ==
         std::nullopt);
     REQUIRE(
         nextNpcState(
-            Pursuer, NpcState::Idle, NpcFactsBuilder::facts().targetTooClose().targetInSights()) ==
+            Pursuer,
+            NpcState::Idle,
+            NpcFactsBuilder::facts().targetWithinStandoffDistance().targetInSights()) ==
         NpcState::Shoot);
 }
 
@@ -247,7 +258,9 @@ TEST_CASE(
         NpcState::Shoot);
     REQUIRE(
         nextNpcState(
-            KeepDistance, NpcState::Watch, NpcFactsBuilder::facts().searching().targetTooClose()) ==
+            KeepDistance,
+            NpcState::Watch,
+            NpcFactsBuilder::facts().searching().targetWithinStandoffDistance()) ==
         NpcState::Retreat);
     REQUIRE(
         nextNpcState(

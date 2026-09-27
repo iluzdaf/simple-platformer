@@ -78,6 +78,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/render/test_animation_system.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_camera.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_cover_fade.cpp
+    ${PROJECT_SOURCE_DIR}/tests/render/test_level_object_render.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_presentation.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_render_scene.cpp
     ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_npc_scripts.cpp
@@ -87,11 +88,13 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/timing/test_fixed_step.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_frame_history.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_stopwatch.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_level_objects.cpp
+    ${PROJECT_SOURCE_DIR}/tests/world/test_level_exit.cpp
+    ${PROJECT_SOURCE_DIR}/tests/world/test_pickups.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_level_validation.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_sight.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_tile_map.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_world.cpp
+    ${PROJECT_SOURCE_DIR}/tests/world/test_world_inventory.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_world_simulation.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_npc_world_simulation.cpp
 )

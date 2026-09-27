@@ -1032,7 +1032,10 @@ For a new rule, start beside the code you changed:
 | Content parsing or definition validation | `tests/app/test_*_catalog.cpp`, `test_level_data.cpp`, `test_content_validation.cpp` |
 | Composing catalogue entries into levels  | `tests/app/test_level_composition.cpp`                                               |
 | Carrying player state between levels     | `tests/app/test_level_transition.cpp`                                                |
-| Core pickup collection or exit rules     | `tests/world/test_level_objects.cpp`                                                 |
+| Pickup collection and movement           | `tests/world/test_pickups.cpp`                                                       |
+| Exit requirements and completion         | `tests/world/test_level_exit.cpp`                                                    |
+| Item use and inventory persistence       | `tests/world/test_world_inventory.cpp`                                               |
+| Level-object draw commands               | `tests/render/test_level_object_render.cpp`                                          |
 | Behaviour involving multiple systems     | `tests/world/test_world_simulation.cpp`                                              |
 | NPC behaviour across a simulation step   | `tests/world/test_npc_world_simulation.cpp`                                          |
 | Visual state converted to draw commands  | `tests/render/test_render_scene.cpp`                                                 |

@@ -15,7 +15,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
+#include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"

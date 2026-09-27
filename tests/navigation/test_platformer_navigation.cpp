@@ -21,6 +21,7 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/path_search.hpp"
+#include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/world/tile_map.hpp"

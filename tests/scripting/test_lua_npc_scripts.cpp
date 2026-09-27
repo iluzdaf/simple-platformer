@@ -3,13 +3,17 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include "content/npc_script_catalog.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/scripting/lua_npc_scripts.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
+#include "simple_platformer/world/world_simulation.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/npc_machine_builder.hpp"
@@ -32,6 +36,7 @@ namespace
         NpcActivitySnapshot snapshot;
         snapshot.feet = {12.0F, 34.0F};
         snapshot.targetFeet = {{56.0F, 78.0F}};
+        snapshot.patrol = simple_platformer::Patrol{{8.0F, 34.0F}, {80.0F, 34.0F}, true};
         snapshot.facts.targetKnown = true;
         snapshot.facts.stateElapsed = 0.25F;
         snapshot.pathComplete = true;
@@ -54,6 +59,7 @@ TEST_CASE("A Lua activity reads a copied snapshot and returns a command", "[lua]
                             return {
                                 direction = {x = snapshot.tuning.speed * dt, y = 0},
                                 aimAt = snapshot.targetFeet,
+                                routeTo = snapshot.patrol.secondFeet,
                                 primaryAttackPressed = snapshot.facts.targetKnown,
                                 clearRoute = snapshot.pathComplete
                             }
@@ -73,6 +79,7 @@ TEST_CASE("A Lua activity reads a copied snapshot and returns a command", "[lua]
     REQUIRE(command.intentions.direction.y == 0.0F);
     REQUIRE(command.intentions.primaryAttackPressed);
     REQUIRE(command.aimAt == snapshot.targetFeet);
+    REQUIRE(command.routeTo == glm::vec2{80.0F, 34.0F});
     REQUIRE(command.clearRoute);
     REQUIRE(snapshot.feet.x == 12.0F);
     REQUIRE(scripts.diagnostics().empty());

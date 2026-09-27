@@ -177,6 +177,18 @@ namespace simple_platformer
             result["targetFeet"] = snapshot.targetFeet.has_value()
                                        ? sol::make_object(lua, luaVector(lua, *snapshot.targetFeet))
                                        : sol::make_object(lua, sol::lua_nil);
+            if (snapshot.patrol.has_value())
+            {
+                result["patrol"] = lua.create_table_with(
+                    "firstFeet",
+                    luaVector(lua, snapshot.patrol->firstFeet),
+                    "secondFeet",
+                    luaVector(lua, snapshot.patrol->secondFeet));
+            }
+            else
+            {
+                result["patrol"] = sol::lua_nil;
+            }
             result["stateElapsed"] = snapshot.facts.stateElapsed;
             result["pathComplete"] = snapshot.pathComplete;
 

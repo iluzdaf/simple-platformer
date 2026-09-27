@@ -294,6 +294,7 @@ capabilities:
 | Player         | `PlatformerMovement` | application writes `InputIntentions`                                              | `Health`, `Inventory`, `Team::Player`, `RangedWeapon` | `Sprite`, `Animator` |
 | Zombie         | `PlatformerMovement` | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower`                                 | `Health`, `Team::Enemy`, `BiteAttack`                 | `Sprite`, `Animator` |
 | Bat            | `FlyingMovement`     | `NpcBrain`, `NpcSenses`, `Patrol`, `PathFollower`                                 | `Health`, `Team::Enemy`, `BiteAttack`                 | `Sprite`, `Animator` |
+| Rat            | `PlatformerMovement` | `NpcBrain`, `NpcMachine` (`rat`), `NpcSenses`, `Patrol`, `PathFollower`           | `Health`, `Team::Enemy`, `BiteAttack`                 | `Sprite`, `Animator` |
 | Zombie soldier | `PlatformerMovement` | `NpcBrain`, `NpcMachine` (`keep_distance`), `NpcSenses`, `Patrol`, `PathFollower` | `Health`, `Team::Enemy`, `RangedWeapon`               | `Sprite`, `Animator` |
 
 The recipe is additive. For example, making a second zombie does not require another
@@ -544,7 +545,8 @@ regression tests cover this case.
 
 The scripting target provides the protected Lua runtime used by scripted machine activities.
 The core-facing boundary contains no Lua types. `NpcActivitySnapshot` is a copied,
-read-only-in-effect view of position, target, facts, state time, path completion, and tuning.
+read-only-in-effect view of position, target, patrol endpoints, facts, state time, path
+completion, and tuning.
 `NpcActivityCommand` carries only intentions and requests to aim, route, or clear a route.
 Applying those requests, including pathfinding, remains engine work.
 
@@ -564,8 +566,8 @@ and restart discard that state for every actor before replacing the world.
 Machine JSON keeps the short string form for built-in activities. A Lua activity uses
 `{"kind":"lua","script":"rat","activity":"flee"}`. The application loads each referenced
 script once from `scripts/<script>.lua` beside the other level content and rejects missing
-scripts or activities before the game starts. None of the shipped actors uses this tagged form
-yet.
+scripts or activities before the game starts. The shipped rat uses this form to choose the end
+of its patrol run away from the player; pathfinding, facing, and biting remain C++ work.
 
 ## Navigation
 
@@ -834,9 +836,9 @@ the actor's `Sprite`. Pickup bobbing, hit flashes, death fading, and projectile 
 are calculated during scene construction from gameplay state and timers; they do not
 all require animation clips.
 
-The supplied atlas is 160 by 248 pixels. The example character clips use fixed 32 by
-24 source frames and separate animation sets for the player, zombie, bat, and zombie
-soldier. Artwork sources and atlas tooling live outside this repository; what is here is
+The supplied atlas is 256 by 256 pixels. The example character clips use fixed 32 by
+24 source frames, grouped into named animation sets in `animations.json`.
+Artwork sources and atlas tooling live outside this repository; what is here is
 the finished runtime atlas.
 
 Frames within a set must share one size. `SpriteRegion` supports arbitrary source

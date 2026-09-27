@@ -1,8 +1,28 @@
 {
   "pickups": {
-    "coin_pile": { "item": "coin", "quantity": 3, "bodySize": [16, 16] },
-    "coin_cache": { "item": "coin", "quantity": 4, "bodySize": [16, 16] },
-    "health_potion": { "item": "health_potion", "quantity": 1, "bodySize": [16, 16] },
-    "key": { "item": "key", "quantity": 1, "bodySize": [16, 16] }
+    "coin_pile": {
+      "item": "coin",
+      "quantity": 3,
+      "bodySize": [16, 16],
+      "sprite": { "position": [0, 216], "size": [16, 16], "displaySize": [12, 12] }
+    },
+    "coin_cache": {
+      "item": "coin",
+      "quantity": 4,
+      "bodySize": [16, 16],
+      "sprite": { "position": [0, 216], "size": [16, 16], "displaySize": [12, 12] }
+    },
+    "health_potion": {
+      "item": "health_potion",
+      "quantity": 1,
+      "bodySize": [16, 16],
+      "sprite": { "position": [16, 216], "size": [16, 16], "displaySize": [12, 12] }
+    },
+    "key": {
+      "item": "key",
+      "quantity": 1,
+      "bodySize": [16, 16],
+      "sprite": { "position": [32, 216], "size": [16, 16], "displaySize": [12, 12] }
+    }
   }
 }

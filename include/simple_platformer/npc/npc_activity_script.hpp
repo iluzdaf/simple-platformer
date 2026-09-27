@@ -9,6 +9,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
+#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
 
 namespace simple_platformer
@@ -19,6 +20,9 @@ namespace simple_platformer
     {
         glm::vec2 feet = {0.0F, 0.0F};
         std::optional<glm::vec2> targetFeet;
+        // The authored ends of this NPC's run, when it has one. Scripts may choose a
+        // destination between them, but pathfinding and movement remain engine work.
+        std::optional<Patrol> patrol;
         NpcFacts facts;
         bool pathComplete = false;
         std::map<std::string, float> tuning;

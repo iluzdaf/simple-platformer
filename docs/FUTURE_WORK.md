@@ -26,9 +26,9 @@ levels remain equivalent.
 
 ## Lua-authored NPC behaviour
 
-The protected Lua runtime, copied snapshot-and-command boundary, and machine activity
-integration are implemented. No shipped actor uses Lua yet; the remaining work adds the
-behaviours and engine capabilities below.
+The protected Lua runtime, copied snapshot-and-command boundary, machine activity
+integration, and first scripted rat are implemented. The remaining work adds the behaviours
+and engine capabilities below.
 
 Lua can add game-specific decisions without moving simulation mechanics out of the
 engine. It should extend the existing teaching progression rather than replace it:
@@ -114,9 +114,10 @@ state name and an activity label such as `builtin: patrol` or `lua: rat.flee`.
 The old Platformer provides a useful order for introducing the enemies, but its code
 should be adapted to this engine rather than copied:
 
-- The rat is the smallest first scripted NPC. Lua chooses patrol and flee destinations,
-  while the C++ path follower walks there and a C++ pounce activity owns the leap,
-  collision, and attack consequences.
+- The rat is the smallest first scripted NPC. Lua chooses the patrol endpoint away from
+  the player, while the C++ path follower walks there. Once cornered it holds that endpoint,
+  faces the player, and uses the existing C++ bite activity instead of pouncing or trying to
+  cross through the player to the other end.
 - The boar adds event-driven policy and the Sleep, Charge, and Stunned states. Sensing,
   charge movement, collision, and damage remain C++; Lua reacts to engine-provided facts
   such as a heard noise or nearby target. New facts should be added deliberately to the
@@ -139,15 +140,13 @@ is discarded with its actor.
 
 A practical remaining delivery order is:
 
-1. Add a C++ pounce activity and implement the rat using existing ground movement and
-   navigation.
-2. Add the event and fact boundary needed by the boar, then implement its charge in C++
+1. Add the event and fact boundary needed by the boar, then implement its charge in C++
    and its policy in Lua.
-3. Implement and test wall and ceiling movement, surface navigation, and following in
+2. Implement and test wall and ceiling movement, surface navigation, and following in
    C++.
-4. Implement the spider as the first scripted user of that surface-navigation
+3. Implement the spider as the first scripted user of that surface-navigation
    capability.
-5. Consider Lua-authored declarative machine definitions only after the state boundary
+4. Consider Lua-authored declarative machine definitions only after the state boundary
    has proved useful; keep runtime transition evaluation in C++ unless a concrete rule
    cannot be expressed by facts and timed conditions.
 

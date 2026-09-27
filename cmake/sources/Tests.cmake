@@ -30,6 +30,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/app/test_display_viewport.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_frame_axes.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_frame_selection.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/test_content_integrity.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_level_composition.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_inventory_layout.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_level_data.cpp

@@ -35,6 +35,27 @@
       "senses": { "noticeDistance": 56, "targetMemoryDuration": 0.5 },
       "bite": {}
     },
+    "rat": {
+      "bodySize": [8, 8],
+      "team": "enemy",
+      "facing": "left",
+      "animations": "rat",
+      "spriteAnchor": "feet",
+      "health": 1,
+      "platformer": { "maximumSpeed": 60 },
+      "senses": {
+        "noticeDistance": 80,
+        "targetMemoryDuration": 1.5,
+        "standoffDistance": 40
+      },
+      "bite": {
+        "damage": 1,
+        "windupDuration": 0.12,
+        "activeDuration": 0.08,
+        "recoveryDuration": 0.3
+      },
+      "machine": "rat"
+    },
     "zombie_soldier": {
       "bodySize": [12, 20],
       "team": "enemy",

@@ -1,5 +1,27 @@
 {
   "machines": {
+    "rat": {
+      "states": [
+        { "name": "patrol", "does": "patrol" },
+        { "name": "flee", "does": { "kind": "lua", "script": "rat", "activity": "flee" } },
+        { "name": "bite", "does": "bite" }
+      ],
+      "transitions": [
+        {
+          "from": "patrol",
+          "to": "flee",
+          "when": { "targetVisible": true, "targetTooClose": true }
+        },
+        { "from": "flee", "to": "bite", "when": { "targetInBiteRange": true } },
+        { "from": "flee", "to": "patrol", "when": { "targetKnown": false }, "after": 1.5 },
+        {
+          "from": "bite",
+          "to": "patrol",
+          "when": { "targetKnown": false, "biteReady": true }
+        },
+        { "from": "bite", "to": "flee", "when": { "biteReady": true } }
+      ]
+    },
     "keep_distance": {
       "states": [
         { "name": "idle", "does": "idle" },

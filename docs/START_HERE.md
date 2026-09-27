@@ -185,9 +185,9 @@ Read these headers first:
 - [`input_state.hpp`](../include/simple_platformer/input/input_state.hpp) shows the common
   intentions used by the player and NPCs.
 
-The important idea is composition: the player, zombie, bat, and ranged NPC are not
-different subclasses. They are actors with different combinations of data. The full
-recipe is in [Actor composition](ARCHITECTURE.md#actor-composition).
+The important idea is composition: gameplay roles are not represented by different
+actor subclasses. Each actor is assembled from a different combination of data. The
+full recipe is in [Actor composition](ARCHITECTURE.md#actor-composition).
 
 ### 4. Follow one simulation tick
 

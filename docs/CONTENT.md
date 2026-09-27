@@ -196,9 +196,9 @@ and do not imply that an object must stand on the ground.
 
 ## Actors
 
-An actor requires `definition` (a name in `actors.json`) and one spawn placement. The supplied
-catalogue includes `zombie`, `bat`, and `zombie_soldier`; new definition names do not
-require a parser branch. A patrol is optional:
+An actor requires `definition` (a name in `actors.json`) and one spawn placement. Any
+actor definition in that catalogue can be placed; adding a new definition name does
+not require a parser branch. A patrol is optional:
 
 ```json
 {
@@ -270,8 +270,10 @@ is `feet` or `center`.
 `machines.json` holds named machines an actor definition can run through its `machine`
 field. A machine has `states`, an array of `{ "name", "does" }` in the order they are
 declared, and `transitions`, an array of `{ "from", "to", "when", "after" }`. The
-first state is the one the NPC starts in. `does` is the built-in activity the state
-runs: `idle`, `patrol`, `chase`, `bite`, `shoot`, `search`, `retreat` or `watch`.
+first state is the one the NPC starts in. A string `does` value names the built-in
+activity the state runs: `idle`, `patrol`, `chase`, `bite`, `shoot`, `search`, `retreat`
+or `watch`. A Lua activity uses
+`{"kind":"lua","script":"rat","activity":"flee"}`.
 
 `from` is a state name or an array of them, which declares one transition per name.
 `when` maps fact names to the boolean each must hold, and may be empty for a transition

@@ -420,6 +420,7 @@ namespace simple_platformer
         {
             NpcActivitySnapshot snapshot;
             snapshot.feet = feetOf(actor.body.bounds);
+            snapshot.patrol = actor.patrol;
             snapshot.facts = facts;
             snapshot.pathComplete = pathComplete(follower);
             if (facts.targetKnown)

@@ -27,7 +27,7 @@
   "playerSpawnCell": [2, 20],
   "actors": [
     {
-      "definition": "zombie",
+      "definition": "rat",
       "spawnCell": [18, 20],
       "patrol": {
         "firstCell": [13, 20],

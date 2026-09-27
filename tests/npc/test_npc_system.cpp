@@ -270,7 +270,8 @@ TEST_CASE(
     const simple_platformer::ActorId npcId = world.addActor(
         makeNpc({24.0F, 32.0F})
             .running(tests::NpcMachineBuilder::named("scripted")
-                         .state("roam", simple_platformer::LuaNpcActivity{"rat", "roam"})));
+                         .state("roam", simple_platformer::LuaNpcActivity{"rat", "roam"}))
+            .patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
     RecordingNpcScripts scripts;
     scripts.command.routeTo = glm::vec2{72.0F, 32.0F};
     scripts.command.aimAt = glm::vec2{80.0F, 16.0F};
@@ -288,6 +289,11 @@ TEST_CASE(
     REQUIRE(scripts.calls[1].snapshot.facts.stateElapsed == 0.0F);
     REQUIRE_FALSE(scripts.calls[0].snapshot.pathComplete);
     REQUIRE_FALSE(scripts.calls[0].snapshot.targetFeet.has_value());
+    REQUIRE(scripts.calls[0].snapshot.patrol.has_value());
+    const simple_platformer::Patrol scriptedPatrol =
+        scripts.calls[0].snapshot.patrol.value_or(simple_platformer::Patrol{});
+    REQUIRE(scriptedPatrol.firstFeet == glm::vec2{24.0F, 32.0F});
+    REQUIRE(scriptedPatrol.secondFeet == glm::vec2{72.0F, 32.0F});
     REQUIRE(scripts.updateSteps == std::vector<float>{0.1F});
     REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
     REQUIRE(actor(world, npcId).intentions.aimDirection == glm::vec2{56.0F, -16.0F});

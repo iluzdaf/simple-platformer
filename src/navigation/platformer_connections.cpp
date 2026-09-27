@@ -266,10 +266,7 @@ namespace simple_platformer
                 *existing = std::move(candidate);
             }
         }
-    }
 
-    namespace
-    {
         struct SimulatedConnections
         {
             std::vector<NavigationNeighbor> connections;

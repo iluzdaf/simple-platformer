@@ -1,6 +1,5 @@
 #include "simple_platformer/navigation/platformer_cells.hpp"
 
-#include <algorithm>
 #include <cmath>
 #include <optional>
 #include <stdexcept>
@@ -30,6 +29,37 @@ namespace simple_platformer
                 }
             }
             return true;
+        }
+
+        std::optional<GridPosition> nearestStandableChaseCell(
+            const TileMap& map,
+            glm::vec2 targetFeet,
+            glm::vec2 bodySize)
+        {
+            std::optional<GridPosition> closest;
+            double closestDistanceSquared = 0.0;
+            for (int row = 0; row < map.height(); ++row)
+            {
+                for (int column = 0; column < map.width(); ++column)
+                {
+                    const GridPosition candidate{column, row};
+                    if (!canStandAt(map, candidate, bodySize))
+                    {
+                        continue;
+                    }
+                    const glm::vec2 candidateFeet = feetInCell(map.tileSize(), candidate);
+                    const double dx = static_cast<double>(candidateFeet.x) - targetFeet.x;
+                    const double dy = static_cast<double>(candidateFeet.y) - targetFeet.y;
+                    const double distanceSquared = dx * dx + dy * dy;
+                    // Row-major order makes an equal-distance candidate keep the first cell.
+                    if (!closest.has_value() || distanceSquared < closestDistanceSquared)
+                    {
+                        closest = candidate;
+                        closestDistanceSquared = distanceSquared;
+                    }
+                }
+            }
+            return closest;
         }
     }
 
@@ -104,70 +134,6 @@ namespace simple_platformer
             }
         }
 
-        // Nearest first: rings of cells around the cell nearest the feet, out until a ring
-        // can no longer beat the best found. Every cell in ring r lies at least r - 1
-        // tiles from the feet, so once that exceeds the best distance the rest of the map
-        // cannot win. The closest feet position wins; equal distances keep row, then
-        // column order, as a scan of the whole map would.
-        const auto tileSize = static_cast<float>(map.tileSize());
-        const GridPosition anchor{
-            static_cast<int>(
-                std::floor(std::clamp(lastKnownFeet.x, 0.0F, map.pixelWidth() - 1.0F) / tileSize)),
-            static_cast<int>(std::floor(
-                std::clamp(lastKnownFeet.y, 0.0F, map.pixelHeight() - 1.0F) / tileSize))};
-        const int farthestRing =
-            std::max({anchor.x, map.width() - 1 - anchor.x, anchor.y, map.height() - 1 - anchor.y});
-
-        std::optional<GridPosition> closest;
-        double closestDistanceSquared = 0.0;
-        const auto consider = [&](GridPosition candidate)
-        {
-            if (!canStandAt(map, candidate, bodySize))
-            {
-                return;
-            }
-            const glm::vec2 candidateFeet = feetInCell(map.tileSize(), candidate);
-            const double dx = static_cast<double>(candidateFeet.x) - lastKnownFeet.x;
-            const double dy = static_cast<double>(candidateFeet.y) - lastKnownFeet.y;
-            const double distanceSquared = dx * dx + dy * dy;
-            const bool earlierInScanOrder =
-                closest.has_value() && (candidate.y < closest->y ||
-                                        (candidate.y == closest->y && candidate.x < closest->x));
-            if (!closest.has_value() || distanceSquared < closestDistanceSquared ||
-                (distanceSquared == closestDistanceSquared && earlierInScanOrder))
-            {
-                closest = candidate;
-                closestDistanceSquared = distanceSquared;
-            }
-        };
-
-        for (int ring = 0; ring <= farthestRing; ++ring)
-        {
-            if (closest.has_value())
-            {
-                const double nearestPossible = static_cast<double>(ring - 1) * tileSize;
-                if (nearestPossible > 0.0 &&
-                    nearestPossible * nearestPossible > closestDistanceSquared)
-                {
-                    break;
-                }
-            }
-            if (ring == 0)
-            {
-                consider(anchor);
-                continue;
-            }
-            for (int column = anchor.x - ring; column <= anchor.x + ring; ++column)
-            {
-                consider({column, anchor.y - ring});
-                consider({column, anchor.y + ring});
-            }
-            for (int row = anchor.y - ring + 1; row <= anchor.y + ring - 1; ++row)
-            {
-                consider({anchor.x - ring, row});
-                consider({anchor.x + ring, row});
-            }
-        }
-        return closest;
+        return nearestStandableChaseCell(map, lastKnownFeet, bodySize);
     }
 }

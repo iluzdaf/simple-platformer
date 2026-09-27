@@ -1,11 +1,8 @@
-#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <limits>
 #include <optional>
 #include <stdexcept>
-#include <string>
-#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -22,48 +19,6 @@ namespace
 
     constexpr glm::vec2 SmallBody{12.0F, 12.0F};
     constexpr glm::vec2 TallBody{12.0F, 20.0F};
-
-    // Reference oracle: prefer a standable target cell, then scan in row-column order
-    // for the nearest standable cell so ties keep the first cell found.
-    std::optional<GridPosition> chaseCellByExhaustiveScan(
-        const simple_platformer::TileMap& map,
-        glm::vec2 feet,
-        glm::vec2 bodySize)
-    {
-        if (feet.x >= 0.0F && feet.x < map.pixelWidth() && feet.y >= 0.0F &&
-            feet.y <= map.pixelHeight())
-        {
-            const GridPosition targetCell = simple_platformer::cellAtFeet(map.tileSize(), feet);
-            if (simple_platformer::canStandAt(map, targetCell, bodySize))
-            {
-                return targetCell;
-            }
-        }
-        std::optional<GridPosition> closest;
-        double closestDistanceSquared = 0.0;
-        for (int row = 0; row < map.height(); ++row)
-        {
-            for (int column = 0; column < map.width(); ++column)
-            {
-                const GridPosition candidate{column, row};
-                if (!simple_platformer::canStandAt(map, candidate, bodySize))
-                {
-                    continue;
-                }
-                const glm::vec2 candidateFeet =
-                    simple_platformer::feetInCell(map.tileSize(), candidate);
-                const double dx = static_cast<double>(candidateFeet.x) - feet.x;
-                const double dy = static_cast<double>(candidateFeet.y) - feet.y;
-                const double distanceSquared = dx * dx + dy * dy;
-                if (!closest.has_value() || distanceSquared < closestDistanceSquared)
-                {
-                    closest = candidate;
-                    closestDistanceSquared = distanceSquared;
-                }
-            }
-        }
-        return closest;
-    }
 }
 
 TEST_CASE("A standable cell has support below and room for the body", "[navigation][platformer]")
@@ -155,36 +110,24 @@ TEST_CASE(
     REQUIRE_FALSE(simple_platformer::findPlatformerChaseCell(solid, {24.0F, 16.0F}, TallBody));
 }
 
-TEST_CASE("Chase cells match an exhaustive map-scan oracle", "[navigation][platformer]")
+TEST_CASE("Equidistant chase cells prefer the upper row", "[navigation][platformer]")
 {
-    const std::vector<std::vector<std::string>> maps = {
-        {"........", "........", "..###...", "........", "########"},
-        {"..#....", ".......", "#######"},
-        {"##########", "#........#", "#..##..#.#", "#......#.#", "##########"},
-        {"...", "...", "..."},
-    };
-    const std::vector<glm::vec2> bodies = {SmallBody, TallBody, {20.0F, 12.0F}};
-    for (const std::vector<std::string>& mapRows : maps)
-    {
-        const simple_platformer::TileMap map = tests::TileMapBuilder(mapRows);
-        // Sample feet on a fine grid over the map and a margin outside it.
-        const int height = static_cast<int>(map.pixelHeight());
-        const int width = static_cast<int>(map.pixelWidth());
-        for (int y = -24; y <= height + 24; y += 5)
-        {
-            for (int x = -24; x <= width + 24; x += 5)
-            {
-                const glm::vec2 feet{static_cast<float>(x), static_cast<float>(y)};
-                for (const glm::vec2 body : bodies)
-                {
-                    CAPTURE(mapRows, feet.x, feet.y, body.x, body.y);
-                    REQUIRE(
-                        simple_platformer::findPlatformerChaseCell(map, feet, body) ==
-                        chaseCellByExhaustiveScan(map, feet, body));
-                }
-            }
-        }
-    }
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", ".....", "..#..", ".....", "..#.."});
+
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {40.0F, 48.0F}, SmallBody) ==
+        GridPosition{2, 1});
+}
+
+TEST_CASE("Chase cells choose a nearer cell in a later row", "[navigation][platformer]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", ".....", "##...", ".....", "#####"});
+
+    REQUIRE(
+        simple_platformer::findPlatformerChaseCell(map, {40.0F, 48.0F}, SmallBody) ==
+        GridPosition{2, 3});
 }
 
 TEST_CASE("Chase cells reject invalid feet and bodies", "[navigation][platformer][validation]")

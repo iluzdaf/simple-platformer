@@ -19,9 +19,11 @@
 namespace
 {
     using simple_platformer::ConnectionBody;
+    using simple_platformer::PlatformerConnectionCache;
 
+    constexpr glm::vec2 BodySize{12.0F, 12.0F};
     const ConnectionBody Small{
-        {12.0F, 12.0F},
+        BodySize,
         simple_platformer::PlatformerMovementConfig{},
         tests::FixedStepSeconds};
     const ConnectionBody Tall{
@@ -98,4 +100,60 @@ TEST_CASE("A fill keeps queued cells for every body the cache knows", "[navigati
     REQUIRE(simple_platformer::fillNavigation(map, cache, 1000000).cells == 0);
 
     REQUIRE_THROWS_AS(simple_platformer::fillNavigation(map, cache, -1), std::invalid_argument);
+}
+
+TEST_CASE("A fill keeps queued cells until its budget is spent", "[navigation][cache][fill]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "........", "###..###", "########"});
+    PlatformerConnectionCache cache;
+    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    const std::size_t cells =
+        static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height());
+    const auto fill = [&](int tickBudget)
+    {
+        return simple_platformer::fillPlatformerConnections(
+            map, BodySize, {}, tests::FixedStepSeconds, cache, tickBudget);
+    };
+
+    // Queuing every cell keeps nothing yet.
+    simple_platformer::queueAllPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache);
+    REQUIRE(cache.size() == 0);
+    REQUIRE(cache.cellsPending(body) == cells);
+    REQUIRE(fill(0).cells == 0);
+
+    // A cell with nothing to simulate still costs the budget its keep, so a budget of
+    // two keeps keeps two cells however empty the first are, and a budget of one tick
+    // stops after the first cell whatever it cost.
+    const simple_platformer::FillWork two = fill(2 * simple_platformer::KeepCostTicks);
+    REQUIRE(two.cells == 2);
+    REQUIRE(two.simulatedTicks == 0);
+    REQUIRE(two.budgetSpent == 2 * simple_platformer::KeepCostTicks);
+    REQUIRE(fill(1).cells == 1);
+    REQUIRE(cache.cellsPending(body) == cells - 3);
+    REQUIRE(cache.cellsKeptSoFar() == 3);
+
+    // The rest go with ticks to spare, and a fill with nothing waiting does nothing.
+    const simple_platformer::FillWork rest = fill(1000000);
+    REQUIRE(static_cast<std::size_t>(rest.cells) == cells - 3);
+    REQUIRE(rest.simulatedTicks > 0);
+    REQUIRE(
+        rest.budgetSpent == rest.simulatedTicks + rest.cells * simple_platformer::KeepCostTicks);
+    REQUIRE(cache.size() == cells);
+    REQUIRE(cache.cellsPending(body) == 0);
+    REQUIRE(fill(1000000).cells == 0);
+
+    // Queuing again with every cell kept queues nothing.
+    simple_platformer::queueAllPlatformerConnections(
+        map, BodySize, {}, tests::FixedStepSeconds, cache);
+    REQUIRE(cache.cellsPending(body) == 0);
+
+    REQUIRE_THROWS_AS(fill(-1), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::fillPlatformerConnections(map, BodySize, {}, 0.0F, cache, 1),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::queueAllPlatformerConnections(map, BodySize, {}, 0.0F, cache),
+        std::invalid_argument);
 }

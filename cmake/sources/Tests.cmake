@@ -64,6 +64,8 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/movement/test_flying_movement.cpp
     ${PROJECT_SOURCE_DIR}/tests/movement/test_platformer_movement.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_connection_cache.cpp
+    ${PROJECT_SOURCE_DIR}/tests/navigation/test_connection_cache_invalidation.cpp
+    ${PROJECT_SOURCE_DIR}/tests/navigation/test_connection_cache_search.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_path_search.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_flying_navigation.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_input_program.cpp

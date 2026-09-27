@@ -43,6 +43,25 @@ TEST_CASE("A finite positive number is above zero and not infinite", "[math][val
     REQUIRE_FALSE(simple_platformer::isFinitePositive(std::numeric_limits<float>::quiet_NaN()));
 }
 
+TEST_CASE("A positive time step rejects zero and non-finite values", "[math][validation]")
+{
+    REQUIRE_NOTHROW(simple_platformer::requirePositiveSeconds(0.25F, "Navigation simulation step"));
+    REQUIRE_THROWS_WITH(
+        simple_platformer::requirePositiveSeconds(0.0F, "Navigation simulation step"),
+        "Navigation simulation step must be finite and positive");
+    REQUIRE_THROWS_AS(
+        simple_platformer::requirePositiveSeconds(-0.1F, "Navigation simulation step"),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::requirePositiveSeconds(
+            std::numeric_limits<float>::infinity(), "Navigation simulation step"),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::requirePositiveSeconds(
+            std::numeric_limits<float>::quiet_NaN(), "Navigation simulation step"),
+        std::invalid_argument);
+}
+
 TEST_CASE("A length of time must be finite and not negative", "[math][validation]")
 {
     REQUIRE_NOTHROW(simple_platformer::requireSeconds(0.0F, "Frame time"));

@@ -11,4 +11,7 @@ namespace simple_platformer
     // time step it advances nothing. The message starts with what the seconds are, as in
     // "Frame time" or "Attacks time step".
     void requireSeconds(float seconds, const char* what);
+
+    // Simulation steps that cannot be zero use this stricter check.
+    void requirePositiveSeconds(float seconds, const char* what);
 }

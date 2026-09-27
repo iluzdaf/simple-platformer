@@ -26,4 +26,12 @@ namespace simple_platformer
                 std::string(what) + " must be a finite, non-negative number of seconds");
         }
     }
+
+    void requirePositiveSeconds(float seconds, const char* what)
+    {
+        if (!isFinitePositive(seconds))
+        {
+            throw std::invalid_argument(std::string(what) + " must be finite and positive");
+        }
+    }
 }

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <optional>
-#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -36,15 +35,6 @@ namespace simple_platformer
             if (statistics != nullptr)
             {
                 ++statistics->simulatedTicks;
-            }
-        }
-
-        void requireStep(float stepSeconds)
-        {
-            if (!isFinitePositive(stepSeconds))
-            {
-                throw std::invalid_argument(
-                    "Navigation simulation step must be finite and positive");
             }
         }
 
@@ -402,7 +392,7 @@ namespace simple_platformer
         PlatformerConnectionCache& cache,
         PathSearchStatistics* statistics)
     {
-        requireStep(stepSeconds);
+        requirePositiveSeconds(stepSeconds, "Navigation simulation step");
         cache.syncWith(map);
         const ConnectionBody body{bodySize, movement, stepSeconds};
         const std::vector<NavigationNeighbor>* kept = cache.find(cell, body);
@@ -428,7 +418,7 @@ namespace simple_platformer
         PathSearchStatistics* statistics,
         PlatformerConnectionCache* cache)
     {
-        requireStep(stepSeconds);
+        requirePositiveSeconds(stepSeconds, "Navigation simulation step");
         if (cache != nullptr)
         {
             return platformerNeighborsKept(

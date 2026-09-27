@@ -17,18 +17,6 @@
 
 namespace simple_platformer
 {
-    namespace
-    {
-        void requireStep(float stepSeconds)
-        {
-            if (!isFinitePositive(stepSeconds))
-            {
-                throw std::invalid_argument(
-                    "Navigation simulation step must be finite and positive");
-            }
-        }
-    }
-
     FillWork fillPlatformerConnections(
         const TileMap& map,
         glm::vec2 bodySize,
@@ -37,7 +25,7 @@ namespace simple_platformer
         PlatformerConnectionCache& cache,
         int tickBudget)
     {
-        requireStep(stepSeconds);
+        requirePositiveSeconds(stepSeconds, "Navigation simulation step");
         if (tickBudget < 0)
         {
             throw std::invalid_argument("A fill budget cannot be negative");
@@ -75,7 +63,7 @@ namespace simple_platformer
         float stepSeconds,
         PlatformerConnectionCache& cache)
     {
-        requireStep(stepSeconds);
+        requirePositiveSeconds(stepSeconds, "Navigation simulation step");
         cache.syncWith(map);
         const ConnectionBody body{bodySize, movement, stepSeconds};
         for (int row = 0; row < map.height(); ++row)
@@ -106,10 +94,7 @@ namespace simple_platformer
 
     std::vector<ConnectionBody> platformerBodiesIn(const World& world, float stepSeconds)
     {
-        if (!isFinitePositive(stepSeconds))
-        {
-            throw std::invalid_argument("Navigation step must be finite and positive");
-        }
+        requirePositiveSeconds(stepSeconds, "Navigation step");
         std::vector<ConnectionBody> bodies;
         for (const Actor& actor : world.actors())
         {

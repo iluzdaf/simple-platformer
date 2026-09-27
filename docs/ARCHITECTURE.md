@@ -189,9 +189,10 @@ Physics code works with `body.bounds.position`. Content and ground navigation us
 ## Time
 
 Gameplay time is seconds in the fixed simulation step, as `float` except for the world
-clock and its stamps. Every system receives the
-step it ran as `deltaTime`, and `requireSeconds` rejects one that is not a finite,
-non-negative number. Rendering has no step and never advances time.
+clock and its stamps. Every system receives the step it ran as `deltaTime`;
+`requireSeconds` allows zero but rejects negative or non-finite values. Navigation
+simulation requires a positive step through `requirePositiveSeconds`. Rendering has
+no step and never advances time.
 
 A moment or a length of time takes one of two forms.
 

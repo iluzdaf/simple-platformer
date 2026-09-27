@@ -21,18 +21,6 @@
 
 namespace simple_platformer
 {
-    namespace
-    {
-        void requireStep(float stepSeconds)
-        {
-            if (!isFinitePositive(stepSeconds))
-            {
-                throw std::invalid_argument(
-                    "Navigation simulation step must be finite and positive");
-            }
-        }
-    }
-
     int platformerTickHeuristic(
         int tileSize,
         GridPosition cell,
@@ -40,7 +28,7 @@ namespace simple_platformer
         const PlatformerMovementConfig& movement,
         float stepSeconds)
     {
-        requireStep(stepSeconds);
+        requirePositiveSeconds(stepSeconds, "Navigation simulation step");
         if (!std::isfinite(movement.maximumSpeed) || movement.maximumSpeed < 0.0F)
         {
             throw std::invalid_argument(
@@ -228,7 +216,7 @@ namespace simple_platformer
         PathSearchStatistics* statistics,
         PlatformerConnectionCache* cache)
     {
-        requireStep(stepSeconds);
+        requirePositiveSeconds(stepSeconds, "Navigation simulation step");
         if (navigation.jumpStartPenaltyTicks < 0)
         {
             throw std::invalid_argument("A jump start penalty cannot be negative");

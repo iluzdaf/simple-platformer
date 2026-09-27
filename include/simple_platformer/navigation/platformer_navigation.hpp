@@ -87,51 +87,6 @@ namespace simple_platformer
         PathSearchStatistics* statistics = nullptr,
         PlatformerConnectionCache* cache = nullptr);
 
-    // What keeping a cell costs a fill's budget besides the ticks it simulated: the
-    // bookkeeping, worth about this many ticks, so a run of cells that cannot be stood
-    // on is spread over steps like the rest.
-    constexpr int KeepCostTicks = 3;
-
-    // What one fill call did: the cells it kept, the movement ticks that took, and the
-    // budget it spent, which is the ticks plus the keep cost of each cell.
-    struct FillWork
-    {
-        int cells = 0;
-        int simulatedTicks = 0;
-        int budgetSpent = 0;
-    };
-
-    // Simulates and keeps the cells waiting in the cache's queue for this body, in its
-    // order, until the budget is spent or none are left. A cell is never split, so a
-    // call may run one cell past the budget.
-    FillWork fillPlatformerConnections(
-        const TileMap& map,
-        glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement,
-        float stepSeconds,
-        PlatformerConnectionCache& cache,
-        int tickBudget);
-
-    // Queues every cell of the map the cache lacks for this body, so fills keep them over
-    // the calls that follow. Cells kept or waiting already are left as they are.
-    void queueAllPlatformerConnections(
-        const TileMap& map,
-        glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement,
-        float stepSeconds,
-        PlatformerConnectionCache& cache);
-
-    // Keeps the connections leaving every cell of the map for this body at once,
-    // simulating any the cache lacks. Cells already kept are left as they are, so calling
-    // it again fills only what has since been emptied. Tests use it to start from a full
-    // cache; the game queues the cells and fills them over its steps instead.
-    void keepAllPlatformerConnections(
-        const TileMap& map,
-        glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement,
-        float stepSeconds,
-        PlatformerConnectionCache& cache);
-
     // The connections leaving a cell, read from the cache rather than copied out of it:
     // simulated and kept first when the cache lacks them. The reference holds until a
     // break drops the cell or the cache is cleared. With statistics, counts the cell as

@@ -9,6 +9,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/world/tile_map.hpp"

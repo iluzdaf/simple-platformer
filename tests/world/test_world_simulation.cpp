@@ -140,12 +140,11 @@ TEST_CASE(
                 .inCell({1, 1})
                 .walking()
                 .onTeam(simple_platformer::Team::Player));
-        world.addActor(
-            tests::ActorBuilder::sized({12.0F, 12.0F})
-                .inCell({6, 1})
-                .flying(60.0F)
-                .onTeam(simple_platformer::Team::Enemy)
-                .thinking({96.0F, 1.0F}));
+        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                           .inCell({6, 1})
+                           .flying(60.0F)
+                           .onTeam(simple_platformer::Team::Enemy)
+                           .thinking({96.0F, 1.0F}));
         return world;
     };
     simple_platformer::TileMap timedMap =

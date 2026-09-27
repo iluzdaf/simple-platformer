@@ -334,11 +334,10 @@ TEST_CASE(
     REQUIRE(tests::brain(rememberedZombie).targetMemoryRemaining > 0.0F);
     REQUIRE(tests::brain(rememberedZombie).state == simple_platformer::NpcState::Chase);
     const glm::vec2 lastKnownFeet = tests::brain(rememberedZombie).lastKnownTargetFeet;
-    REQUIRE_FALSE(
-        simple_platformer::canStandAt(
-            map,
-            simple_platformer::cellAtFeet(tests::TileSize, lastKnownFeet),
-            rememberedZombie.body.bounds.size));
+    REQUIRE_FALSE(simple_platformer::canStandAt(
+        map,
+        simple_platformer::cellAtFeet(tests::TileSize, lastKnownFeet),
+        rememberedZombie.body.bounds.size));
     const float startingDistance =
         glm::distance(simple_platformer::feetOf(rememberedZombie.body.bounds), lastKnownFeet);
 

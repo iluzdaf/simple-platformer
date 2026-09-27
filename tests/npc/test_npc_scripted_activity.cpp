@@ -159,9 +159,8 @@ TEST_CASE("Same-run and notice-distance facts are independent", "[npc][facts]")
             .atFeet({24.0F, 32.0F})
             .walking()
             .thinking({32.0F, 1.0F})
-            .running(
-                tests::NpcMachineBuilder::named("observer")
-                    .state("observe", simple_platformer::LuaNpcActivity{"test", "observe"})));
+            .running(tests::NpcMachineBuilder::named("observer")
+                         .state("observe", simple_platformer::LuaNpcActivity{"test", "observe"})));
     tests::platformerMovement(actor(world, npcId)).grounded = true;
     if (hasTarget)
     {
@@ -185,23 +184,23 @@ TEST_CASE("A machine reacts to landing and blocked walking facts", "[npc][machin
     simple_platformer::World world;
     const auto playerId = tests::addPlayer(world, makePlayer({56.0F, 32.0F}));
     actor(world, playerId).team = simple_platformer::Team::Player;
-    auto charger = tests::ActorBuilder::sized({12.0F, 12.0F})
-                       .atFeet({24.0F, 32.0F})
-                       .walking()
-                       .onTeam(simple_platformer::Team::Enemy)
-                       .thinking({80.0F, 1.0F})
-                       .running(
-                           tests::NpcMachineBuilder::named("charger")
-                               .state("sleep", simple_platformer::LuaNpcActivity{"test", "rest"})
-                               .state("charge", simple_platformer::LuaNpcActivity{"test", "walk"})
-                               .state("stunned", simple_platformer::LuaNpcActivity{"test", "rest"})
-                               .transition("sleep", "charge")
-                               .when("heardLanding", true)
-                               .when("targetOnSameRun", true)
-                               .when("targetWithinNoticeDistance", true)
-                               .transition("charge", "stunned")
-                               .when("movementBlocked", true))
-                       .withContactDamage();
+    auto charger =
+        tests::ActorBuilder::sized({12.0F, 12.0F})
+            .atFeet({24.0F, 32.0F})
+            .walking()
+            .onTeam(simple_platformer::Team::Enemy)
+            .thinking({80.0F, 1.0F})
+            .running(tests::NpcMachineBuilder::named("charger")
+                         .state("sleep", simple_platformer::LuaNpcActivity{"test", "rest"})
+                         .state("charge", simple_platformer::LuaNpcActivity{"test", "walk"})
+                         .state("stunned", simple_platformer::LuaNpcActivity{"test", "rest"})
+                         .transition("sleep", "charge")
+                         .when("heardLanding", true)
+                         .when("targetOnSameRun", true)
+                         .when("targetWithinNoticeDistance", true)
+                         .transition("charge", "stunned")
+                         .when("movementBlocked", true))
+            .withContactDamage();
     const auto npcId = world.addActor(std::move(charger));
     tests::platformerMovement(actor(world, npcId)).grounded = true;
     tests::platformerMovement(actor(world, playerId)).grounded = true;
@@ -214,9 +213,8 @@ TEST_CASE("A machine reacts to landing and blocked walking facts", "[npc][machin
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE(tests::perception(world, npcId).heardLanding);
     REQUIRE(brain(world, npcId).target == playerId);
-    REQUIRE(
-        simple_platformer::onSameGroundRun(
-            map, actor(world, npcId).body.bounds, actor(world, playerId).body.bounds));
+    REQUIRE(simple_platformer::onSameGroundRun(
+        map, actor(world, npcId).body.bounds, actor(world, playerId).body.bounds));
     simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
     REQUIRE(machine(world, npcId).definition.states[machine(world, npcId).active].name == "charge");
     REQUIRE(actor(world, npcId).intentions.direction.x == 1.0F);
@@ -245,12 +243,11 @@ TEST_CASE(
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "........", "........", "########"});
     simple_platformer::World world;
-    const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({24.0F, 32.0F})
-                           .running(
-                               tests::NpcMachineBuilder::named("scripted")
-                                   .state("roam", simple_platformer::LuaNpcActivity{"rat", "roam"}))
-                           .patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
+    const simple_platformer::ActorId npcId = world.addActor(
+        makeNpc({24.0F, 32.0F})
+            .running(tests::NpcMachineBuilder::named("scripted")
+                         .state("roam", simple_platformer::LuaNpcActivity{"rat", "roam"}))
+            .patrolling({24.0F, 32.0F}, {72.0F, 32.0F}));
     RecordingNpcScripts scripts;
     scripts.command.routeTo = glm::vec2{72.0F, 32.0F};
     scripts.command.aimAt = glm::vec2{80.0F, 16.0F};
@@ -293,12 +290,11 @@ TEST_CASE("A scripted machine exits and enters around a transition", "[npc][lua]
     const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({56.0F, 32.0F}));
     const simple_platformer::ActorId npcId = world.addActor(
         makeNpc({24.0F, 32.0F})
-            .running(
-                tests::NpcMachineBuilder::named("scripted")
-                    .state("waiting", simple_platformer::LuaNpcActivity{"rat", "wait"})
-                    .state("moving", simple_platformer::LuaNpcActivity{"rat", "move"})
-                    .transition("waiting", "moving")
-                    .when("targetKnown", true)));
+            .running(tests::NpcMachineBuilder::named("scripted")
+                         .state("waiting", simple_platformer::LuaNpcActivity{"rat", "wait"})
+                         .state("moving", simple_platformer::LuaNpcActivity{"rat", "move"})
+                         .transition("waiting", "moving")
+                         .when("targetKnown", true)));
     RecordingNpcScripts scripts;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F, &scripts);
@@ -329,9 +325,8 @@ TEST_CASE("A scripted machine activity requires a scripting runtime", "[npc][lua
     simple_platformer::World world;
     world.addActor(
         makeNpc({24.0F, 32.0F})
-            .running(
-                tests::NpcMachineBuilder::named("scripted")
-                    .state("waiting", simple_platformer::LuaNpcActivity{"rat", "wait"})));
+            .running(tests::NpcMachineBuilder::named("scripted")
+                         .state("waiting", simple_platformer::LuaNpcActivity{"rat", "wait"})));
 
     REQUIRE_THROWS_WITH(
         simple_platformer::updateNpcBehaviour(map, world, 0.1F),

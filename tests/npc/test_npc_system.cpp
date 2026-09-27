@@ -109,13 +109,13 @@ TEST_CASE(
         tests::TileMapBuilder({"........", "........", "..####.."});
     simple_platformer::World world;
     const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({40.0F, 32.0F}));
-    const simple_platformer::ActorId npcId = world.addActor(
-        tests::ActorBuilder::sized({12.0F, 12.0F})
-            .atFeet({72.0F, 32.0F})
-            .walking()
-            .onTeam(simple_platformer::Team::Enemy)
-            .shooting()
-            .thinking({96.0F, 1.0F}));
+    const simple_platformer::ActorId npcId =
+        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                           .atFeet({72.0F, 32.0F})
+                           .walking()
+                           .onTeam(simple_platformer::Team::Enemy)
+                           .shooting()
+                           .thinking({96.0F, 1.0F}));
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
     tests::senses(actor(world, npcId)).standoffDistance = 64.0F;
     brain(world, npcId).target = playerId;
@@ -165,12 +165,11 @@ TEST_CASE("An NPC with a machine takes its activity from the machine, not its ta
     const simple_platformer::ActorId playerId = tests::addPlayer(world, makePlayer({70.0F, 28.0F}));
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({24.0F, 32.0F})
-                           .running(
-                               tests::NpcMachineBuilder::named("test")
-                                   .state("nap", simple_platformer::NpcState::Watch)
-                                   .state("hunt", simple_platformer::NpcState::Chase)
-                                   .transition("nap", "hunt")
-                                   .when("targetKnown", true)));
+                           .running(tests::NpcMachineBuilder::named("test")
+                                        .state("nap", simple_platformer::NpcState::Watch)
+                                        .state("hunt", simple_platformer::NpcState::Chase)
+                                        .transition("nap", "hunt")
+                                        .when("targetKnown", true)));
     brain(world, npcId).tactic = simple_platformer::NpcTactic::KeepDistance;
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
@@ -197,9 +196,8 @@ TEST_CASE("A machine-controlled NPC does not copy its activity into the enum bra
     simple_platformer::World world;
     const simple_platformer::ActorId npcId =
         world.addActor(makeNpc({24.0F, 32.0F})
-                           .running(
-                               tests::NpcMachineBuilder::named("test").state(
-                                   "watch", simple_platformer::NpcState::Watch)));
+                           .running(tests::NpcMachineBuilder::named("test").state(
+                               "watch", simple_platformer::NpcState::Watch)));
     brain(world, npcId).lastKnownTargetFeet = {70.0F, 32.0F};
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
@@ -282,11 +280,10 @@ TEST_CASE(
     const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
     // A walking NPC as tall as a zombie, standing on the floor at y = 32. Its height decides
     // where it can stand.
-    const auto npcId = world.addActor(
-        tests::ActorBuilder::sized({12.0F, 20.0F})
-            .atFeet({56.0F, 32.0F})
-            .walking()
-            .thinking({64.0F, 1.0F}));
+    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
+                                          .atFeet({56.0F, 32.0F})
+                                          .walking()
+                                          .thinking({64.0F, 1.0F}));
     tests::platformerMovement(world, npcId).grounded = true;
     const glm::vec2 lastKnownFeet{8.0F, 20.0F};
     brain(world, npcId).target = playerId;

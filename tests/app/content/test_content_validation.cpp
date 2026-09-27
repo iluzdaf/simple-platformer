@@ -71,7 +71,7 @@ TEST_CASE("Unique placement validation retains authoring origins", "[app][conten
 }
 
 TEST_CASE(
-    "Tile catalogue validation accepts C++ definitions without JSON",
+    "Tile catalog validation accepts C++ definitions without JSON",
     "[app][content][validation]")
 {
     const simple_platformer::TileCatalog catalog{
@@ -83,7 +83,7 @@ TEST_CASE(
         simple_platformer::validateTileLegend({{'?', "missing"}}, catalog), std::invalid_argument);
 }
 
-TEST_CASE("Tile catalogue validation rejects invalid C++ definitions", "[app][content][validation]")
+TEST_CASE("Tile catalog validation rejects invalid C++ definitions", "[app][content][validation]")
 {
     simple_platformer::TileCatalog catalog{
         16, {{false, false, {}}, {true, false, {{0, 0}, {16, 16}}}}, {{"empty", 0}, {"glass", 1}}};

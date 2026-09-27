@@ -15,12 +15,14 @@
 
 TEST_CASE("Every catalog level can be composed", "[app][content]")
 {
-    const auto catalog = simple_platformer::loadLevelCatalog("assets/levels.json");
+    const auto catalog = simple_platformer::loadLevelCatalog("assets/levels/levels.json");
+    const auto catalogs = simple_platformer::loadGameCatalogs("assets/catalogs");
 
     REQUIRE_FALSE(catalog.levels.empty());
     for (const simple_platformer::LevelCatalogEntry& entry : catalog.levels)
     {
-        const auto content = simple_platformer::composeGameLevel(catalog, entry.number, 0);
+        const auto content =
+            simple_platformer::composeGameLevel(catalog, entry.number, 0, catalogs);
         REQUIRE(content.number == entry.number);
 
         const auto& levelExit = content.world.exit();
@@ -38,8 +40,8 @@ TEST_CASE("Every catalog level can be composed", "[app][content]")
 
 TEST_CASE("Every catalog level has valid actor placement", "[app][content]")
 {
-    const auto catalog = simple_platformer::loadLevelCatalog("assets/levels.json");
-    const auto catalogs = simple_platformer::loadGameCatalogs(catalog.levelDirectory);
+    const auto catalog = simple_platformer::loadLevelCatalog("assets/levels/levels.json");
+    const auto catalogs = simple_platformer::loadGameCatalogs("assets/catalogs");
     for (const simple_platformer::LevelCatalogEntry& entry : catalog.levels)
     {
         auto content = simple_platformer::composeGameLevel(catalog, entry.number, 0, catalogs);
@@ -54,7 +56,8 @@ TEST_CASE("Every catalog level has valid actor placement", "[app][content]")
 
 TEST_CASE("Every shipped Lua activity resolves", "[app][content][lua]")
 {
-    const simple_platformer::GameCatalogs catalogs = simple_platformer::loadGameCatalogs("assets");
+    const simple_platformer::GameCatalogs catalogs =
+        simple_platformer::loadGameCatalogs("assets/catalogs");
     simple_platformer::LuaNpcScripts scripts;
 
     REQUIRE_NOTHROW(

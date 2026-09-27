@@ -302,13 +302,18 @@ cmake --build --preset mac-debug --target header_self_containment
 ```text
 app/           application shell, graphics, UI, and debug tools
   game/        game flow, level transitions, and level composition
-  content/     JSON loaders, catalogues, and content validators
-assets/        runtime sprite atlas, content catalogues, levels, and NPC scripts
+  content/     JSON loaders, catalogs, and content validators
+assets/        runtime game content
+  catalogs/    shared JSON definitions
+  levels/      level catalog and maps
+  scripts/     Lua NPC activities
+  textures/    runtime sprite atlas
 cmake/         dependencies, quality rules, and explicit target source manifests
 include/       public core headers
 src/           core implementations
 tests/         Catch2 tests for core systems and testable application code
   app/         application tests grouped like app/ (content, debug, game, graphics, UI)
+  fixtures/    example content mirroring assets/levels, catalogs, and scripts
   support/     test-only builders and simulation helpers
 tools/         repository quality and maintenance scripts
 docs/          reading route, architecture, content format, and future work

@@ -31,7 +31,6 @@ namespace tests
             return *this;
         }
 
-        // The region of the tile texture it is drawn with.
         Tile withSprite(simple_platformer::SpriteRegion region) &&
         {
             definition.sprite = region;
@@ -52,22 +51,10 @@ namespace tests
         std::optional<char> breaksIntoSymbol;
     };
 
-    // Builds a TileMap from rows of symbols. Two symbols are always defined:
-    //
-    //   '.' is empty, passable and see-through. TileMap requires tile ID zero to be empty.
-    //   '#' is solid, blocking movement and sight together. It stands in for an obstacle
-    //       rather than for any tile in the game, for tests whose tiles are scenery: they
-    //       need somewhere to stand and something to bump into, and don't care which
-    //       property provides it. Its sprite region is one tile at the atlas origin, as a
-    //       catalogue would give it, and no test asserts on it.
-    //
-    // Neither can be redefined. When a tile's properties are what a test is about, give it
-    // another symbol and declare exactly what it blocks with where(), so the test states its
-    // own premise; the builder rejects any symbol that is used but not declared. Declared
-    // tiles take IDs from 1 in order, and '#' takes the next one.
-    //
-    // The builder converts to a TileMap wherever one is expected. Its tiles are tests::TileSize,
-    // like everything else in the tests that places by cell.
+    // '.' is empty (ID 0); '#' blocks movement and sight. Tests that depend on
+    // specific tile properties should declare another symbol with where(). Neither
+    // built-in symbol can be redefined, and undeclared symbols are rejected.
+    // Conversion builds a TileMap using tests::TileSize.
     class TileMapBuilder
     {
     public:

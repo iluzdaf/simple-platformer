@@ -15,12 +15,12 @@ are checked when the game loads.
 [ARCHITECTURE.md](ARCHITECTURE.md) explains why this boundary exists and what the engine
 does with the loaded data. [README.md](../README.md) covers building and running.
 
-## Level catalogue
+## Level catalog
 
 The [content-file guide](#content-files-at-a-glance) below lists the shared definitions
-used alongside this catalogue.
+used alongside this catalog.
 
-`assets/levels.json` selects the starting level and assigns stable numeric level
+`assets/levels/levels.json` selects the starting level and assigns stable numeric level
 IDs to files:
 
 ```json
@@ -35,41 +35,45 @@ IDs to files:
 ```
 
 - `number` is a positive, unique level ID.
-- `file` is a path relative to the catalogue's directory.
-- `startLevel` names one of the catalogue entries.
-- An exit's `nextLevel` refers to a level ID in the catalogue.
+- `file` is a path relative to the catalog's directory.
+- `startLevel` names one of the catalog entries.
+- An exit's `nextLevel` refers to a level ID in the catalog.
 
-Each catalogue entry assigns a level ID to a level file. The referenced file contains that
+Each catalog entry assigns a level ID to a level file. The referenced file contains that
 level's map and object placements. Students can rename, add, or remove level files by
-updating the catalogue without changing C++.
+updating the catalog without changing C++.
 
 ## Content files at a glance
 
-Shared catalogues sit beside `levels.json` in `assets`:
+Level files and `levels.json` live in `assets/levels/`; shared definitions live in
+`assets/catalogs/`, Lua activities in `assets/scripts/`, and the runtime atlas in
+`assets/textures/`:
 
-| File                                                           | What to change here                                                  | Loader or composition code                                                                                                       |
-| -------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| [`levels.json`](../assets/levels.json)                         | Starting level and level ID-to-file mapping                          | [`level_catalog.cpp`](../app/content/level_catalog.cpp)                                                                          |
-| A level file, such as [`level_1.json`](../assets/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings       | [`level_data.cpp`](../app/content/level_data.cpp)                                                                                |
-| [`tiles.json`](../assets/tiles.json)                           | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp)                                                                            |
-| [`actors.json`](../assets/actors.json)                         | Player definition, actor capabilities, and tuning                    | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp)           |
-| [`animations.json`](../assets/animations.json)                 | Named animation sets, frame rectangles, timing, and looping          | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp)                                                                  |
-| [`machines.json`](../assets/machines.json)                     | Named data-driven NPC state machines                                 | [`machine_catalog.cpp`](../app/content/machine_catalog.cpp)                                                                      |
-| [`scripts/`](../assets/scripts)                                | Lua activities referenced by machine states                          | [`npc_script_catalog.cpp`](../app/content/npc_script_catalog.cpp), [`lua_npc_scripts.cpp`](../src/scripting/lua_npc_scripts.cpp) |
-| [`items.json`](../assets/items.json)                           | Inventory names, icons, stacking, and effect settings                | [`item_catalog.cpp`](../app/content/item_catalog.cpp)                                                                            |
-| [`pickups.json`](../assets/pickups.json)                       | World pickup quantities, bounds, and optional sprites                | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp)                                                                        |
-| [`exits.json`](../assets/exits.json)                           | Exit bounds and sprites                                              | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp)                                                                            |
+| File                                                                  | What to change here                                                  | Loader or composition code                                                                                                       |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| [`levels.json`](../assets/levels/levels.json)                         | Starting level and level ID-to-file mapping                          | [`level_catalog.cpp`](../app/content/level_catalog.cpp)                                                                          |
+| A level file, such as [`level_1.json`](../assets/levels/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings       | [`level_data.cpp`](../app/content/level_data.cpp)                                                                                |
+| [`tiles.json`](../assets/catalogs/tiles.json)                         | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp)                                                                            |
+| [`actors.json`](../assets/catalogs/actors.json)                       | Player definition, actor capabilities, and tuning                    | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp)           |
+| [`animations.json`](../assets/catalogs/animations.json)               | Named animation sets, frame rectangles, timing, and looping          | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp)                                                                  |
+| [`machines.json`](../assets/catalogs/machines.json)                   | Named data-driven NPC state machines                                 | [`machine_catalog.cpp`](../app/content/machine_catalog.cpp)                                                                      |
+| [`scripts/`](../assets/scripts)                                       | Lua activities referenced by machine states                          | [`npc_script_catalog.cpp`](../app/content/npc_script_catalog.cpp), [`lua_npc_scripts.cpp`](../src/scripting/lua_npc_scripts.cpp) |
+| [`items.json`](../assets/catalogs/items.json)                         | Inventory names, icons, stacking, and effect settings                | [`item_catalog.cpp`](../app/content/item_catalog.cpp)                                                                            |
+| [`pickups.json`](../assets/catalogs/pickups.json)                     | World pickup quantities, bounds, and optional sprites                | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp)                                                                        |
+| [`exits.json`](../assets/catalogs/exits.json)                         | Exit bounds and sprites                                              | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp)                                                                            |
 
 [`level_composition.cpp`](../app/game/level_composition.cpp) combines definitions and placements
-into runtime objects. Catalogues and JSON conventions belong to the application;
-the core receives C++ values and does not read these files. Shared JSON catalogues
-are required even when a level uses no pickups or NPCs; item and pickup catalogues
+into runtime objects. Catalogs and JSON conventions belong to the application;
+the core receives C++ values and does not read these files. Shared JSON catalogs
+are required even when a level uses no pickups or NPCs; item and pickup catalogs
 can contain empty definitions objects. Lua files are loaded only when a machine
 references them.
 
-`Game` owns a `GameCatalogs` value loaded once by
-[`loadGameCatalogs`](../app/content/game_catalogs.cpp). Tile, animation, actor, item, pickup, and exit
-definitions are reused across transitions and restarts. Each level file is loaded
+The application loads shared definitions with
+[`loadGameCatalogs`](../app/content/game_catalogs.cpp), then loads referenced Lua
+activities and passes both to `Game`.
+Tile, animation, actor, item, pickup, and exit definitions are reused across
+transitions and restarts. Each level file is loaded
 when entering that level; the game does not construct every world at startup.
 Restart the game application to reload shared definitions or Lua scripts after editing
 their files.
@@ -139,7 +143,7 @@ Object entries use the same settings as explicit placements: NPCs can specify a
 Patrol endpoints remain absolute positions, not offsets from the marker.
 `type` selects the object category: `player`, `actor`, `pickup`, or `exit`.
 For actors, exits, and named pickups, `definition` selects an entry in the corresponding
-catalogue. A tile legend needs only the definition name because its category is
+catalog. A tile legend needs only the definition name because its category is
 already established by `tileLegend`.
 Do not put `spawnCell` or `spawnFeet` in a legend entry: the marker supplies its position.
 
@@ -156,13 +160,13 @@ and legend settings are reported by their authored paths, such as `objectLegend.
 
 ## Tile definitions
 
-Shared definitions live in `assets/tiles.json`. `tileSize` is the side of one tile in
-world pixels, shared by every level that uses the catalogue; the game uses 16. Each
+Shared definitions live in `assets/catalogs/tiles.json`. `tileSize` is the side of one tile in
+world pixels, shared by every level that uses the catalog; the game uses 16. Each
 definition requires boolean `blocksMovement` and `blocksSight`. Nonempty tiles also need a
 `sprite` with its atlas `position: [x, y]` and no `size`: a tile always fills one cell, so
 its region is `tileSize` square. Other sprites in the same atlas carry their own world
 size. The `empty` definition must allow movement and sight and is not rendered. Unknown
-names and map symbols are rejected during loading. Fixture catalogues supply their own
+names and map symbols are rejected during loading. Fixture catalogs supply their own
 `tiles.json`.
 
 Changing `tileSize` changes the geometry, not the tuning: jump heights, speeds, and the
@@ -202,7 +206,7 @@ and do not imply that an object must stand on the ground.
 ## Actors
 
 An actor requires `definition` (a name in `actors.json`) and one spawn placement. Any
-actor definition in that catalogue can be placed; adding a new definition name does
+actor definition in that catalog can be placed; adding a new definition name does
 not require a parser branch. A patrol is optional:
 
 ```json
@@ -216,7 +220,7 @@ not require a parser branch. A patrol is optional:
 }
 ```
 
-Shared definitions live in `actors.json` beside the level catalogue:
+Shared definitions live in `assets/catalogs/actors.json`:
 
 ```json
 {
@@ -318,7 +322,7 @@ known feet before behavior runs; without sight or a new noise that position stay
 until the target is forgotten. Lua snapshots also expose `searches` and `stateElapsed`;
 they are not boolean machine `when` conditions.
 
-For an example, compare the [boar machine](../assets/machines.json) with its
+For an example, compare the [boar machine](../assets/catalogs/machines.json) with its
 [Lua activities](../assets/scripts/boar.lua). It combines the run and notice-distance
 facts to charge, then requests walking, ledge avoidance, and contact damage in Lua.
 Its two stunned-to-sleep transitions each hold for 1.5 seconds independently, so
@@ -330,7 +334,7 @@ or a hold that is negative, by the machine and transition it found it in.
 
 ## Animation sets
 
-Shared sets live in [`animations.json`](../assets/animations.json). Each set contains
+Shared sets live in [`animations.json`](../assets/catalogs/animations.json). Each set contains
 `idle`, `move`, `jump`, `fall`, `attack`, and `death` clips. For example, the `move` entry
 inside a set:
 
@@ -377,9 +381,9 @@ display `name`, `icon`, and positive `maximumStack`:
 ```
 
 The loader assigns numeric `ItemId` values internally; do not put IDs in JSON.
-`Game` loads the item catalogue once and reuses it across level transitions and
+The application loads the item catalog once; `Game` reuses it across level transitions and
 restarts, keeping carried inventory consistent. Generated IDs are not persistent asset
-identities: changing the catalogue can change them on the next launch. A future saved-game
+identities: changing the catalog can change them on the next launch. A future saved-game
 format should store symbolic names and resolve them when loading. The display `name`
 is a UI label and does not need to be unique.
 
@@ -472,9 +476,9 @@ Composition creates each AABB around its loaded feet position. Their sprites
 remain independent, just like actor sprites and bodies.
 
 The JSON dependency stays at the application content boundary.
-`level_catalog.cpp` validates the catalogue, and `level_data.cpp` parses a
+`level_catalog.cpp` validates the catalog, and `level_data.cpp` parses a
 level into plain `LevelData`, reports invalid fields with their content path, and
-retains actor, pickup, exit, and item references. The definition catalogues validate
+retains actor, pickup, exit, and item references. The definition catalogs validate
 definitions independently of placement; composition resolves names to runtime values. The
 composition step then creates the existing `TileMap`, `World`, actors, pickups, and
 exit. Existing construction and level validation remain authoritative.
@@ -482,13 +486,13 @@ exit. Existing construction and level validation remain authoritative.
 Parser tests use JSON strings and independent files under `tests/fixtures`, laid out
 like `assets/`.
 Transition tests use that fixture campaign, not the example game's layout or item values.
-Generic content checks load every entry in the example catalogue;
+Generic content checks load every entry in the example catalog;
 they do not assume particular filenames, a fixed level count, or specific NPCs.
 
 Runtime-only state is never loaded: actor IDs, velocities, current paths, attack timers,
 and NPC decisions are created fresh whenever a level starts. Texture IDs are supplied
 by the application at runtime. Animation frame regions come from `animations.json`. Projectile sprite regions
-are configured in the actor catalogue, not in level placements.
+are configured in the actor catalog, not in level placements.
 
 ## Naming in `app/content`
 
@@ -519,16 +523,16 @@ of those. A `json` function receives a value; a `read` function finds one by key
 | `optionalJsonMember`                                  | an object and a key                 | the member, or `nullptr` when the key is absent | The lookup every `readOptional...` and `requiredJsonMember` is built on. Parsers use those; only a new `readOptional...` calls this directly.                   |
 | `parseContentRoot`                                    | the file text                       | the JSON document                               | The single place a syntax error is reported with its line and column.                                                                                           |
 
-The catalogues and [`level_data.cpp`](../app/content/level_data.cpp) build on those with a
+The catalogs and [`level_data.cpp`](../app/content/level_data.cpp) build on those with a
 second set of verbs.
 
-| Verb          | Example                              | Meaning                                                                                                                                                                                                                                                                                                                                                                 |
-| ------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `parse...`    | `parseItemCatalog(text, sourceName)` | Text to typed data. Never opens a file.                                                                                                                                                                                                                                                                                                                                 |
-| `load...`     | `loadItemCatalog(path)`              | Reads the file, then calls the matching `parse...`. Every name that touches the filesystem begins with `load`, including `loadContentText`, the primitive the others build on.                                                                                                                                                                                          |
-| `validate...` | `validateItemCatalog(catalog)`       | Authoring rules applied to typed data.                                                                                                                                                                                                                                                                                                                                  |
-| `compose...`  | `composeActor(definition, ...)`      | Authoring data plus runtime context, such as a texture ID and a spawn position, to a runtime value. The family has no fixed parameter list: `composeItemStack(catalog, stack)` resolves an authoring name to an `ItemId` and takes neither. It continues into `app/game`, where `composeGameLevel` and `composePlayer` assemble a whole level from the same catalogues. |
-| a noun        | `itemDefinition(catalog, name)`      | A lookup. Returns the entry, or throws when the name is unknown. `animationSet` and `levelPath` read the same way.                                                                                                                                                                                                                                                      |
+| Verb          | Example                              | Meaning                                                                                                                                                                                                                                                                                                                                                               |
+| ------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parse...`    | `parseItemCatalog(text, sourceName)` | Text to typed data. Never opens a file.                                                                                                                                                                                                                                                                                                                               |
+| `load...`     | `loadItemCatalog(path)`              | Reads the file, then calls the matching `parse...`. Every name that touches the filesystem begins with `load`, including `loadContentText`, the primitive the others build on.                                                                                                                                                                                        |
+| `validate...` | `validateItemCatalog(catalog)`       | Authoring rules applied to typed data.                                                                                                                                                                                                                                                                                                                                |
+| `compose...`  | `composeActor(definition, ...)`      | Authoring data plus runtime context, such as a texture ID and a spawn position, to a runtime value. The family has no fixed parameter list: `composeItemStack(catalog, stack)` resolves an authoring name to an `ItemId` and takes neither. It continues into `app/game`, where `composeGameLevel` and `composePlayer` assemble a whole level from the same catalogs. |
+| a noun        | `itemDefinition(catalog, name)`      | A lookup. Returns the entry, or throws when the name is unknown. `animationSet` and `levelPath` read the same way.                                                                                                                                                                                                                                                    |
 
 `parse...` never opens a file, so every loader can be tested with a string literal instead of
 a fixture. `validate...` is separate from `parse...`, so the same rules apply whether content

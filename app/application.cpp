@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <optional>
+#include <utility>
 
 #include <glm/vec2.hpp>
 
@@ -11,7 +12,9 @@
 
 #include <imgui.h>
 
+#include "content/game_catalogs.hpp"
 #include "content/level_catalog.hpp"
+#include "content/npc_script_catalog.hpp"
 #include "debug/debug_tools.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
@@ -22,6 +25,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/render/render_scene.hpp"
+#include "simple_platformer/scripting/lua_npc_scripts.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/timing/stopwatch.hpp"
@@ -211,12 +215,18 @@ namespace simple_platformer
         const ImGuiSession imgui(window.handle());
 
         SpriteRenderer renderer;
-        const int atlas = renderer.loadTexture("assets/sprites.png");
+        const int atlas = renderer.loadTexture("assets/textures/sprites.png");
         const TextureView atlasTexture = renderer.textureView(atlas);
         FixedStep fixedStep;
+        LevelCatalog levelCatalog = loadLevelCatalog("assets/levels/levels.json");
+        GameCatalogs gameCatalogs = loadGameCatalogs("assets/catalogs");
+        LuaNpcScripts npcScripts;
+        loadNpcActivityScripts(npcScripts, gameCatalogs.machines, "assets/scripts");
         Game game(
             atlas,
-            loadLevelCatalog("assets/levels.json"),
+            std::move(levelCatalog),
+            std::move(gameCatalogs),
+            std::move(npcScripts),
             static_cast<float>(fixedStep.stepSeconds()));
         DebugTools debugTools;
         Stopwatch frameClock;

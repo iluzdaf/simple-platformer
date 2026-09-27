@@ -29,7 +29,7 @@ namespace simple_platformer
         TileCatalog result;
         result.tileSize = jsonInteger(
             requiredJsonMember(root, "tileSize", sourceName, "root"), sourceName, "tileSize");
-        // Collected on the way past because a tile may break into one defined further down.
+        // Resolve breaksInto after every tile has an ID, so forward references work.
         std::map<std::string, std::string> breaksIntoNames;
         const auto add = [&result, &breaksIntoNames, sourceName](
                              const std::string& name, const nlohmann::json& value)
@@ -102,7 +102,7 @@ namespace simple_platformer
         const std::map<char, std::string>& legend,
         const TileCatalog& catalog)
     {
-        // Callers can supply catalogues built directly in C++, without using the JSON loader.
+        // Callers can supply catalogs built directly in C++, without using the JSON loader.
         validateTileCatalog(catalog);
         validateTileLegend(legend, catalog);
         std::map<char, int> ids;

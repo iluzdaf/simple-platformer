@@ -91,12 +91,6 @@ namespace simple_platformer
         }
     }
 
-    GameLevel composeGameLevel(const LevelCatalog& catalog, int levelNumber, int textureId)
-    {
-        return composeGameLevel(
-            catalog, levelNumber, textureId, loadGameCatalogs(catalog.levelDirectory));
-    }
-
     GameLevel composeGameLevel(
         const LevelCatalog& catalog,
         int levelNumber,

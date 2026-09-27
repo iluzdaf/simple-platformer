@@ -12,26 +12,26 @@
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
 
-TEST_CASE("Tile catalogues reject unknown fields and identify their definitions", "[app][tiles]")
+TEST_CASE("Tile catalogs reject unknown fields and identify their definitions", "[app][tiles]")
 {
-    auto root = nlohmann::json::parse(R"({"tileSize":16,"tiles":{
+    auto tileJson = nlohmann::json::parse(R"({"tileSize":16,"tiles":{
         "empty":{"blocksMovement":false,"blocksSight":false},
         "wall":{"blocksMovement":true,"blocksSight":true,"sprite":{"position":[0,0]}}
     }})");
     SECTION("Definition typo")
     {
-        root["tiles"]["wall"]["blocksSighht"] = true;
+        tileJson["tiles"]["wall"]["blocksSighht"] = true;
     }
     SECTION("Sprite typo")
     {
-        root["tiles"]["wall"]["sprite"]["width"] = 16;
+        tileJson["tiles"]["wall"]["sprite"]["width"] = 16;
     }
     SECTION("Invalid vector")
     {
-        root["tiles"]["wall"]["sprite"]["position"] = {0};
+        tileJson["tiles"]["wall"]["sprite"]["position"] = {0};
     }
     REQUIRE_THROWS_WITH(
-        simple_platformer::parseTileCatalog(root.dump(), "tiles.json"),
+        simple_platformer::parseTileCatalog(tileJson.dump(), "tiles.json"),
         Catch::Matchers::ContainsSubstring("tiles.json: tiles.wall"));
 }
 
@@ -71,7 +71,7 @@ TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][
         std::invalid_argument);
 }
 
-TEST_CASE("Breakable tiles resolve breaksInto to a catalogue ID", "[app][tiles]")
+TEST_CASE("Breakable tiles resolve breaksInto to a catalog ID", "[app][tiles]")
 {
     // cracked is declared after glass refers to it, so resolution cannot be a single pass.
     const auto catalog = simple_platformer::parseTileCatalog(
@@ -91,11 +91,10 @@ TEST_CASE("Breakable tiles resolve breaksInto to a catalogue ID", "[app][tiles]"
 
     REQUIRE(glass.breaksIntoTileId == catalog.ids.at("cracked"));
     REQUIRE(cracked.breaksIntoTileId == catalog.ids.at("empty"));
-    // A tile that says nothing about breaking is unbreakable.
     REQUIRE_FALSE(stone.breaksIntoTileId.has_value());
 }
 
-TEST_CASE("Tile catalogues reject unusable breaksInto targets", "[app][tiles]")
+TEST_CASE("Tile catalogs reject unusable breaksInto targets", "[app][tiles]")
 {
     const auto parse = [](const std::string& breaksInto)
     {
@@ -140,7 +139,7 @@ TEST_CASE("Tile catalogs reject missing empty tiles and malformed definitions", 
         simple_platformer::loadTileCatalog("missing-tiles.json"), std::invalid_argument);
 }
 
-TEST_CASE("A tile catalogue declares its tile size and maps compose at it", "[app][tiles]")
+TEST_CASE("A tile catalog declares its tile size and maps compose at it", "[app][tiles]")
 {
     const auto catalog = simple_platformer::parseTileCatalog(
         R"({"tileSize":32,"tiles":{
@@ -157,7 +156,7 @@ TEST_CASE("A tile catalogue declares its tile size and maps compose at it", "[ap
     REQUIRE(map.definitionAt({1, 0}).sprite.size == glm::vec2{32.0F, 32.0F});
 }
 
-TEST_CASE("Tile catalogues require a positive tile size", "[app][tiles]")
+TEST_CASE("Tile catalogs require a positive tile size", "[app][tiles]")
 {
     REQUIRE_THROWS_WITH(
         simple_platformer::parseTileCatalog(

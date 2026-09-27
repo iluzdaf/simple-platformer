@@ -7,6 +7,7 @@
 
 #include <glm/vec2.hpp>
 
+#include "content/game_catalogs.hpp"
 #include "content/level_catalog.hpp"
 #include "debug/debug_overlay.hpp"
 #include "debug/navigation_debug.hpp"
@@ -69,8 +70,13 @@ TEST_CASE("Game debug data retains actor definition names", "[app][debug]")
     const auto levels = simple_platformer::parseLevelCatalog(
         R"({"startLevel":1,"levels":[{"number":1,"file":"actor_placement.json"}]})",
         "test catalog",
-        "tests/fixtures");
-    simple_platformer::Game game(0, levels, tests::FixedStepSeconds);
+        "tests/fixtures/levels");
+    simple_platformer::Game game(
+        0,
+        levels,
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs"),
+        simple_platformer::LuaNpcScripts{},
+        tests::FixedStepSeconds);
 
     const simple_platformer::DebugOverlay debug = game.debugOverlay(128.0F, std::nullopt, 0);
     const auto npc = std::find_if(

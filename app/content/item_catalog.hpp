@@ -17,7 +17,7 @@ namespace simple_platformer
 
     struct ItemCatalog
     {
-        // IDs are assigned when loading; reuse this catalogue for a game session.
+        // IDs are assigned when loading; reuse this catalog for a game session.
         std::map<std::string, ItemDefinition> definitions;
     };
 

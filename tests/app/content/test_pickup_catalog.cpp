@@ -10,8 +10,9 @@
 
 TEST_CASE("Pickup definitions compose bounds and optional world sprites", "[app][pickups]")
 {
-    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/items.json");
-    const auto catalog = simple_platformer::loadPickupCatalog("tests/fixtures/pickups.json", items);
+    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/catalogs/items.json");
+    const auto catalog =
+        simple_platformer::loadPickupCatalog("tests/fixtures/catalogs/pickups.json", items);
     const auto key = simple_platformer::composePickup(
         simple_platformer::pickupDefinition(catalog, "door_key"), items, 7, {40, 48});
     REQUIRE(key.stack.item == simple_platformer::itemDefinition(items, "key").id);
@@ -33,10 +34,10 @@ TEST_CASE("Pickup definitions compose bounds and optional world sprites", "[app]
 
 TEST_CASE("Pickup JSON validates every definition including unused entries", "[app][pickups][json]")
 {
-    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/items.json");
-    auto root = nlohmann::json::parse(
+    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/catalogs/items.json");
+    auto pickupJson = nlohmann::json::parse(
         R"({"pickups":{"unused":{"item":"key","quantity":1,"bodySize":[10,12]}}})");
-    auto& definition = root["pickups"]["unused"];
+    auto& definition = pickupJson["pickups"]["unused"];
     SECTION("Missing body size")
     {
         definition.erase("bodySize");
@@ -70,13 +71,13 @@ TEST_CASE("Pickup JSON validates every definition including unused entries", "[a
         definition["sprite"] = {{"position", {0, 0}}, {"size", {0, 8}}};
     }
     REQUIRE_THROWS_WITH(
-        simple_platformer::parsePickupCatalog(root.dump(), "pickups.json", items),
+        simple_platformer::parsePickupCatalog(pickupJson.dump(), "pickups.json", items),
         Catch::Matchers::ContainsSubstring("pickups.json: pickups.unused"));
 }
 
 TEST_CASE("Pickup definitions reject invalid C++ data without JSON", "[app][pickups][validation]")
 {
-    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/items.json");
+    const auto items = simple_platformer::loadItemCatalog("tests/fixtures/catalogs/items.json");
     simple_platformer::PickupDefinition definition;
     definition.stack = {"key", 1};
     definition.bodySize = {10.0F, 12.0F};
@@ -85,6 +86,6 @@ TEST_CASE("Pickup definitions reject invalid C++ data without JSON", "[app][pick
     REQUIRE_THROWS_AS(
         simple_platformer::validatePickupDefinition(definition, items), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::loadPickupCatalog("tests/fixtures/missing-pickups.json", items),
+        simple_platformer::loadPickupCatalog("tests/fixtures/catalogs/missing-pickups.json", items),
         std::invalid_argument);
 }

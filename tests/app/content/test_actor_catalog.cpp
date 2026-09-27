@@ -18,8 +18,9 @@
 TEST_CASE("Actor JSON accepts custom names and configures component choices", "[app][actors][json]")
 {
     const auto animations =
-        simple_platformer::loadAnimationCatalog("tests/fixtures/animations.json");
-    const auto machines = simple_platformer::loadMachineCatalog("tests/fixtures/machines.json");
+        simple_platformer::loadAnimationCatalog("tests/fixtures/catalogs/animations.json");
+    const auto machines =
+        simple_platformer::loadMachineCatalog("tests/fixtures/catalogs/machines.json");
     const auto catalog = simple_platformer::parseActorCatalog(
         R"({
         "player":"hero", "actors":{
@@ -61,50 +62,50 @@ TEST_CASE(
     "Actor JSON rejects malformed and invalid definitions including unused ones",
     "[app][actors][json]")
 {
-    auto root = nlohmann::json::parse(
+    auto actorJson = nlohmann::json::parse(
         R"({"player":"hero","actors":{"hero":{"bodySize":[12,20],"platformer":{},"health":3,"inventorySlots":2}}})");
     SECTION("Missing body size")
     {
-        root["actors"]["hero"].erase("bodySize");
+        actorJson["actors"]["hero"].erase("bodySize");
     }
     SECTION("Missing player reference")
     {
-        root["player"] = "missing";
+        actorJson["player"] = "missing";
     }
     SECTION("Unknown animation")
     {
-        root["actors"]["hero"]["animations"] = "missing";
+        actorJson["actors"]["hero"]["animations"] = "missing";
     }
     SECTION("Unused actor references an unknown animation")
     {
-        root["actors"]["unused"] = {{"flying", {{"speed", 25}}}, {"animations", "missing"}};
+        actorJson["actors"]["unused"] = {{"flying", {{"speed", 25}}}, {"animations", "missing"}};
     }
     SECTION("Fractional health")
     {
-        root["actors"]["hero"]["health"] = 1.5;
+        actorJson["actors"]["hero"]["health"] = 1.5;
     }
     SECTION("Boolean speed")
     {
-        root["actors"]["hero"]["platformer"]["maximumSpeed"] = true;
+        actorJson["actors"]["hero"]["platformer"]["maximumSpeed"] = true;
     }
     SECTION("Unknown field")
     {
-        root["actors"]["hero"]["heath"] = 3;
+        actorJson["actors"]["hero"]["heath"] = 3;
     }
     SECTION("Runtime state")
     {
-        root["actors"]["hero"]["brain"] = {};
+        actorJson["actors"]["hero"]["brain"] = {};
     }
     SECTION("Unknown tactic")
     {
-        root["actors"]["hero"]["senses"] = {};
-        root["actors"]["hero"]["tactic"] = "ambusher";
+        actorJson["actors"]["hero"]["senses"] = {};
+        actorJson["actors"]["hero"]["tactic"] = "ambusher";
     }
     SECTION("Unused definition")
     {
-        root["actors"]["unused"] = {{"flying", {{"speed", -1}}}};
+        actorJson["actors"]["unused"] = {{"flying", {{"speed", -1}}}};
     }
     REQUIRE_THROWS_WITH(
-        simple_platformer::parseActorCatalog(root.dump(), "actors.json", {}),
+        simple_platformer::parseActorCatalog(actorJson.dump(), "actors.json", {}),
         Catch::Matchers::ContainsSubstring("actors.json:"));
 }

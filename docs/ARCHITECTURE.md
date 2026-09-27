@@ -88,7 +88,7 @@ target rather than leaking through public headers.
 The application code is grouped by responsibility:
 
 - `app/game` coordinates the game session and composes playable levels;
-- `app/content` contains content definitions, JSON loaders, catalogues, and validators;
+- `app/content` contains content definitions, JSON loaders, catalogs, and validators;
 - `app/ui` contains player-facing HUD, inventory, and completion UI;
 - `app/debug` builds and presents optional debugging information;
 - `app/graphics` contains the game window and its OpenGL context, the ImGui session,
@@ -375,9 +375,9 @@ weapons do not. `updateProjectiles` takes a mutable map; every other system take
 
 Tests construct maps from ASCII strings with a helper in `tests/support` that supplies
 its own definitions and symbols, so the engine carries no fixture of its own. The example
-loads shared definitions from `tiles.json` beside
-`levels.json`. Each level's `tileLegend` maps its one-character map symbols to catalogue
-names; there is no default, so a level says what every symbol it uses means.
+loads shared tile definitions separately from level files. Each level's `tileLegend`
+maps one-character map symbols to catalog names; there is no default, so a level
+says what every symbol it uses means.
 The loader resolves names to runtime IDs, reserving zero for `empty`.
 Actors, pickups, spawns, and exits are separate level data, not special tile IDs.
 Object legend markers expand into these placements during loading; their terrain is empty.
@@ -743,7 +743,7 @@ different levels. `Game` replaces that value at a transition, carries over the p
 and resets the camera.
 Velocities, projectiles, NPC state, and old actor IDs do not cross the level boundary.
 The final exit shows completion text, and a restart creates a fresh copy of the
-catalogue's start level.
+catalog's start level.
 
 ### Data-driven level boundary
 
@@ -783,7 +783,7 @@ The engine keeps visual and physical dimensions separate:
 - `Body::bounds.size` is the collision rectangle in world pixels.
 
 A tile has only a `SpriteRegion` and no `Sprite::size`: it always fills one cell, so its
-region is the catalogue's `tileSize` square and `tiles.json` gives only where it starts.
+region is the catalog's `tileSize` square and `tiles.json` gives only where it starts.
 Every other sprite in the same atlas chooses its world size independently.
 
 Matching sizes are assigned explicitly; the engine does not assume a sprite and body
@@ -794,7 +794,7 @@ its smaller collider matches the creature in the middle of its frame.
 ### Animation
 
 Clips are authored in `animations.json`; [CONTENT.md](CONTENT.md#animation-sets) covers
-the format. The catalogue loads before actors and stays unchanged for the session, and
+the format. The catalog loads before actors and stays unchanged for the session, and
 composition creates a fresh animator for each actor. JSON defines clips, not selection
 rules.
 
@@ -947,18 +947,18 @@ by multiple actors; it may need new facts or built-in states.
 
 ### Choosing the layer
 
-| Change                                                                         | Primary location                |
-| ------------------------------------------------------------------------------ | ------------------------------- |
-| Input binding or mouse conversion                                              | `app/application.cpp`           |
-| Movement or collision rule                                                     | `src/movement` or `src/physics` |
-| NPC perception or decision                                                     | `src/npc`                       |
-| Generic search or movement-specific neighbours                                 | `src/navigation`                |
-| Damage, attacks, or projectiles                                                | `src/combat`                    |
-| Animation definitions                                                          | `assets/animations.json`        |
-| Content loading and validation                                                 | `app/content`                   |
-| Playable level composition and session flow                                    | `app/game`                      |
-| Actor, tile, item, pickup, and exit definitions; level geometry and placements | `assets`                        |
-| HUD or debugging presentation                                                  | `app/ui` or `app/debug`         |
+| Change                                                                         | Primary location                  |
+| ------------------------------------------------------------------------------ | --------------------------------- |
+| Input binding or mouse conversion                                              | `app/application.cpp`             |
+| Movement or collision rule                                                     | `src/movement` or `src/physics`   |
+| NPC perception or decision                                                     | `src/npc`                         |
+| Generic search or movement-specific neighbours                                 | `src/navigation`                  |
+| Damage, attacks, or projectiles                                                | `src/combat`                      |
+| Animation definitions                                                          | `assets/catalogs/animations.json` |
+| Content loading and validation                                                 | `app/content`                     |
+| Playable level composition and session flow                                    | `app/game`                        |
+| Actor, tile, item, pickup, and exit definitions; level geometry and placements | `assets`                          |
+| HUD or debugging presentation                                                  | `app/ui` or `app/debug`           |
 
 When a feature crosses layers, keep its rule in the simulation and pass plain state to
 presentation. Add the smallest test at the layer that owns the rule before adding an
@@ -969,7 +969,7 @@ end-to-end test.
 Validation has three boundaries:
 
 1. **JSON shape:** loaders check types, integer ranges, required fields, and reject unknown
-   fields to catch misspellings. This includes catalogues, level placements, and legend
+   fields to catch misspellings. This includes catalogs, level placements, and legend
    templates. `content_json` provides shared file-reading and shape-checking helpers.
    `content_diagnostics` builds the field paths and raises the errors, and carries no
    JSON dependency so the C++ validators can use it too.
@@ -979,7 +979,7 @@ Validation has three boundaries:
    same `json...` value checks and accept a source filename and field path.
 2. **Application content:** plain C++ validators check authoring rules.
    [`content_validation.cpp`](../app/content/content_validation.cpp) covers legends, map rows,
-   placement counts, quantities, and exit settings. Actor, item, pickup, and exit catalogue
+   placement counts, quantities, and exit settings. Actor, item, pickup, and exit catalog
    validators check their definitions, including unused entries. Composition resolves
    cross-file names and adds the originating field to reference errors.
 3. **Core invariants:** validators such as
@@ -1031,7 +1031,7 @@ For a new rule, start beside the code you changed:
 | ------------------------------------------ | -------------------------------------------- |
 | Content parsing or definition validation   | `tests/app/content/`                         |
 | Level parsing, validation, and diagnostics | `tests/app/content/test_level_data*.cpp`     |
-| Composing catalogue entries into levels    | `tests/app/game/test_level_*composition.cpp` |
+| Composing catalog entries into levels      | `tests/app/game/test_level_*composition.cpp` |
 | Carrying player state between levels       | `tests/app/game/test_level_transition.cpp`   |
 | Pickup collection and movement             | `tests/world/test_pickups.cpp`               |
 | Exit requirements and completion           | `tests/world/test_level_exit.cpp`            |

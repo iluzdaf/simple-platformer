@@ -25,7 +25,6 @@ namespace simple_platformer
             AnimationName type;
         };
 
-        // Every clip a set must supply, under the name the catalogue file uses for it.
         constexpr std::array<ClipEntry, 6> Clips = {
             {{"idle", AnimationName::Idle},
              {"move", AnimationName::Move},

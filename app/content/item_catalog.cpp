@@ -61,7 +61,7 @@ namespace simple_platformer
                 sourceName,
                 path);
             ItemDefinition item;
-            // JSON objects iterate by name. IDs are internal to this loaded catalogue.
+            // Assign deterministic session-local IDs in JSON key order; new names can shift them.
             item.id = static_cast<ItemId>(catalog.definitions.size() + 1);
             item.name = readText(value, "name", sourceName, path);
             item.icon = jsonSprite(

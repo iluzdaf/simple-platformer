@@ -58,7 +58,7 @@ namespace simple_platformer
         std::vector<std::string> mapRows;
         LevelPosition playerSpawn;
         std::vector<ActorPlacement> actors;
-        // Includes unused legend templates so catalogue references can all be checked.
+        // Includes unused legend templates so catalog references can all be checked.
         // Each key is a diagnostic JSON path; its value is the referenced definition name.
         std::map<std::string, std::string> actorReferences;
         std::map<std::string, std::string> pickupReferences;

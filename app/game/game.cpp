@@ -6,7 +6,6 @@
 #include "level_composition.hpp"
 #include "content/level_catalog.hpp"
 #include "content/game_catalogs.hpp"
-#include "content/npc_script_catalog.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -34,10 +33,20 @@
 
 namespace simple_platformer
 {
-    Game::Game(int textureId, LevelCatalog catalog, float stepSeconds)
-        : levelCatalog(std::move(catalog)),
-          catalogs(loadGameCatalogs(levelCatalog.levelDirectory)),
-          level(composeGameLevel(levelCatalog, levelCatalog.startLevel, textureId, catalogs)),
+    Game::Game(
+        int textureId,
+        LevelCatalog levelCatalog,
+        GameCatalogs gameCatalogs,
+        LuaNpcScripts npcScripts,
+        float stepSeconds)
+        : levelCatalog(std::move(levelCatalog)),
+          gameCatalogs(std::move(gameCatalogs)),
+          npcScripts(std::move(npcScripts)),
+          level(composeGameLevel(
+              this->levelCatalog,
+              this->levelCatalog.startLevel,
+              textureId,
+              this->gameCatalogs)),
           atlasTextureId(textureId),
           simulationStepSeconds(stepSeconds)
     {
@@ -45,14 +54,12 @@ namespace simple_platformer
         {
             throw std::invalid_argument("The game's simulation step must be finite and positive");
         }
-        loadNpcActivityScripts(
-            npcScripts, catalogs.machines, levelCatalog.levelDirectory / "scripts");
-        startLevel(composePlayer(catalogs, atlasTextureId));
+        startLevel(composePlayer(this->gameCatalogs, atlasTextureId));
     }
 
     void Game::loadLevel(int levelNumber)
     {
-        Actor nextPlayer = composePlayer(catalogs, atlasTextureId);
+        Actor nextPlayer = composePlayer(gameCatalogs, atlasTextureId);
         if (const Actor* previousPlayer = level.world.findActor(level.world.playerId()))
         {
             nextPlayer.health = previousPlayer->health;
@@ -62,8 +69,8 @@ namespace simple_platformer
         {
             npcScripts.forget(actor.id);
         }
-        // No pointers, projectiles, requests or NPC state survive replacement of the world.
-        level = composeGameLevel(levelCatalog, levelNumber, atlasTextureId, catalogs);
+        // Only player health and inventory carry over; the new world has fresh runtime state.
+        level = composeGameLevel(levelCatalog, levelNumber, atlasTextureId, gameCatalogs);
         startLevel(std::move(nextPlayer));
     }
 
@@ -71,7 +78,7 @@ namespace simple_platformer
     {
         placeFeetAt(player.body.bounds, level.playerSpawnFeet);
         const ActorId playerId = level.world.addActor(std::move(player));
-        level.actorDefinitionNames.emplace(playerId.value, catalogs.actors.player);
+        level.actorDefinitionNames.emplace(playerId.value, gameCatalogs.actors.player);
         level.world.setPlayer(playerId, level.playerSpawnFeet);
         validateLevelActors(level.map, level.world, level.number);
 
@@ -167,8 +174,8 @@ namespace simple_platformer
                 screenToWorld(currentCamera(), internalCursor.value_or(glm::vec2{0.0F, 0.0F}));
         }
         navigation.bodyIndex = navigationBodyIndex;
-        // Every NPC definition that walks names the body the cache would key it by.
-        for (const auto& [name, definition] : catalogs.actors.definitions)
+        // Label navigation cache bodies from definitions that can use ground NPC navigation.
+        for (const auto& [name, definition] : gameCatalogs.actors.definitions)
         {
             if (definition.platformer.has_value() && definition.senses.has_value())
             {
@@ -271,8 +278,9 @@ namespace simple_platformer
         {
             npcScripts.forget(actor.id);
         }
-        level = composeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId, catalogs);
-        startLevel(composePlayer(catalogs, atlasTextureId));
+        level =
+            composeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId, gameCatalogs);
+        startLevel(composePlayer(gameCatalogs, atlasTextureId));
     }
 
     int Game::levelNumber() const

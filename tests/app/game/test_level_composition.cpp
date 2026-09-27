@@ -17,48 +17,34 @@
 
 TEST_CASE("A catalog entry must reference an existing level file", "[app][content]")
 {
-    const auto catalog = simple_platformer::parseLevelCatalog(
+    const auto levelCatalog = simple_platformer::parseLevelCatalog(
         R"({
             "startLevel": 1,
             "levels": [{"number": 1, "file": "missing.json"}]
         })",
         "test catalog",
-        "tests/fixtures");
+        "tests/fixtures/levels");
+    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
 
-    REQUIRE_THROWS_AS(simple_platformer::composeGameLevel(catalog, 1, 0), std::invalid_argument);
-}
-
-TEST_CASE("Session composition does not reload shared catalogue files", "[app][content]")
-{
-    auto levels = simple_platformer::loadLevelCatalog("tests/fixtures/levels.json");
-    const auto catalogs = simple_platformer::loadGameCatalogs(levels.levelDirectory);
-    // Keep level files reachable, but give shared catalogue reads nowhere to succeed.
-    // Absolute paths here deliberately bypass the JSON loader's relative-path requirement.
-    for (auto& entry : levels.levels)
-    {
-        entry.relativeFile = std::filesystem::absolute(levels.levelDirectory / entry.relativeFile);
-    }
-    levels.levelDirectory = "tests/fixtures/no-shared-catalogues";
-    REQUIRE_NOTHROW(simple_platformer::composePlayer(catalogs, 0));
-    for (const auto& entry : levels.levels)
-    {
-        REQUIRE_NOTHROW(simple_platformer::composeGameLevel(levels, entry.number, 0, catalogs));
-    }
+    REQUIRE_THROWS_AS(
+        simple_platformer::composeGameLevel(levelCatalog, 1, 0, gameCatalogs),
+        std::invalid_argument);
 }
 
 TEST_CASE("A level's cells become the feet of those cells on its map", "[app][content]")
 {
-    const auto catalog =
-        simple_platformer::loadLevelCatalog(std::filesystem::path("tests/fixtures/levels.json"));
-    const auto content = simple_platformer::composeGameLevel(catalog, 10, 0);
-    const int tileSize = content.map.tileSize();
+    const auto levelCatalog = simple_platformer::loadLevelCatalog(
+        std::filesystem::path("tests/fixtures/levels/levels.json"));
+    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameLevel = simple_platformer::composeGameLevel(levelCatalog, 10, 0, gameCatalogs);
+    const int tileSize = gameLevel.map.tileSize();
 
-    REQUIRE(content.playerSpawnFeet == simple_platformer::feetInCell(tileSize, {1, 2}));
-    REQUIRE(content.world.pickups().size() == 1);
+    REQUIRE(gameLevel.playerSpawnFeet == simple_platformer::feetInCell(tileSize, {1, 2}));
+    REQUIRE(gameLevel.world.pickups().size() == 1);
     REQUIRE(
-        simple_platformer::feetOf(content.world.pickups().front().body.bounds) ==
+        simple_platformer::feetOf(gameLevel.world.pickups().front().body.bounds) ==
         simple_platformer::feetInCell(tileSize, {2, 2}));
-    const auto& levelExit = content.world.exit();
+    const auto& levelExit = gameLevel.world.exit();
     if (!levelExit.has_value())
     {
         throw std::logic_error("The opening level must have an exit");
@@ -68,27 +54,29 @@ TEST_CASE("A level's cells become the feet of those cells on its map", "[app][co
         simple_platformer::feetInCell(tileSize, {5, 2}));
 }
 
-TEST_CASE("A level composes an actor from its catalogue definition", "[app][actors]")
+TEST_CASE("A level composes an actor from its catalog definition", "[app][actors]")
 {
-    const auto levels = simple_platformer::parseLevelCatalog(
+    const auto levelCatalog = simple_platformer::parseLevelCatalog(
         R"({"startLevel":1,"levels":[{"number":1,"file":"actor_placement.json"}]})",
         "fixture",
-        "tests/fixtures");
-    auto level = simple_platformer::composeGameLevel(levels, 1, 0);
-    REQUIRE(level.world.actors().size() == 1);
-    auto& actor = level.world.actors().front();
+        "tests/fixtures/levels");
+    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    auto gameLevel = simple_platformer::composeGameLevel(levelCatalog, 1, 0, gameCatalogs);
+    REQUIRE(gameLevel.world.actors().size() == 1);
+    auto& actor = gameLevel.world.actors().front();
     REQUIRE(tests::platformerMovement(actor).config.maximumSpeed == 23);
     REQUIRE(simple_platformer::feetOf(actor.body.bounds).x == 56);
 }
 
 TEST_CASE("Level composition reports unknown actor definitions", "[app][actors]")
 {
-    const auto invalid = simple_platformer::parseLevelCatalog(
+    const auto invalidLevelCatalog = simple_platformer::parseLevelCatalog(
         R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_actor.json"}]})",
         "fixture",
-        "tests/fixtures");
+        "tests/fixtures/levels");
+    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
     REQUIRE_THROWS_WITH(
-        simple_platformer::composeGameLevel(invalid, 1, 0),
+        simple_platformer::composeGameLevel(invalidLevelCatalog, 1, 0, gameCatalogs),
         Catch::Matchers::ContainsSubstring(
             "objectLegend.Z.definition: unknown actor definition 'missing'"));
 }

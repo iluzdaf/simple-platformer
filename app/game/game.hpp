@@ -29,9 +29,14 @@ namespace simple_platformer
     class Game
     {
     public:
-        // The step is the one the game will be simulated with; a level's navigation is
-        // prepared for it when the level starts.
-        Game(int textureId, LevelCatalog catalog, float simulationStepSeconds);
+        // Catalogs and scripts arrive loaded. Navigation is prepared for the caller's
+        // fixed simulation step when each level starts.
+        Game(
+            int textureId,
+            LevelCatalog levelCatalog,
+            GameCatalogs gameCatalogs,
+            LuaNpcScripts npcScripts,
+            float simulationStepSeconds);
 
         // With a profile, the simulation charges each of its phases to it.
         void update(
@@ -74,8 +79,8 @@ namespace simple_platformer
         Camera currentCamera() const;
 
         LevelCatalog levelCatalog;
-        // Loaded once: definitions stay consistent across transitions and restarts.
-        GameCatalogs catalogs;
+        // Reuse the same definitions across transitions and restarts.
+        GameCatalogs gameCatalogs;
         LuaNpcScripts npcScripts;
         GameLevel level;
         std::optional<CameraController> cameraController;

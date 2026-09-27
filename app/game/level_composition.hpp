@@ -26,10 +26,7 @@ namespace simple_platformer
         std::unordered_map<std::uint32_t, std::string> actorDefinitionNames;
     };
 
-    // Neither overload inserts the player; Game::startLevel places and adds it.
-    // Standalone level construction loads its own shared catalogues.
-    GameLevel composeGameLevel(const LevelCatalog& catalog, int levelNumber, int textureId);
-    // Reuse the session's definitions; only the requested level file is read here.
+    // Game::startLevel inserts the player; only the requested level file is read here.
     GameLevel composeGameLevel(
         const LevelCatalog& catalog,
         int levelNumber,

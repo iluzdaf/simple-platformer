@@ -13,13 +13,14 @@
 
 TEST_CASE("Animation JSON preserves frame order timing and looping", "[app][animations]")
 {
-    auto root =
-        nlohmann::json::parse(simple_platformer::loadContentText("tests/fixtures/animations.json"));
-    auto& move = root["animations"]["test_actor"]["move"];
+    auto animationJson = nlohmann::json::parse(
+        simple_platformer::loadContentText("tests/fixtures/catalogs/animations.json"));
+    auto& move = animationJson["animations"]["test_actor"]["move"];
     move["frames"].push_back({{"position", {8, 0}}, {"size", {8, 12}}});
     move["frames"].push_back({{"position", {0, 0}}, {"size", {8, 12}}});
     move["frameDuration"] = 0.25;
-    const auto catalog = simple_platformer::parseAnimationCatalog(root.dump(), "test animations");
+    const auto catalog =
+        simple_platformer::parseAnimationCatalog(animationJson.dump(), "test animations");
     const auto& set = simple_platformer::animationSet(catalog, "test_actor");
     const auto& clip = simple_platformer::clipFor(set, simple_platformer::AnimationName::Move);
     REQUIRE(clip.frames.size() == 3);
@@ -30,11 +31,11 @@ TEST_CASE("Animation JSON preserves frame order timing and looping", "[app][anim
     REQUIRE_FALSE(simple_platformer::clipFor(set, simple_platformer::AnimationName::Death).looping);
 }
 
-TEST_CASE("Animation catalogues reject invalid content with source context", "[app][animations]")
+TEST_CASE("Animation catalogs reject invalid content with source context", "[app][animations]")
 {
-    auto root =
-        nlohmann::json::parse(simple_platformer::loadContentText("tests/fixtures/animations.json"));
-    auto& set = root["animations"]["test_actor"];
+    auto animationJson = nlohmann::json::parse(
+        simple_platformer::loadContentText("tests/fixtures/catalogs/animations.json"));
+    auto& set = animationJson["animations"]["test_actor"];
     SECTION("Missing clip")
     {
         set.erase("death");
@@ -80,13 +81,14 @@ TEST_CASE("Animation catalogues reject invalid content with source context", "[a
         set["idle"]["elapsed"] = 0;
     }
     REQUIRE_THROWS_WITH(
-        simple_platformer::parseAnimationCatalog(root.dump(), "clips.json"),
+        simple_platformer::parseAnimationCatalog(animationJson.dump(), "clips.json"),
         Catch::Matchers::ContainsSubstring("clips.json: animations.test_actor"));
 }
 
 TEST_CASE("Animation validation also accepts C++ definitions", "[app][animations]")
 {
-    auto catalog = simple_platformer::loadAnimationCatalog("tests/fixtures/animations.json");
+    auto catalog =
+        simple_platformer::loadAnimationCatalog("tests/fixtures/catalogs/animations.json");
     SECTION("Nonfinite timing")
     {
         catalog.at("test_actor").clips.front().frameDuration =
@@ -107,7 +109,7 @@ TEST_CASE("Animation validation also accepts C++ definitions", "[app][animations
 TEST_CASE("Animation loading reports missing files and unknown sets", "[app][animations]")
 {
     REQUIRE_THROWS_AS(
-        simple_platformer::loadAnimationCatalog("tests/fixtures/missing-animations.json"),
+        simple_platformer::loadAnimationCatalog("tests/fixtures/catalogs/missing-animations.json"),
         std::invalid_argument);
     REQUIRE_THROWS_WITH(
         simple_platformer::parseAnimationCatalog("{", "broken.json"),
@@ -119,20 +121,20 @@ TEST_CASE("Animation loading reports missing files and unknown sets", "[app][ani
 
 TEST_CASE("Animation domain diagnostics identify the clip and frame", "[app][animations]")
 {
-    auto root =
-        nlohmann::json::parse(simple_platformer::loadContentText("tests/fixtures/animations.json"));
+    auto animationJson = nlohmann::json::parse(
+        simple_platformer::loadContentText("tests/fixtures/catalogs/animations.json"));
     SECTION("Duration")
     {
-        root["animations"]["test_actor"]["move"]["frameDuration"] = 0;
+        animationJson["animations"]["test_actor"]["move"]["frameDuration"] = 0;
         REQUIRE_THROWS_WITH(
-            simple_platformer::parseAnimationCatalog(root.dump(), "clips.json"),
+            simple_platformer::parseAnimationCatalog(animationJson.dump(), "clips.json"),
             Catch::Matchers::ContainsSubstring("animations.test_actor: move.frameDuration:"));
     }
     SECTION("Rectangle")
     {
-        root["animations"]["test_actor"]["move"]["frames"][0]["size"] = {0, 12};
+        animationJson["animations"]["test_actor"]["move"]["frames"][0]["size"] = {0, 12};
         REQUIRE_THROWS_WITH(
-            simple_platformer::parseAnimationCatalog(root.dump(), "clips.json"),
+            simple_platformer::parseAnimationCatalog(animationJson.dump(), "clips.json"),
             Catch::Matchers::ContainsSubstring("animations.test_actor: move.frames[0]:"));
     }
 }
@@ -140,7 +142,7 @@ TEST_CASE("Animation domain diagnostics identify the clip and frame", "[app][ani
 TEST_CASE("Actors have independent playback of shared animation definitions", "[app][animations]")
 {
     const auto animations =
-        simple_platformer::loadAnimationCatalog("tests/fixtures/animations.json");
+        simple_platformer::loadAnimationCatalog("tests/fixtures/catalogs/animations.json");
     const auto actors = simple_platformer::parseActorCatalog(
         R"({"player":"hero","actors":{"hero":{"bodySize":[12,20],"platformer":{},"health":3,"inventorySlots":2,"animations":"test_actor"}}})",
         "actors.json",

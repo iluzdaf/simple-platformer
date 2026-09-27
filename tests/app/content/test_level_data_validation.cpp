@@ -208,7 +208,8 @@ TEST_CASE("Inline pickup placements require a body size", "[app][content][json]"
 TEST_CASE("Missing level JSON is rejected at the file boundary", "[app][content][json]")
 {
     REQUIRE_THROWS_AS(
-        simple_platformer::loadLevelData(std::filesystem::path("assets/does_not_exist.json")),
+        simple_platformer::loadLevelData(
+            std::filesystem::path("assets/levels/does_not_exist.json")),
         std::invalid_argument);
 }
 

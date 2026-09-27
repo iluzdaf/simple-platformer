@@ -23,5 +23,5 @@ namespace simple_platformer
         ExitCatalog exits;
     };
 
-    GameCatalogs loadGameCatalogs(const std::filesystem::path& levelDirectory);
+    GameCatalogs loadGameCatalogs(const std::filesystem::path& catalogDirectory);
 }

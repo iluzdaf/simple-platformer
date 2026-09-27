@@ -19,5 +19,5 @@ Each dependency retains its upstream licence or licensing notice in its source t
 The core uses GLM for vector mathematics, and the tests use Catch2.
 The application uses GLFW for its window and input, GLAD to load OpenGL functions,
 stb_image for texture loading, ImGui for UI, and JSON for Modern C++ to read level
-files and content catalogues. Lua and sol2 provide the protected NPC activity scripting
+files and content catalogs. Lua and sol2 provide the protected NPC activity scripting
 boundary. JSON parsing stays in `app/game`, outside the core.

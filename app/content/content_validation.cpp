@@ -147,7 +147,7 @@ namespace simple_platformer
                 message += side;
                 message += " by ";
                 message += side;
-                message += " atlas pixels, the catalogue's tileSize";
+                message += " atlas pixels, the catalog's tileSize";
                 throw std::invalid_argument(message);
             }
             const auto& breaksInto =
@@ -162,7 +162,7 @@ namespace simple_platformer
         }
         if (usedIds.size() != catalog.definitions.size())
         {
-            throw std::invalid_argument("every tile definition must have a catalogue name");
+            throw std::invalid_argument("every tile definition must have a catalog name");
         }
     }
 

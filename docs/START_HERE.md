@@ -82,7 +82,7 @@ A practical route through the implementation is:
    [`platformer_movement.cpp`](../src/movement/platformer_movement.cpp), and
    [`collision.cpp`](../src/physics/collision.cpp).
 2. Tune speed, acceleration, braking, gravity, and jump configuration in
-   [`actors.json`](../assets/actors.json), then observe
+   [`actors.json`](../assets/catalogs/actors.json), then observe
    how those values change the feel of the example game.
 3. Read the tests for the existing variable-height jump, coyote-time, and jump-buffer
    rules before changing them.
@@ -112,10 +112,10 @@ senses and memory
 
 Choose the smallest behaviour route that meets the requirement:
 
-- **Existing behaviour:** Configure an actor in [`actors.json`](../assets/actors.json)
+- **Existing behaviour:** Configure an actor in [`actors.json`](../assets/catalogs/actors.json)
   when available states and tactics already fit.
 - **New transitions or shared behaviour:** Define a machine using existing facts and
-  activities in [`machines.json`](../assets/machines.json), or add a reusable C++ state
+  activities in [`machines.json`](../assets/catalogs/machines.json), or add a reusable C++ state
   or tactic.
 - **Scripted policy and engine extension:** Run a Lua activity from a machine when
   existing activities cannot express the policy. Add C++ facts or mechanics only when
@@ -130,11 +130,11 @@ A practical route through the implementation is:
    [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp), and the state branches in
    [`npc_system.cpp`](../src/npc/npc_system.cpp).
 2. Change `noticeDistance`, `standoffDistance`, `targetMemoryDuration` and
-   `searchDuration` in an actor definition's `senses` settings in [`actors.json`](../assets/actors.json), using the
+   `searchDuration` in an actor definition's `senses` settings in [`actors.json`](../assets/catalogs/actors.json), using the
    debug overlay to observe visible targets, remembered positions, patrol points,
    destinations, and paths.
 3. Compare the built-in decision path with a machine in
-   [`machines.json`](../assets/machines.json), then choose a route from the table above.
+   [`machines.json`](../assets/catalogs/machines.json), then choose a route from the table above.
    Test any new engine rule separately from movement.
 4. Read generic lowest-cost search and flying navigation before studying simulated
    platformer jumps.
@@ -165,12 +165,12 @@ and the engine: it passes input into the simulation, updates presentation state,
 levels, and builds a scene for rendering. What it and `GameLevel` own is listed under
 [Application folders](ARCHITECTURE.md#application-folders).
 
-Then open [`assets/levels.json`](../assets/levels.json), which selects the starting
+Then open [`assets/levels/levels.json`](../assets/levels/levels.json), which selects the starting
 level and maps IDs to files. Follow its first entry into
-[`level_1.json`](../assets/level_1.json), then read
+[`level_1.json`](../assets/levels/level_1.json), then read
 [`level_data.cpp`](../app/content/level_data.cpp) for parsing and
 [`level_composition.cpp`](../app/game/level_composition.cpp) for building a `GameLevel`.
-Use [CONTENT.md](CONTENT.md) when you need the JSON fields, shared catalogues, or Lua
+Use [CONTENT.md](CONTENT.md) when you need the JSON fields, shared catalogs, or Lua
 script references.
 
 ### 3. Learn the core data model
@@ -238,7 +238,7 @@ intentions instead of reading a keyboard. Follow this route:
 6. [`lifecycle.cpp`](../src/actor/lifecycle.cpp)
 
 The enum-and-switch path teaches the built-in decision flow. For a machine-controlled
-NPC, follow [`machines.json`](../assets/machines.json) into
+NPC, follow [`machines.json`](../assets/catalogs/machines.json) into
 [`npc_state_machine.cpp`](../src/npc/npc_state_machine.cpp). A Lua state then calls an
 activity under [`assets/scripts`](../assets/scripts) through
 [`lua_npc_scripts.cpp`](../src/scripting/lua_npc_scripts.cpp). In every path, combat
@@ -286,7 +286,7 @@ It is safe to return later to:
 - OpenGL setup and shader details in `app/graphics`;
 - ImGui layout code in `app/ui` and `app/debug`;
 - simulated platformer navigation;
-- atlas coordinates and clip timings in `assets/animations.json`;
+- atlas coordinates and clip timings in `assets/catalogs/animations.json`;
 - CI, formatting, and static-analysis targets.
 
 Once the route above makes sense, use [ARCHITECTURE.md](ARCHITECTURE.md) as the

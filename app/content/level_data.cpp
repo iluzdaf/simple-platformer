@@ -222,8 +222,8 @@ namespace simple_platformer
             return result;
         }
 
-        // Catalogue references found while validating the legend templates. Collecting them
-        // here keeps the parse below from reading the same definitions out of JSON again.
+        // Keep references from every template, including unused symbols, for composition
+        // to validate against the catalogs with their original JSON paths.
         struct LegendReferences
         {
             std::map<std::string, std::string> actors;
@@ -232,9 +232,7 @@ namespace simple_platformer
             std::map<std::string, std::string> items;
         };
 
-        // Parses every legend template, including unused ones, so authoring mistakes in an
-        // unplaced template are still reported. Records the catalogue names each one refers
-        // to in references. The map cell is supplied later, when the symbols are scanned.
+        // Validate templates before placing symbols; their map cells are supplied later.
         void checkLegendTemplates(
             const Json& legend,
             std::string_view sourceName,
@@ -363,8 +361,6 @@ namespace simple_platformer
             }
         }
 
-        // Expand the authoring shorthand into explicit placements, so both
-        // ways of placing objects use the same parsing and validation below.
         Json expandObjectLegend(
             Json root,
             std::string_view sourceName,
@@ -498,7 +494,7 @@ namespace simple_platformer
             const Json expanded = expandObjectLegend(std::move(root), sourceName, references);
             return jsonLevelData(expanded, sourceName, references);
         }
-        // Raw member access during expansion can still raise a nlohmann error of its own.
+        // Give library errors from expansion the same source context as parser errors.
         catch (const Json::exception& exception)
         {
             failJson(sourceName, {}, std::string("invalid JSON: ") + exception.what());

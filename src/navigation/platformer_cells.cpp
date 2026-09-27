@@ -122,7 +122,7 @@ namespace simple_platformer
         double closestDistanceSquared = 0.0;
         const auto consider = [&](GridPosition candidate)
         {
-            if (!map.contains(candidate) || !canStandAt(map, candidate, bodySize))
+            if (!canStandAt(map, candidate, bodySize))
             {
                 return;
             }

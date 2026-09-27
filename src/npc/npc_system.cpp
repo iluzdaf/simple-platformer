@@ -386,8 +386,7 @@ namespace simple_platformer
                 away = {side, 0.0F};
                 const GridPosition ahead = cellAtFeet(
                     update.map.tileSize(), feet + glm::vec2{side * actor.body.bounds.size.x, 0.0F});
-                if (!update.map.contains(ahead) ||
-                    !canStandAt(update.map, ahead, actor.body.bounds.size))
+                if (!canStandAt(update.map, ahead, actor.body.bounds.size))
                 {
                     away = {0.0F, 0.0F};
                 }

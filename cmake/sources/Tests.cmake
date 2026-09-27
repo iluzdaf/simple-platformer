@@ -36,6 +36,9 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/app/test_level_composition.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_inventory_layout.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_level_data.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/test_level_data_diagnostics.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/test_level_data_object_validation.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/test_level_data_validation.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_level_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_tile_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/test_content_validation.cpp

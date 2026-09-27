@@ -1027,18 +1027,19 @@ without discovering a large shared fixture full of unrelated defaults.
 
 For a new rule, start beside the code you changed:
 
-| Change                                   | Test starting point                                                                  |
-| ---------------------------------------- | ------------------------------------------------------------------------------------ |
-| Content parsing or definition validation | `tests/app/test_*_catalog.cpp`, `test_level_data.cpp`, `test_content_validation.cpp` |
-| Composing catalogue entries into levels  | `tests/app/test_level_composition.cpp`                                               |
-| Carrying player state between levels     | `tests/app/test_level_transition.cpp`                                                |
-| Pickup collection and movement           | `tests/world/test_pickups.cpp`                                                       |
-| Exit requirements and completion         | `tests/world/test_level_exit.cpp`                                                    |
-| Item use and inventory persistence       | `tests/world/test_world_inventory.cpp`                                               |
-| Level-object draw commands               | `tests/render/test_level_object_render.cpp`                                          |
-| Behaviour involving multiple systems     | `tests/world/test_world_simulation.cpp`                                              |
-| NPC behaviour across a simulation step   | `tests/world/test_npc_world_simulation.cpp`                                          |
-| Visual state converted to draw commands  | `tests/render/test_render_scene.cpp`                                                 |
+| Change                                     | Test starting point                                           |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| Content parsing or definition validation   | `tests/app/test_*_catalog.cpp`, `test_content_validation.cpp` |
+| Level parsing, validation, and diagnostics | `tests/app/test_level_data*.cpp`                              |
+| Composing catalogue entries into levels    | `tests/app/test_level_composition.cpp`                        |
+| Carrying player state between levels       | `tests/app/test_level_transition.cpp`                         |
+| Pickup collection and movement             | `tests/world/test_pickups.cpp`                                |
+| Exit requirements and completion           | `tests/world/test_level_exit.cpp`                             |
+| Item use and inventory persistence         | `tests/world/test_world_inventory.cpp`                        |
+| Level-object draw commands                 | `tests/render/test_level_object_render.cpp`                   |
+| Behaviour involving multiple systems       | `tests/world/test_world_simulation.cpp`                       |
+| NPC behaviour across a simulation step     | `tests/world/test_npc_world_simulation.cpp`                   |
+| Visual state converted to draw commands    | `tests/render/test_render_scene.cpp`                          |
 
 Use small independent data in tests rather than asserting the example campaign's
 enemy count, item values, or inventory capacity. Its own checks should test validity,

@@ -26,9 +26,7 @@ class TidyTargetSelectionTests(unittest.TestCase):
         )
 
     def test_removed_source_selects_nothing(self):
-        self.assertEqual(
-            selected_paths(self.paths, [Path("src/removed.cpp")]), []
-        )
+        self.assertEqual(selected_paths(self.paths, [Path("src/removed.cpp")]), [])
 
     def test_removed_source_and_manifest_select_only_changed_code(self):
         self.assertEqual(

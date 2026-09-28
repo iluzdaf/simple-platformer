@@ -16,6 +16,7 @@
 #include "content/level_catalog.hpp"
 #include "content/npc_script_catalog.hpp"
 #include "debug/debug_tools.hpp"
+#include "debug/frame_profile_ui.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/game_window.hpp"
@@ -355,7 +356,7 @@ namespace simple_platformer
 
             if (context.showDebugOverlay)
             {
-                drawDebugTools(
+                const FramePlotRequest plotRequest = drawDebugTools(
                     debugTools,
                     profile,
                     game.debugOverlay(
@@ -364,7 +365,18 @@ namespace simple_platformer
                         context.debugBodyIndex,
                         debugTools.machineActor),
                     windowViewport,
-                    context.debugToolVisibility);
+                    context.debugToolVisibility,
+                    paused);
+                if (plotRequest != FramePlotRequest::None)
+                {
+                    const bool requestedPause = plotRequest == FramePlotRequest::Pause;
+                    if (context.simulationPaused != requestedPause)
+                    {
+                        context.simulationPaused = requestedPause;
+                        context.playInterrupted = true;
+                        context.input = {};
+                    }
+                }
             }
             imgui.render();
             window.present();

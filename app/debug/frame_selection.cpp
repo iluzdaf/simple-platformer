@@ -46,6 +46,22 @@ namespace simple_platformer
         return std::min(static_cast<std::size_t>(std::lround(x)), count - 1);
     }
 
+    void recordFrameForPlot(
+        FrameHistory& history,
+        FrameSelection& selection,
+        const FrameProfile& frame,
+        bool paused)
+    {
+        if (!paused)
+        {
+            selection.clear();
+        }
+        if (!paused || frame.simulationTicks > 0)
+        {
+            history.push(frame);
+        }
+    }
+
     void FrameSelection::select(const FrameHistory& live, std::size_t index)
     {
         const FrameHistory& history = frozen.has_value() ? *frozen : live;

@@ -133,23 +133,25 @@ one key; the third exit completes the example campaign.
 F1 opens the debug tools with only the frame plot visible. It shows the last two seconds
 against the 60 Hz budget, with simulation costs stacked by category. Number keys add
 independent plot details, world and camera drawing, text, and state-machine layers.
+Pausing holds the plot history; a single step records one more frame. Clicking the plot
+pauses the game. Click the selected frame again or press P to resume live frames.
 
-| Action                                          | Controls                              |
-| ----------------------------------------------- | ------------------------------------- |
-| Show or hide the frame details and legend       | 1                                     |
-| Show or hide the world-space and camera overlay | 2                                     |
-| Show or hide actor text                         | 3                                     |
-| Show or hide navigation-cache totals            | 4                                     |
-| Show or hide the state-machine window           | 5                                     |
-| Lock or unlock the machine window to an NPC     | Click the NPC                         |
-| Inspect a frame or scrub along the frames       | Press or drag on the plot             |
-| Return to the live plot                         | Click the picked frame again          |
-| Show or hide a plotted series                   | Click it in the plot's legend         |
-| Show the next navigation-cache profile          | N                                     |
-| Break a labelled tile under the cursor          | B                                     |
-| Move a state in the machine window              | Drag it                               |
-| Pan or zoom the machine window                  | Drag with the right button, or scroll |
-| Fit the machine window to its graph             | F, with the cursor over it            |
+| Action                                            | Controls                              |
+| ------------------------------------------------- | ------------------------------------- |
+| Show or hide the frame details and legend         | 1                                     |
+| Show or hide the world-space and camera overlay   | 2                                     |
+| Show or hide actor text                           | 3                                     |
+| Show or hide navigation-cache totals              | 4                                     |
+| Show or hide the state-machine window             | 5                                     |
+| Lock or unlock the machine window to an NPC       | Click the NPC                         |
+| Pause and inspect a frame, or scrub across frames | Press or drag on the plot             |
+| Deselect and resume                               | Click the picked frame again          |
+| Show or hide a plotted series                     | Click it in the plot's legend         |
+| Show the next navigation-cache profile            | N                                     |
+| Break a labelled tile under the cursor            | B                                     |
+| Move a state in the machine window                | Drag it                               |
+| Pan or zoom the machine window                    | Drag with the right button, or scroll |
+| Fit the machine window to its graph               | F, with the cursor over it            |
 
 Timings are only meaningful from a release build.
 

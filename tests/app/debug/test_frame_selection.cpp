@@ -15,6 +15,7 @@ namespace
     using simple_platformer::frameNearestPlotFraction;
     using simple_platformer::FrameProfile;
     using simple_platformer::FrameSelection;
+    using simple_platformer::recordFrameForPlot;
 
     FrameProfile frameTaking(float seconds)
     {
@@ -102,4 +103,28 @@ TEST_CASE("Selecting a frame that was not plotted is rejected", "[debug][profile
     selection.select(live, 0);
     REQUIRE_THROWS_AS(selection.select(live, 3), std::out_of_range);
     REQUIRE(selection.selectedIndex() == 0);
+}
+
+TEST_CASE("Pausing holds the plot history until a step or resume", "[debug][profile]")
+{
+    FrameHistory history(4);
+    FrameSelection selection;
+    recordFrameForPlot(history, selection, frameTaking(0.010F), false);
+    selection.select(history, 0);
+
+    recordFrameForPlot(history, selection, frameTaking(0.020F), true);
+    REQUIRE(history.size() == 1);
+    REQUIRE(selection.selectedIndex() == 0);
+
+    FrameProfile stepped = frameTaking(0.030F);
+    stepped.simulationTicks = 1;
+    recordFrameForPlot(history, selection, stepped, true);
+    REQUIRE(history.size() == 2);
+    REQUIRE(selection.selectedIndex() == 0);
+    REQUIRE_NEAR(selection.selectedFrame().frameSeconds, 0.010F);
+
+    recordFrameForPlot(history, selection, frameTaking(0.040F), false);
+    REQUIRE(history.size() == 3);
+    REQUIRE_FALSE(selection.selectedIndex().has_value());
+    REQUIRE_NEAR(history.latest().frameSeconds, 0.040F);
 }

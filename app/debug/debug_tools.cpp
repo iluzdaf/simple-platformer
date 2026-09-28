@@ -3,6 +3,7 @@
 #include "debug_overlay.hpp"
 #include "debug_overlay_ui.hpp"
 #include "frame_profile_ui.hpp"
+#include "frame_selection.hpp"
 #include "machine_graph_ui.hpp"
 
 #include <optional>
@@ -11,12 +12,13 @@
 
 namespace simple_platformer
 {
-    void drawDebugTools(
+    FramePlotRequest drawDebugTools(
         DebugTools& tools,
         const FrameProfile& profile,
         const DebugOverlay& overlay,
         const std::optional<WindowViewport>& viewport,
-        const DebugToolVisibility& visibility)
+        const DebugToolVisibility& visibility,
+        bool paused)
     {
         if (tools.machineActor.has_value() &&
             (!overlay.machine.has_value() || overlay.machine->actor != *tools.machineActor))
@@ -38,8 +40,8 @@ namespace simple_platformer
         {
             drawMachineGraph(tools.machineEditors, overlay.machine, tools.machineActor.has_value());
         }
-        tools.frameHistory.push(profile);
-        drawFrameProfile(
+        recordFrameForPlot(tools.frameHistory, tools.frameSelection, profile, paused);
+        return drawFrameProfile(
             tools.frameHistory,
             tools.frameSelection,
             tools.frameAxes,

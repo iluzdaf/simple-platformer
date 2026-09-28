@@ -12,7 +12,7 @@ namespace simple_platformer
     {
         const ImVec2 topLeft = {
             viewport.topLeft.x + HudMargin * viewport.scale.x,
-            viewport.topLeft.y + (HudMargin + HudIconSize + HudGap) * viewport.scale.y};
+            viewport.topLeft.y + HudMargin * viewport.scale.y};
         ImDrawList* drawList = ImGui::GetForegroundDrawList();
         drawShadowedText(*drawList, topLeft, HudTextColour, "Paused");
     }

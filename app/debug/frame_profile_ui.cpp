@@ -24,6 +24,7 @@ namespace simple_platformer
     {
         // Frame panel layout, in window pixels. Adjust these to resize the panel.
         constexpr float PlotHeight = 160.0F;
+        constexpr float LegendDetailsGap = 8.0F;
         constexpr int LegendColumns = 3;
         // A legend swatch sits inside its text row by this fraction of the row height.
         constexpr float SwatchInsetFraction = 0.2F;
@@ -144,17 +145,18 @@ namespace simple_platformer
         // The plot's picker, a window of its own over the plot area like the legend, so a
         // press there picks the frame under the cursor while clicks over the rest of the
         // panel reach the game. Holding the button scrubs: the pick follows the cursor
-        // until it is released. A click on the picked frame that never moves off it lets
-        // the live history show again; whether the press landed on it is kept in the
+        // until it is released. A click on the picked frame that never moves off it
+        // clears the pick and resumes play; whether the press landed on it is kept in the
         // window's ImGui storage until the release, as the legend keeps what it hides.
         // The column under the cursor and the picked one are marked.
-        void drawFramePicker(
+        FramePlotRequest drawFramePicker(
             ImVec2 topLeft,
             ImVec2 size,
             const FrameHistory& history,
             const FrameHistory& live,
             FrameSelection& selection)
         {
+            FramePlotRequest request = FramePlotRequest::None;
             ImGui::SetNextWindowPos(topLeft, ImGuiCond_Always);
             ImGui::SetNextWindowSize(size, ImGuiCond_Always);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0F, 0.0F});
@@ -184,6 +186,7 @@ namespace simple_platformer
                         frameNearestPlotFraction(fraction, history.capacity(), history.size());
                     if (ImGui::IsItemActivated())
                     {
+                        request = FramePlotRequest::Pause;
                         storage->SetBool(pressedOnPicked, selection.selectedIndex() == under);
                     }
                     if (selection.selectedIndex() != under)
@@ -195,6 +198,7 @@ namespace simple_platformer
                 else if (ImGui::IsItemDeactivated() && storage->GetBool(pressedOnPicked))
                 {
                     selection.clear();
+                    request = FramePlotRequest::Resume;
                 }
                 else if (ImGui::IsItemHovered())
                 {
@@ -213,6 +217,7 @@ namespace simple_platformer
             }
             ImGui::End();
             ImGui::PopStyleVar(2);
+            return request;
         }
 
         // Each category with its total, then its phases, in the order given: simulation
@@ -324,7 +329,6 @@ namespace simple_platformer
                 "simulation %6.3f ms per tick over %d ticks",
                 std::accumulate(simulationSeconds.begin(), simulationSeconds.end(), 0.0F) * scale,
                 ticks);
-            ImGui::Text("statistics over %d ticks", ticks);
             drawStatisticTable(history.statisticsSummed());
             drawPhaseTable(phases, "ms per tick", scale);
         }
@@ -390,7 +394,7 @@ namespace simple_platformer
         }
     }
 
-    void drawFrameProfile(
+    FramePlotRequest drawFrameProfile(
         const FrameHistory& live,
         FrameSelection& selection,
         FrameAxes& axes,
@@ -399,7 +403,7 @@ namespace simple_platformer
         const FrameHistory& history = selection.kept() != nullptr ? *selection.kept() : live;
         if (history.size() == 0)
         {
-            return;
+            return FramePlotRequest::None;
         }
 
         const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
@@ -419,7 +423,7 @@ namespace simple_platformer
                     ImGuiWindowFlags_NoMouseInputs))
         {
             ImGui::End();
-            return;
+            return FramePlotRequest::None;
         }
 
         // The phases come from every frame in the history, so one that runs only now and
@@ -464,8 +468,10 @@ namespace simple_platformer
         const float plotWidgetWidth = ImGui::GetContentRegionAvail().x;
         const auto legendRows = (series.size() + static_cast<std::size_t>(LegendColumns) - 1) /
                                 static_cast<std::size_t>(LegendColumns);
+        const float legendRowHeight =
+            ImGui::GetTextLineHeight() + 2.0F * ImGui::GetStyle().CellPadding.y;
         const float legendHeight =
-            2.0F * padding.y + ImGui::GetTextLineHeight() * static_cast<float>(legendRows);
+            2.0F * padding.y + legendRowHeight * static_cast<float>(legendRows);
         const FramePlotSeries& budget = series[0];
         const FramePlotSeries& frame = series[1];
 
@@ -561,9 +567,10 @@ namespace simple_platformer
         }
         ImPlot::PopStyleVar();
         ImPlot::PopStyleColor();
+        FramePlotRequest request = FramePlotRequest::None;
         if (plotted)
         {
-            drawFramePicker(plotTopLeft, plotSize, history, live, selection);
+            request = drawFramePicker(plotTopLeft, plotSize, history, live, selection);
         }
 
         if (plotted && showDetails)
@@ -576,7 +583,8 @@ namespace simple_platformer
                 plotTopLeft.x - padding.x, plotWidgetTopLeft.y + PlotHeight + padding.y};
             const float lowerWindowWidth = plotSize.x + 2.0F * padding.x;
             drawFramePlotLegend(legendTopLeft, {lowerWindowWidth, legendHeight}, hidden, series);
-            const ImVec2 detailsTopLeft = {legendTopLeft.x, legendTopLeft.y + legendHeight};
+            const ImVec2 detailsTopLeft = {
+                legendTopLeft.x, legendTopLeft.y + legendHeight + LegendDetailsGap};
             const float availableHeight =
                 mainViewport->WorkPos.y + mainViewport->WorkSize.y - detailsTopLeft.y;
             if (availableHeight > 0.0F)
@@ -586,5 +594,6 @@ namespace simple_platformer
             }
         }
         ImGui::End();
+        return request;
     }
 }

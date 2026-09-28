@@ -20,15 +20,15 @@ namespace simple_platformer
     std::size_t frameNearestPlotFraction(float fraction, std::size_t capacity, std::size_t count);
 
     // A frame picked from the plot to read at leisure. Picking one keeps a copy of the
-    // history as it was, so the panel stops following the live frames and the picked
-    // frame holds its place in the plot, until the pick is cleared.
+    // history as it was, so the picked frame holds its place while scrubbing or
+    // stepping. Resuming play clears the pick.
     class FrameSelection
     {
     public:
         // Selects the frame at this index of the history shown, keeping a copy of the live
         // history the first time.
         void select(const FrameHistory& live, std::size_t index);
-        // Lets the live history show again.
+        // Clears the pick and shows the current plot history.
         void clear();
 
         std::optional<std::size_t> selectedIndex() const;
@@ -42,4 +42,12 @@ namespace simple_platformer
         std::optional<FrameHistory> frozen;
         std::size_t selected = 0;
     };
+
+    // A paused plot keeps its history unless the player runs one simulation step.
+    // Resuming returns a picked frame to the live plot.
+    void recordFrameForPlot(
+        FrameHistory& history,
+        FrameSelection& selection,
+        const FrameProfile& frame,
+        bool paused);
 }

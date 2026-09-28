@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "debug/frame_axes.hpp"
+#include "debug/frame_profile_ui.hpp"
 #include "debug/frame_selection.hpp"
 #include "debug/machine_graph_ui.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
@@ -37,14 +38,16 @@ namespace simple_platformer
 
     // The debug tools over the scene while the overlay is open, in a fixed order: the
     // independently optional world, text and machine layers, then the frame panel, which
-    // first records the frame's profile, so the history holds only frames the overlay saw.
+    // records only running or stepped frames while the overlay is open.
     // It is the short list of what the overlay draws, as drawInterface is for what the
     // player sees. It draws the overlay the game built and touches nothing else of the
     // game; with no viewport only the text is drawn.
-    void drawDebugTools(
+    // Returns a pause or resume request from the plot.
+    FramePlotRequest drawDebugTools(
         DebugTools& tools,
         const FrameProfile& profile,
         const DebugOverlay& overlay,
         const std::optional<WindowViewport>& viewport,
-        const DebugToolVisibility& visibility);
+        const DebugToolVisibility& visibility,
+        bool paused);
 }

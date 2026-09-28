@@ -71,6 +71,39 @@ TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][
         std::invalid_argument);
 }
 
+TEST_CASE("Tile definitions mark climbable solid surfaces explicitly", "[app][tiles]")
+{
+    const auto catalog = simple_platformer::parseTileCatalog(
+        R"({"tileSize":16,"tiles":{
+        "empty":{"blocksMovement":false,"blocksSight":false},
+        "stone":{"blocksMovement":true,"blocksSight":true,"climbable":true,
+                 "sprite":{"position":[0,0]}},
+        "glass":{"blocksMovement":true,"blocksSight":false,
+                 "sprite":{"position":[16,0]}}
+    }})",
+        "tiles.json");
+    const auto map = simple_platformer::composeTileMap(
+        {".SG"}, {{'.', "empty"}, {'S', "stone"}, {'G', "glass"}}, catalog);
+
+    REQUIRE(map.climbableAt({1, 0}));
+    REQUIRE_FALSE(map.climbableAt({2, 0}));
+    REQUIRE_FALSE(map.climbableAt({-1, 0}));
+    REQUIRE_FALSE(map.climbableAt({0, 0}));
+}
+
+TEST_CASE("Only movement-blocking tiles can be marked climbable", "[app][tiles]")
+{
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseTileCatalog(
+            R"({"tileSize":16,"tiles":{
+        "empty":{"blocksMovement":false,"blocksSight":false},
+        "grass":{"blocksMovement":false,"blocksSight":true,"climbable":true,
+                 "sprite":{"position":[0,0]}}
+    }})",
+            "tiles.json"),
+        Catch::Matchers::ContainsSubstring("climbable tile 'grass' must block movement"));
+}
+
 TEST_CASE("Breakable tiles resolve breaksInto to a catalog ID", "[app][tiles]")
 {
     // cracked is declared after glass refers to it, so resolution cannot be a single pass.

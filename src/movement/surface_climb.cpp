@@ -99,7 +99,8 @@ namespace simple_platformer
         }
 
         const ClimbSurface previous = climb.surface;
-        climb.surface = requestedSurface(previous, touchingSurfaces(map, body.bounds), intentions);
+        climb.surface =
+            requestedSurface(previous, touchingClimbableSurfaces(map, body.bounds), intentions);
         if (climb.surface == ClimbSurface::None)
         {
             if (previous != ClimbSurface::None)
@@ -124,7 +125,7 @@ namespace simple_platformer
         const CollisionContacts surfaces = touchingSurfaces(map, body.bounds);
         movement.grounded = surfaces.ground;
         movement.blocked = contacts.left || contacts.right || contacts.ground || contacts.ceiling;
-        if (!touches(climb.surface, surfaces))
+        if (!touches(climb.surface, touchingClimbableSurfaces(map, body.bounds)))
         {
             climb.surface = ClimbSurface::None;
             body.velocity = {0.0F, 0.0F};

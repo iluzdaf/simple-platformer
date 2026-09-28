@@ -21,4 +21,7 @@ namespace simple_platformer
     // Unlike moveAndCollide, this probes for surfaces touching a stationary box,
     // allowing a small tolerance for floating-point positions.
     CollisionContacts touchingSurfaces(const TileMap& map, const Aabb& bounds);
+
+    // Only marked solid tiles can hold a wall or ceiling climber.
+    CollisionContacts touchingClimbableSurfaces(const TileMap& map, const Aabb& bounds);
 }

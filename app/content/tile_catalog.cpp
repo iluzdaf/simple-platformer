@@ -5,7 +5,6 @@
 
 #include <cstddef>
 #include <filesystem>
-#include <initializer_list>
 #include <map>
 #include <string>
 #include <string_view>
@@ -35,18 +34,23 @@ namespace simple_platformer
                              const std::string& name, const nlohmann::json& value)
         {
             const std::string path = fieldPath("tiles", name);
-            checkJsonFields(
-                value,
-                name == "empty"
-                    ? std::initializer_list<std::string_view>{"blocksMovement", "blocksSight"}
-                    : std::initializer_list<
-                          std::
-                              string_view>{"blocksMovement", "blocksSight", "sprite", "breaksInto"},
-                sourceName,
-                path);
+            if (name == "empty")
+            {
+                checkJsonFields(
+                    value, {"blocksMovement", "blocksSight", "climbable"}, sourceName, path);
+            }
+            else
+            {
+                checkJsonFields(
+                    value,
+                    {"blocksMovement", "blocksSight", "climbable", "sprite", "breaksInto"},
+                    sourceName,
+                    path);
+            }
             TileDefinition definition;
             definition.blocksMovement = readBoolean(value, "blocksMovement", sourceName, path);
             definition.blocksSight = readBoolean(value, "blocksSight", sourceName, path);
+            readOptionalBoolean(value, "climbable", definition.climbable, sourceName, path);
             if (name != "empty")
             {
                 const auto& sprite = requiredJsonMember(value, "sprite", sourceName, path);

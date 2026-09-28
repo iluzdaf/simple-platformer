@@ -62,16 +62,25 @@ namespace simple_platformer
                              : AxisView{1, map.pixelHeight(), map.height(), map.width()};
         }
 
-        bool lineBlocksMovement(
+        enum class SurfaceKind
+        {
+            Blocking,
+            Climbable
+        };
+
+        bool lineHasSurface(
             const TileMap& map,
             const AxisView& view,
             int along,
             int firstAcross,
-            int lastAcross)
+            int lastAcross,
+            SurfaceKind kind)
         {
             for (int across = firstAcross; across <= lastAcross; ++across)
             {
-                if (map.blocksMovement(view.cell(along, across)))
+                const GridPosition cell = view.cell(along, across);
+                if (kind == SurfaceKind::Climbable ? map.climbableAt(cell)
+                                                   : map.blocksMovement(cell))
                 {
                     return true;
                 }
@@ -104,7 +113,8 @@ namespace simple_platformer
             const TileMap& map,
             const AxisView& view,
             const Aabb& bounds,
-            float requested)
+            float requested,
+            SurfaceKind kind)
         {
             if (requested == 0.0F)
             {
@@ -132,7 +142,7 @@ namespace simple_platformer
             for (int along = firstAlong; forward ? along <= lastAlong : along >= lastAlong;
                  along += step)
             {
-                if (!lineBlocksMovement(map, view, along, firstAcross, lastAcross))
+                if (!lineHasSurface(map, view, along, firstAcross, lastAcross, kind))
                 {
                     continue;
                 }
@@ -155,7 +165,7 @@ namespace simple_platformer
 
         CollisionContacts contacts;
         const AllowedMovement horizontal =
-            allowedMovement(map, axisView(map, 0), bounds, displacement.x);
+            allowedMovement(map, axisView(map, 0), bounds, displacement.x, SurfaceKind::Blocking);
         bounds.position.x += horizontal.distance;
         if (horizontal.hitTile)
         {
@@ -163,7 +173,7 @@ namespace simple_platformer
         }
 
         const AllowedMovement vertical =
-            allowedMovement(map, axisView(map, 1), bounds, displacement.y);
+            allowedMovement(map, axisView(map, 1), bounds, displacement.y, SurfaceKind::Blocking);
         bounds.position.y += vertical.distance;
         if (vertical.hitTile)
         {
@@ -172,16 +182,29 @@ namespace simple_platformer
         return contacts;
     }
 
+    namespace
+    {
+        CollisionContacts probeSurfaces(const TileMap& map, const Aabb& bounds, SurfaceKind kind)
+        {
+            validateBounds(map, bounds, {0.0F, 0.0F});
+            constexpr float ProbeDistance = 0.01F;
+            const AxisView horizontal = axisView(map, 0);
+            const AxisView vertical = axisView(map, 1);
+            return {
+                allowedMovement(map, horizontal, bounds, -ProbeDistance, kind).hitTile,
+                allowedMovement(map, horizontal, bounds, ProbeDistance, kind).hitTile,
+                allowedMovement(map, vertical, bounds, ProbeDistance, kind).hitTile,
+                allowedMovement(map, vertical, bounds, -ProbeDistance, kind).hitTile};
+        }
+    }
+
     CollisionContacts touchingSurfaces(const TileMap& map, const Aabb& bounds)
     {
-        validateBounds(map, bounds, {0.0F, 0.0F});
-        constexpr float ProbeDistance = 0.01F;
-        const AxisView horizontal = axisView(map, 0);
-        const AxisView vertical = axisView(map, 1);
-        return {
-            allowedMovement(map, horizontal, bounds, -ProbeDistance).hitTile,
-            allowedMovement(map, horizontal, bounds, ProbeDistance).hitTile,
-            allowedMovement(map, vertical, bounds, ProbeDistance).hitTile,
-            allowedMovement(map, vertical, bounds, -ProbeDistance).hitTile};
+        return probeSurfaces(map, bounds, SurfaceKind::Blocking);
+    }
+
+    CollisionContacts touchingClimbableSurfaces(const TileMap& map, const Aabb& bounds)
+    {
+        return probeSurfaces(map, bounds, SurfaceKind::Climbable);
     }
 }

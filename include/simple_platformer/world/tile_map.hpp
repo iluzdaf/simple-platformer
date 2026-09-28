@@ -21,6 +21,7 @@ namespace simple_platformer
         SpriteRegion sprite;
         // The tile this one becomes when broken. Unset means nothing breaks it.
         std::optional<int> breaksIntoTileId = std::nullopt;
+        bool climbable = false;
     };
 
     class TileMap
@@ -56,6 +57,8 @@ namespace simple_platformer
         // Above the map is open.
         bool blocksMovement(GridPosition cell) const;
         bool blocksSight(GridPosition cell) const;
+        // Out-of-map walls are not climbable.
+        bool climbableAt(GridPosition cell) const;
 
         // Replaces the cell with whatever its definition breaks into, and reports
         // whether that happened. A cell outside the map, or one whose definition has no

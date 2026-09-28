@@ -24,7 +24,7 @@ levels remain equivalent.
 
 The rat and boar already use Lua activities over C++ sensing, movement, navigation,
 and combat. See [NPC behaviour](ARCHITECTURE.md#npc-behaviour) for the current boundary.
-The engine now has opt-in wall and ceiling climbing with persistent contact checks.
+The engine now has opt-in wall and ceiling climbing on explicitly marked tiles.
 The spider still needs surface navigation and path following in C++. Build and test
 those capabilities without Lua first. A pounce would also need an engine-owned
 movement request. Lua can then choose when to patrol, chase, or pounce; C++ executes

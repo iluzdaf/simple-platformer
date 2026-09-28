@@ -306,3 +306,19 @@ TEST_CASE("Open space and the top map edge are not touching surfaces", "[physics
     REQUIRE_FALSE(contacts.ground);
     REQUIRE_FALSE(contacts.ceiling);
 }
+
+TEST_CASE("Climbable contacts exclude ordinary solid tiles", "[physics][collision]")
+{
+    const TileMap map = tests::TileMapBuilder({".cc.", "X..c", "X..c", ".cc."})
+                            .where('X', tests::Tile{}.blocksMovement())
+                            .where('c', tests::Tile{}.blocksMovement().climbable());
+    const Aabb bounds{{16.0F, 16.0F}, {32.0F, 32.0F}};
+
+    const CollisionContacts physical = simple_platformer::touchingSurfaces(map, bounds);
+    const CollisionContacts climbable = simple_platformer::touchingClimbableSurfaces(map, bounds);
+
+    REQUIRE(physical.left);
+    REQUIRE_FALSE(climbable.left);
+    REQUIRE(climbable.right);
+    REQUIRE(climbable.ceiling);
+}

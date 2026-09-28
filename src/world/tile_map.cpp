@@ -41,9 +41,17 @@ namespace simple_platformer
         }
 
         if (tileDefinitions.empty() || tileDefinitions.front().blocksMovement ||
-            tileDefinitions.front().blocksSight)
+            tileDefinitions.front().blocksSight || tileDefinitions.front().climbable)
         {
             throw std::invalid_argument("Tile ID zero must be defined as empty");
+        }
+
+        for (const TileDefinition& definition : tileDefinitions)
+        {
+            if (definition.climbable && !definition.blocksMovement)
+            {
+                throw std::invalid_argument("A climbable tile must block movement");
+            }
         }
 
         for (const int tile : tileIds)
@@ -175,6 +183,11 @@ namespace simple_platformer
         }
 
         return definitionAt(cell).blocksMovement;
+    }
+
+    bool TileMap::climbableAt(GridPosition cell) const
+    {
+        return contains(cell) && definitionAt(cell).climbable;
     }
 
     bool TileMap::breakTile(GridPosition cell)

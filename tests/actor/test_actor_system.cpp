@@ -42,7 +42,8 @@ TEST_CASE("Actor movement consumes its intentions", "[actor][movement]")
 TEST_CASE("An actor's optional climb component uses its climb request", "[actor][movement]")
 {
     const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"......", "..#...", "..#...", "..#...", "######"});
+        tests::TileMapBuilder({"......", "..c...", "..c...", "..c...", "######"})
+            .where('c', tests::Tile{}.blocksMovement().climbable());
     simple_platformer::Actor climber = makeActor({54.0F, 48.0F});
     climber.surfaceClimb = simple_platformer::SurfaceClimb{};
     climber.intentions.climbRequested = true;

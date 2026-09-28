@@ -88,6 +88,16 @@ TEST_CASE("Breaking a tile replaces it with what its definition breaks into", "[
     REQUIRE(map.blocksMovement({1, 0}));
 }
 
+TEST_CASE("Breaking a climbable tile removes its grip", "[world][tile-map]")
+{
+    simple_platformer::TileMap map = tests::TileMapBuilder({"c"}).where(
+        'c', tests::Tile().blocksMovement().climbable().breaksInto('.'));
+
+    REQUIRE(map.climbableAt({0, 0}));
+    REQUIRE(map.breakTile({0, 0}));
+    REQUIRE_FALSE(map.climbableAt({0, 0}));
+}
+
 TEST_CASE("A tile map logs the cells it broke, in order", "[world][tile-map]")
 {
     simple_platformer::TileMap map =

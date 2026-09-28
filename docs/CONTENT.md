@@ -169,6 +169,10 @@ size. The `empty` definition must allow movement and sight and is not rendered. 
 names and map symbols are rejected during loading. Fixture catalogs supply their own
 `tiles.json`.
 
+Solid tiles may set `climbable: true` to let a climbing actor grip their walls and
+undersides. Omitted or false means the tile remains solid but cannot be gripped;
+map boundaries are never climbable. The shipped stone is climbable, while glass is not.
+
 Changing `tileSize` changes the geometry, not the tuning: jump heights, speeds, and the
 navigation reach are pixel values chosen for 16-pixel tiles.
 

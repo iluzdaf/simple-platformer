@@ -17,6 +17,8 @@ TEST_CASE("'.' is empty and '#' blocks movement and sight", "[support][tile-map-
     REQUIRE_FALSE(map.blocksSight({0, 0}));
     REQUIRE(map.blocksMovement({1, 0}));
     REQUIRE(map.blocksSight({1, 0}));
+    REQUIRE_FALSE(map.climbableAt({1, 0}));
+    REQUIRE_FALSE(map.climbableAt({0, 0}));
 }
 
 TEST_CASE("'#' has a one-tile sprite region", "[support][tile-map-builder]")
@@ -27,16 +29,20 @@ TEST_CASE("'#' has a one-tile sprite region", "[support][tile-map-builder]")
     REQUIRE(map.definitionAt({0, 0}).sprite.size == glm::vec2{side, side});
 }
 
-TEST_CASE("Declared tiles block only what they declare", "[support][tile-map-builder]")
+TEST_CASE("Declared tiles have only the properties they request", "[support][tile-map-builder]")
 {
-    const simple_platformer::TileMap map = tests::TileMapBuilder({"gw"})
-                                               .where('g', tests::Tile().blocksSight())
-                                               .where('w', tests::Tile().blocksMovement());
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"gwc"})
+            .where('g', tests::Tile().blocksSight())
+            .where('w', tests::Tile().blocksMovement())
+            .where('c', tests::Tile().blocksMovement().climbable());
 
     REQUIRE_FALSE(map.blocksMovement({0, 0}));
     REQUIRE(map.blocksSight({0, 0}));
     REQUIRE(map.blocksMovement({1, 0}));
     REQUIRE_FALSE(map.blocksSight({1, 0}));
+    REQUIRE_FALSE(map.climbableAt({1, 0}));
+    REQUIRE(map.climbableAt({2, 0}));
 }
 
 TEST_CASE(

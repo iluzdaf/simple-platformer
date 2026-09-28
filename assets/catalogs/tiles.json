@@ -5,7 +5,8 @@
     "stone": {
       "sprite": { "position": [0, 192] },
       "blocksMovement": true,
-      "blocksSight": true
+      "blocksSight": true,
+      "climbable": true
     },
     "grass": {
       "sprite": { "position": [128, 192] },

@@ -31,6 +31,12 @@ namespace tests
             return *this;
         }
 
+        Tile climbable() &&
+        {
+            definition.climbable = true;
+            return *this;
+        }
+
         Tile withSprite(simple_platformer::SpriteRegion region) &&
         {
             definition.sprite = region;

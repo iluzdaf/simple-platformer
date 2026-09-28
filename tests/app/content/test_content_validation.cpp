@@ -103,6 +103,15 @@ TEST_CASE("Tile catalog validation rejects invalid C++ definitions", "[app][cont
     {
         catalog.definitions[0].blocksSight = true;
     }
+    SECTION("Empty is climbable")
+    {
+        catalog.definitions[0].climbable = true;
+    }
+    SECTION("Nonblocking tile is climbable")
+    {
+        catalog.definitions[1].blocksMovement = false;
+        catalog.definitions[1].climbable = true;
+    }
     SECTION("Negative ID")
     {
         catalog.ids["glass"] = -1;

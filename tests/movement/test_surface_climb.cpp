@@ -18,7 +18,8 @@ namespace
     using simple_platformer::SurfaceClimb;
 
     const simple_platformer::TileMap Wall =
-        tests::TileMapBuilder({"......", "..#...", "..#...", "..#...", "######"});
+        tests::TileMapBuilder({"......", "..c...", "..c...", "..c...", "######"})
+            .where('c', tests::Tile{}.blocksMovement().climbable());
 }
 
 TEST_CASE("A climb request holds and moves along a wall", "[movement][climb]")
@@ -66,7 +67,8 @@ TEST_CASE("The opposite side of a wall can also be climbed", "[movement][climb]"
 TEST_CASE("A ceiling climb moves horizontally without gravity", "[movement][climb]")
 {
     const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"......", ".###..", "......", "......", "######"});
+        tests::TileMapBuilder({"......", ".ccc..", "......", "......", "######"})
+            .where('c', tests::Tile{}.blocksMovement().climbable());
     Body body{{{32.0F, 32.0F}, {12.0F, 12.0F}}, {0.0F, 20.0F}};
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
@@ -86,7 +88,8 @@ TEST_CASE("A ceiling climb moves horizontally without gravity", "[movement][clim
 TEST_CASE("A wall climber can turn onto a ceiling", "[movement][climb]")
 {
     const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"......", "..###.", "..#...", "..#...", "######"});
+        tests::TileMapBuilder({"......", "..ccc.", "..c...", "..c...", "######"})
+            .where('c', tests::Tile{}.blocksMovement().climbable());
     Body body{{{48.0F, 36.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
@@ -139,10 +142,47 @@ TEST_CASE("A climb request needs an adjacent surface", "[movement][climb]")
     REQUIRE(body.velocity.y > 0.0F);
 }
 
+TEST_CASE("A climb request cannot attach to an unmarked solid wall", "[movement][climb]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"......", "..X...", "..X...", "..X...", "######"})
+            .where('X', tests::Tile{}.blocksMovement());
+    Body body{{{48.0F, 36.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+    PlatformerMovement movement;
+    SurfaceClimb climb{{60.0F}};
+    InputIntentions intentions;
+    intentions.climbRequested = true;
+    intentions.direction.y = -1.0F;
+
+    simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
+
+    REQUIRE(climb.surface == ClimbSurface::None);
+    REQUIRE(body.velocity.y > 0.0F);
+}
+
+TEST_CASE("A climb request cannot attach to an unmarked solid ceiling", "[movement][climb]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"......", ".XXX..", "......", "......", "######"})
+            .where('X', tests::Tile{}.blocksMovement());
+    Body body{{{32.0F, 32.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+    PlatformerMovement movement;
+    SurfaceClimb climb{{60.0F}};
+    InputIntentions intentions;
+    intentions.climbRequested = true;
+    intentions.direction.x = 1.0F;
+
+    simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
+
+    REQUIRE(climb.surface == ClimbSurface::None);
+    REQUIRE(body.velocity.y > 0.0F);
+}
+
 TEST_CASE("Climbing ends when the surface ends", "[movement][climb]")
 {
     const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"......", ".##...", "......", "......", "######"});
+        tests::TileMapBuilder({"......", ".cc...", "......", "......", "######"})
+            .where('c', tests::Tile{}.blocksMovement().climbable());
     Body body{{{32.0F, 32.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};

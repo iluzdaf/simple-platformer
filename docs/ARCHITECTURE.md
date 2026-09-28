@@ -333,7 +333,7 @@ rules separate from tile collision and avoids a general ability framework.
 
 An optional [`SurfaceClimb`](../include/simple_platformer/movement/surface_climb.hpp)
 replaces gravity and walking while `climbRequested` is held and the body touches a
-wall or ceiling. Vertical intentions travel along walls; horizontal intentions travel
+climbable tile's wall or underside. Vertical intentions travel along walls; horizontal intentions travel
 along ceilings. Releasing the request, or losing contact, resumes ordinary platformer
 movement. Climbing does not yet produce surface-navigation routes.
 

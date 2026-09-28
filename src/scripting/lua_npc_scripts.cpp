@@ -231,12 +231,13 @@ namespace simple_platformer
             }
 
             const sol::table table = object.as<sol::table>();
-            constexpr std::array<std::string_view, 10> Fields{
+            constexpr std::array<std::string_view, 11> Fields{
                 "direction",
                 "aimDirection",
                 "jumpPressed",
                 "jumpHeld",
                 "primaryAttackPressed",
+                "climbRequested",
                 "avoidLedges",
                 "contactDamage",
                 "routeTo",
@@ -275,6 +276,7 @@ namespace simple_platformer
             readBoolean("jumpPressed", command.intentions.jumpPressed);
             readBoolean("jumpHeld", command.intentions.jumpHeld);
             readBoolean("primaryAttackPressed", command.intentions.primaryAttackPressed);
+            readBoolean("climbRequested", command.intentions.climbRequested);
             readBoolean("avoidLedges", command.intentions.avoidLedges);
             readBoolean("contactDamage", command.intentions.contactDamage);
             readOptionalVector("routeTo", command.routeTo);

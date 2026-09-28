@@ -55,6 +55,7 @@ TEST_CASE("A Lua activity reads a copied snapshot and returns a command", "[lua]
                                 aimAt = snapshot.targetFeet,
                                 routeTo = snapshot.patrol.secondFeet,
                                 primaryAttackPressed = snapshot.facts.targetKnown,
+                                climbRequested = snapshot.facts.targetKnown,
                                 jumpHeld = snapshot.facts.heardLanding and snapshot.facts.targetOnSameRun,
                                 jumpPressed = snapshot.facts.movementBlocked,
                                 avoidLedges = snapshot.facts.targetWithinStandoffDistance,
@@ -76,6 +77,7 @@ TEST_CASE("A Lua activity reads a copied snapshot and returns a command", "[lua]
     REQUIRE(command.intentions.direction.x == 1.5F);
     REQUIRE(command.intentions.direction.y == 0.0F);
     REQUIRE(command.intentions.primaryAttackPressed);
+    REQUIRE(command.intentions.climbRequested);
     REQUIRE(command.intentions.jumpHeld);
     REQUIRE(command.intentions.jumpPressed);
     REQUIRE(command.intentions.avoidLedges);

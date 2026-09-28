@@ -9,6 +9,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 
 namespace simple_platformer
 {
@@ -43,6 +44,14 @@ namespace simple_platformer
             {
                 throw std::invalid_argument(
                     "Flying movement speed must be finite and non-negative");
+            }
+            if (actor.surfaceClimb.has_value())
+            {
+                if (!actor.platformerMovement.has_value())
+                {
+                    throw std::invalid_argument("Surface climbing requires platformer movement");
+                }
+                validateSurfaceClimbConfig(actor.surfaceClimb->config);
             }
         }
 

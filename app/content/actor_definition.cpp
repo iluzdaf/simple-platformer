@@ -12,6 +12,7 @@
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "machine_catalog.hpp"
@@ -40,6 +41,10 @@ namespace simple_platformer
             actor.platformerMovement->grounded = true;
         }
         actor.flyingMovement = definition.flying;
+        if (definition.surfaceClimb)
+        {
+            actor.surfaceClimb = SurfaceClimb{*definition.surfaceClimb};
+        }
         if (definition.health)
         {
             actor.health = Health{*definition.health, *definition.health};

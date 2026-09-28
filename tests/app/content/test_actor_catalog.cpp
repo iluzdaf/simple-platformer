@@ -12,6 +12,7 @@
 #include "content/machine_catalog.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "support/actor_components.hpp"
 
@@ -56,6 +57,44 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
     REQUIRE_FALSE(actor.platformerMovement.has_value());
     REQUIRE_THROWS_AS(
         simple_platformer::actorDefinition(catalog, "missing"), std::invalid_argument);
+}
+
+TEST_CASE("Actor JSON configures climbing without exposing attachment state", "[app][actors][json]")
+{
+    const auto catalog = simple_platformer::parseActorCatalog(
+        R"({"player":"hero","actors":{"hero":{"bodySize":[12,12],"platformer":{},
+        "surfaceClimb":{"speed":75},"health":2,"inventorySlots":1}}})",
+        "actors.json",
+        {});
+
+    auto actor =
+        simple_platformer::composeActor(simple_platformer::actorDefinition(catalog, "hero"), {}, 0);
+    REQUIRE(tests::surfaceClimb(actor).config.speed == 75.0F);
+    REQUIRE(tests::surfaceClimb(actor).surface == simple_platformer::ClimbSurface::None);
+}
+
+TEST_CASE("Climbing requires platformer movement and positive speed", "[app][actors][json]")
+{
+    auto actorJson = nlohmann::json::parse(
+        R"({"player":"hero","actors":{"hero":{"bodySize":[12,12],"platformer":{},
+        "surfaceClimb":{"speed":75},"health":2,"inventorySlots":1}}})");
+    SECTION("Flying actor")
+    {
+        actorJson["actors"]["hero"].erase("platformer");
+        actorJson["actors"]["hero"]["flying"] = {{"speed", 60}};
+    }
+    SECTION("Invalid speed")
+    {
+        actorJson["actors"]["hero"]["surfaceClimb"]["speed"] = 0;
+    }
+    SECTION("Runtime attachment state")
+    {
+        actorJson["actors"]["hero"]["surfaceClimb"]["surface"] = "ceiling";
+    }
+
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseActorCatalog(actorJson.dump(), "actors.json", {}),
+        Catch::Matchers::ContainsSubstring("actors.json:"));
 }
 
 TEST_CASE(

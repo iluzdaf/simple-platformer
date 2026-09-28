@@ -278,3 +278,31 @@ TEST_CASE("Arriving exactly at a map edge counts as touching it", "[physics][col
         REQUIRE_FALSE(contacts.ceiling);
     }
 }
+
+TEST_CASE("Stationary bodies report the surfaces they touch", "[physics][collision]")
+{
+    const TileMap map = tests::TileMapBuilder({".##.", "#..#", "#..#", ".##."});
+    const Aabb bounds{{16.0F, 16.0F}, {32.0F, 32.0F}};
+
+    const CollisionContacts contacts = simple_platformer::touchingSurfaces(map, bounds);
+
+    REQUIRE(contacts.left);
+    REQUIRE(contacts.right);
+    REQUIRE(contacts.ground);
+    REQUIRE(contacts.ceiling);
+    REQUIRE(bounds.position.x == 16.0F);
+    REQUIRE(bounds.position.y == 16.0F);
+}
+
+TEST_CASE("Open space and the top map edge are not touching surfaces", "[physics][collision]")
+{
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
+    const Aabb bounds{{16.0F, 0.0F}, {16.0F, 16.0F}};
+
+    const CollisionContacts contacts = simple_platformer::touchingSurfaces(map, bounds);
+
+    REQUIRE_FALSE(contacts.left);
+    REQUIRE_FALSE(contacts.right);
+    REQUIRE_FALSE(contacts.ground);
+    REQUIRE_FALSE(contacts.ceiling);
+}

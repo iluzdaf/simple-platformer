@@ -7,6 +7,7 @@
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
@@ -36,6 +37,26 @@ TEST_CASE("Actor movement consumes its intentions", "[actor][movement]")
     REQUIRE(moved.body.bounds.position.x > 16.0F);
     REQUIRE(moved.body.velocity.x > 0.0F);
     REQUIRE(moved.facing == simple_platformer::Facing::Right);
+}
+
+TEST_CASE("An actor's optional climb component uses its climb request", "[actor][movement]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"......", "..#...", "..#...", "..#...", "######"});
+    simple_platformer::Actor climber = makeActor({54.0F, 48.0F});
+    climber.surfaceClimb = simple_platformer::SurfaceClimb{};
+    climber.intentions.climbRequested = true;
+    climber.intentions.direction.y = -1.0F;
+    simple_platformer::World world;
+    const auto id = world.addActor(climber);
+
+    simple_platformer::updateActorMovement(map, world, 0.1F);
+
+    const auto& moved = tests::actor(world, id);
+    REQUIRE(
+        tests::surfaceClimb(tests::actor(world, id)).surface ==
+        simple_platformer::ClimbSurface::LeftWall);
+    REQUIRE(moved.body.bounds.position.y < 36.0F);
 }
 
 TEST_CASE("Dying actors ignore intentions but continue falling", "[actor][movement][lifecycle]")

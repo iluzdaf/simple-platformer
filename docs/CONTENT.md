@@ -254,8 +254,9 @@ JSON, validates every definition, and resolves names. The
 top-level `player` chooses the player definition, which must have health and inventory
 for the game's HUD, and must not enable NPC sensing. Level patrols remain per-instance.
 
-Exactly one of `platformer` or `flying` is required. Empty component objects use C++
-defaults; omitted optional components are absent. `senses` adds the NPC brain,
+Exactly one of `platformer` or `flying` is required. Optional `surfaceClimb` works
+with `platformer` only. Empty component objects use C++ defaults; omitted optional
+components are absent. `senses` adds the NPC brain,
 transient perception, sensing configuration and path follower together. `tactic` is
 that brain's policy, `pursuer` or `keepDistance`, and requires `senses`. `machine`
 names a state machine in `machines.json` to run instead of the tactic; it requires
@@ -264,7 +265,8 @@ Primary attacks use either `bite` or `ranged`. Optional `contactDamage` is indep
 and can coexist with either; all require a non-neutral team. There is no
 inheritance or arbitrary per-placement override mechanism.
 
-Platformer fields match `PlatformerMovementConfig`; flying exposes `speed`. Sensing
+Platformer fields match `PlatformerMovementConfig`; flying and `surfaceClimb` each
+expose `speed`. Climbing requires a `climbRequested` intention from policy. Sensing
 exposes `noticeDistance`, `standoffDistance`, `targetMemoryDuration`, and
 `searchDuration`. Bite exposes `damage`, `hitboxSize`, `reach`,
 `windupDuration`, `activeDuration`, and `recoveryDuration`. `contactDamage` exposes

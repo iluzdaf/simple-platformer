@@ -8,6 +8,7 @@
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/npc/npc.hpp"
@@ -27,6 +28,7 @@ namespace simple_platformer
         std::optional<int> inventorySlots;
         std::optional<PlatformerMovementConfig> platformer;
         std::optional<FlyingMovement> flying;
+        std::optional<SurfaceClimbConfig> surfaceClimb;
         // Presence creates the brain, perception, and path follower with these senses.
         std::optional<NpcSenses> senses;
         NpcTactic tactic = NpcTactic::Pursuer;

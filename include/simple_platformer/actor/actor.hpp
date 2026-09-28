@@ -8,6 +8,7 @@
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
@@ -36,6 +37,7 @@ namespace simple_platformer
         InputIntentions intentions;
         std::optional<PlatformerMovement> platformerMovement;
         std::optional<FlyingMovement> flyingMovement;
+        std::optional<SurfaceClimb> surfaceClimb;
         Facing facing = Facing::Right;
 
         LifeState life = LifeState::Alive;

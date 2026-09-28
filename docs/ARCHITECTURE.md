@@ -286,9 +286,7 @@ need rather than virtual dispatch.
 ### Shared intentions
 
 Player input and NPC decisions produce the same
-[`InputIntentions`](../include/simple_platformer/input/input_state.hpp). Its fields
-carry movement and aim, jump and primary-attack input, and requests for ledge
-avoidance and contact damage.
+[`InputIntentions`](../include/simple_platformer/input/input_state.hpp).
 
 An [`InputProgram`](../include/simple_platformer/input/input_program.hpp) holds a timed sequence
 of intentions. Navigation currently records and replays these for jumps and falls; the
@@ -332,6 +330,12 @@ a tile, one step shared by platformer movement, flying movement, and pickups; mo
 observes the contacts that step returns. Gravity and its default rates live with `Body`
 too, and the platformer config only overrides them. This direction keeps platformer
 rules separate from tile collision and avoids a general ability framework.
+
+An optional [`SurfaceClimb`](../include/simple_platformer/movement/surface_climb.hpp)
+replaces gravity and walking while `climbRequested` is held and the body touches a
+wall or ceiling. Vertical intentions travel along walls; horizontal intentions travel
+along ceilings. Releasing the request, or losing contact, resumes ordinary platformer
+movement. Climbing does not yet produce surface-navigation routes.
 
 ### Flying movement
 

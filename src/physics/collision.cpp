@@ -171,4 +171,17 @@ namespace simple_platformer
         }
         return contacts;
     }
+
+    CollisionContacts touchingSurfaces(const TileMap& map, const Aabb& bounds)
+    {
+        validateBounds(map, bounds, {0.0F, 0.0F});
+        constexpr float ProbeDistance = 0.01F;
+        const AxisView horizontal = axisView(map, 0);
+        const AxisView vertical = axisView(map, 1);
+        return {
+            allowedMovement(map, horizontal, bounds, -ProbeDistance).hitTile,
+            allowedMovement(map, horizontal, bounds, ProbeDistance).hitTile,
+            allowedMovement(map, vertical, bounds, ProbeDistance).hitTile,
+            allowedMovement(map, vertical, bounds, -ProbeDistance).hitTile};
+    }
 }

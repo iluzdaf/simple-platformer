@@ -25,6 +25,8 @@ namespace simple_platformer
         bool jumpPressed = false;
         bool jumpHeld = false;
         bool primaryAttackPressed = false;
+        // Hold an adjacent wall or ceiling when the actor has a climb component.
+        bool climbRequested = false;
         // Keep grounded walking on its current floor; deliberate jumps still work.
         bool avoidLedges = false;
         // Request body-overlap damage, if the actor has that component.

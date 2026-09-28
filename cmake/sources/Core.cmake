@@ -19,6 +19,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/src/math/validation.cpp
     ${PROJECT_SOURCE_DIR}/src/movement/flying_movement.cpp
     ${PROJECT_SOURCE_DIR}/src/movement/platformer_movement.cpp
+    ${PROJECT_SOURCE_DIR}/src/movement/surface_climb.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/connection_cache.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/path_search.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/flying_navigation.cpp

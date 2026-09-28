@@ -30,8 +30,8 @@ namespace simple_platformer
         // connection. Its duration in seconds depends on the caller's step.
         constexpr int MaximumConnectionSimulationTicks = 120;
 
-        // Airborne simulation leaves ledge avoidance and contact damage off, so only its
-        // recorded intention fields need comparing when consecutive ticks are merged.
+        // Airborne simulation leaves climbing, ledge avoidance, and contact damage off,
+        // so only its recorded intention fields need comparing when ticks are merged.
         bool sameIntentions(const InputIntentions& first, const InputIntentions& second)
         {
             return first.direction == second.direction &&

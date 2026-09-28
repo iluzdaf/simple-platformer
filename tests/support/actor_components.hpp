@@ -11,6 +11,7 @@
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
@@ -207,6 +208,23 @@ namespace tests
         simple_platformer::ActorId id)
     {
         return contactDamage(actor(world, id));
+    }
+
+    inline simple_platformer::SurfaceClimb& surfaceClimb(simple_platformer::Actor& actor)
+    {
+        std::optional<simple_platformer::SurfaceClimb>& component = actor.surfaceClimb;
+        if (!component.has_value())
+        {
+            throw std::logic_error("The test actor has no surface climb");
+        }
+        return *component;
+    }
+
+    inline simple_platformer::SurfaceClimb& surfaceClimb(
+        simple_platformer::World& world,
+        simple_platformer::ActorId id)
+    {
+        return surfaceClimb(actor(world, id));
     }
 
     inline simple_platformer::PathFollower& pathFollower(simple_platformer::Actor& actor)

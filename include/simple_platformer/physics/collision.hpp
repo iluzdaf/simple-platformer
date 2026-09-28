@@ -17,4 +17,8 @@ namespace simple_platformer
     };
 
     CollisionContacts moveAndCollide(const TileMap& map, Aabb& bounds, glm::vec2 displacement);
+
+    // Unlike moveAndCollide, this probes for surfaces touching a stationary box,
+    // allowing a small tolerance for floating-point positions.
+    CollisionContacts touchingSurfaces(const TileMap& map, const Aabb& bounds);
 }

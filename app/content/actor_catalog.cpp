@@ -7,6 +7,7 @@
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include <filesystem>
 #include <initializer_list>
@@ -122,6 +123,17 @@ namespace simple_platformer
         {
             checkJsonFields(value, {"speed"}, sourceName, path);
             FlyingMovement config;
+            readOptionalNumber(value, "speed", config.speed, sourceName, path);
+            return config;
+        }
+
+        SurfaceClimbConfig jsonSurfaceClimbConfig(
+            const Json& value,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            checkJsonFields(value, {"speed"}, sourceName, path);
+            SurfaceClimbConfig config;
             readOptionalNumber(value, "speed", config.speed, sourceName, path);
             return config;
         }
@@ -277,6 +289,19 @@ namespace simple_platformer
             }
         }
 
+        void readOptionalSurfaceClimbConfig(
+            const Json& object,
+            std::string_view key,
+            std::optional<SurfaceClimbConfig>& result,
+            std::string_view sourceName,
+            const std::string& path)
+        {
+            if (const Json* found = optionalJsonMember(object, key, sourceName, path))
+            {
+                result = jsonSurfaceClimbConfig(*found, sourceName, fieldPath(path, key));
+            }
+        }
+
         void readOptionalNpcSenses(
             const Json& object,
             std::string_view key,
@@ -345,6 +370,7 @@ namespace simple_platformer
                  "inventorySlots",
                  "platformer",
                  "flying",
+                 "surfaceClimb",
                  "senses",
                  "tactic",
                  "machine",
@@ -363,6 +389,8 @@ namespace simple_platformer
             readOptionalInteger(value, "inventorySlots", result.inventorySlots, sourceName, path);
             readOptionalPlatformerConfig(value, "platformer", result.platformer, sourceName, path);
             readOptionalFlyingMovement(value, "flying", result.flying, sourceName, path);
+            readOptionalSurfaceClimbConfig(
+                value, "surfaceClimb", result.surfaceClimb, sourceName, path);
             readOptionalNpcSenses(value, "senses", result.senses, sourceName, path);
             readOptionalNpcTactic(value, "tactic", result.tactic, sourceName, path);
             readOptionalText(value, "machine", result.machine, sourceName, path);

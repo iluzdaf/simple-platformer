@@ -7,6 +7,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -22,7 +23,15 @@ namespace simple_platformer
             {
                 PlatformerMovement& movement = *actor.platformerMovement;
                 const bool wasGrounded = movement.grounded;
-                updatePlatformerMovement(map, actor.body, movement, intentions, deltaTime);
+                if (actor.surfaceClimb.has_value())
+                {
+                    updateSurfaceClimbMovement(
+                        map, actor.body, movement, *actor.surfaceClimb, intentions, deltaTime);
+                }
+                else
+                {
+                    updatePlatformerMovement(map, actor.body, movement, intentions, deltaTime);
+                }
                 if (!wasGrounded && movement.grounded && actor.life == LifeState::Alive)
                 {
                     world.emitNoise({actor.id, feetOf(actor.body.bounds), NoiseKind::Landing});

@@ -12,7 +12,7 @@ namespace simple_platformer
         // Starts now.
         Stopwatch();
 
-        float elapsedSeconds() const;
+        float elapsedSeconds() const noexcept;
         // Restarts and returns the seconds since it last started: read once per frame,
         // that is the frame's time.
         float lapSeconds();

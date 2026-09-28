@@ -9,7 +9,7 @@ namespace simple_platformer
     {
     }
 
-    float Stopwatch::elapsedSeconds() const
+    float Stopwatch::elapsedSeconds() const noexcept
     {
         return std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count();
     }

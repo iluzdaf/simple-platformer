@@ -69,9 +69,7 @@ namespace simple_platformer
     }
 
     PhaseScope::PhaseScope(FrameProfile* profile, const char* category, const char* name)
-        : profile(profile),
-          category(category),
-          name(name)
+        : profile(profile)
     {
         if (profile == nullptr)
         {
@@ -79,20 +77,25 @@ namespace simple_platformer
         }
         // Register before running so an outer phase lists ahead of nested phases.
         addPhaseSeconds(*profile, category, name, 0.0F);
+        const auto phase = std::find_if(
+            profile->phases.begin(),
+            profile->phases.end(),
+            [name](const PhaseTiming& timing) { return std::string_view(timing.name) == name; });
+        phaseIndex = static_cast<std::size_t>(phase - profile->phases.begin());
         profile->nestedSecondsOfOpenPhases.push_back(0.0F);
         stopwatch.emplace();
     }
 
-    PhaseScope::~PhaseScope()
+    PhaseScope::~PhaseScope() noexcept
     {
-        if (profile == nullptr)
+        if (profile == nullptr || !stopwatch.has_value())
         {
             return;
         }
         const float elapsed = stopwatch->elapsedSeconds();
         const float nested = profile->nestedSecondsOfOpenPhases.back();
         profile->nestedSecondsOfOpenPhases.pop_back();
-        addPhaseSeconds(*profile, category, name, std::max(0.0F, elapsed - nested));
+        profile->phases[phaseIndex].seconds += elapsed > nested ? elapsed - nested : 0.0F;
         if (!profile->nestedSecondsOfOpenPhases.empty())
         {
             profile->nestedSecondsOfOpenPhases.back() += elapsed;

@@ -55,15 +55,14 @@ namespace simple_platformer
     {
     public:
         PhaseScope(FrameProfile* profile, const char* category, const char* name);
-        ~PhaseScope();
+        ~PhaseScope() noexcept;
 
         PhaseScope(const PhaseScope&) = delete;
         PhaseScope& operator=(const PhaseScope&) = delete;
 
     private:
         FrameProfile* profile;
-        const char* category;
-        const char* name;
+        std::size_t phaseIndex = 0;
         std::optional<Stopwatch> stopwatch;
     };
 

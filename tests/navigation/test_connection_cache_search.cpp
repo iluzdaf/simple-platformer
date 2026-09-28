@@ -62,14 +62,12 @@ namespace
     }
 
     void requireSameSteps(
-        const std::optional<simple_platformer::NavigationPath>& left,
-        const std::optional<simple_platformer::NavigationPath>& right)
+        const simple_platformer::NavigationPath& left,
+        const simple_platformer::NavigationPath& right)
     {
-        REQUIRE(left.has_value());
-        REQUIRE(right.has_value());
-        REQUIRE(left->start == right->start);
-        const std::vector<simple_platformer::NavigationStep>& leftSteps = left->steps;
-        const std::vector<simple_platformer::NavigationStep>& rightSteps = right->steps;
+        REQUIRE(left.start == right.start);
+        const std::vector<simple_platformer::NavigationStep>& leftSteps = left.steps;
+        const std::vector<simple_platformer::NavigationStep>& rightSteps = right.steps;
         REQUIRE(leftSteps.size() == rightSteps.size());
         for (std::size_t index = 0; index < leftSteps.size(); ++index)
         {
@@ -243,7 +241,9 @@ TEST_CASE("A found path answers the same search again without expanding", "[navi
             map, start, goal, BodySize, {}, tests::FixedStepSeconds, cache, {30}, &second)
             .path;
     REQUIRE(remembered.has_value());
-    requireSameSteps(remembered, found);
+    requireSameSteps(
+        remembered.value_or(simple_platformer::NavigationPath{}),
+        found.value_or(simple_platformer::NavigationPath{}));
     REQUIRE(second.nodesExpanded == 0);
     REQUIRE(second.cellsReused == 0);
     REQUIRE(second.pathsRemembered == 1);

@@ -11,6 +11,7 @@ namespace simple_platformer
 {
     class PlatformerConnectionCache;
     class TileMap;
+    struct FrameProfile;
 
     struct PlatformerNavigationConfig
     {
@@ -46,5 +47,6 @@ namespace simple_platformer
         float stepSeconds,
         PlatformerConnectionCache& cache,
         const PlatformerNavigationConfig& navigation = {},
-        PathSearchStatistics* statistics = nullptr);
+        PathSearchStatistics* statistics = nullptr,
+        FrameProfile* profile = nullptr);
 }

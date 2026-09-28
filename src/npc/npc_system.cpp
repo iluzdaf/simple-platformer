@@ -31,7 +31,7 @@
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
-#include "simple_platformer/timing/stopwatch.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -48,6 +48,7 @@ namespace simple_platformer
             float deltaTime;
             NpcBehaviourStatistics& statistics;
             NpcActivityScripts* scripts;
+            FrameProfile* profile;
         };
 
         // Looking at the target is an aim, like everything else an actor intends; the
@@ -144,23 +145,27 @@ namespace simple_platformer
 
             NavigationPathResult pathResult;
             PathSearchStatistics searchStatistics;
-            const Stopwatch stopwatch;
-            if (actor.flyingMovement.has_value())
             {
-                pathResult = findFlyingPath(map, start, goal, &searchStatistics);
-            }
-            else if (actor.platformerMovement.has_value())
-            {
-                pathResult = findPlatformerPath(
-                    map,
-                    start,
-                    goal,
-                    actor.body.bounds.size,
-                    actor.platformerMovement->config,
-                    update.deltaTime,
-                    update.world.platformerConnections(),
-                    PlatformerNavigationConfig{},
-                    &searchStatistics);
+                const PhaseScope searchPhase(update.profile, "Navigation", "Path search");
+                if (actor.flyingMovement.has_value())
+                {
+                    pathResult =
+                        findFlyingPath(map, start, goal, &searchStatistics, update.profile);
+                }
+                else if (actor.platformerMovement.has_value())
+                {
+                    pathResult = findPlatformerPath(
+                        map,
+                        start,
+                        goal,
+                        actor.body.bounds.size,
+                        actor.platformerMovement->config,
+                        update.deltaTime,
+                        update.world.platformerConnections(),
+                        PlatformerNavigationConfig{},
+                        &searchStatistics,
+                        update.profile);
+                }
             }
             NpcBehaviourStatistics& behaviourStatistics = update.statistics;
             ++behaviourStatistics.pathSearches;
@@ -169,7 +174,6 @@ namespace simple_platformer
             behaviourStatistics.searches.pathsRemembered += searchStatistics.pathsRemembered;
             behaviourStatistics.searches.deferred += searchStatistics.deferred;
             behaviourStatistics.searches.simulatedTicks += searchStatistics.simulatedTicks;
-            behaviourStatistics.searchSeconds += stopwatch.elapsedSeconds();
             follower.destinationCell = goal;
             follower.breaksWhenPlanned = map.brokenCells().size();
             // A deferred search is asked again next step, once the fill has caught up.
@@ -630,11 +634,12 @@ namespace simple_platformer
         const TileMap& map,
         World& world,
         float deltaTime,
-        NpcActivityScripts* scripts)
+        NpcActivityScripts* scripts,
+        FrameProfile* profile)
     {
         requireSeconds(deltaTime, "NPC behaviour time step");
         NpcBehaviourStatistics statistics;
-        const NpcUpdate update{map, world, deltaTime, statistics, scripts};
+        const NpcUpdate update{map, world, deltaTime, statistics, scripts, profile};
 
         for (Actor& actor : world.actors())
         {

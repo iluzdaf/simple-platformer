@@ -34,7 +34,7 @@ namespace simple_platformer
         { timePhase(profile, category, name, run); };
 
         phase(
-            "NPC",
+            "Navigation",
             "Navigation fill",
             [&]
             {
@@ -52,14 +52,11 @@ namespace simple_platformer
             [&]
             {
                 const NpcBehaviourStatistics behaviourStatistics =
-                    updateNpcBehaviour(map, world, deltaTime, scripts);
+                    updateNpcBehaviour(map, world, deltaTime, scripts, profile);
                 if (profile == nullptr || behaviourStatistics.pathSearches == 0)
                 {
                     return;
                 }
-                // The searches ran inside this phase; charged as their own, it keeps the rest.
-                addNestedPhaseSeconds(
-                    *profile, "NPC", "Path search", behaviourStatistics.searchSeconds);
                 profile->pathSearches += behaviourStatistics.pathSearches;
                 profile->pathSearchesRemembered += behaviourStatistics.searches.pathsRemembered;
                 profile->pathSearchesDeferred += behaviourStatistics.searches.deferred;

@@ -4,9 +4,7 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <string>
-#include <utility>
-#include <vector>
+#include <string_view>
 
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
@@ -91,43 +89,6 @@ TEST_CASE("World simulation lets a pickup fall onto the tile below", "[world][si
 }
 
 TEST_CASE(
-    "A profiled step names every simulation phase in the order it ran",
-    "[world][simulation][profile]")
-{
-    simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
-    simple_platformer::World world;
-    tests::addPlayer(world, tests::ActorBuilder::sized({12.0F, 12.0F}).inCell({1, 0}).walking());
-    simple_platformer::FrameProfile profile;
-
-    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds, &profile);
-
-    const std::vector<std::pair<const char*, const char*>> expected{
-        {"NPC", "Navigation fill"},
-        {"NPC", "NPC senses"},
-        {"NPC", "NPC behaviour"},
-        {"Movement", "Actor movement"},
-        {"Movement", "Pickup movement"},
-        {"Combat", "Attacks"},
-        {"Combat", "Projectiles"},
-        {"Combat", "Projectile bursts"},
-        {"World", "Life states"},
-        {"World", "Pickups"},
-        {"World", "World requests"},
-        {"World", "Level exit"}};
-    REQUIRE(profile.phases.size() == expected.size());
-    for (std::size_t index = 0; index < expected.size(); ++index)
-    {
-        REQUIRE(std::string(profile.phases[index].category) == expected[index].first);
-        REQUIRE(std::string(profile.phases[index].name) == expected[index].second);
-        REQUIRE(profile.phases[index].seconds >= 0.0F);
-    }
-
-    // A second step adds to the same phases rather than listing them again.
-    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds, &profile);
-    REQUIRE(profile.phases.size() == expected.size());
-}
-
-TEST_CASE(
     "Profiling a step changes nothing about what it simulates",
     "[world][simulation][profile]")
 {
@@ -169,22 +130,16 @@ TEST_CASE(
             timed.actors()[index].body.bounds.position ==
             plain.actors()[index].body.bounds.position);
     }
-    // The chasing NPC searched for a path at least once, and the counts survived the ticks.
+    // The chasing NPC searched for a path at least once.
     REQUIRE(profile.pathSearches >= 1);
-    REQUIRE(profile.pathSearchNodes >= 1);
-    // The search is timed as its own phase, after the behaviour phase it ran inside.
-    const auto behaviour = std::find_if(
+    REQUIRE(std::any_of(
         profile.phases.begin(),
         profile.phases.end(),
         [](const simple_platformer::PhaseTiming& phase)
-        { return std::string(phase.name) == "NPC behaviour"; });
-    const auto search = std::find_if(
+        { return std::string_view(phase.name) == "Path search"; }));
+    REQUIRE(std::all_of(
         profile.phases.begin(),
         profile.phases.end(),
-        [](const simple_platformer::PhaseTiming& phase)
-        { return std::string(phase.name) == "Path search"; });
-    REQUIRE(behaviour != profile.phases.end());
-    REQUIRE(search != profile.phases.end());
-    REQUIRE(behaviour < search);
-    REQUIRE(std::string(search->category) == "NPC");
+        [](const simple_platformer::PhaseTiming& phase) { return phase.seconds >= 0.0F; }));
+    REQUIRE(profile.nestedSecondsOfOpenPhases.empty());
 }

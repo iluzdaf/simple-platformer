@@ -7,6 +7,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_search.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
@@ -42,25 +43,34 @@ namespace simple_platformer
         const TileMap& map,
         GridPosition start,
         GridPosition goal,
-        PathSearchStatistics* statistics)
+        PathSearchStatistics* statistics,
+        FrameProfile* profile)
     {
         if (!map.contains(start) || !map.contains(goal))
         {
             return {NavigationPathStatus::Unreachable, {}};
         }
-        const GridConnectionFunction connections = [&map, statistics](GridPosition cell)
+        const GridConnectionFunction connections = [&map, statistics, profile](GridPosition cell)
         {
+            const PhaseScope connectionPhase(profile, "Navigation", "Connection retrieval");
             if (statistics != nullptr)
             {
                 ++statistics->nodesExpanded;
             }
             return flyingConnections(map, cell);
         };
-        const GridNeighborFunction neighbors = [&map](GridPosition cell)
-        { return flyingNeighbors(map, cell); };
+        const GridNeighborFunction neighbors = [&map, profile](GridPosition cell)
+        {
+            const PhaseScope neighborPhase(profile, "Navigation", "Neighbor generation");
+            return flyingNeighbors(map, cell);
+        };
 
-        PathSearchResult result =
-            findLowestCostPath(start, goal, map.size(), neighbors, connections, manhattanHeuristic);
+        PathSearchResult result;
+        {
+            const PhaseScope algorithmPhase(profile, "Navigation", "Search algorithm");
+            result = findLowestCostPath(
+                start, goal, map.size(), neighbors, connections, manhattanHeuristic);
+        }
         if (result.status == PathSearchStatus::Found)
         {
             return {NavigationPathStatus::Found, std::move(result.path)};

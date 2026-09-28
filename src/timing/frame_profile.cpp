@@ -68,16 +68,34 @@ namespace simple_platformer
         profile.phases.push_back({category, name, seconds});
     }
 
-    void addNestedPhaseSeconds(
-        FrameProfile& profile,
-        const char* category,
-        const char* name,
-        float seconds)
+    PhaseScope::PhaseScope(FrameProfile* profile, const char* category, const char* name)
+        : profile(profile),
+          category(category),
+          name(name)
     {
-        addPhaseSeconds(profile, category, name, seconds);
-        if (!profile.nestedSecondsOfOpenPhases.empty())
+        if (profile == nullptr)
         {
-            profile.nestedSecondsOfOpenPhases.back() += seconds;
+            return;
+        }
+        // Register before running so an outer phase lists ahead of nested phases.
+        addPhaseSeconds(*profile, category, name, 0.0F);
+        profile->nestedSecondsOfOpenPhases.push_back(0.0F);
+        stopwatch.emplace();
+    }
+
+    PhaseScope::~PhaseScope()
+    {
+        if (profile == nullptr)
+        {
+            return;
+        }
+        const float elapsed = stopwatch->elapsedSeconds();
+        const float nested = profile->nestedSecondsOfOpenPhases.back();
+        profile->nestedSecondsOfOpenPhases.pop_back();
+        addPhaseSeconds(*profile, category, name, std::max(0.0F, elapsed - nested));
+        if (!profile->nestedSecondsOfOpenPhases.empty())
+        {
+            profile->nestedSecondsOfOpenPhases.back() += elapsed;
         }
     }
 
@@ -136,24 +154,8 @@ namespace simple_platformer
         const char* name,
         const std::function<void()>& phase)
     {
-        if (profile == nullptr)
-        {
-            phase();
-            return;
-        }
-        // Registered before it runs so it lists ahead of the phases timed inside it.
-        addPhaseSeconds(*profile, category, name, 0.0F);
-        profile->nestedSecondsOfOpenPhases.push_back(0.0F);
-        const Stopwatch stopwatch;
+        const PhaseScope scope(profile, category, name);
         phase();
-        const float elapsed = stopwatch.elapsedSeconds();
-        const float nested = profile->nestedSecondsOfOpenPhases.back();
-        profile->nestedSecondsOfOpenPhases.pop_back();
-        addPhaseSeconds(*profile, category, name, std::max(0.0F, elapsed - nested));
-        if (!profile->nestedSecondsOfOpenPhases.empty())
-        {
-            profile->nestedSecondsOfOpenPhases.back() += elapsed;
-        }
     }
 
     FrameHistory::FrameHistory(std::size_t capacity)

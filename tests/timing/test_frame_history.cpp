@@ -96,21 +96,21 @@ TEST_CASE("A frame history rejects impossible measurements", "[timing][profile]"
 TEST_CASE("Adding to a phase sums repeats and keeps first-seen order", "[timing][profile]")
 {
     FrameProfile profile;
-    simple_platformer::addPhaseSeconds(profile, "NPC", "Senses", 0.001F);
-    simple_platformer::addPhaseSeconds(profile, "Movement", "Actors", 0.002F);
-    simple_platformer::addPhaseSeconds(profile, "NPC", "Senses", 0.003F);
+    simple_platformer::addPhaseSeconds(profile, "Category A", "First", 0.001F);
+    simple_platformer::addPhaseSeconds(profile, "Category B", "Second", 0.002F);
+    simple_platformer::addPhaseSeconds(profile, "Category A", "First", 0.003F);
 
     REQUIRE(profile.phases.size() == 2);
-    REQUIRE(std::string(profile.phases[0].category) == "NPC");
-    REQUIRE(std::string(profile.phases[0].name) == "Senses");
+    REQUIRE(std::string(profile.phases[0].category) == "Category A");
+    REQUIRE(std::string(profile.phases[0].name) == "First");
     REQUIRE_NEAR(profile.phases[0].seconds, 0.004F);
-    REQUIRE(std::string(profile.phases[1].name) == "Actors");
+    REQUIRE(std::string(profile.phases[1].name) == "Second");
     REQUIRE_THROWS_AS(
-        simple_platformer::addPhaseSeconds(profile, "NPC", "Senses", -0.001F),
+        simple_platformer::addPhaseSeconds(profile, "Category A", "First", -0.001F),
         std::invalid_argument);
     // A phase belongs to one category.
     REQUIRE_THROWS_AS(
-        simple_platformer::addPhaseSeconds(profile, "Combat", "Senses", 0.001F),
+        simple_platformer::addPhaseSeconds(profile, "Category B", "First", 0.001F),
         std::invalid_argument);
 }
 
@@ -119,14 +119,14 @@ TEST_CASE(
     "[timing][profile]")
 {
     FrameProfile profile;
-    simple_platformer::addPhaseSeconds(profile, "NPC", "NPC senses", 0.001F);
-    simple_platformer::addPhaseSeconds(profile, "NPC", "NPC behaviour", 0.003F);
-    simple_platformer::addPhaseSeconds(profile, "Movement", "Actor movement", 0.005F);
-    simple_platformer::addPhaseSeconds(profile, "Combat", "Attacks", 0.002F);
-    simple_platformer::addPhaseSeconds(profile, "Combat", "Projectiles", 0.004F);
+    simple_platformer::addPhaseSeconds(profile, "Category A", "A first", 0.001F);
+    simple_platformer::addPhaseSeconds(profile, "Category A", "A second", 0.003F);
+    simple_platformer::addPhaseSeconds(profile, "Category B", "B only", 0.005F);
+    simple_platformer::addPhaseSeconds(profile, "Category C", "C first", 0.002F);
+    simple_platformer::addPhaseSeconds(profile, "Category C", "C second", 0.004F);
     // A tie keeps simulation order.
-    simple_platformer::addPhaseSeconds(profile, "World", "Pickups", 0.001F);
-    simple_platformer::addPhaseSeconds(profile, "World", "Level exit", 0.001F);
+    simple_platformer::addPhaseSeconds(profile, "Category D", "D first", 0.001F);
+    simple_platformer::addPhaseSeconds(profile, "Category D", "D second", 0.001F);
 
     const std::vector<simple_platformer::PhaseTiming> sorted =
         simple_platformer::phasesByCost(profile.phases);
@@ -136,16 +136,11 @@ TEST_CASE(
     {
         names.emplace_back(phase.name);
     }
-    // Combat 6 ms, Movement 5, NPC 4, World 2.
+    // Category totals are C 6 ms, B 5, A 4, and D 2.
     REQUIRE(
-        names == std::vector<std::string>{
-                     "Projectiles",
-                     "Attacks",
-                     "Actor movement",
-                     "NPC behaviour",
-                     "NPC senses",
-                     "Pickups",
-                     "Level exit"});
+        names ==
+        std::vector<std::string>{
+            "C second", "C first", "B only", "A second", "A first", "D first", "D second"});
     REQUIRE(simple_platformer::phasesByCost({}).empty());
 }
 
@@ -154,24 +149,24 @@ TEST_CASE("A frame history lists every phase its frames ran, in order", "[timing
     FrameHistory history(4);
     REQUIRE(history.phasesSummed().empty());
 
-    // The first frame ran no search; the second did, between behaviour and movement.
+    // The second frame introduces a phase between two already seen in the first.
     FrameProfile first = frameTaking(0.016F);
-    simple_platformer::addPhaseSeconds(first, "NPC", "NPC behaviour", 0.001F);
-    simple_platformer::addPhaseSeconds(first, "Movement", "Actor movement", 0.002F);
+    simple_platformer::addPhaseSeconds(first, "Category A", "First", 0.001F);
+    simple_platformer::addPhaseSeconds(first, "Category C", "Last", 0.002F);
     FrameProfile second = frameTaking(0.016F);
-    simple_platformer::addPhaseSeconds(second, "NPC", "NPC behaviour", 0.003F);
-    simple_platformer::addPhaseSeconds(second, "NPC", "Path search", 0.004F);
-    simple_platformer::addPhaseSeconds(second, "Movement", "Actor movement", 0.005F);
+    simple_platformer::addPhaseSeconds(second, "Category A", "First", 0.003F);
+    simple_platformer::addPhaseSeconds(second, "Category B", "Middle", 0.004F);
+    simple_platformer::addPhaseSeconds(second, "Category C", "Last", 0.005F);
     history.push(first);
     history.push(second);
     history.push(frameTaking(0.007F));
 
     const std::vector<simple_platformer::PhaseTiming> phases = history.phasesSummed();
     REQUIRE(phases.size() == 3);
-    REQUIRE(std::string(phases[0].name) == "NPC behaviour");
-    REQUIRE(std::string(phases[1].name) == "Path search");
-    REQUIRE(std::string(phases[1].category) == "NPC");
-    REQUIRE(std::string(phases[2].name) == "Actor movement");
+    REQUIRE(std::string(phases[0].name) == "First");
+    REQUIRE(std::string(phases[1].name) == "Middle");
+    REQUIRE(std::string(phases[1].category) == "Category B");
+    REQUIRE(std::string(phases[2].name) == "Last");
     REQUIRE_NEAR(phases[0].seconds, 0.004F);
     REQUIRE_NEAR(phases[1].seconds, 0.004F);
     REQUIRE_NEAR(phases[2].seconds, 0.007F);
@@ -182,16 +177,16 @@ TEST_CASE("A frame history reports one measurement across its frames", "[timing]
     FrameHistory history(3);
     FrameProfile first = frameTaking(0.010F);
     first.simulationSeconds = 0.004F;
-    simple_platformer::addPhaseSeconds(first, "NPC", "NPC senses", 0.001F);
-    simple_platformer::addPhaseSeconds(first, "NPC", "NPC behaviour", 0.003F);
+    simple_platformer::addPhaseSeconds(first, "Category A", "First", 0.001F);
+    simple_platformer::addPhaseSeconds(first, "Category A", "Second", 0.003F);
     FrameProfile second = frameTaking(0.007F);
     history.push(first);
     history.push(second);
 
     REQUIRE(history.simulationSecondsOldestFirst() == std::vector<float>{0.004F, 0.0F});
     // A category is the sum of its phases; a frame that ran no step contributes zero.
-    REQUIRE(history.categorySecondsOldestFirst("NPC") == std::vector<float>{0.004F, 0.0F});
-    REQUIRE(history.categorySecondsOldestFirst("Combat") == std::vector<float>{0.0F, 0.0F});
+    REQUIRE(history.categorySecondsOldestFirst("Category A") == std::vector<float>{0.004F, 0.0F});
+    REQUIRE(history.categorySecondsOldestFirst("Category B") == std::vector<float>{0.0F, 0.0F});
 }
 
 TEST_CASE("A frame history totals ticks and path searches across its frames", "[timing][profile]")
@@ -232,47 +227,46 @@ TEST_CASE("A frame history totals ticks and path searches across its frames", "[
     REQUIRE(history.totalPathSearches() == 3);
 }
 
-TEST_CASE(
-    "Seconds a system measured itself charge the phase they ran inside less",
-    "[timing][profile]")
+TEST_CASE("A phase scope closes when work exits early", "[timing][profile]")
 {
     FrameProfile profile;
-    simple_platformer::timePhase(
-        &profile,
-        "NPC",
-        "Outer",
-        [&profile]
-        {
-            simple_platformer::addNestedPhaseSeconds(profile, "NPC", "Inner", 0.25F);
-            simple_platformer::addNestedPhaseSeconds(profile, "NPC", "Inner", 0.25F);
-        });
-    REQUIRE(profile.phases.size() == 2);
-    REQUIRE(std::string(profile.phases[0].name) == "Outer");
-    REQUIRE(std::string(profile.phases[1].name) == "Inner");
-    REQUIRE(profile.phases[1].seconds == 0.5F);
-    // The outer phase took far less than the half second charged inside it, so it keeps
-    // nothing, never a negative time.
-    REQUIRE(profile.phases[0].seconds == 0.0F);
-    // Outside any phase, the seconds are simply added.
-    simple_platformer::addNestedPhaseSeconds(profile, "NPC", "Inner", 0.25F);
-    REQUIRE(profile.phases[1].seconds == 0.75F);
+    const auto finishEarly = [&profile]
+    {
+        const simple_platformer::PhaseScope scope(&profile, "Category A", "Early return");
+        return 7;
+    };
+
+    REQUIRE(finishEarly() == 7);
+    REQUIRE(profile.phases.size() == 1);
+    REQUIRE(std::string(profile.phases[0].name) == "Early return");
+    REQUIRE(profile.phases[0].seconds >= 0.0F);
+    REQUIRE(profile.nestedSecondsOfOpenPhases.empty());
+
+    REQUIRE_THROWS_AS(
+        simple_platformer::timePhase(
+            &profile, "Category A", "Throwing", [] { throw std::runtime_error("failed"); }),
+        std::runtime_error);
+    REQUIRE(profile.nestedSecondsOfOpenPhases.empty());
 }
 
 TEST_CASE("Timing a phase charges it less the phases timed inside it", "[timing][profile]")
 {
     bool ran = false;
-    simple_platformer::timePhase(nullptr, "NPC", "Outer", [&ran] { ran = true; });
+    simple_platformer::timePhase(nullptr, "Category A", "Outer", [&ran] { ran = true; });
     REQUIRE(ran);
 
     FrameProfile profile;
     simple_platformer::timePhase(
         &profile,
-        "NPC",
+        "Category A",
         "Outer",
         [&]
         {
             simple_platformer::timePhase(
-                &profile, "NPC", "Inner", [] { tests::spinFor(std::chrono::milliseconds(2)); });
+                &profile,
+                "Category A",
+                "Inner",
+                [] { tests::spinFor(std::chrono::milliseconds(2)); });
         });
 
     // The outer phase lists first though it finished last, and keeps only its own time.

@@ -2,7 +2,10 @@
 
 #include <cstddef>
 #include <functional>
+#include <optional>
 #include <vector>
+
+#include "simple_platformer/timing/stopwatch.hpp"
 
 namespace simple_platformer
 {
@@ -41,14 +44,31 @@ namespace simple_platformer
         int pathSearchCellsReused = 0;
         int pathSearchSimulatedTicks = 0;
         int navigationFillTicks = 0;
-        // Bookkeeping for timePhase: for each phase being timed right now, outermost
+        // Bookkeeping for nested phase scopes: for each phase being timed, outermost
         // first, the seconds already charged to phases timed inside it. Empty between steps.
         std::vector<float> nestedSecondsOfOpenPhases;
     };
 
-    // Runs one phase of the step and, when there is a profile, charges its wall-clock time
-    // to it less any phases timed inside it, so sibling phases never count the same time
-    // twice. This is the one place the engine reads a clock.
+    // Times one scope. Nested scopes charge only their own time to each phase, so the
+    // category totals do not double-count work. A null profile makes this a no-op.
+    class PhaseScope
+    {
+    public:
+        PhaseScope(FrameProfile* profile, const char* category, const char* name);
+        ~PhaseScope();
+
+        PhaseScope(const PhaseScope&) = delete;
+        PhaseScope& operator=(const PhaseScope&) = delete;
+
+    private:
+        FrameProfile* profile;
+        const char* category;
+        const char* name;
+        std::optional<Stopwatch> stopwatch;
+    };
+
+    // Convenience wrapper for void work; PhaseScope also supports early returns and
+    // result-producing work. Both use the same nested timing mechanism.
     void timePhase(
         FrameProfile* profile,
         const char* category,
@@ -58,15 +78,6 @@ namespace simple_platformer
     // Adds to the named phase, appending it the first time it is seen. A phase keeps the
     // category it was first charged under.
     void addPhaseSeconds(
-        FrameProfile& profile,
-        const char* category,
-        const char* name,
-        float seconds);
-
-    // Charges seconds a system measured itself, inside the phase being timed, as if
-    // timePhase had timed them there: the open phase is charged that much less, so it
-    // keeps only its own time.
-    void addNestedPhaseSeconds(
         FrameProfile& profile,
         const char* category,
         const char* name,

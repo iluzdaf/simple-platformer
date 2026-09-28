@@ -8,16 +8,15 @@
 namespace simple_platformer
 {
     class NpcActivityScripts;
+    struct FrameProfile;
     class TileMap;
     class World;
 
-    // What the NPCs' searches did in one update, for the step to charge to its profile:
-    // how many ran, their statistics summed, and the seconds they took.
+    // What the NPCs' searches did in one update, for the step's counters.
     struct NpcBehaviourStatistics
     {
         int pathSearches = 0;
         PathSearchStatistics searches;
-        float searchSeconds = 0.0F;
     };
 
     // Chooses each NPC's state and the intentions that act on it, searching the world's
@@ -26,7 +25,8 @@ namespace simple_platformer
         const TileMap& map,
         World& world,
         float deltaTime,
-        NpcActivityScripts* scripts = nullptr);
+        NpcActivityScripts* scripts = nullptr,
+        FrameProfile* profile = nullptr);
 
     // Discards script-owned state before queued actor removals are applied to World.
     void forgetNpcActivities(const std::vector<ActorId>& actors, NpcActivityScripts& scripts);

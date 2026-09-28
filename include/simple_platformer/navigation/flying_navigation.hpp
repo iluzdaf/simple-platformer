@@ -9,6 +9,7 @@
 namespace simple_platformer
 {
     class TileMap;
+    struct FrameProfile;
 
     // Adjacent cells that permit flying movement. This policy identifies cells, not
     // the traversal and cost of the connections passed to path search.
@@ -24,5 +25,6 @@ namespace simple_platformer
         const TileMap& map,
         GridPosition start,
         GridPosition goal,
-        PathSearchStatistics* statistics = nullptr);
+        PathSearchStatistics* statistics = nullptr,
+        FrameProfile* profile = nullptr);
 }

@@ -857,20 +857,11 @@ collection and selection logic testable without a window.
 `app/debug/machine_graph_ui` presents the selected NPC's `NpcMachine` from that snapshot
 without editing it.
 
-The application records frame, simulation, scene, render and interface timing in a
-`FrameHistory`. `app/debug/frame_profile_ui` plots frame time against the 60 Hz budget
-and stacks simulation phases by category on a second axis. `FrameAxes` owns the adaptive
-axis ranges, while `FrameSelection` keeps an immutable history snapshot and freezes the
-ranges during inspection. Both are independent of ImGui and tested directly. Profiling
-numbers are meaningful only in a release build.
-
-Only a step owner charges the `FrameProfile`: the application records frame sections,
-and `updateWorldSimulation` records simulation phases and counters. Lower-level systems
-report through their own types, including `PathSearchStatistics`,
-`NavigationFillStatistics`, and `NpcBehaviourStatistics`; the step copies those results
-into the profile. Timing uses `timePhase` for phases and `Stopwatch` when a system sums
-its own time, such as NPC searches. With no profile, the step records no frame-profile
-measurements.
+Frame profiling is optional. The application owns each frame record and passes it to
+the simulation; work measures its own duration with nested scopes. Parent phases
+exclude child time, so the phase totals do not double-count. `FrameHistory` retains
+completed records for the debug UI. See `timing/frame_profile` for the API and
+[Debug overlay](../README.md#debug-overlay) for its presentation.
 
 Results intrinsic to a call are returned by value, such as `PathSearchResult` and
 `NavigationFillStatistics`. Optional reporting uses a nullable pointer, such as

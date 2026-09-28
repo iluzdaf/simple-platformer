@@ -14,6 +14,7 @@
 
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "simple_platformer/world/tile_map.hpp"
 #include "tile_catalog.hpp"
 #include "level_data.hpp"
 #include "simple_platformer/math/validation.hpp"

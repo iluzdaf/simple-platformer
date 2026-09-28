@@ -46,7 +46,7 @@ namespace simple_platformer
             const TileMap& map;
             World& world;
             float deltaTime;
-            NpcBehaviourCost& cost;
+            NpcBehaviourStatistics& statistics;
             NpcActivityScripts* scripts;
         };
 
@@ -142,44 +142,43 @@ namespace simple_platformer
                 return;
             }
 
-            std::optional<NavigationPath> path;
-            bool pathDeferred = false;
-            PathSearchStatistics statistics;
+            NavigationPathResult pathResult;
+            PathSearchStatistics searchStatistics;
             const Stopwatch stopwatch;
             if (actor.flyingMovement.has_value())
             {
-                path = findFlyingPath(map, start, goal, &statistics);
+                pathResult = findFlyingPath(map, start, goal, &searchStatistics);
             }
             else if (actor.platformerMovement.has_value())
             {
-                PlatformerPathResult result = findPlatformerPath(
+                pathResult = findPlatformerPath(
                     map,
                     start,
                     goal,
                     actor.body.bounds.size,
                     actor.platformerMovement->config,
                     update.deltaTime,
+                    update.world.platformerConnections(),
                     PlatformerNavigationConfig{},
-                    &statistics,
-                    &update.world.platformerConnections());
-                pathDeferred = result.status == PlatformerPathStatus::Deferred;
-                path = std::move(result.path);
+                    &searchStatistics);
             }
-            NpcBehaviourCost& cost = update.cost;
-            ++cost.pathSearches;
-            cost.searches.nodesExpanded += statistics.nodesExpanded;
-            cost.searches.cellsReused += statistics.cellsReused;
-            cost.searches.pathsRemembered += statistics.pathsRemembered;
-            cost.searches.deferred += statistics.deferred;
-            cost.searches.simulatedTicks += statistics.simulatedTicks;
-            cost.searchSeconds += stopwatch.elapsedSeconds();
+            NpcBehaviourStatistics& behaviourStatistics = update.statistics;
+            ++behaviourStatistics.pathSearches;
+            behaviourStatistics.searches.nodesExpanded += searchStatistics.nodesExpanded;
+            behaviourStatistics.searches.cellsReused += searchStatistics.cellsReused;
+            behaviourStatistics.searches.pathsRemembered += searchStatistics.pathsRemembered;
+            behaviourStatistics.searches.deferred += searchStatistics.deferred;
+            behaviourStatistics.searches.simulatedTicks += searchStatistics.simulatedTicks;
+            behaviourStatistics.searchSeconds += stopwatch.elapsedSeconds();
             follower.destinationCell = goal;
             follower.breaksWhenPlanned = map.brokenCells().size();
             // A deferred search is asked again next step, once the fill has caught up.
-            follower.repathRemaining = pathDeferred ? 0.0F : follower.repathCooldown;
-            if (path.has_value())
+            follower.repathRemaining = pathResult.status == NavigationPathStatus::Deferred
+                                           ? 0.0F
+                                           : follower.repathCooldown;
+            if (pathResult.path.has_value())
             {
-                setPath(follower, path.value(), goal);
+                setPath(follower, std::move(pathResult.path.value()), goal);
             }
             else
             {
@@ -296,7 +295,7 @@ namespace simple_platformer
             {
                 return brain.lastKnownTargetFeet;
             }
-            const std::optional<GridPosition> chaseCell = findPlatformerChaseCell(
+            const std::optional<GridPosition> chaseCell = findNearestStandableCell(
                 update.map, brain.lastKnownTargetFeet, actor.body.bounds.size);
             if (!chaseCell.has_value())
             {
@@ -627,15 +626,15 @@ namespace simple_platformer
         }
     }
 
-    NpcBehaviourCost updateNpcBehaviour(
+    NpcBehaviourStatistics updateNpcBehaviour(
         const TileMap& map,
         World& world,
         float deltaTime,
         NpcActivityScripts* scripts)
     {
         requireSeconds(deltaTime, "NPC behaviour time step");
-        NpcBehaviourCost cost;
-        const NpcUpdate update{map, world, deltaTime, cost, scripts};
+        NpcBehaviourStatistics statistics;
+        const NpcUpdate update{map, world, deltaTime, statistics, scripts};
 
         for (Actor& actor : world.actors())
         {
@@ -665,7 +664,7 @@ namespace simple_platformer
                 }
             }
         }
-        return cost;
+        return statistics;
     }
 
     void forgetNpcActivities(const std::vector<ActorId>& actors, NpcActivityScripts& scripts)

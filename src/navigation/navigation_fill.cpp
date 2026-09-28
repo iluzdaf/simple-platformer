@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -12,146 +13,117 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
+#include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
 {
-    FillWork fillPlatformerConnections(
+    namespace
+    {
+        // Account for cache writes even when a cell needs no movement simulation.
+        constexpr int CacheWriteCostTicks = 3;
+
+        NavigationFillStatistics fillPlatformerConnections(
+            const TileMap& map,
+            const PlatformerTraversalProfile& profile,
+            PlatformerConnectionCache& cache,
+            int tickBudget)
+        {
+            NavigationFillStatistics fillStatistics;
+            while (fillStatistics.budgetSpent < tickBudget)
+            {
+                const std::optional<GridPosition> next = cache.nextPending(profile);
+                if (!next.has_value())
+                {
+                    break;
+                }
+                const GridPosition cell = next.value();
+                BuiltPlatformerConnections built =
+                    buildPlatformerConnections(map, cell, profile, &cache);
+                const int simulatedTicks = built.simulatedTicks;
+                storePlatformerConnections(cache, cell, profile, std::move(built));
+                ++fillStatistics.cellsCached;
+                fillStatistics.simulatedTicks += simulatedTicks;
+                fillStatistics.budgetSpent += simulatedTicks + CacheWriteCostTicks;
+            }
+            return fillStatistics;
+        }
+
+        std::vector<PlatformerTraversalProfile> platformerTraversalProfilesIn(
+            const World& world,
+            float stepSeconds)
+        {
+            requirePositiveSeconds(stepSeconds, "Navigation step");
+            std::vector<PlatformerTraversalProfile> profiles;
+            for (const Actor& actor : world.actors())
+            {
+                if (!actor.pathFollower.has_value() || !actor.platformerMovement.has_value())
+                {
+                    continue;
+                }
+                const PlatformerTraversalProfile profile{
+                    actor.body.bounds.size, actor.platformerMovement->config, stepSeconds};
+                const bool known = std::any_of(
+                    profiles.begin(),
+                    profiles.end(),
+                    [&profile](const PlatformerTraversalProfile& existing)
+                    { return existing == profile; });
+                if (!known)
+                {
+                    profiles.push_back(profile);
+                }
+            }
+            return profiles;
+        }
+    }
+
+    void queueNavigationFill(const TileMap& map, World& world, float stepSeconds)
+    {
+        const std::vector<PlatformerTraversalProfile> profiles =
+            platformerTraversalProfilesIn(world, stepSeconds);
+        PlatformerConnectionCache& cache = world.platformerConnections();
+        cache.applyRecordedTileBreaks(map);
+        for (const PlatformerTraversalProfile& profile : profiles)
+        {
+            for (int row = 0; row < map.height(); ++row)
+            {
+                for (int column = 0; column < map.width(); ++column)
+                {
+                    cache.queue({column, row}, profile);
+                }
+            }
+        }
+    }
+
+    NavigationFillStatistics advanceNavigationFill(
         const TileMap& map,
-        glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement,
-        float stepSeconds,
         PlatformerConnectionCache& cache,
         int tickBudget)
     {
-        requirePositiveSeconds(stepSeconds, "Navigation simulation step");
         if (tickBudget < 0)
         {
             throw std::invalid_argument("A fill budget cannot be negative");
         }
-        cache.syncWith(map);
-        const ConnectionBody body{bodySize, movement, stepSeconds};
-        FillWork work;
-        while (work.budgetSpent < tickBudget)
-        {
-            const std::optional<GridPosition> next = cache.nextPending(body);
-            if (!next.has_value())
-            {
-                break;
-            }
-            PathSearchStatistics statistics;
-            platformerNeighborsKept(
-                map,
-                next.value_or(GridPosition{}),
-                bodySize,
-                movement,
-                stepSeconds,
-                cache,
-                &statistics);
-            ++work.cells;
-            work.simulatedTicks += statistics.simulatedTicks;
-            work.budgetSpent += statistics.simulatedTicks + KeepCostTicks;
-        }
-        return work;
-    }
-
-    void queueAllPlatformerConnections(
-        const TileMap& map,
-        glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement,
-        float stepSeconds,
-        PlatformerConnectionCache& cache)
-    {
-        requirePositiveSeconds(stepSeconds, "Navigation simulation step");
-        cache.syncWith(map);
-        const ConnectionBody body{bodySize, movement, stepSeconds};
-        for (int row = 0; row < map.height(); ++row)
-        {
-            for (int column = 0; column < map.width(); ++column)
-            {
-                cache.queue({column, row}, body);
-            }
-        }
-    }
-
-    void keepAllPlatformerConnections(
-        const TileMap& map,
-        glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement,
-        float stepSeconds,
-        PlatformerConnectionCache& cache)
-    {
-        cache.syncWith(map);
-        for (int row = 0; row < map.height(); ++row)
-        {
-            for (int column = 0; column < map.width(); ++column)
-            {
-                platformerNeighborsKept(map, {column, row}, bodySize, movement, stepSeconds, cache);
-            }
-        }
-    }
-
-    std::vector<ConnectionBody> platformerBodiesIn(const World& world, float stepSeconds)
-    {
-        requirePositiveSeconds(stepSeconds, "Navigation step");
-        std::vector<ConnectionBody> bodies;
-        for (const Actor& actor : world.actors())
-        {
-            if (!actor.pathFollower.has_value() || !actor.platformerMovement.has_value())
-            {
-                continue;
-            }
-            const ConnectionBody body{
-                actor.body.bounds.size, actor.platformerMovement->config, stepSeconds};
-            const bool known = std::any_of(
-                bodies.begin(),
-                bodies.end(),
-                [&body](const ConnectionBody& kept) { return kept == body; });
-            if (!known)
-            {
-                bodies.push_back(body);
-            }
-        }
-        return bodies;
-    }
-
-    void queueNavigation(
-        const TileMap& map,
-        const std::vector<ConnectionBody>& bodies,
-        PlatformerConnectionCache& cache)
-    {
-        for (const ConnectionBody& body : bodies)
-        {
-            queueAllPlatformerConnections(map, body.size, body.movement, body.stepSeconds, cache);
-        }
-    }
-
-    FillWork fillNavigation(const TileMap& map, PlatformerConnectionCache& cache, int tickBudget)
-    {
-        if (tickBudget < 0)
-        {
-            throw std::invalid_argument("A fill budget cannot be negative");
-        }
-        cache.syncWith(map);
-        const std::vector<ConnectionBody> bodies = cache.bodiesKept();
-        // The step's budget is shared among the bodies with cells waiting; the others
-        // are asked anyway, since a fill with nothing waiting costs nothing.
+        cache.applyRecordedTileBreaks(map);
+        const std::vector<PlatformerTraversalProfile> profiles = cache.knownProfiles();
+        // The step's budget is shared among profiles with cells waiting. A profile
+        // without pending cells costs nothing.
         const auto waiting = static_cast<int>(std::count_if(
-            bodies.begin(),
-            bodies.end(),
-            [&cache](const ConnectionBody& body) { return cache.cellsPending(body) > 0; }));
+            profiles.begin(),
+            profiles.end(),
+            [&cache](const PlatformerTraversalProfile& profile)
+            { return cache.cellsPending(profile) > 0; }));
         const int budgetEach = tickBudget / std::max(1, waiting);
-        FillWork total;
-        for (const ConnectionBody& body : bodies)
+        NavigationFillStatistics total;
+        for (const PlatformerTraversalProfile& profile : profiles)
         {
-            const FillWork work = fillPlatformerConnections(
-                map, body.size, body.movement, body.stepSeconds, cache, budgetEach);
-            total.cells += work.cells;
-            total.simulatedTicks += work.simulatedTicks;
-            total.budgetSpent += work.budgetSpent;
+            const NavigationFillStatistics profileStatistics =
+                fillPlatformerConnections(map, profile, cache, budgetEach);
+            total.cellsCached += profileStatistics.cellsCached;
+            total.simulatedTicks += profileStatistics.simulatedTicks;
+            total.budgetSpent += profileStatistics.budgetSpent;
         }
         return total;
     }

@@ -10,13 +10,14 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
+#include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 #include "support/fixed_step.hpp"
-#include "support/neighbor_with.hpp"
+#include "support/connection_with.hpp"
 
 TEST_CASE("A flying path follower produces intentions for its next step", "[navigation][follower]")
 {
@@ -75,17 +76,18 @@ TEST_CASE(
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
-    const std::vector<simple_platformer::NavigationNeighbor> neighbors =
-        simple_platformer::platformerNeighbors(
-            map, {2, 2}, bodySize, config, tests::FixedStepSeconds);
-    const simple_platformer::NavigationNeighbor& jump =
-        tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
+    const std::vector<simple_platformer::NavigationConnection> connections =
+        simple_platformer::buildPlatformerConnections(
+            map,
+            {2, 2},
+            simple_platformer::PlatformerTraversalProfile{
+                bodySize, config, tests::FixedStepSeconds})
+            .connections;
+    const simple_platformer::NavigationConnection& jump =
+        tests::connectionWith(connections, simple_platformer::Traversal::Jump);
 
     simple_platformer::PathFollower follower;
-    simple_platformer::setPath(
-        follower,
-        {{2, 2}, {{jump.destinationCell, jump.traversal, jump.inputs}}},
-        jump.destinationCell);
+    simple_platformer::setPath(follower, {{2, 2}, {jump.step}}, jump.step.destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -102,7 +104,7 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.destinationCell);
+        jump.step.destinationCell);
 }
 
 TEST_CASE(
@@ -113,17 +115,18 @@ TEST_CASE(
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
-    const std::vector<simple_platformer::NavigationNeighbor> neighbors =
-        simple_platformer::platformerNeighbors(
-            map, {2, 2}, bodySize, config, tests::FixedStepSeconds);
-    const simple_platformer::NavigationNeighbor& jump =
-        tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
+    const std::vector<simple_platformer::NavigationConnection> connections =
+        simple_platformer::buildPlatformerConnections(
+            map,
+            {2, 2},
+            simple_platformer::PlatformerTraversalProfile{
+                bodySize, config, tests::FixedStepSeconds})
+            .connections;
+    const simple_platformer::NavigationConnection& jump =
+        tests::connectionWith(connections, simple_platformer::Traversal::Jump);
 
     simple_platformer::PathFollower follower;
-    simple_platformer::setPath(
-        follower,
-        {{2, 2}, {{jump.destinationCell, jump.traversal, jump.inputs}}},
-        jump.destinationCell);
+    simple_platformer::setPath(follower, {{2, 2}, {jump.step}}, jump.step.destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {80.0F, 0.0F}};
     body.bounds.position.x -= 6.0F;
@@ -149,7 +152,7 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.destinationCell);
+        jump.step.destinationCell);
 }
 
 TEST_CASE(
@@ -160,19 +163,21 @@ TEST_CASE(
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
-    const std::vector<simple_platformer::NavigationNeighbor> neighbors =
-        simple_platformer::platformerNeighbors(
-            map, {2, 2}, bodySize, config, tests::FixedStepSeconds);
-    const simple_platformer::NavigationNeighbor& jump =
-        tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
+    const std::vector<simple_platformer::NavigationConnection> connections =
+        simple_platformer::buildPlatformerConnections(
+            map,
+            {2, 2},
+            simple_platformer::PlatformerTraversalProfile{
+                bodySize, config, tests::FixedStepSeconds})
+            .connections;
+    const simple_platformer::NavigationConnection& jump =
+        tests::connectionWith(connections, simple_platformer::Traversal::Jump);
 
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower,
-        {{1, 2},
-         {{{2, 2}, simple_platformer::Traversal::Walk, {}},
-          {jump.destinationCell, jump.traversal, jump.inputs}}},
-        jump.destinationCell);
+        {{1, 2}, {{{2, 2}, simple_platformer::Traversal::Walk, {}}, jump.step}},
+        jump.step.destinationCell);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {1, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -194,5 +199,5 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.destinationCell);
+        jump.step.destinationCell);
 }

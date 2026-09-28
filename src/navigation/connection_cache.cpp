@@ -15,16 +15,12 @@
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/platformer_connections.hpp"
+#include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
 {
-    bool operator==(const ConnectionBody& left, const ConnectionBody& right)
-    {
-        return left.size == right.size && left.movement == right.movement &&
-               left.stepSeconds == right.stepSeconds;
-    }
-
     bool operator==(const PathQuery& left, const PathQuery& right)
     {
         return left.start == right.start && left.goal == right.goal &&
@@ -33,7 +29,6 @@ namespace simple_platformer
 
     std::size_t PathQueryHash::operator()(const PathQuery& query) const
     {
-        // Each part mixed into the seed the way Boost's hash_combine does.
         const GridPositionHash cell;
         std::size_t seed = cell(query.start);
         seed ^= cell(query.goal) + 0x9e3779b9U + (seed << 6U) + (seed >> 2U);
@@ -42,59 +37,56 @@ namespace simple_platformer
         return seed;
     }
 
-    void PlatformerConnectionCache::requireValid(const ConnectionBody& body) const
+    void PlatformerConnectionCache::requireValid(const PlatformerTraversalProfile& profile) const
     {
-        if (!isFinite(body.size) || body.size.x <= 0.0F || body.size.y <= 0.0F ||
-            !isFinitePositive(body.stepSeconds))
+        if (!isFinite(profile.size) || profile.size.x <= 0.0F || profile.size.y <= 0.0F ||
+            !isFinitePositive(profile.stepSeconds))
         {
             throw std::invalid_argument(
-                "Connections are kept for a finite, positive body size and step");
+                "Connections require a finite, positive profile size and step");
         }
     }
 
-    const PlatformerConnectionCache::BodyConnections* PlatformerConnectionCache::findConnectionsFor(
-        const ConnectionBody& body) const
+    const PlatformerConnectionCache::ProfileCache* PlatformerConnectionCache::findCacheFor(
+        const PlatformerTraversalProfile& profile) const
     {
-        for (const BodyConnections& kept : bodies)
+        for (const ProfileCache& profileCache : profileCaches)
         {
-            if (kept.body == body)
+            if (profileCache.profile == profile)
             {
-                return &kept;
+                return &profileCache;
             }
         }
         return nullptr;
     }
 
-    PlatformerConnectionCache::BodyConnections* PlatformerConnectionCache::findConnectionsFor(
-        const ConnectionBody& body)
+    PlatformerConnectionCache::ProfileCache* PlatformerConnectionCache::findCacheFor(
+        const PlatformerTraversalProfile& profile)
     {
-        for (BodyConnections& kept : bodies)
+        for (ProfileCache& profileCache : profileCaches)
         {
-            if (kept.body == body)
+            if (profileCache.profile == profile)
             {
-                return &kept;
+                return &profileCache;
             }
         }
         return nullptr;
     }
 
-    PlatformerConnectionCache::BodyConnections& PlatformerConnectionCache::connectionsFor(
-        const ConnectionBody& body)
+    PlatformerConnectionCache::ProfileCache& PlatformerConnectionCache::cacheFor(
+        const PlatformerTraversalProfile& profile)
     {
-        for (BodyConnections& kept : bodies)
+        if (ProfileCache* profileCache = findCacheFor(profile))
         {
-            if (kept.body == body)
-            {
-                return kept;
-            }
+            return *profileCache;
         }
-        BodyConnections fresh;
-        fresh.body = body;
-        bodies.push_back(std::move(fresh));
-        return bodies.back();
+        ProfileCache fresh;
+        fresh.profile = profile;
+        profileCaches.push_back(std::move(fresh));
+        return profileCaches.back();
     }
 
-    void PlatformerConnectionCache::syncWith(const TileMap& map)
+    void PlatformerConnectionCache::applyRecordedTileBreaks(const TileMap& map)
     {
         const std::vector<GridPosition>& broken = map.brokenCells();
         for (; breaksSeen < broken.size(); ++breaksSeen)
@@ -105,18 +97,18 @@ namespace simple_platformer
 
     void PlatformerConnectionCache::invalidate(GridPosition brokenCell)
     {
-        for (BodyConnections& kept : bodies)
+        for (ProfileCache& profileCache : profileCaches)
         {
             std::vector<GridPosition> dropped;
-            for (auto entry = kept.cells.begin(); entry != kept.cells.end();)
+            for (auto entry = profileCache.cells.begin(); entry != profileCache.cells.end();)
             {
                 if (contains(entry->second.footprint, brokenCell))
                 {
                     dropped.push_back(entry->first);
-                    kept.pending.push_back(entry->first);
-                    kept.waiting.insert(entry->first);
+                    profileCache.pending.push_back(entry->first);
+                    profileCache.waiting.insert(entry->first);
                     ++dropsSoFar;
-                    entry = kept.cells.erase(entry);
+                    entry = profileCache.cells.erase(entry);
                 }
                 else
                 {
@@ -125,7 +117,7 @@ namespace simple_platformer
             }
             // A reachable set is the closure of its cells' connections, so it holds only
             // while none of its cells has changed.
-            for (auto set = kept.reachable.begin(); set != kept.reachable.end();)
+            for (auto set = profileCache.reachable.begin(); set != profileCache.reachable.end();)
             {
                 const std::vector<GridPosition>& cells = set->second;
                 const bool touched = std::any_of(
@@ -133,219 +125,234 @@ namespace simple_platformer
                     dropped.end(),
                     [&cells](GridPosition cell)
                     { return std::find(cells.begin(), cells.end(), cell) != cells.end(); });
-                set = touched ? kept.reachable.erase(set) : std::next(set);
+                set = touched ? profileCache.reachable.erase(set) : std::next(set);
             }
-            kept.paths.clear();
+            profileCache.paths.clear();
         }
     }
 
-    const std::vector<NavigationNeighbor>* PlatformerConnectionCache::find(
+    const std::vector<NavigationConnection>* PlatformerConnectionCache::cachedConnections(
         GridPosition cell,
-        const ConnectionBody& body) const
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        if (kept == nullptr)
+        const ProfileCache* profileCache = findCacheFor(profile);
+        if (profileCache == nullptr)
         {
             return nullptr;
         }
-        const auto connections = kept->cells.find(cell);
-        return connections == kept->cells.end() ? nullptr : &connections->second.connections;
+        const auto connections = profileCache->cells.find(cell);
+        return connections == profileCache->cells.end() ? nullptr
+                                                        : &connections->second.connections;
     }
 
-    std::optional<CellRange> PlatformerConnectionCache::footprintKept(
+    std::optional<CellRange> PlatformerConnectionCache::cachedFootprint(
         GridPosition cell,
-        const ConnectionBody& body) const
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        if (kept == nullptr)
+        const ProfileCache* profileCache = findCacheFor(profile);
+        if (profileCache == nullptr)
         {
             return std::nullopt;
         }
-        const auto connections = kept->cells.find(cell);
-        if (connections == kept->cells.end())
+        const auto connections = profileCache->cells.find(cell);
+        if (connections == profileCache->cells.end())
         {
             return std::nullopt;
         }
         return connections->second.footprint;
     }
 
-    const std::vector<NavigationNeighbor>& PlatformerConnectionCache::keep(
+    const std::vector<NavigationConnection>& PlatformerConnectionCache::storeConnections(
         GridPosition cell,
-        const ConnectionBody& body,
-        std::vector<NavigationNeighbor> connections,
+        const PlatformerTraversalProfile& profile,
+        std::vector<NavigationConnection> connections,
         const CellRange& footprint)
     {
-        requireValid(body);
-        BodyConnections& forBody = connectionsFor(body);
-        if (forBody.waiting.erase(cell) > 0)
+        requireValid(profile);
+        ProfileCache& forProfile = cacheFor(profile);
+        if (forProfile.waiting.erase(cell) > 0)
         {
-            forBody.pending.erase(std::find(forBody.pending.begin(), forBody.pending.end(), cell));
+            forProfile.pending.erase(
+                std::find(forProfile.pending.begin(), forProfile.pending.end(), cell));
         }
-        KeptConnections& kept = forBody.cells[cell];
-        kept = {std::move(connections), footprint};
-        ++keepsSoFar;
-        return kept.connections;
+        CachedConnections& cached = forProfile.cells[cell];
+        cached = {std::move(connections), footprint};
+        ++connectionWriteCount;
+        return cached.connections;
     }
 
-    const RememberedWalk* PlatformerConnectionCache::walkKept(
+    const WalkSimulationResult* PlatformerConnectionCache::cachedWalk(
         int columns,
-        const ConnectionBody& body) const
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        if (kept == nullptr)
+        const ProfileCache* profileCache = findCacheFor(profile);
+        if (profileCache == nullptr)
         {
             return nullptr;
         }
-        const auto walk = kept->walks.find(columns);
-        return walk == kept->walks.end() ? nullptr : &walk->second;
+        const auto walk = profileCache->walks.find(columns);
+        return walk == profileCache->walks.end() ? nullptr : &walk->second;
     }
 
-    void PlatformerConnectionCache::keepWalk(
+    void PlatformerConnectionCache::storeWalk(
         int columns,
-        const ConnectionBody& body,
-        const RememberedWalk& walk)
+        const PlatformerTraversalProfile& profile,
+        const WalkSimulationResult& walk)
     {
-        requireValid(body);
-        connectionsFor(body).walks[columns] = walk;
+        requireValid(profile);
+        cacheFor(profile).walks[columns] = walk;
     }
 
-    const std::vector<GridPosition>* PlatformerConnectionCache::reachableFrom(
+    const std::vector<GridPosition>* PlatformerConnectionCache::cachedReachableCells(
         GridPosition start,
-        const ConnectionBody& body) const
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        if (kept == nullptr)
+        const ProfileCache* profileCache = findCacheFor(profile);
+        if (profileCache == nullptr)
         {
             return nullptr;
         }
-        const auto cells = kept->reachable.find(start);
-        return cells == kept->reachable.end() ? nullptr : &cells->second;
+        const auto cells = profileCache->reachable.find(start);
+        return cells == profileCache->reachable.end() ? nullptr : &cells->second;
     }
 
-    void PlatformerConnectionCache::keepReachable(
+    void PlatformerConnectionCache::storeReachableCells(
         GridPosition start,
-        const ConnectionBody& body,
+        const PlatformerTraversalProfile& profile,
         std::vector<GridPosition> cells)
     {
-        requireValid(body);
-        connectionsFor(body).reachable[start] = std::move(cells);
+        requireValid(profile);
+        cacheFor(profile).reachable[start] = std::move(cells);
     }
 
-    const NavigationPath* PlatformerConnectionCache::pathKept(
+    const NavigationPath* PlatformerConnectionCache::cachedPath(
         const PathQuery& query,
-        const ConnectionBody& body) const
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        if (kept == nullptr)
+        const ProfileCache* profileCache = findCacheFor(profile);
+        if (profileCache == nullptr)
         {
             return nullptr;
         }
-        const auto path = kept->paths.find(query);
-        return path == kept->paths.end() ? nullptr : &path->second;
+        const auto path = profileCache->paths.find(query);
+        return path == profileCache->paths.end() ? nullptr : &path->second;
     }
 
-    void PlatformerConnectionCache::keepPath(
+    void PlatformerConnectionCache::storePath(
         const PathQuery& query,
-        const ConnectionBody& body,
+        const PlatformerTraversalProfile& profile,
         NavigationPath path)
     {
-        requireValid(body);
-        connectionsFor(body).paths[query] = std::move(path);
+        requireValid(profile);
+        cacheFor(profile).paths[query] = std::move(path);
     }
 
     void PlatformerConnectionCache::clear()
     {
-        bodies.clear();
+        profileCaches.clear();
         breaksSeen = 0;
         dropsSoFar = 0;
-        keepsSoFar = 0;
+        connectionWriteCount = 0;
     }
 
-    void PlatformerConnectionCache::queue(GridPosition cell, const ConnectionBody& body)
+    void PlatformerConnectionCache::queue(
+        GridPosition cell,
+        const PlatformerTraversalProfile& profile)
     {
-        requireValid(body);
-        BodyConnections& forBody = connectionsFor(body);
-        if (forBody.cells.count(cell) > 0 || forBody.waiting.count(cell) > 0)
+        requireValid(profile);
+        ProfileCache& forProfile = cacheFor(profile);
+        if (forProfile.cells.count(cell) > 0 || forProfile.waiting.count(cell) > 0)
         {
             return;
         }
-        forBody.pending.push_back(cell);
-        forBody.waiting.insert(cell);
+        forProfile.pending.push_back(cell);
+        forProfile.waiting.insert(cell);
     }
 
-    std::size_t PlatformerConnectionCache::cellsPending(const ConnectionBody& body) const
+    std::size_t PlatformerConnectionCache::cellsPending(
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        return kept == nullptr ? 0 : kept->pending.size();
+        const ProfileCache* profileCache = findCacheFor(profile);
+        return profileCache == nullptr ? 0 : profileCache->pending.size();
     }
 
-    bool PlatformerConnectionCache::isPending(GridPosition cell, const ConnectionBody& body) const
+    bool PlatformerConnectionCache::isPending(
+        GridPosition cell,
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        return kept != nullptr && kept->waiting.count(cell) > 0;
+        const ProfileCache* profileCache = findCacheFor(profile);
+        return profileCache != nullptr && profileCache->waiting.count(cell) > 0;
     }
 
     std::optional<GridPosition> PlatformerConnectionCache::nextPending(
-        const ConnectionBody& body) const
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        if (kept == nullptr || kept->pending.empty())
+        const ProfileCache* profileCache = findCacheFor(profile);
+        if (profileCache == nullptr || profileCache->pending.empty())
         {
             return std::nullopt;
         }
-        return kept->pending.front();
+        return profileCache->pending.front();
     }
 
-    void PlatformerConnectionCache::prioritise(GridPosition cell, const ConnectionBody& body)
+    void PlatformerConnectionCache::prioritise(
+        GridPosition cell,
+        const PlatformerTraversalProfile& profile)
     {
-        BodyConnections* kept = findConnectionsFor(body);
-        if (kept == nullptr)
+        ProfileCache* profileCache = findCacheFor(profile);
+        if (profileCache == nullptr)
         {
             return;
         }
-        if (kept->waiting.count(cell) == 0 || kept->pending.front() == cell)
+        if (profileCache->waiting.count(cell) == 0 || profileCache->pending.front() == cell)
         {
             return;
         }
-        kept->pending.erase(std::find(kept->pending.begin(), kept->pending.end(), cell));
-        kept->pending.push_front(cell);
+        profileCache->pending.erase(
+            std::find(profileCache->pending.begin(), profileCache->pending.end(), cell));
+        profileCache->pending.push_front(cell);
     }
 
-    std::size_t PlatformerConnectionCache::cellsKept(const ConnectionBody& body) const
+    std::size_t PlatformerConnectionCache::cachedCellCount(
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        return kept == nullptr ? 0 : kept->cells.size();
+        const ProfileCache* profileCache = findCacheFor(profile);
+        return profileCache == nullptr ? 0 : profileCache->cells.size();
     }
 
-    std::size_t PlatformerConnectionCache::cellsConnected(const ConnectionBody& body) const
+    std::size_t PlatformerConnectionCache::cellsConnected(
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        if (kept == nullptr)
+        const ProfileCache* profileCache = findCacheFor(profile);
+        if (profileCache == nullptr)
         {
             return 0;
         }
         return static_cast<std::size_t>(std::count_if(
-            kept->cells.begin(),
-            kept->cells.end(),
+            profileCache->cells.begin(),
+            profileCache->cells.end(),
             [](const auto& entry) { return !entry.second.connections.empty(); }));
     }
 
-    std::size_t PlatformerConnectionCache::walksKept(const ConnectionBody& body) const
+    std::size_t PlatformerConnectionCache::cachedWalkCount(
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        return kept == nullptr ? 0 : kept->walks.size();
+        const ProfileCache* profileCache = findCacheFor(profile);
+        return profileCache == nullptr ? 0 : profileCache->walks.size();
     }
 
-    std::size_t PlatformerConnectionCache::reachableSetsKept(const ConnectionBody& body) const
+    std::size_t PlatformerConnectionCache::cachedReachableSetCount(
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        return kept == nullptr ? 0 : kept->reachable.size();
+        const ProfileCache* profileCache = findCacheFor(profile);
+        return profileCache == nullptr ? 0 : profileCache->reachable.size();
     }
 
-    std::size_t PlatformerConnectionCache::pathsKept(const ConnectionBody& body) const
+    std::size_t PlatformerConnectionCache::cachedPathCount(
+        const PlatformerTraversalProfile& profile) const
     {
-        const BodyConnections* kept = findConnectionsFor(body);
-        return kept == nullptr ? 0 : kept->paths.size();
+        const ProfileCache* profileCache = findCacheFor(profile);
+        return profileCache == nullptr ? 0 : profileCache->paths.size();
     }
 
     std::size_t PlatformerConnectionCache::breaksApplied() const
@@ -358,18 +365,18 @@ namespace simple_platformer
         return dropsSoFar;
     }
 
-    std::size_t PlatformerConnectionCache::cellsKeptSoFar() const
+    std::size_t PlatformerConnectionCache::connectionWritesSoFar() const
     {
-        return keepsSoFar;
+        return connectionWriteCount;
     }
 
-    std::vector<ConnectionBody> PlatformerConnectionCache::bodiesKept() const
+    std::vector<PlatformerTraversalProfile> PlatformerConnectionCache::knownProfiles() const
     {
-        std::vector<ConnectionBody> known;
-        known.reserve(bodies.size());
-        for (const BodyConnections& kept : bodies)
+        std::vector<PlatformerTraversalProfile> known;
+        known.reserve(profileCaches.size());
+        for (const ProfileCache& profileCache : profileCaches)
         {
-            known.push_back(kept.body);
+            known.push_back(profileCache.profile);
         }
         return known;
     }
@@ -377,9 +384,9 @@ namespace simple_platformer
     std::size_t PlatformerConnectionCache::size() const
     {
         std::size_t total = 0;
-        for (const BodyConnections& kept : bodies)
+        for (const ProfileCache& profileCache : profileCaches)
         {
-            total += kept.cells.size();
+            total += profileCache.cells.size();
         }
         return total;
     }

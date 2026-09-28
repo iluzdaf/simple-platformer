@@ -1,7 +1,5 @@
 #pragma once
 
-#include <optional>
-
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/coordinates.hpp"
@@ -21,20 +19,6 @@ namespace simple_platformer
         int jumpStartPenaltyTicks = 30;
     };
 
-    enum class PlatformerPathStatus
-    {
-        Found,
-        Unreachable,
-        Deferred
-    };
-
-    // Only Found carries a path; Deferred means the background fill may change the answer.
-    struct PlatformerPathResult
-    {
-        PlatformerPathStatus status = PlatformerPathStatus::Unreachable;
-        std::optional<NavigationPath> path;
-    };
-
     // Every search below takes the fixed step the actor is moved with, in seconds.
     // Connections are simulated tick by tick at that step with the real movement code
     // and costs are counted in its ticks, so a predicted jump and the real one run the
@@ -48,23 +32,19 @@ namespace simple_platformer
         const PlatformerMovementConfig& movement,
         float stepSeconds);
 
-    // The cheapest route for a platformer body from one cell to another, each of its
-    // steps a walk, a fall or a jump. An off-map cell is Unreachable. With
-    // statistics, reports what the search cost. With a cache for this map, reads each
-    // cell's connections from it, simulating and keeping them first when it lacks them;
-    // answers a query it has answered before with the path it kept; and when a search
-    // from the start has failed before, answers without searching unless the goal is
-    // among the cells that start reaches. A search waiting for the fill is Deferred,
-    // so the caller should retry without its normal repath cooldown. Only Found has
-    // a path.
-    PlatformerPathResult findPlatformerPath(
+    // Finds the cheapest walk, fall, and jump route using the cache for this map.
+    // Missing connections are simulated unless queued for fill. A cached path or
+    // proven failure can answer without searching. Off-map endpoints are Unreachable;
+    // pending cells return Deferred so the caller can retry next step. Only Found
+    // carries a path. Statistics report search and simulation work when requested.
+    NavigationPathResult findPlatformerPath(
         const TileMap& map,
         GridPosition start,
         GridPosition goal,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
         float stepSeconds,
+        PlatformerConnectionCache& cache,
         const PlatformerNavigationConfig& navigation = {},
-        PathSearchStatistics* statistics = nullptr,
-        PlatformerConnectionCache* cache = nullptr);
+        PathSearchStatistics* statistics = nullptr);
 }

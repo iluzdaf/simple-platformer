@@ -134,7 +134,7 @@ A practical route through the implementation is:
    debug overlay to observe visible targets, remembered positions, patrol points,
    destinations, and paths.
 3. Compare the built-in decision path with a machine in
-   [`machines.json`](../assets/catalogs/machines.json), then choose a route from the table above.
+   [`machines.json`](../assets/catalogs/machines.json), then choose an option above.
    Test any new engine rule separately from movement.
 4. Read generic lowest-cost search and flying navigation before studying simulated
    platformer jumps.
@@ -252,25 +252,25 @@ machine and ordinary movement. Then read:
 1. [`path_search.cpp`](../src/navigation/path_search.cpp) for the generic lowest-cost
    search;
 2. [`flying_navigation.cpp`](../src/navigation/flying_navigation.cpp) for the simplest
-   neighbour policy;
+   adjacent-cell neighbor policy and the connections made from it;
 3. [`path_follower.cpp`](../src/navigation/path_follower.cpp) for turning a path into
    intentions;
-4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for standable,
-   start, and chase cells;
+4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for standability,
+   candidate neighbors, supported start cells, and destinations near a target;
 5. [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp) for
    simulated walks, falls, and jumps;
-6. [`platformer_navigation.cpp`](../src/navigation/platformer_navigation.cpp) for the
-   search that reads those connections;
-7. [`connection_cache.cpp`](../src/navigation/connection_cache.cpp) and
-   [`navigation_fill.cpp`](../src/navigation/navigation_fill.cpp) for what searches
-   remember and how queued cells are filled or invalidated.
+6. [`connection_cache.cpp`](../src/navigation/connection_cache.cpp) for the
+   traversal-profile cache and its invalidation rules;
+7. [`navigation_fill.cpp`](../src/navigation/navigation_fill.cpp) for queuing and
+   progressively caching connections;
+8. [`platformer_navigation.cpp`](../src/navigation/platformer_navigation.cpp) for
+   searching with the cache and deferring while connections are pending.
 
-The platformer navigation code reuses the real movement and collision functions. It is
-valuable, but it is not the best first example of the engine's general style. With the
-overlay open, N shows the cache's cells for each NPC body in turn and B breaks the tile
-under the cursor, so what the cache keeps and what a break drops can be watched in
-the game. [Navigation](ARCHITECTURE.md#navigation) in the architecture document
-explains each piece in the order the code builds them up.
+The platformer navigation code reuses the real movement and collision functions, but
+it is not the best first example of the engine's general style. The
+[debug overlay](../README.md#debug-overlay) lets you observe the cache and its response
+to tile breaks in the game. [Navigation](ARCHITECTURE.md#navigation) explains how these
+pieces fit together.
 
 ### 8. Complete the level loop
 

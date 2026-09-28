@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
@@ -14,22 +15,34 @@ TEST_CASE("Flying neighbors stay inside the map and avoid solid cells", "[naviga
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"...", ".#.", "###"});
 
-    const std::vector<simple_platformer::NavigationNeighbor> neighbors =
+    const std::vector<simple_platformer::GridPosition> neighbors =
         simple_platformer::flyingNeighbors(map, {0, 0});
 
     REQUIRE(neighbors.size() == 2);
-    const auto hasDestination = [&neighbors](simple_platformer::GridPosition destinationCell)
-    {
-        return std::find_if(
-                   neighbors.begin(),
-                   neighbors.end(),
-                   [destinationCell](const simple_platformer::NavigationNeighbor& neighbor)
-                   { return neighbor.destinationCell == destinationCell; }) != neighbors.end();
-    };
-    REQUIRE(hasDestination({1, 0}));
-    REQUIRE(hasDestination({0, 1}));
-    REQUIRE(neighbors.front().traversal == simple_platformer::Traversal::Fly);
+    REQUIRE(
+        std::find(neighbors.begin(), neighbors.end(), simple_platformer::GridPosition{1, 0}) !=
+        neighbors.end());
+    REQUIRE(
+        std::find(neighbors.begin(), neighbors.end(), simple_platformer::GridPosition{0, 1}) !=
+        neighbors.end());
     REQUIRE(simple_platformer::flyingNeighbors(map, {1, 0}).size() == 2);
+}
+
+TEST_CASE("Flying connections follow the neighbor policy at cost one", "[navigation][flying]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", ".#.", "###"});
+    const auto neighbors = simple_platformer::flyingNeighbors(map, {0, 0});
+    const auto connections = simple_platformer::flyingConnections(map, {0, 0});
+
+    REQUIRE(connections.size() == neighbors.size());
+    for (std::size_t index = 0; index < connections.size(); ++index)
+    {
+        const auto& connection = connections[index];
+        REQUIRE(connection.step.destinationCell == neighbors[index]);
+        REQUIRE(connection.step.traversal == simple_platformer::Traversal::Fly);
+        REQUIRE(connection.step.inputs.empty());
+        REQUIRE(connection.cost == 1);
+    }
 }
 
 TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying]")
@@ -37,14 +50,32 @@ TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", ".##.", "...."});
 
     simple_platformer::PathSearchStatistics cost;
-    const auto path = simple_platformer::findFlyingPath(map, {0, 1}, {3, 1}, &cost);
+    const simple_platformer::NavigationPathResult result =
+        simple_platformer::findFlyingPath(map, {0, 1}, {3, 1}, &cost);
 
-    REQUIRE(path.has_value());
+    REQUIRE(result.status == simple_platformer::NavigationPathStatus::Found);
+    REQUIRE(result.path.has_value());
     const simple_platformer::NavigationPath route =
-        path.value_or(simple_platformer::NavigationPath{});
+        result.path.value_or(simple_platformer::NavigationPath{});
     REQUIRE(route.start == simple_platformer::GridPosition{0, 1});
     REQUIRE(route.steps.back().destinationCell == simple_platformer::GridPosition{3, 1});
+    REQUIRE(route.steps.front().traversal == simple_platformer::Traversal::Fly);
     // A flying search expands cells but simulates no movement.
     REQUIRE(cost.nodesExpanded >= 1);
     REQUIRE(cost.simulatedTicks == 0);
+}
+
+TEST_CASE("Flying paths report unreachable destinations", "[navigation][flying]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".#."});
+
+    const simple_platformer::NavigationPathResult blocked =
+        simple_platformer::findFlyingPath(map, {0, 0}, {2, 0});
+    REQUIRE(blocked.status == simple_platformer::NavigationPathStatus::Unreachable);
+    REQUIRE_FALSE(blocked.path.has_value());
+
+    const simple_platformer::NavigationPathResult offMap =
+        simple_platformer::findFlyingPath(map, {0, 0}, {3, 0});
+    REQUIRE(offMap.status == simple_platformer::NavigationPathStatus::Unreachable);
+    REQUIRE_FALSE(offMap.path.has_value());
 }

@@ -1,43 +1,58 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
-#include <glm/vec2.hpp>
-
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
-#include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/navigation/path_search.hpp"
+#include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 
 namespace simple_platformer
 {
     class PlatformerConnectionCache;
     class TileMap;
 
-    // The connections leaving a cell, as a copy the caller owns: walks to every cell
-    // along the floor either way, and the cheapest fall and jumps to either side that
-    // land on a standable cell. With a cache, taken from it or kept in it as
-    // platformerNeighborsKept does; without one, simulated for this call alone. With
-    // statistics, adds the movement ticks simulated, or counts the cell as reused.
-    std::vector<NavigationNeighbor> platformerNeighbors(
-        const TileMap& map,
-        GridPosition cell,
-        glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement,
-        float stepSeconds,
-        PathSearchStatistics* statistics = nullptr,
-        PlatformerConnectionCache* cache = nullptr);
+    // What a walk of some number of cells along a floor cost when it was simulated, and
+    // the cells its simulation swept, as offsets from the cell it started in. No cost
+    // when the body could not reach the cell and stop within the simulation limit.
+    // Simulated ticks describe the original walk, not work done when it is reused.
+    struct WalkSimulationResult
+    {
+        std::optional<int> cost;
+        CellRange sweep;
+        int simulatedTicks = 0;
+    };
 
-    // The connections leaving a cell, read from the cache rather than copied out of it:
-    // simulated and kept first when the cache lacks them. The reference holds until a
-    // break drops the cell or the cache is cleared. With statistics, counts the cell as
-    // reused when it was kept already.
-    const std::vector<NavigationNeighbor>& platformerNeighborsKept(
+    struct SimulatedWalk
+    {
+        int columns = 0;
+        WalkSimulationResult result;
+    };
+
+    struct BuiltPlatformerConnections
+    {
+        std::vector<NavigationConnection> connections;
+        // Conservative rectangle covering the tiles probed or swept by simulation.
+        CellRange footprint;
+        std::vector<SimulatedWalk> walksToCache;
+        // Movement ticks simulated for this build; reused walks add none.
+        int simulatedTicks = 0;
+    };
+
+    // Builds connections without changing the cache. A read-only cache can reuse
+    // previously simulated walks; newly simulated walks are returned for later storage.
+    BuiltPlatformerConnections buildPlatformerConnections(
         const TileMap& map,
         GridPosition cell,
-        glm::vec2 bodySize,
-        const PlatformerMovementConfig& movement,
-        float stepSeconds,
+        const PlatformerTraversalProfile& profile,
+        const PlatformerConnectionCache* walkCache = nullptr);
+
+    // Stores a completed build; it does not simulate connections or check for a hit.
+    void storePlatformerConnections(
         PlatformerConnectionCache& cache,
-        PathSearchStatistics* statistics = nullptr);
+        GridPosition cell,
+        const PlatformerTraversalProfile& profile,
+        BuiltPlatformerConnections built);
+
 }

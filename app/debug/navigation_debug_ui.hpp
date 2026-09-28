@@ -16,8 +16,7 @@ namespace simple_platformer
         const Aabb& cameraBounds,
         const WindowViewport& viewport);
 
-    // What the cache holds for the body and has done so far, as lines of the text panel,
-    // moving the position down past them.
+    // Draws selected-profile and cache-wide totals, then advances the text position.
     void drawNavigationTotals(
         ImDrawList& drawList,
         const NavigationCacheDebugInfo& cache,

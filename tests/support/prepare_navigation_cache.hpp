@@ -2,23 +2,23 @@
 
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
+#include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/fixed_step.hpp"
 
 namespace tests
 {
-    // Queues and keeps every cell for each platformer NPC body now, as the game does
+    // Queues and caches every cell for each platformer NPC profile, as the game does
     // over the first steps of a level.
-    inline void fillNavigation(
+    inline void prepareNavigationCache(
         const simple_platformer::TileMap& map,
         simple_platformer::World& world)
     {
+        simple_platformer::queueNavigationFill(map, world, FixedStepSeconds);
         simple_platformer::PlatformerConnectionCache& cache = world.platformerConnections();
-        simple_platformer::queueNavigation(
-            map, simple_platformer::platformerBodiesIn(world, FixedStepSeconds), cache);
-        while (simple_platformer::fillNavigation(
+        while (simple_platformer::advanceNavigationFill(
                    map, cache, simple_platformer::NavigationFillTicksPerStep)
-                   .cells > 0)
+                   .cellsCached > 0)
         {
         }
     }

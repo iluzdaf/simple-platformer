@@ -20,8 +20,8 @@ namespace simple_platformer
     struct PlatformerMovementConfig;
 
     // The feet along a jump or a fall, replayed from the cell with the real movement code
-    // at the step the program was recorded for, so the arc drawn is the arc the actor will
-    // fly. Empty for any other traversal, or without inputs.
+    // at the step the program was recorded for, so the drawn arc matches the actor's
+    // movement. Empty for any other traversal, or without inputs.
     std::vector<glm::vec2> sampleAirborneProgram(
         const TileMap& map,
         GridPosition start,
@@ -42,9 +42,9 @@ namespace simple_platformer
         std::vector<glm::vec2> sampledFeet;
     };
 
-    // What the cache keeps for the cell under the cursor: the footprint its simulation
-    // swept, which is why a break there drops it; its connections; and the cells a failed
-    // search found reachable from it, when one has.
+    // The cursor cell's cached connections and their footprint, plus any reachable
+    // cells learned from a failed search. A break inside the footprint invalidates
+    // those connections.
     struct CursorCellDebugInfo
     {
         Aabb bounds;
@@ -53,60 +53,58 @@ namespace simple_platformer
         std::vector<Aabb> reachable;
     };
 
-    // One cell a body can stand in, as the connection cache sees it: how many connections
-    // it keeps for the cell, or nothing while it keeps none, as after a break drops them.
+    // One standable cell as the connection cache sees it: its connection count when
+    // cached, or no count when absent, such as after a break drops it.
     struct NavigationCellDebugInfo
     {
         Aabb bounds;
         std::optional<std::size_t> connections;
     };
 
-    // A body as the cache keys it, with the name of the actor definition it came from.
-    struct NamedBody
+    struct NamedNavigationProfile
     {
         std::string name;
-        ConnectionBody body;
+        PlatformerTraversalProfile profile;
     };
 
     // What the overlay is asked to show of navigation: which cell the cursor is over, in
-    // world coordinates; which body, by an index that wraps; and the names to show bodies
-    // by, from whoever knows the actor definitions.
+    // world coordinates; which profile, by an index that wraps; and names supplied by
+    // whoever knows the actor definitions.
     struct NavigationDebugView
     {
         std::optional<glm::vec2> cursorWorld;
-        std::size_t bodyIndex = 0;
-        std::vector<NamedBody> bodyNames;
+        std::size_t profileIndex = 0;
+        std::vector<NamedNavigationProfile> namedProfiles;
     };
 
-    // The connection cache's view of the map for one platformer NPC body: every cell that
-    // body can stand in, and what the cache has kept and done so far. Absent without such
-    // an NPC. The bodies are the distinct ones in the world, in the order first found.
+    // Standable cells in the requested view, per-profile totals, and cache-wide counts.
+    // Absent when no platformer NPC profile is known.
     struct NavigationCacheDebugInfo
     {
         glm::vec2 bodySize = {0.0F, 0.0F};
-        std::string bodyName;
-        std::size_t bodyIndex = 0;
-        std::size_t bodyCount = 0;
-        // For this body: every cell kept, standable or not, and those with connections.
-        std::size_t cellsKept = 0;
+        std::string actorName;
+        std::size_t profileIndex = 0;
+        std::size_t profileCount = 0;
+        // For this profile: every cached cell, standable or not, and those with connections.
+        std::size_t cachedCellCount = 0;
         std::size_t cellsConnected = 0;
-        // Cells a break dropped that the fill has not kept yet.
+        // Cells awaiting the initial fill or recaching after a break.
         std::size_t cellsPending = 0;
-        // Walk lengths whose cost has been simulated once for this body.
-        std::size_t walksKept = 0;
-        std::size_t reachableSetsKept = 0;
-        std::size_t pathsKept = 0;
-        // Over every body since the level started.
+        // Walk lengths simulated once for this profile, including failed attempts.
+        std::size_t cachedWalkCount = 0;
+        std::size_t cachedReachableSetCount = 0;
+        std::size_t cachedPathCount = 0;
+        // Over every profile since the level started.
         std::size_t breaksApplied = 0;
         std::size_t cellsDropped = 0;
-        std::size_t cellsKeptSoFar = 0;
+        std::size_t connectionWritesSoFar = 0;
         std::vector<NavigationCellDebugInfo> cells;
         std::optional<CursorCellDebugInfo> cursorCell;
     };
 
     // Built from the map and the world's connection cache, without ImGui, so it can be
     // tested. The step is the one the world is simulated with, which is part of the
-    // body the cache keys on. When visibleBounds is present, only cells overlapping it
+    // profile the cache keys on. When visibleBounds is present, only cells overlapping it
     // are included; the cache totals still describe the whole map.
     std::optional<NavigationCacheDebugInfo> makeNavigationCacheDebugInfo(
         const World& world,

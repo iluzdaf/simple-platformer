@@ -10,6 +10,7 @@
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
+#include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
@@ -18,24 +19,26 @@
 
 namespace
 {
-    using simple_platformer::ConnectionBody;
     using simple_platformer::PlatformerConnectionCache;
+    using simple_platformer::PlatformerTraversalProfile;
 
     constexpr glm::vec2 BodySize{12.0F, 12.0F};
-    const ConnectionBody Small{
+    const PlatformerTraversalProfile Small{
         BodySize,
         simple_platformer::PlatformerMovementConfig{},
         tests::FixedStepSeconds};
-    const ConnectionBody Tall{
+    const PlatformerTraversalProfile Tall{
         {12.0F, 20.0F},
         simple_platformer::PlatformerMovementConfig{},
         tests::FixedStepSeconds};
 }
 
-TEST_CASE("A level queues navigation for each walking NPC body in its world", "[navigation][fill]")
+TEST_CASE(
+    "A level queues navigation for each walking NPC profile in its world",
+    "[navigation][fill]")
 {
     simple_platformer::World world;
-    // Two walkers of one body, one of another, and a flyer, which needs no connections.
+    // Two walkers of one profile, one of another, and a flyer, which needs no connections.
     for (const float x : {24.0F, 40.0F})
     {
         world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
@@ -52,108 +55,117 @@ TEST_CASE("A level queues navigation for each walking NPC body in its world", "[
                        .flying(20.0F)
                        .thinking({64.0F, 1.0F}));
 
-    const std::vector<ConnectionBody> bodies =
-        simple_platformer::platformerBodiesIn(world, tests::FixedStepSeconds);
-    REQUIRE(bodies.size() == 2);
-    REQUIRE(bodies[0] == Small);
-    REQUIRE(bodies[1] == Tall);
-    REQUIRE_THROWS_AS(simple_platformer::platformerBodiesIn(world, 0.0F), std::invalid_argument);
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
+    simple_platformer::queueNavigationFill(map, world, tests::FixedStepSeconds);
+    const std::vector<PlatformerTraversalProfile> profiles =
+        world.platformerConnections().knownProfiles();
+    REQUIRE(profiles.size() == 2);
+    REQUIRE(profiles[0] == Small);
+    REQUIRE(profiles[1] == Tall);
+    REQUIRE_THROWS_AS(
+        simple_platformer::queueNavigationFill(map, world, 0.0F), std::invalid_argument);
 }
 
-TEST_CASE("A fill keeps queued cells for every body the cache knows", "[navigation][fill]")
+TEST_CASE("A fill caches queued cells for every known profile", "[navigation][fill]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
-    simple_platformer::PlatformerConnectionCache cache;
+    simple_platformer::World world;
+    world.addActor(tests::ActorBuilder::sized(Small.size)
+                       .atFeet({24.0F, 32.0F})
+                       .walking()
+                       .thinking({64.0F, 1.0F}));
+    world.addActor(tests::ActorBuilder::sized(Tall.size)
+                       .atFeet({56.0F, 32.0F})
+                       .walking()
+                       .thinking({64.0F, 1.0F}));
+    PlatformerConnectionCache& cache = world.platformerConnections();
     const std::size_t cells =
         static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height());
 
-    // Queuing keeps nothing yet, and tells the cache the bodies.
-    simple_platformer::queueNavigation(map, {Small, Tall}, cache);
+    // Queuing stores no connections yet, but registers both profiles.
+    simple_platformer::queueNavigationFill(map, world, tests::FixedStepSeconds);
     REQUIRE(cache.size() == 0);
-    REQUIRE(cache.bodiesKept().size() == 2);
+    REQUIRE(cache.knownProfiles().size() == 2);
     REQUIRE(cache.cellsPending(Small) == cells);
     REQUIRE(cache.cellsPending(Tall) == cells);
 
-    // Each fill shares its budget between the bodies with cells waiting; together they
-    // keep every cell for both, and a fill with nothing waiting does nothing.
-    const simple_platformer::FillWork firstStep = simple_platformer::fillNavigation(
-        map, cache, simple_platformer::NavigationFillTicksPerStep);
-    REQUIRE(firstStep.cells > 0);
+    // Each fill shares its budget between profiles with cells waiting.
+    const simple_platformer::NavigationFillStatistics firstStep =
+        simple_platformer::advanceNavigationFill(
+            map, cache, simple_platformer::NavigationFillTicksPerStep);
+    REQUIRE(firstStep.cellsCached > 0);
     REQUIRE(cache.cellsPending(Small) < cells);
     REQUIRE(cache.cellsPending(Tall) < cells);
-    int kept = firstStep.cells;
+    int cached = firstStep.cellsCached;
     for (std::size_t step = 0; step < 2 * cells; ++step)
     {
-        const simple_platformer::FillWork work = simple_platformer::fillNavigation(
-            map, cache, simple_platformer::NavigationFillTicksPerStep);
-        kept += work.cells;
-        if (work.cells == 0)
+        const simple_platformer::NavigationFillStatistics work =
+            simple_platformer::advanceNavigationFill(
+                map, cache, simple_platformer::NavigationFillTicksPerStep);
+        cached += work.cellsCached;
+        if (work.cellsCached == 0)
         {
             break;
         }
     }
-    REQUIRE(static_cast<std::size_t>(kept) == 2 * cells);
+    REQUIRE(static_cast<std::size_t>(cached) == 2 * cells);
     REQUIRE(cache.size() == 2 * cells);
     REQUIRE(cache.cellsPending(Small) == 0);
     REQUIRE(cache.cellsPending(Tall) == 0);
-    REQUIRE(cache.find({2, 1}, Tall) != nullptr);
-    REQUIRE(simple_platformer::fillNavigation(map, cache, 1000000).cells == 0);
+    REQUIRE(cache.cachedConnections({2, 1}, Tall) != nullptr);
+    REQUIRE(simple_platformer::advanceNavigationFill(map, cache, 1000000).cellsCached == 0);
 
-    REQUIRE_THROWS_AS(simple_platformer::fillNavigation(map, cache, -1), std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::advanceNavigationFill(map, cache, -1), std::invalid_argument);
 }
 
-TEST_CASE("A fill keeps queued cells until its budget is spent", "[navigation][cache][fill]")
+TEST_CASE("A fill caches queued cells until its budget is spent", "[navigation][cache][fill]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "........", "###..###", "########"});
-    PlatformerConnectionCache cache;
-    const ConnectionBody body{BodySize, {}, tests::FixedStepSeconds};
+    simple_platformer::World world;
+    world.addActor(tests::ActorBuilder::sized(BodySize)
+                       .atFeet({24.0F, 32.0F})
+                       .walking()
+                       .thinking({64.0F, 1.0F}));
+    PlatformerConnectionCache& cache = world.platformerConnections();
+    const PlatformerTraversalProfile profile{BodySize, {}, tests::FixedStepSeconds};
     const std::size_t cells =
         static_cast<std::size_t>(map.width()) * static_cast<std::size_t>(map.height());
     const auto fill = [&](int tickBudget)
-    {
-        return simple_platformer::fillPlatformerConnections(
-            map, BodySize, {}, tests::FixedStepSeconds, cache, tickBudget);
-    };
+    { return simple_platformer::advanceNavigationFill(map, cache, tickBudget); };
 
-    // Queuing every cell keeps nothing yet.
-    simple_platformer::queueAllPlatformerConnections(
-        map, BodySize, {}, tests::FixedStepSeconds, cache);
+    simple_platformer::queueNavigationFill(map, world, tests::FixedStepSeconds);
     REQUIRE(cache.size() == 0);
-    REQUIRE(cache.cellsPending(body) == cells);
-    REQUIRE(fill(0).cells == 0);
+    REQUIRE(cache.cellsPending(profile) == cells);
+    REQUIRE(fill(0).cellsCached == 0);
 
-    // A cell with nothing to simulate still costs the budget its keep, so a budget of
-    // two keeps keeps two cells however empty the first are, and a budget of one tick
-    // stops after the first cell whatever it cost.
-    const simple_platformer::FillWork two = fill(2 * simple_platformer::KeepCostTicks);
-    REQUIRE(two.cells == 2);
+    // Even a cell with no connections spends budget. The next two cost the same.
+    const simple_platformer::NavigationFillStatistics first = fill(1);
+    REQUIRE(first.cellsCached == 1);
+    REQUIRE(first.simulatedTicks == 0);
+    REQUIRE(first.budgetSpent > 0);
+    const simple_platformer::NavigationFillStatistics two = fill(2 * first.budgetSpent);
+    REQUIRE(two.cellsCached == 2);
     REQUIRE(two.simulatedTicks == 0);
-    REQUIRE(two.budgetSpent == 2 * simple_platformer::KeepCostTicks);
-    REQUIRE(fill(1).cells == 1);
-    REQUIRE(cache.cellsPending(body) == cells - 3);
-    REQUIRE(cache.cellsKeptSoFar() == 3);
+    REQUIRE(two.budgetSpent == 2 * first.budgetSpent);
+    REQUIRE(cache.cellsPending(profile) == cells - 3);
+    REQUIRE(cache.connectionWritesSoFar() == 3);
 
     // The rest go with ticks to spare, and a fill with nothing waiting does nothing.
-    const simple_platformer::FillWork rest = fill(1000000);
-    REQUIRE(static_cast<std::size_t>(rest.cells) == cells - 3);
+    const simple_platformer::NavigationFillStatistics rest = fill(1000000);
+    REQUIRE(static_cast<std::size_t>(rest.cellsCached) == cells - 3);
     REQUIRE(rest.simulatedTicks > 0);
-    REQUIRE(
-        rest.budgetSpent == rest.simulatedTicks + rest.cells * simple_platformer::KeepCostTicks);
+    REQUIRE(rest.budgetSpent == rest.simulatedTicks + rest.cellsCached * first.budgetSpent);
     REQUIRE(cache.size() == cells);
-    REQUIRE(cache.cellsPending(body) == 0);
-    REQUIRE(fill(1000000).cells == 0);
+    REQUIRE(cache.cellsPending(profile) == 0);
+    REQUIRE(fill(1000000).cellsCached == 0);
 
-    // Queuing again with every cell kept queues nothing.
-    simple_platformer::queueAllPlatformerConnections(
-        map, BodySize, {}, tests::FixedStepSeconds, cache);
-    REQUIRE(cache.cellsPending(body) == 0);
+    // Queuing again with every cell cached queues nothing.
+    simple_platformer::queueNavigationFill(map, world, tests::FixedStepSeconds);
+    REQUIRE(cache.cellsPending(profile) == 0);
 
     REQUIRE_THROWS_AS(fill(-1), std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::fillPlatformerConnections(map, BodySize, {}, 0.0F, cache, 1),
-        std::invalid_argument);
-    REQUIRE_THROWS_AS(
-        simple_platformer::queueAllPlatformerConnections(map, BodySize, {}, 0.0F, cache),
-        std::invalid_argument);
+        simple_platformer::queueNavigationFill(map, world, 0.0F), std::invalid_argument);
 }

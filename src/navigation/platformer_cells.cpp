@@ -3,6 +3,7 @@
 #include <cmath>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -31,7 +32,7 @@ namespace simple_platformer
             return true;
         }
 
-        std::optional<GridPosition> nearestStandableChaseCell(
+        std::optional<GridPosition> scanNearestStandableCell(
             const TileMap& map,
             glm::vec2 targetFeet,
             glm::vec2 bodySize)
@@ -74,6 +75,30 @@ namespace simple_platformer
                bodyFits(map, boxInCell(map.tileSize(), cell, bodySize));
     }
 
+    std::vector<GridPosition> platformerNeighbors(
+        const TileMap& map,
+        GridPosition start,
+        glm::vec2 bodySize)
+    {
+        std::vector<GridPosition> neighbors;
+        if (!canStandAt(map, start, bodySize))
+        {
+            return neighbors;
+        }
+        for (int row = 0; row < map.height(); ++row)
+        {
+            for (int column = 0; column < map.width(); ++column)
+            {
+                const GridPosition candidate{column, row};
+                if (candidate != start && canStandAt(map, candidate, bodySize))
+                {
+                    neighbors.push_back(candidate);
+                }
+            }
+        }
+        return neighbors;
+    }
+
     std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds)
     {
         if (!isFinite(bounds.position) || !isFinite(bounds.size) || bounds.size.x <= 0.0F ||
@@ -111,29 +136,29 @@ namespace simple_platformer
         return closest;
     }
 
-    std::optional<GridPosition> findPlatformerChaseCell(
+    std::optional<GridPosition> findNearestStandableCell(
         const TileMap& map,
-        glm::vec2 lastKnownFeet,
+        glm::vec2 targetFeet,
         glm::vec2 bodySize)
     {
-        if (!isFinite(lastKnownFeet) || !isFinite(bodySize) || bodySize.x <= 0.0F ||
+        if (!isFinite(targetFeet) || !isFinite(bodySize) || bodySize.x <= 0.0F ||
             bodySize.y <= 0.0F)
         {
             throw std::invalid_argument(
-                "A chase destination requires finite feet and a finite, positive body size");
+                "A standable-cell search requires finite feet and a finite, positive body size");
         }
 
         // Avoid converting an out-of-map world position to an integer grid cell.
-        if (lastKnownFeet.x >= 0.0F && lastKnownFeet.x < map.pixelWidth() &&
-            lastKnownFeet.y >= 0.0F && lastKnownFeet.y <= map.pixelHeight())
+        if (targetFeet.x >= 0.0F && targetFeet.x < map.pixelWidth() && targetFeet.y >= 0.0F &&
+            targetFeet.y <= map.pixelHeight())
         {
-            const GridPosition targetCell = cellAtFeet(map.tileSize(), lastKnownFeet);
+            const GridPosition targetCell = cellAtFeet(map.tileSize(), targetFeet);
             if (canStandAt(map, targetCell, bodySize))
             {
                 return targetCell;
             }
         }
 
-        return nearestStandableChaseCell(map, lastKnownFeet, bodySize);
+        return scanNearestStandableCell(map, targetFeet, bodySize);
     }
 }

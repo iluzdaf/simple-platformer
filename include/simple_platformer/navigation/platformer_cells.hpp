@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -15,15 +16,21 @@ namespace simple_platformer
     // the body covers standing there, and the cell below blocks movement.
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize);
 
-    // Finds the closest standable cell beneath a grounded body. The body's feet may
-    // extend beyond a ledge while part of its collider is still supported.
+    // Candidate destinations for a platformer search. They may be unreachable;
+    // connection simulation decides which ones the actor can actually traverse to.
+    std::vector<GridPosition> platformerNeighbors(
+        const TileMap& map,
+        GridPosition start,
+        glm::vec2 bodySize);
+
+    // Maps a grounded body's collider to a standable cell at its feet row. At a ledge,
+    // its feet may extend past the cell that still supports it.
     std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds);
 
-    // Keeps a standable target cell; otherwise chooses the closest standable feet
-    // position for this NPC's body size. Ties use row, then column order.
-    // This selects a chase destination, not a guaranteed path to it.
-    std::optional<GridPosition> findPlatformerChaseCell(
+    // Keeps the feet's cell if standable; otherwise chooses the closest standable
+    // cell for this body size. Ties use row, then column order. Reachability is not checked.
+    std::optional<GridPosition> findNearestStandableCell(
         const TileMap& map,
-        glm::vec2 lastKnownFeet,
+        glm::vec2 targetFeet,
         glm::vec2 bodySize);
 }

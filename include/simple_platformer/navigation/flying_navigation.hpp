@@ -1,6 +1,5 @@
 #pragma once
 
-#include <optional>
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
@@ -11,15 +10,19 @@ namespace simple_platformer
 {
     class TileMap;
 
+    // Adjacent cells that permit flying movement. This policy identifies cells, not
+    // the traversal and cost of the connections passed to path search.
+    std::vector<GridPosition> flyingNeighbors(const TileMap& map, GridPosition cell);
+
+    // Cost-one flight connections to the cells selected by flyingNeighbors.
+    std::vector<NavigationConnection> flyingConnections(const TileMap& map, GridPosition cell);
+
     // The cheapest flight from one cell to another: every cell that allows movement is a
-    // node, joined to its four neighbours at a cost of one. No path when either cell is
-    // off the map. With statistics, reports what the search cost.
-    std::optional<NavigationPath> findFlyingPath(
+    // node, joined to its four neighbors at a cost of one. No path when either cell is
+    // off the map. Optional statistics count expanded cells.
+    NavigationPathResult findFlyingPath(
         const TileMap& map,
         GridPosition start,
         GridPosition goal,
         PathSearchStatistics* statistics = nullptr);
-
-    // The neighbouring cells that allow movement, which is what the flying search visits.
-    std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition cell);
 }

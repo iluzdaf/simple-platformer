@@ -37,13 +37,13 @@ namespace simple_platformer
         CursorCellDebugInfo cursorCellDebugInfo(
             const TileMap& map,
             const PlatformerConnectionCache& cache,
-            const ConnectionBody& body,
+            const PlatformerTraversalProfile& profile,
             GridPosition cell)
         {
             const int tileSize = map.tileSize();
             CursorCellDebugInfo info;
             info.bounds = cellBounds(tileSize, cell);
-            const std::optional<CellRange> footprint = cache.footprintKept(cell, body);
+            const std::optional<CellRange> footprint = cache.cachedFootprint(cell, profile);
             if (footprint.has_value())
             {
                 const CellRange range = footprint.value_or(CellRange{});
@@ -51,27 +51,28 @@ namespace simple_platformer
                 const Aabb last = cellBounds(tileSize, range.last);
                 info.footprint = Aabb{first.position, last.position + last.size - first.position};
             }
-            const std::vector<NavigationNeighbor>* kept = cache.find(cell, body);
-            if (kept != nullptr)
+            const std::vector<NavigationConnection>* cached =
+                cache.cachedConnections(cell, profile);
+            if (cached != nullptr)
             {
-                for (const NavigationNeighbor& neighbor : *kept)
+                for (const NavigationConnection& connection : *cached)
                 {
                     info.connections.push_back(
                         {feetInCell(tileSize, cell),
-                         feetInCell(tileSize, neighbor.destinationCell),
-                         neighbor.traversal,
-                         neighbor.cost,
+                         feetInCell(tileSize, connection.step.destinationCell),
+                         connection.step.traversal,
+                         connection.cost,
                          sampleAirborneProgram(
                              map,
                              cell,
-                             body.size,
-                             body.movement,
-                             neighbor.traversal,
-                             neighbor.inputs,
-                             body.stepSeconds)});
+                             profile.size,
+                             profile.movement,
+                             connection.step.traversal,
+                             connection.step.inputs,
+                             profile.stepSeconds)});
                 }
             }
-            const std::vector<GridPosition>* reachable = cache.reachableFrom(cell, body);
+            const std::vector<GridPosition>* reachable = cache.cachedReachableCells(cell, profile);
             if (reachable != nullptr)
             {
                 for (const GridPosition reached : *reachable)
@@ -120,60 +121,61 @@ namespace simple_platformer
         const NavigationDebugView& view,
         std::optional<Aabb> visibleBounds)
     {
-        std::vector<ConnectionBody> bodies;
+        std::vector<PlatformerTraversalProfile> profiles;
         for (const Actor& actor : world.actors())
         {
             if (!actor.pathFollower.has_value() || !actor.platformerMovement.has_value())
             {
                 continue;
             }
-            const ConnectionBody candidate{
+            const PlatformerTraversalProfile candidate{
                 actor.body.bounds.size,
                 actor.platformerMovement.value().config,
                 simulationStepSeconds};
             const bool known = std::any_of(
-                bodies.begin(),
-                bodies.end(),
-                [&candidate](const ConnectionBody& body) { return body == candidate; });
+                profiles.begin(),
+                profiles.end(),
+                [&candidate](const PlatformerTraversalProfile& profile)
+                { return profile == candidate; });
             if (!known)
             {
-                bodies.push_back(candidate);
+                profiles.push_back(candidate);
             }
         }
-        if (bodies.empty())
+        if (profiles.empty())
         {
             return std::nullopt;
         }
-        const std::size_t shown = view.bodyIndex % bodies.size();
-        const ConnectionBody body = bodies[shown];
+        const std::size_t shown = view.profileIndex % profiles.size();
+        const PlatformerTraversalProfile& profile = profiles[shown];
         const PlatformerConnectionCache& cache = world.platformerConnections();
         NavigationCacheDebugInfo info;
-        info.bodySize = body.size;
-        for (const NamedBody& named : view.bodyNames)
+        info.bodySize = profile.size;
+        for (const NamedNavigationProfile& named : view.namedProfiles)
         {
-            if (named.body == body)
+            if (named.profile == profile)
             {
-                info.bodyName = named.name;
+                info.actorName = named.name;
                 break;
             }
         }
-        info.bodyIndex = shown;
-        info.bodyCount = bodies.size();
-        info.cellsKept = cache.cellsKept(body);
-        info.cellsConnected = cache.cellsConnected(body);
-        info.cellsPending = cache.cellsPending(body);
-        info.walksKept = cache.walksKept(body);
-        info.reachableSetsKept = cache.reachableSetsKept(body);
-        info.pathsKept = cache.pathsKept(body);
+        info.profileIndex = shown;
+        info.profileCount = profiles.size();
+        info.cachedCellCount = cache.cachedCellCount(profile);
+        info.cellsConnected = cache.cellsConnected(profile);
+        info.cellsPending = cache.cellsPending(profile);
+        info.cachedWalkCount = cache.cachedWalkCount(profile);
+        info.cachedReachableSetCount = cache.cachedReachableSetCount(profile);
+        info.cachedPathCount = cache.cachedPathCount(profile);
         info.breaksApplied = cache.breaksApplied();
         info.cellsDropped = cache.cellsDroppedSoFar();
-        info.cellsKeptSoFar = cache.cellsKeptSoFar();
+        info.connectionWritesSoFar = cache.connectionWritesSoFar();
         for (int row = 0; row < map.height(); ++row)
         {
             for (int column = 0; column < map.width(); ++column)
             {
                 const GridPosition cell{column, row};
-                if (!canStandAt(map, cell, body.size))
+                if (!canStandAt(map, cell, profile.size))
                 {
                     continue;
                 }
@@ -182,10 +184,12 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                const std::vector<NavigationNeighbor>* kept = cache.find(cell, body);
+                const std::vector<NavigationConnection>* cached =
+                    cache.cachedConnections(cell, profile);
                 info.cells.push_back(
                     {bounds,
-                     kept == nullptr ? std::nullopt : std::optional<std::size_t>(kept->size())});
+                     cached == nullptr ? std::nullopt
+                                       : std::optional<std::size_t>(cached->size())});
             }
         }
         if (view.cursorWorld.has_value())
@@ -195,7 +199,7 @@ namespace simple_platformer
                 cursor.y < map.pixelHeight())
             {
                 info.cursorCell =
-                    cursorCellDebugInfo(map, cache, body, worldToGrid(map.tileSize(), cursor));
+                    cursorCellDebugInfo(map, cache, profile, worldToGrid(map.tileSize(), cursor));
             }
         }
         return info;

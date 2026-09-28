@@ -11,9 +11,9 @@ namespace simple_platformer
     class TileMap;
     class World;
 
-    // What the NPCs' searches cost in one update, for the step to charge to its profile:
+    // What the NPCs' searches did in one update, for the step to charge to its profile:
     // how many ran, their statistics summed, and the seconds they took.
-    struct NpcBehaviourCost
+    struct NpcBehaviourStatistics
     {
         int pathSearches = 0;
         PathSearchStatistics searches;
@@ -22,7 +22,7 @@ namespace simple_platformer
 
     // Chooses each NPC's state and the intentions that act on it, searching the world's
     // navigation for paths as needed, and reports what the searches cost.
-    NpcBehaviourCost updateNpcBehaviour(
+    NpcBehaviourStatistics updateNpcBehaviour(
         const TileMap& map,
         World& world,
         float deltaTime,

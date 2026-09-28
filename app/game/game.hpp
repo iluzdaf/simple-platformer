@@ -29,8 +29,8 @@ namespace simple_platformer
     class Game
     {
     public:
-        // Catalogs and scripts arrive loaded. Navigation is prepared for the caller's
-        // fixed simulation step when each level starts.
+        // Catalogs and scripts arrive loaded. Each level queues navigation work for
+        // the caller's fixed simulation step; later updates fill the cache.
         Game(
             int textureId,
             LevelCatalog levelCatalog,
@@ -47,11 +47,11 @@ namespace simple_platformer
         RenderScene buildScene() const;
         // The atlas width comes from whoever loaded the texture; the game knows only its id.
         // The cursor, in internal pixels, picks the cell whose navigation is shown, and the
-        // body index which NPC body's navigation.
+        // profile index selects which NPC navigation profile to show.
         DebugOverlay debugOverlay(
             float atlasWidth,
             std::optional<glm::vec2> internalCursor,
-            std::size_t navigationBodyIndex,
+            std::size_t navigationProfileIndex,
             std::optional<ActorId> lockedMachineActor = std::nullopt) const;
         std::optional<ActorId> machineActorAt(glm::vec2 internalPosition) const;
         Health playerHealth() const;

@@ -16,10 +16,10 @@ namespace simple_platformer
     namespace
     {
         // How a node was cheapest reached, for walking the path back to the start.
-        struct IncomingConnection
+        struct IncomingStep
         {
             std::size_t parentIndex;
-            NavigationNeighbor neighbor;
+            NavigationStep step;
         };
 
         // A cell the search has reached. Closed once expanded, and opened again if a
@@ -29,7 +29,7 @@ namespace simple_platformer
             GridPosition cell;
             int costFromStart = 0;
             int estimatedTotalCost = 0;
-            std::optional<IncomingConnection> incoming;
+            std::optional<IncomingStep> incoming;
             bool closed = false;
         };
 
@@ -46,8 +46,7 @@ namespace simple_platformer
             return estimate;
         }
 
-        // The open node with the lowest estimated total, by a scan: a search here is a few
-        // dozen nodes, which a heap would not beat.
+        // Scanning preserves discovery order when estimated costs tie.
         std::optional<std::size_t> cheapestOpenNode(const std::vector<SearchNode>& nodes)
         {
             std::optional<std::size_t> cheapest;
@@ -70,8 +69,6 @@ namespace simple_platformer
             return cheapest;
         }
 
-        // Follows incoming connections from the goal back to the start and lists them the
-        // other way round.
         NavigationPath reconstructPath(const std::vector<SearchNode>& nodes, std::size_t goalIndex)
         {
             std::vector<NavigationStep> steps;
@@ -84,16 +81,14 @@ namespace simple_platformer
                     break;
                 }
 
-                const IncomingConnection& incoming = currentNode.incoming.value();
-                steps.push_back(
-                    {incoming.neighbor.destinationCell,
-                     incoming.neighbor.traversal,
-                     incoming.neighbor.inputs});
+                const IncomingStep& incoming = currentNode.incoming.value();
+                steps.push_back(incoming.step);
                 current = incoming.parentIndex;
             }
             std::reverse(steps.begin(), steps.end());
             return {nodes[current].cell, std::move(steps)};
         }
+
     }
 
     int manhattanHeuristic(GridPosition cell, GridPosition goal)
@@ -101,28 +96,22 @@ namespace simple_platformer
         return std::abs(cell.x - goal.x) + std::abs(cell.y - goal.y);
     }
 
-    std::optional<NavigationPath> findLowestCostPath(
-        GridPosition start,
-        GridPosition goal,
-        GridSize grid,
-        const GridNeighborFunction& neighbors)
-    {
-        const GridHeuristicFunction noHeuristic = [](GridPosition, GridPosition) { return 0; };
-        return findLowestCostPath(start, goal, grid, neighbors, noHeuristic);
-    }
-
-    std::optional<NavigationPath> findLowestCostPath(
+    PathSearchResult findLowestCostPath(
         GridPosition start,
         GridPosition goal,
         GridSize grid,
         const GridNeighborFunction& neighbors,
+        const GridConnectionFunction& connections,
         const GridHeuristicFunction& heuristic,
-        PathSearchStatistics* statistics,
-        std::vector<GridPosition>* reached)
+        const GridExpansionReady& canExpand)
     {
         if (!neighbors)
         {
             throw std::invalid_argument("Path search requires a neighbor function");
+        }
+        if (!connections)
+        {
+            throw std::invalid_argument("Path search requires a connection function");
         }
         if (!heuristic)
         {
@@ -151,32 +140,22 @@ namespace simple_platformer
             static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height), NoNode);
         nodeAt[slotOf(start)] = 0;
 
-        // Relaxes one connection leaving the cell being expanded: a cell's best known cost
-        // starts at infinity, before any connection reaches it, and each connection found
-        // can only lower it. Built once: a callback built for every cell would be
-        // allocated for every cell.
-        std::size_t expandedIndex = 0;
-        int costFromStart = 0;
-        const GridNeighborVisitor relax = [&](const NavigationNeighbor& neighbor, int cost)
+        // Relaxes one connection leaving the cell being expanded: each connection may
+        // lower the best known cost of its destination.
+        const auto relax =
+            [&](const NavigationConnection& connection, std::size_t parentIndex, int parentCost)
         {
-            if (cost <= 0)
-            {
-                throw std::invalid_argument("A navigation connection must have positive cost");
-            }
-            if (!contains(grid, neighbor.destinationCell))
-            {
-                throw std::invalid_argument("A connection leads outside the grid");
-            }
-            const int nextCost = costFromStart + cost;
-            int& existing = nodeAt[slotOf(neighbor.destinationCell)];
+            const int nextCost = parentCost + connection.cost;
+            int& existing = nodeAt[slotOf(connection.step.destinationCell)];
             if (existing == NoNode)
             {
                 existing = static_cast<int>(nodes.size());
                 nodes.push_back(
-                    {neighbor.destinationCell,
+                    {connection.step.destinationCell,
                      nextCost,
-                     nextCost + estimateRemainingCost(heuristic, neighbor.destinationCell, goal),
-                     IncomingConnection{expandedIndex, neighbor},
+                     nextCost +
+                         estimateRemainingCost(heuristic, connection.step.destinationCell, goal),
+                     IncomingStep{parentIndex, connection.step},
                      false});
                 return;
             }
@@ -186,17 +165,17 @@ namespace simple_platformer
             {
                 known.costFromStart = nextCost;
                 known.estimatedTotalCost =
-                    nextCost + estimateRemainingCost(heuristic, neighbor.destinationCell, goal);
-                known.incoming = IncomingConnection{expandedIndex, neighbor};
+                    nextCost +
+                    estimateRemainingCost(heuristic, connection.step.destinationCell, goal);
+                known.incoming = IncomingStep{parentIndex, connection.step};
                 known.closed = false;
             }
         };
 
         // The search: take the open node with the lowest estimated total, cost so far
         // plus the heuristic's guess of the rest. If it is the goal, the path is found.
-        // Otherwise close it and relax every connection leaving it, which opens or
-        // improves its neighbours, and go again. With a heuristic that never
-        // overestimates, a node's cost is final by the time it is the cheapest open one.
+        // Otherwise close it and relax its connections. A cheaper route can reopen a
+        // closed node; a found path is returned when the goal is the cheapest open node.
         while (true)
         {
             const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);
@@ -204,36 +183,60 @@ namespace simple_platformer
             {
                 // Nothing left to expand: every node is closed, and together they are
                 // every cell the start leads to.
-                if (reached != nullptr)
+                PathSearchResult result;
+                result.reachableCells.reserve(nodes.size());
+                for (const SearchNode& node : nodes)
                 {
-                    reached->clear();
-                    reached->reserve(nodes.size());
-                    for (const SearchNode& node : nodes)
-                    {
-                        reached->push_back(node.cell);
-                    }
+                    result.reachableCells.push_back(node.cell);
                 }
-                return std::nullopt;
+                return result;
             }
 
             SearchNode& currentNode = nodes[currentIndex.value()];
             if (currentNode.cell == goal)
             {
-                return reconstructPath(nodes, currentIndex.value());
+                return {
+                    PathSearchStatus::Found,
+                    reconstructPath(nodes, currentIndex.value()),
+                    {},
+                    std::nullopt};
             }
 
             const GridPosition currentCell = currentNode.cell;
-            expandedIndex = currentIndex.value();
-            costFromStart = currentNode.costFromStart;
-            currentNode.closed = true;
-            if (statistics != nullptr)
+            if (canExpand && !canExpand(currentCell))
             {
-                ++statistics->nodesExpanded;
+                return {PathSearchStatus::Incomplete, std::nullopt, {}, currentCell};
             }
-
+            const std::size_t parentIndex = currentIndex.value();
+            const int parentCost = currentNode.costFromStart;
+            currentNode.closed = true;
             // Relaxing may add nodes, which can move them all, so currentNode is not used
-            // after this.
-            neighbors(currentCell, relax);
+            // after this. Connection order still determines ties between valid candidates.
+            const std::vector<GridPosition> candidates = neighbors(currentCell);
+            for (const GridPosition candidate : candidates)
+            {
+                if (!contains(grid, candidate))
+                {
+                    throw std::invalid_argument("A navigation neighbor lies outside the grid");
+                }
+            }
+            for (const NavigationConnection& connection : connections(currentCell))
+            {
+                if (connection.cost <= 0)
+                {
+                    throw std::invalid_argument("A navigation connection must have positive cost");
+                }
+                if (!contains(grid, connection.step.destinationCell))
+                {
+                    throw std::invalid_argument("A connection leads outside the grid");
+                }
+                if (std::find(
+                        candidates.begin(), candidates.end(), connection.step.destinationCell) !=
+                    candidates.end())
+                {
+                    relax(connection, parentIndex, parentCost);
+                }
+            }
         }
     }
 }

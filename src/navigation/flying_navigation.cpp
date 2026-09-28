@@ -1,7 +1,7 @@
 #include "simple_platformer/navigation/flying_navigation.hpp"
 
 #include <array>
-#include <optional>
+#include <utility>
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
@@ -11,7 +11,34 @@
 
 namespace simple_platformer
 {
-    std::optional<NavigationPath> findFlyingPath(
+    std::vector<GridPosition> flyingNeighbors(const TileMap& map, GridPosition cell)
+    {
+        constexpr std::array<GridPosition, 4> Directions{
+            GridPosition{-1, 0}, GridPosition{1, 0}, GridPosition{0, -1}, GridPosition{0, 1}};
+
+        std::vector<GridPosition> neighbors;
+        for (const GridPosition direction : Directions)
+        {
+            const GridPosition candidate{cell.x + direction.x, cell.y + direction.y};
+            if (map.contains(candidate) && !map.blocksMovement(candidate))
+            {
+                neighbors.push_back(candidate);
+            }
+        }
+        return neighbors;
+    }
+
+    std::vector<NavigationConnection> flyingConnections(const TileMap& map, GridPosition cell)
+    {
+        std::vector<NavigationConnection> connections;
+        for (const GridPosition neighbor : flyingNeighbors(map, cell))
+        {
+            connections.push_back({{neighbor, Traversal::Fly, {}}, 1});
+        }
+        return connections;
+    }
+
+    NavigationPathResult findFlyingPath(
         const TileMap& map,
         GridPosition start,
         GridPosition goal,
@@ -19,35 +46,25 @@ namespace simple_platformer
     {
         if (!map.contains(start) || !map.contains(goal))
         {
-            return std::nullopt;
+            return {NavigationPathStatus::Unreachable, {}};
         }
-        const GridNeighborFunction neighbors =
-            [&map](GridPosition cell, const GridNeighborVisitor& visit)
+        const GridConnectionFunction connections = [&map, statistics](GridPosition cell)
         {
-            for (const NavigationNeighbor& neighbor : flyingNeighbors(map, cell))
+            if (statistics != nullptr)
             {
-                visit(neighbor, neighbor.cost);
+                ++statistics->nodesExpanded;
             }
+            return flyingConnections(map, cell);
         };
+        const GridNeighborFunction neighbors = [&map](GridPosition cell)
+        { return flyingNeighbors(map, cell); };
 
-        return findLowestCostPath(
-            start, goal, map.size(), neighbors, manhattanHeuristic, statistics);
-    }
-
-    std::vector<NavigationNeighbor> flyingNeighbors(const TileMap& map, GridPosition cell)
-    {
-        constexpr std::array<GridPosition, 4> Directions{
-            GridPosition{-1, 0}, GridPosition{1, 0}, GridPosition{0, -1}, GridPosition{0, 1}};
-
-        std::vector<NavigationNeighbor> neighbors;
-        for (const GridPosition direction : Directions)
+        PathSearchResult result =
+            findLowestCostPath(start, goal, map.size(), neighbors, connections, manhattanHeuristic);
+        if (result.status == PathSearchStatus::Found)
         {
-            const GridPosition candidate{cell.x + direction.x, cell.y + direction.y};
-            if (map.contains(candidate) && !map.blocksMovement(candidate))
-            {
-                neighbors.push_back({candidate, Traversal::Fly, 1, {}});
-            }
+            return {NavigationPathStatus::Found, std::move(result.path)};
         }
-        return neighbors;
+        return {NavigationPathStatus::Unreachable, {}};
     }
 }

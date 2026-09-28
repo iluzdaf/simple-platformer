@@ -20,12 +20,9 @@ namespace simple_platformer
 {
     namespace
     {
-        // The connection cache's cells: kept with connections, kept with none, and missing,
-        // which after a break means dropped and not yet simulated again.
-        constexpr ImU32 NavigationKeptColour = IM_COL32(64, 160, 255, 90);
+        constexpr ImU32 NavigationCachedColour = IM_COL32(64, 160, 255, 90);
         constexpr ImU32 NavigationEmptyColour = IM_COL32(128, 128, 128, 70);
         constexpr ImU32 NavigationMissingColour = IM_COL32(255, 96, 32, 220);
-        // The cursor cell's footprint, and the cells reachable from it.
         constexpr ImU32 NavigationFootprintColour = IM_COL32(255, 224, 64, 200);
         constexpr ImU32 NavigationReachableColour = IM_COL32(64, 224, 255, 50);
 
@@ -45,8 +42,6 @@ namespace simple_platformer
             return UnknownPathColour;
         }
 
-        // A cell of the connection cache: filled while its connections are kept, and
-        // outlined while they are missing.
         void drawNavigationCell(
             ImDrawList& drawList,
             const NavigationCellDebugInfo& cell,
@@ -63,7 +58,7 @@ namespace simple_platformer
                 return;
             }
             const ImU32 colour =
-                *cell.connections == 0 ? NavigationEmptyColour : NavigationKeptColour;
+                *cell.connections == 0 ? NavigationEmptyColour : NavigationCachedColour;
             drawList.AddRectFilled(minimum, maximum, colour);
         }
 
@@ -83,8 +78,6 @@ namespace simple_platformer
             drawShadowedText(drawList, {minimum.x + 1.0F, minimum.y}, WorldLabelColour, count);
         }
 
-        // The cursor cell: its reachable cells shaded, its footprint outlined, and each
-        // connection drawn to where it lands, jumps and falls along their arcs.
         void drawCursorCell(
             ImDrawList& drawList,
             const CursorCellDebugInfo& cell,
@@ -165,7 +158,6 @@ namespace simple_platformer
         const NavigationCacheDebugInfo& cache,
         ImVec2& position)
     {
-        // One value a line, keyed like the actor text, so every line fits the column.
         constexpr float Indentation = 12.0F;
         drawTextLine(drawList, position, "navigation cache", TextHeadingColour);
         char text[48];
@@ -174,7 +166,7 @@ namespace simple_platformer
             std::snprintf(text, sizeof(text), "%-8s%zu", key, value);
             drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         };
-        if (cache.bodyName.empty())
+        if (cache.actorName.empty())
         {
             std::snprintf(
                 text,
@@ -185,22 +177,22 @@ namespace simple_platformer
         }
         else
         {
-            std::snprintf(text, sizeof(text), "body:   %s", cache.bodyName.c_str());
+            std::snprintf(text, sizeof(text), "body:   %s", cache.actorName.c_str());
         }
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        // The index and the key on a line of their own, since a name can fill the last.
         std::snprintf(
-            text, sizeof(text), "shown:  %zu/%zu (N)", cache.bodyIndex + 1, cache.bodyCount);
+            text, sizeof(text), "shown:  %zu/%zu (N)", cache.profileIndex + 1, cache.profileCount);
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        // Cells with connections, over every cell kept.
-        std::snprintf(text, sizeof(text), "cells:  %zu/%zu", cache.cellsConnected, cache.cellsKept);
+        // Cells with connections, over every cached cell.
+        std::snprintf(
+            text, sizeof(text), "cells:  %zu/%zu", cache.cellsConnected, cache.cachedCellCount);
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         line("pending:", cache.cellsPending);
-        line("walks:", cache.walksKept);
-        line("sets:", cache.reachableSetsKept);
-        line("paths:", cache.pathsKept);
+        line("walks:", cache.cachedWalkCount);
+        line("sets:", cache.cachedReachableSetCount);
+        line("paths:", cache.cachedPathCount);
         line("breaks:", cache.breaksApplied);
         line("dropped:", cache.cellsDropped);
-        line("kept:", cache.cellsKeptSoFar);
+        line("writes:", cache.connectionWritesSoFar);
     }
 }

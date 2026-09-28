@@ -30,7 +30,6 @@ namespace simple_platformer
         }
         world.advanceSimulationTime(deltaTime);
         holdPlayerAtOpeningExit(world);
-        // Each phase is charged to the profile under its category, when there is one.
         const auto phase = [&](const char* category, const char* name, auto&& run)
         { timePhase(profile, category, name, run); };
 
@@ -39,11 +38,11 @@ namespace simple_platformer
             "Navigation fill",
             [&]
             {
-                const FillWork work =
-                    fillNavigation(map, world.platformerConnections(), NavigationFillTicksPerStep);
+                const NavigationFillStatistics fillStatistics = advanceNavigationFill(
+                    map, world.platformerConnections(), NavigationFillTicksPerStep);
                 if (profile != nullptr)
                 {
-                    profile->navigationFillTicks += work.simulatedTicks;
+                    profile->navigationFillTicks += fillStatistics.simulatedTicks;
                 }
             });
         phase("NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
@@ -52,19 +51,21 @@ namespace simple_platformer
             "NPC behaviour",
             [&]
             {
-                const NpcBehaviourCost cost = updateNpcBehaviour(map, world, deltaTime, scripts);
-                if (profile == nullptr || cost.pathSearches == 0)
+                const NpcBehaviourStatistics behaviourStatistics =
+                    updateNpcBehaviour(map, world, deltaTime, scripts);
+                if (profile == nullptr || behaviourStatistics.pathSearches == 0)
                 {
                     return;
                 }
                 // The searches ran inside this phase; charged as their own, it keeps the rest.
-                addNestedPhaseSeconds(*profile, "NPC", "Path search", cost.searchSeconds);
-                profile->pathSearches += cost.pathSearches;
-                profile->pathSearchesRemembered += cost.searches.pathsRemembered;
-                profile->pathSearchesDeferred += cost.searches.deferred;
-                profile->pathSearchNodes += cost.searches.nodesExpanded;
-                profile->pathSearchCellsReused += cost.searches.cellsReused;
-                profile->pathSearchSimulatedTicks += cost.searches.simulatedTicks;
+                addNestedPhaseSeconds(
+                    *profile, "NPC", "Path search", behaviourStatistics.searchSeconds);
+                profile->pathSearches += behaviourStatistics.pathSearches;
+                profile->pathSearchesRemembered += behaviourStatistics.searches.pathsRemembered;
+                profile->pathSearchesDeferred += behaviourStatistics.searches.deferred;
+                profile->pathSearchNodes += behaviourStatistics.searches.nodesExpanded;
+                profile->pathSearchCellsReused += behaviourStatistics.searches.cellsReused;
+                profile->pathSearchSimulatedTicks += behaviourStatistics.searches.simulatedTicks;
             });
         phase("Movement", "Actor movement", [&] { updateActorMovement(map, world, deltaTime); });
         phase("Movement", "Pickup movement", [&] { updatePickupMovement(map, world, deltaTime); });

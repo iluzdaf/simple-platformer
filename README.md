@@ -145,7 +145,7 @@ independent plot details, world and camera drawing, text, and state-machine laye
 | Inspect a frame or scrub along the frames       | Press or drag on the plot             |
 | Return to the live plot                         | Click the picked frame again          |
 | Show or hide a plotted series                   | Click it in the plot's legend         |
-| Show the next NPC's navigation cache            | N                                     |
+| Show the next navigation-cache profile          | N                                     |
 | Break a labelled tile under the cursor          | B                                     |
 | Move a state in the machine window              | Drag it                               |
 | Pan or zoom the machine window                  | Drag with the right button, or scroll |

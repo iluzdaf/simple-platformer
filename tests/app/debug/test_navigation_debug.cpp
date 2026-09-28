@@ -15,7 +15,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
-#include "support/fill_navigation.hpp"
+#include "support/prepare_navigation_cache.hpp"
 #include "support/fixed_step.hpp"
 #include "support/tile_map_builder.hpp"
 
@@ -42,7 +42,7 @@ TEST_CASE(
             .value_or(simple_platformer::NavigationCacheDebugInfo{})
             .cells;
     };
-    // Every standable cell is listed; before anything is kept, none has connections.
+    // Every standable cell is listed; before caching, none has a connection count.
     std::vector<simple_platformer::NavigationCellDebugInfo> cells = cellsOf();
     REQUIRE(cells.size() == 5);
     REQUIRE(cells.front().bounds.position == glm::vec2{0.0F, 16.0F});
@@ -54,7 +54,7 @@ TEST_CASE(
         { return !cell.connections.has_value(); }));
 
     // Filled, every cell has its connections counted.
-    tests::fillNavigation(map, world);
+    tests::prepareNavigationCache(map, world);
     cells = cellsOf();
     REQUIRE(std::all_of(
         cells.begin(),
@@ -64,10 +64,10 @@ TEST_CASE(
 
     // A break the cache has synced with leaves the cells it dropped missing.
     REQUIRE(map.breakTile({2, 2}));
-    world.platformerConnections().syncWith(map);
+    world.platformerConnections().applyRecordedTileBreaks(map);
     cells = cellsOf();
     // The cell over the hole can no longer be stood on, so it is not listed; the hole
-    // itself can, since the map's floor blocks beneath it, and it was never kept.
+    // itself can, since the map's floor blocks beneath it, and it was never cached.
     REQUIRE(cells.size() == 5);
     const auto listed = [&cells](glm::vec2 position)
     {
@@ -87,7 +87,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Navigation debug data shows one body at a time and its cache's totals",
+    "Navigation debug data shows the selected traversal profile and cache totals",
     "[app][debug][navigation]")
 {
     simple_platformer::TileMap map =
@@ -102,11 +102,11 @@ TEST_CASE(
                        .atFeet({40.0F, 32.0F})
                        .walking()
                        .thinking({64.0F, 1.0F}));
-    const auto infoFor = [&](std::size_t bodyIndex)
+    const auto infoFor = [&](std::size_t profileIndex)
     {
         simple_platformer::NavigationDebugView view;
-        view.bodyIndex = bodyIndex;
-        view.bodyNames = {
+        view.profileIndex = profileIndex;
+        view.namedProfiles = {
             {"soldier", {{12.0F, 20.0F}, {}, tests::FixedStepSeconds}},
             {"zombie", {{12.0F, 12.0F}, {}, tests::FixedStepSeconds}}};
         return simple_platformer::makeNavigationCacheDebugInfo(
@@ -114,41 +114,41 @@ TEST_CASE(
             .value_or(simple_platformer::NavigationCacheDebugInfo{});
     };
 
-    // The index picks a body in the order first found, and wraps; a body is named from
-    // the list given, and unnamed without one.
+    // The index picks a profile in the order first found and wraps; an actor name is
+    // shown when the matching profile has one.
     REQUIRE(simple_platformer::makeNavigationCacheDebugInfo(world, map, tests::FixedStepSeconds)
                 .value_or(simple_platformer::NavigationCacheDebugInfo{})
-                .bodyName.empty());
-    REQUIRE(infoFor(0).bodyCount == 2);
-    REQUIRE(infoFor(0).bodyIndex == 0);
+                .actorName.empty());
+    REQUIRE(infoFor(0).profileCount == 2);
+    REQUIRE(infoFor(0).profileIndex == 0);
     REQUIRE(infoFor(0).bodySize == glm::vec2{12.0F, 12.0F});
-    REQUIRE(infoFor(0).bodyName == "zombie");
-    REQUIRE(infoFor(1).bodyIndex == 1);
+    REQUIRE(infoFor(0).actorName == "zombie");
+    REQUIRE(infoFor(1).profileIndex == 1);
     REQUIRE(infoFor(1).bodySize == glm::vec2{12.0F, 20.0F});
-    REQUIRE(infoFor(1).bodyName == "soldier");
-    REQUIRE(infoFor(2).bodyIndex == 0);
+    REQUIRE(infoFor(1).actorName == "soldier");
+    REQUIRE(infoFor(2).profileIndex == 0);
 
     // The totals follow the cache through a fill and a break.
-    REQUIRE(infoFor(0).cellsKept == 0);
-    tests::fillNavigation(map, world);
+    REQUIRE(infoFor(0).cachedCellCount == 0);
+    tests::prepareNavigationCache(map, world);
     const simple_platformer::NavigationCacheDebugInfo filled = infoFor(0);
-    REQUIRE(filled.cellsKept == 15);
+    REQUIRE(filled.cachedCellCount == 15);
     REQUIRE(filled.cellsConnected == 5);
-    REQUIRE(filled.walksKept > 0);
-    REQUIRE(filled.cellsKeptSoFar == 30);
+    REQUIRE(filled.cachedWalkCount > 0);
+    REQUIRE(filled.connectionWritesSoFar == 30);
     REQUIRE(filled.breaksApplied == 0);
     REQUIRE(filled.cellsDropped == 0);
 
     REQUIRE(map.breakTile({2, 2}));
-    world.platformerConnections().syncWith(map);
+    world.platformerConnections().applyRecordedTileBreaks(map);
     const simple_platformer::NavigationCacheDebugInfo broken = infoFor(0);
     REQUIRE(broken.breaksApplied == 1);
     REQUIRE(broken.cellsDropped > 0);
-    REQUIRE(broken.cellsKept < 15);
-    REQUIRE(broken.cellsPending == 15 - broken.cellsKept);
+    REQUIRE(broken.cachedCellCount < 15);
+    REQUIRE(broken.cellsPending == 15 - broken.cachedCellCount);
     for (std::size_t step = 0; step < broken.cellsPending && infoFor(0).cellsPending > 0; ++step)
     {
-        simple_platformer::fillNavigation(
+        simple_platformer::advanceNavigationFill(
             map, world.platformerConnections(), simple_platformer::NavigationFillTicksPerStep);
     }
     REQUIRE(infoFor(0).cellsPending == 0);
@@ -175,29 +175,29 @@ TEST_CASE(
             .value_or(simple_platformer::NavigationCacheDebugInfo{});
     };
 
-    // No cursor, or one off the map, shows no cell; an unkept cell shows its bounds only.
+    // No cursor, or one off the map, shows no cell; an uncached cell shows its bounds only.
     REQUIRE_FALSE(infoAt(std::nullopt).cursorCell.has_value());
     REQUIRE_FALSE(infoAt(glm::vec2{-1.0F, 20.0F}).cursorCell.has_value());
-    const simple_platformer::CursorCellDebugInfo unkept =
+    const simple_platformer::CursorCellDebugInfo uncached =
         infoAt(glm::vec2{40.0F, 20.0F})
             .cursorCell.value_or(simple_platformer::CursorCellDebugInfo{});
-    REQUIRE(unkept.bounds.position == glm::vec2{32.0F, 16.0F});
-    REQUIRE_FALSE(unkept.footprint.has_value());
-    REQUIRE(unkept.connections.empty());
+    REQUIRE(uncached.bounds.position == glm::vec2{32.0F, 16.0F});
+    REQUIRE_FALSE(uncached.footprint.has_value());
+    REQUIRE(uncached.connections.empty());
 
-    // Kept, the cell shows its footprint and every connection, jumps along their arcs.
-    tests::fillNavigation(map, world);
-    const simple_platformer::CursorCellDebugInfo kept =
+    // Once cached, the cell shows its footprint and connections, jumps along their arcs.
+    tests::prepareNavigationCache(map, world);
+    const simple_platformer::CursorCellDebugInfo cached =
         infoAt(glm::vec2{40.0F, 20.0F})
             .cursorCell.value_or(simple_platformer::CursorCellDebugInfo{});
-    REQUIRE(kept.footprint.has_value());
-    const simple_platformer::Aabb footprint = kept.footprint.value_or(simple_platformer::Aabb{});
+    REQUIRE(cached.footprint.has_value());
+    const simple_platformer::Aabb footprint = cached.footprint.value_or(simple_platformer::Aabb{});
     REQUIRE(footprint.position.x <= 32.0F);
     REQUIRE(footprint.position.x + footprint.size.x >= 48.0F);
-    REQUIRE_FALSE(kept.connections.empty());
+    REQUIRE_FALSE(cached.connections.empty());
     bool sawWalk = false;
     bool sawArc = false;
-    for (const simple_platformer::CachedConnectionDebugInfo& connection : kept.connections)
+    for (const simple_platformer::CachedConnectionDebugInfo& connection : cached.connections)
     {
         REQUIRE(connection.fromFeet == glm::vec2{40.0F, 32.0F});
         REQUIRE(connection.cost > 0);
@@ -215,5 +215,5 @@ TEST_CASE(
     }
     REQUIRE(sawWalk);
     REQUIRE(sawArc);
-    REQUIRE(kept.reachable.empty());
+    REQUIRE(cached.reachable.empty());
 }

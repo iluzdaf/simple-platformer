@@ -3,6 +3,7 @@
 #include <limits>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -29,6 +30,16 @@ TEST_CASE("A standable cell has support below and room for the body", "[navigati
     // The tall body would reach into the tile above.
     REQUIRE_FALSE(simple_platformer::canStandAt(map, {1, 1}, TallBody));
     REQUIRE_FALSE(simple_platformer::canStandAt(map, {1, 0}, SmallBody));
+}
+
+TEST_CASE("Platformer neighbors include every other standable cell", "[navigation][platformer]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"..#..", "#####"});
+
+    REQUIRE(
+        simple_platformer::platformerNeighbors(map, {0, 0}, SmallBody) ==
+        std::vector<GridPosition>{{1, 0}, {3, 0}, {4, 0}});
+    REQUIRE(simple_platformer::platformerNeighbors(map, {2, 0}, SmallBody).empty());
 }
 
 TEST_CASE(
@@ -67,87 +78,88 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "A chase cell is the target's cell when standable, else the nearest standable cell",
+    "The feet cell is used when standable, otherwise the nearest standable cell",
     "[navigation][platformer]")
 {
     const simple_platformer::TileMap platform =
         tests::TileMapBuilder({"........", "........", "..###...", "........", "########"});
-    // Standing on the platform, its own cell.
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(platform, {47.5F, 32.0F}, TallBody) ==
+        simple_platformer::findNearestStandableCell(platform, {47.5F, 32.0F}, TallBody) ==
         GridPosition{2, 1});
     // Past either edge, or in the air above it, the nearest cell of the platform.
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(platform, {31.5F, 32.0F}, TallBody) ==
+        simple_platformer::findNearestStandableCell(platform, {31.5F, 32.0F}, TallBody) ==
         GridPosition{2, 1});
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(platform, {80.5F, 32.0F}, TallBody) ==
+        simple_platformer::findNearestStandableCell(platform, {80.5F, 32.0F}, TallBody) ==
         GridPosition{4, 1});
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(platform, {31.0F, 20.0F}, TallBody) ==
+        simple_platformer::findNearestStandableCell(platform, {31.0F, 20.0F}, TallBody) ==
         GridPosition{2, 1});
 
-    // The pursuer's own body decides what is standable: the tall body cannot fit under
+    // The requested body size decides what is standable: the tall body cannot fit under
     // the ceiling, and equal distances keep row, then column order, so the cell on the
     // left wins the tie.
     const simple_platformer::TileMap ceiling =
         tests::TileMapBuilder({"..#....", ".......", "#######"});
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(ceiling, {40.0F, 32.0F}, SmallBody) ==
+        simple_platformer::findNearestStandableCell(ceiling, {40.0F, 32.0F}, SmallBody) ==
         GridPosition{2, 1});
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(ceiling, {40.0F, 32.0F}, TallBody) ==
+        simple_platformer::findNearestStandableCell(ceiling, {40.0F, 32.0F}, TallBody) ==
         GridPosition{1, 1});
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(ceiling, {8.0F, 32.0F}, {20.0F, 12.0F}) ==
+        simple_platformer::findNearestStandableCell(ceiling, {8.0F, 32.0F}, {20.0F, 12.0F}) ==
         GridPosition{1, 1});
 
     // Feet off the map still find the nearest cell; a map with nowhere to stand has none.
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(ceiling, {-16.0F, 32.0F}, TallBody) ==
+        simple_platformer::findNearestStandableCell(ceiling, {-16.0F, 32.0F}, TallBody) ==
         GridPosition{0, 1});
     const simple_platformer::TileMap solid = tests::TileMapBuilder({"###", "###"});
-    REQUIRE_FALSE(simple_platformer::findPlatformerChaseCell(solid, {24.0F, 16.0F}, TallBody));
+    REQUIRE_FALSE(simple_platformer::findNearestStandableCell(solid, {24.0F, 16.0F}, TallBody));
 }
 
-TEST_CASE("Equidistant chase cells prefer the upper row", "[navigation][platformer]")
+TEST_CASE("Equidistant standable cells prefer the upper row", "[navigation][platformer]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({".....", ".....", "..#..", ".....", "..#.."});
 
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(map, {40.0F, 48.0F}, SmallBody) ==
+        simple_platformer::findNearestStandableCell(map, {40.0F, 48.0F}, SmallBody) ==
         GridPosition{2, 1});
 }
 
-TEST_CASE("Chase cells choose a nearer cell in a later row", "[navigation][platformer]")
+TEST_CASE("The nearest standable cell can be in a later row", "[navigation][platformer]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({".....", ".....", "##...", ".....", "#####"});
 
     REQUIRE(
-        simple_platformer::findPlatformerChaseCell(map, {40.0F, 48.0F}, SmallBody) ==
+        simple_platformer::findNearestStandableCell(map, {40.0F, 48.0F}, SmallBody) ==
         GridPosition{2, 3});
 }
 
-TEST_CASE("Chase cells reject invalid feet and bodies", "[navigation][platformer][validation]")
+TEST_CASE(
+    "Finding the nearest standable cell rejects invalid feet and body sizes",
+    "[navigation][platformer][validation]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     const float infinity = std::numeric_limits<float>::infinity();
     const float nan = std::numeric_limits<float>::quiet_NaN();
     REQUIRE_THROWS_AS(
-        simple_platformer::findPlatformerChaseCell(map, {infinity, 32.0F}, TallBody),
+        simple_platformer::findNearestStandableCell(map, {infinity, 32.0F}, TallBody),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::findPlatformerChaseCell(map, {24.0F, nan}, TallBody),
+        simple_platformer::findNearestStandableCell(map, {24.0F, nan}, TallBody),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::findPlatformerChaseCell(map, {24.0F, 32.0F}, {0.0F, 20.0F}),
+        simple_platformer::findNearestStandableCell(map, {24.0F, 32.0F}, {0.0F, 20.0F}),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::findPlatformerChaseCell(map, {24.0F, 32.0F}, {12.0F, -1.0F}),
+        simple_platformer::findNearestStandableCell(map, {24.0F, 32.0F}, {12.0F, -1.0F}),
         std::invalid_argument);
     REQUIRE_THROWS_AS(
-        simple_platformer::findPlatformerChaseCell(map, {24.0F, 32.0F}, {infinity, 20.0F}),
+        simple_platformer::findNearestStandableCell(map, {24.0F, 32.0F}, {infinity, 20.0F}),
         std::invalid_argument);
 }

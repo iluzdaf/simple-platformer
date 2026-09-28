@@ -15,6 +15,7 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
+#include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/pickup.hpp"
@@ -23,7 +24,7 @@
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 #include "support/fixed_step.hpp"
-#include "support/neighbor_with.hpp"
+#include "support/connection_with.hpp"
 
 TEST_CASE("Debug overlay data describes path connections and progress", "[app][debug]")
 {
@@ -83,22 +84,22 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const simple_platformer::PlatformerMovementConfig movementConfig;
-    const std::vector<simple_platformer::NavigationNeighbor> neighbors =
-        simple_platformer::platformerNeighbors(
-            map, {2, 2}, {12.0F, 12.0F}, movementConfig, tests::FixedStepSeconds);
-    const simple_platformer::NavigationNeighbor& jump =
-        tests::neighborWith(neighbors, simple_platformer::Traversal::Jump);
+    const std::vector<simple_platformer::NavigationConnection> connections =
+        simple_platformer::buildPlatformerConnections(
+            map,
+            {2, 2},
+            simple_platformer::PlatformerTraversalProfile{
+                {12.0F, 12.0F}, movementConfig, tests::FixedStepSeconds})
+            .connections;
+    const simple_platformer::NavigationConnection& jump =
+        tests::connectionWith(connections, simple_platformer::Traversal::Jump);
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .at({0.0F, 0.0F})
                                        .walking(movementConfig)
                                        .thinking({});
     npc.pathFollower = simple_platformer::PathFollower{
-        simple_platformer::NavigationPath{
-            {2, 2}, {{jump.destinationCell, jump.traversal, jump.inputs}}},
-        0,
-        0.0F,
-        jump.destinationCell};
+        simple_platformer::NavigationPath{{2, 2}, {jump.step}}, 0, 0.0F, jump.step.destinationCell};
 
     simple_platformer::World world;
     world.addActor(npc);

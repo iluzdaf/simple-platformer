@@ -22,11 +22,11 @@ namespace simple_platformer
 {
     namespace
     {
-        // In world pixels: how close the feet must come to a step's feet position to be
-        // there. A flyer steers straight at the point and would circle a looser target.
+        // Platformers accept a pixel of feet-position error. Flyers use a tighter
+        // tolerance and shorten their final movement to land on the cell's feet point.
         constexpr float ArrivalDistance = 1.0F;
         constexpr float FlyingArrivalDistance = 0.001F;
-        // In pixels per second: slower than this is stopped, as a takeoff requires.
+        // In pixels per second: residual horizontal speed below this counts as stopped.
         constexpr float StoppedSpeed = 0.001F;
 
         float directionTowards(float from, float to)
@@ -50,14 +50,13 @@ namespace simple_platformer
                    std::abs(target.y - feet.y) <= ArrivalDistance;
         }
 
-        // Navigation records airborne inputs from a stationary takeoff at the previous cell.
-        bool readyForInputProgram(
+        bool stoppedAtCell(
             int tileSize,
             const Body& body,
             const PlatformerMovement& movement,
-            GridPosition takeoff)
+            GridPosition cell)
         {
-            return arrivedAt(tileSize, body, movement, takeoff) &&
+            return arrivedAt(tileSize, body, movement, cell) &&
                    std::abs(body.velocity.x) <= StoppedSpeed;
         }
 
@@ -112,7 +111,7 @@ namespace simple_platformer
             const PlatformerMovement& movement,
             GridPosition destination)
         {
-            if (readyForInputProgram(tileSize, body, movement, destination))
+            if (stoppedAtCell(tileSize, body, movement, destination))
             {
                 return {true, {}};
             }
@@ -134,7 +133,7 @@ namespace simple_platformer
             }
             // The recorded inputs assume a stationary takeoff at the previous cell.
             if (follower.programElapsed == 0.0F &&
-                !readyForInputProgram(tileSize, body, movement, takeoff))
+                !stoppedAtCell(tileSize, body, movement, takeoff))
             {
                 return {false, approachAndBrake(tileSize, body, movement, takeoff)};
             }

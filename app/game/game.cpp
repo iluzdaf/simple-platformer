@@ -90,10 +90,7 @@ namespace simple_platformer
         }
         cameraController =
             makeCameraController(level.map, playerActor->body.bounds, {80.0F, 45.0F});
-        queueNavigation(
-            level.map,
-            platformerBodiesIn(level.world, simulationStepSeconds),
-            level.world.platformerConnections());
+        queueNavigationFill(level.map, level.world, simulationStepSeconds);
     }
 
     void Game::update(const InputIntentions& intentions, float deltaTime, FrameProfile* profile)
@@ -165,7 +162,7 @@ namespace simple_platformer
     DebugOverlay Game::debugOverlay(
         float atlasWidth,
         std::optional<glm::vec2> internalCursor,
-        std::size_t navigationBodyIndex,
+        std::size_t navigationProfileIndex,
         std::optional<ActorId> lockedMachineActor) const
     {
         NavigationDebugView navigation;
@@ -174,13 +171,13 @@ namespace simple_platformer
             navigation.cursorWorld =
                 screenToWorld(currentCamera(), internalCursor.value_or(glm::vec2{0.0F, 0.0F}));
         }
-        navigation.bodyIndex = navigationBodyIndex;
-        // Label navigation cache bodies from definitions that can use ground NPC navigation.
+        navigation.profileIndex = navigationProfileIndex;
+        // Label navigation profiles from definitions that can use ground NPC navigation.
         for (const auto& [name, definition] : gameCatalogs.actors.definitions)
         {
             if (definition.platformer.has_value() && definition.senses.has_value())
             {
-                navigation.bodyNames.push_back(
+                navigation.namedProfiles.push_back(
                     {name,
                      {definition.bodySize,
                       definition.platformer.value_or(PlatformerMovementConfig{}),

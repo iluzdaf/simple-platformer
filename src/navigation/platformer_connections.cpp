@@ -72,27 +72,26 @@ namespace simple_platformer
             const TileMap& map,
             GridPosition start,
             GridPosition destinationCell,
-            glm::vec2 bodySize,
-            const PlatformerMovementConfig& config,
-            float stepSeconds)
+            const PlatformerTraversalProfile& profile)
         {
             const int tileSize = map.tileSize();
-            Body body{boxInCell(tileSize, start, bodySize), {0.0F, 0.0F}};
-            PlatformerMovement movement{config, true, 0.0F, 0.0F};
+            Body body{boxInCell(tileSize, start, profile.size), {0.0F, 0.0F}};
+            PlatformerMovement movement{profile.movement, true, 0.0F, 0.0F};
             PathFollower follower;
             setPath(follower, {start, {{destinationCell, Traversal::Walk, {}}}}, destinationCell);
 
-            WalkSimulationResult walk{std::nullopt, cellsCovered(tileSize, body.bounds), 0};
+            WalkSimulationResult walk{
+                destinationCell.x - start.x, std::nullopt, cellsCovered(tileSize, body.bounds), 0};
             for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
             {
                 const InputIntentions intentions =
-                    followPlatformerPath(tileSize, body, movement, follower, stepSeconds);
+                    followPlatformerPath(tileSize, body, movement, follower, profile.stepSeconds);
                 if (pathComplete(follower))
                 {
                     walk.cost = tick;
                     break;
                 }
-                updatePlatformerMovement(map, body, movement, intentions, stepSeconds);
+                updatePlatformerMovement(map, body, movement, intentions, profile.stepSeconds);
                 includeCellsAroundBounds(walk.sweep, tileSize, body.bounds);
                 ++walk.simulatedTicks;
             }
@@ -307,20 +306,14 @@ namespace simple_platformer
                 const int columns = destination.x - start.x;
                 const WalkSimulationResult* cached =
                     walkCache != nullptr ? walkCache->cachedWalk(columns, profile) : nullptr;
-                const WalkSimulationResult walk = cached != nullptr ? *cached
-                                                                    : simulateWalk(
-                                                                          map,
-                                                                          start,
-                                                                          destination,
-                                                                          profile.size,
-                                                                          profile.movement,
-                                                                          profile.stepSeconds);
+                const WalkSimulationResult walk =
+                    cached != nullptr ? *cached : simulateWalk(map, start, destination, profile);
                 if (cached == nullptr)
                 {
                     result.simulatedTicks += walk.simulatedTicks;
                     if (walkCache != nullptr)
                     {
-                        result.walksToCache.push_back({columns, walk});
+                        result.walksToCache.push_back(walk);
                     }
                 }
                 result.footprint = unionOf(
@@ -394,7 +387,7 @@ namespace simple_platformer
             {
                 keepCheapest(combined.connections, std::move(connection));
             }
-            for (const SimulatedWalk& walk : attemptResult.walksToCache)
+            for (const WalkSimulationResult& walk : attemptResult.walksToCache)
             {
                 combined.walksToCache.push_back(walk);
             }
@@ -408,9 +401,9 @@ namespace simple_platformer
         const PlatformerTraversalProfile& profile,
         BuiltPlatformerConnections built)
     {
-        for (const SimulatedWalk& walk : built.walksToCache)
+        for (const WalkSimulationResult& walk : built.walksToCache)
         {
-            cache.storeWalk(walk.columns, profile, walk.result);
+            cache.storeWalk(profile, walk);
         }
         cache.storeConnections(cell, profile, std::move(built.connections), built.footprint);
     }

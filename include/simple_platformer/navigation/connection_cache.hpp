@@ -81,10 +81,7 @@ namespace simple_platformer
         const WalkSimulationResult* cachedWalk(
             int columns,
             const PlatformerTraversalProfile& profile) const;
-        void storeWalk(
-            int columns,
-            const PlatformerTraversalProfile& profile,
-            const WalkSimulationResult& walk);
+        void storeWalk(const PlatformerTraversalProfile& profile, const WalkSimulationResult& walk);
         // The cells a profile can reach from this start, learned from a search that failed
         // there, or nothing while none has. A goal outside the set has no path, so a
         // search for one need not run.

@@ -195,12 +195,11 @@ namespace simple_platformer
     }
 
     void PlatformerConnectionCache::storeWalk(
-        int columns,
         const PlatformerTraversalProfile& profile,
         const WalkSimulationResult& walk)
     {
         requireValid(profile);
-        cacheFor(profile).walks[columns] = walk;
+        cacheFor(profile).walks[walk.columns] = walk;
     }
 
     const std::vector<GridPosition>* PlatformerConnectionCache::cachedReachableCells(

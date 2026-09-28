@@ -127,14 +127,15 @@ TEST_CASE("A walk is cached per length and profile, and a break leaves it", "[na
     REQUIRE(cache.cachedWalk(3, profile) == nullptr);
     REQUIRE(cache.cachedWalkCount(profile) == 0);
 
-    cache.storeWalk(3, profile, {35, {{-1, -1}, {4, 1}}, 35});
-    cache.storeWalk(-3, profile, {36, {{-4, -1}, {1, 1}}});
-    cache.storeWalk(12, profile, {std::nullopt, {{-1, -1}, {13, 1}}});
+    cache.storeWalk(profile, {3, 35, {{-1, -1}, {4, 1}}, 35});
+    cache.storeWalk(profile, {-3, 36, {{-4, -1}, {1, 1}}});
+    cache.storeWalk(profile, {12, std::nullopt, {{-1, -1}, {13, 1}}});
     REQUIRE(cache.cachedWalkCount(profile) == 3);
     REQUIRE(cache.cachedWalkCount(taller) == 0);
     REQUIRE(cache.cachedWalk(3, taller) == nullptr);
     const WalkSimulationResult* rightwards = cache.cachedWalk(3, profile);
     REQUIRE(rightwards != nullptr);
+    REQUIRE(rightwards->columns == 3);
     REQUIRE(rightwards->cost.value_or(0) == 35);
     REQUIRE(rightwards->sweep.last == GridPosition{4, 1});
     REQUIRE(rightwards->simulatedTicks == 35);
@@ -143,7 +144,7 @@ TEST_CASE("A walk is cached per length and profile, and a break leaves it", "[na
     REQUIRE_FALSE(cache.cachedWalk(12, profile)->cost.has_value());
 
     // Storing again replaces; a break changes nothing, since no tile decided a walk.
-    cache.storeWalk(3, profile, {34, {{-1, -1}, {4, 1}}});
+    cache.storeWalk(profile, {3, 34, {{-1, -1}, {4, 1}}});
     REQUIRE(cache.cachedWalk(3, profile)->cost.value_or(0) == 34);
     cache.storeConnections({0, 1}, profile, {}, {{-2, 0}, {6, 2}});
     cache.invalidate({2, 1});
@@ -170,7 +171,7 @@ TEST_CASE("Cached walks change nothing but the ticks simulated", "[navigation][c
         simple_platformer::buildPlatformerConnections(map, first, profile, &cache);
     const int firstSimulatedTicks = firstBuild.simulatedTicks;
     REQUIRE_FALSE(firstBuild.walksToCache.empty());
-    REQUIRE(firstBuild.walksToCache.front().result.simulatedTicks > 0);
+    REQUIRE(firstBuild.walksToCache.front().simulatedTicks > 0);
     simple_platformer::storePlatformerConnections(cache, first, profile, std::move(firstBuild));
     const std::size_t walks = cache.cachedWalkCount(profile);
     REQUIRE(walks > 0);
@@ -220,7 +221,7 @@ TEST_CASE("The cache rejects an invalid profile", "[navigation][cache][validatio
         cache.storeConnections({0, 0}, flat, {}, {{0, 0}, {0, 0}}), std::invalid_argument);
     REQUIRE_THROWS_AS(
         cache.storeConnections({0, 0}, stopped, {}, {{0, 0}, {0, 0}}), std::invalid_argument);
-    REQUIRE_THROWS_AS(cache.storeWalk(1, flat, {1, {}}), std::invalid_argument);
+    REQUIRE_THROWS_AS(cache.storeWalk(flat, {1, 1, {}}), std::invalid_argument);
     REQUIRE_THROWS_AS(cache.storeReachableCells({0, 0}, stopped, {}), std::invalid_argument);
     REQUIRE_THROWS_AS(cache.storePath({{0, 0}, {1, 0}, 0}, flat, {}), std::invalid_argument);
     REQUIRE_THROWS_AS(cache.queue({0, 0}, stopped), std::invalid_argument);

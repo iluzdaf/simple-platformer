@@ -19,15 +19,11 @@ namespace simple_platformer
     // Simulated ticks describe the original walk, not work done when it is reused.
     struct WalkSimulationResult
     {
+        // Signed distance from the start cell; also the walk cache's key.
+        int columns = 0;
         std::optional<int> cost;
         CellRange sweep;
         int simulatedTicks = 0;
-    };
-
-    struct SimulatedWalk
-    {
-        int columns = 0;
-        WalkSimulationResult result;
     };
 
     struct BuiltPlatformerConnections
@@ -35,7 +31,7 @@ namespace simple_platformer
         std::vector<NavigationConnection> connections;
         // Conservative rectangle covering the tiles probed or swept by simulation.
         CellRange footprint;
-        std::vector<SimulatedWalk> walksToCache;
+        std::vector<WalkSimulationResult> walksToCache;
         // Movement ticks simulated for this build; reused walks add none.
         int simulatedTicks = 0;
     };

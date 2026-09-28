@@ -10,11 +10,7 @@ namespace simple_platformer
     class TileMap;
     struct FrameProfile;
 
-    // Adjacent cells that permit flying movement. This policy identifies cells, not
-    // the traversal and cost of the connections passed to path search.
-    std::vector<GridPosition> flyingNeighbors(const TileMap& map, GridPosition cell);
-
-    // Cost-one flight connections to the cells selected by flyingNeighbors.
+    // Cost-one flight connections to adjacent open cells.
     std::vector<NavigationConnection> flyingConnections(const TileMap& map, GridPosition cell);
 
     // The cheapest flight from one cell to another: every cell that allows movement is a

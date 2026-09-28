@@ -554,15 +554,14 @@ retry after pending cache work. Flying paths never defer.
 
 ### The search
 
-`path_search` is A* over a grid. For each expanded cell it asks a neighbor policy for
-candidate destinations and a separate connection function for traversable edges with
-costs and replay inputs. Only connections to candidates can enter the search. Flying
-uses adjacent open cells as candidates; platformers use standable cells, then simulate
-walks, falls, and jumps to discover actual connections. Every cost must be positive,
+`path_search` is A* over a grid. For each expanded cell it asks for outgoing
+connections: each destination is a reachable neighbor with a cost and, when needed,
+replay inputs. Flying connects adjacent open cells; platformers simulate walks,
+falls, and jumps to discover their connections. Every cost must be positive,
 and the heuristic must never overestimate; a zero heuristic gives Dijkstra's search.
 Its result distinguishes a found path, a complete failure with every cell reachable
 from the start, and an incomplete search. A separate readiness check can pause at a
-pending non-goal cell before asking either policy for its neighbors or connections.
+pending non-goal cell before asking for its connections.
 The incomplete result identifies that cell so the caller can prioritise its fill.
 
 ### Flying paths
@@ -578,9 +577,7 @@ platforms. It shortens the final movement to avoid overshooting the cell's feet 
 must be clear, with support below. `findPlatformerStartCell` maps a grounded actor's
 collider to a supporting cell, even when its feet extend past a ledge.
 `findNearestStandableCell` maps remembered target feet to a possible destination for
-the pursuer's body size; it does not establish reachability. The platformer neighbor
-policy offers every other standable cell as a candidate, and simulation determines
-which candidates have a connection.
+the pursuer's body size; it does not establish reachability.
 
 `platformer_connections` plans walks, falls, and jumps from a standable source cell.
 Movement simulation tests each maneuver with the real physics at the caller's step; successful
@@ -951,7 +948,7 @@ by multiple actors; it may need new facts or built-in states.
 | Input binding or mouse conversion                                              | `app/application.cpp`             |
 | Movement or collision rule                                                     | `src/movement` or `src/physics`   |
 | NPC perception or decision                                                     | `src/npc`                         |
-| Generic search, neighbor policies, or movement-specific connections            | `src/navigation`                  |
+| Generic search or movement-specific connections                                | `src/navigation`                  |
 | Damage, attacks, or projectiles                                                | `src/combat`                      |
 | Animation definitions                                                          | `assets/catalogs/animations.json` |
 | Content loading and validation                                                 | `app/content`                     |

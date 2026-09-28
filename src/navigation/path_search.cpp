@@ -100,15 +100,10 @@ namespace simple_platformer
         GridPosition start,
         GridPosition goal,
         GridSize grid,
-        const GridNeighborFunction& neighbors,
         const GridConnectionFunction& connections,
         const GridHeuristicFunction& heuristic,
         const GridExpansionReady& canExpand)
     {
-        if (!neighbors)
-        {
-            throw std::invalid_argument("Path search requires a neighbor function");
-        }
         if (!connections)
         {
             throw std::invalid_argument("Path search requires a connection function");
@@ -211,15 +206,7 @@ namespace simple_platformer
             const int parentCost = currentNode.costFromStart;
             currentNode.closed = true;
             // Relaxing may add nodes, which can move them all, so currentNode is not used
-            // after this. Connection order still determines ties between valid candidates.
-            const std::vector<GridPosition> candidates = neighbors(currentCell);
-            for (const GridPosition candidate : candidates)
-            {
-                if (!contains(grid, candidate))
-                {
-                    throw std::invalid_argument("A navigation neighbor lies outside the grid");
-                }
-            }
+            // after this. Connection order still determines ties.
             for (const NavigationConnection& connection : connections(currentCell))
             {
                 if (connection.cost <= 0)
@@ -230,12 +217,7 @@ namespace simple_platformer
                 {
                     throw std::invalid_argument("A connection leads outside the grid");
                 }
-                if (std::find(
-                        candidates.begin(), candidates.end(), connection.step.destinationCell) !=
-                    candidates.end())
-                {
-                    relax(connection, parentIndex, parentCost);
-                }
+                relax(connection, parentIndex, parentCost);
             }
         }
     }

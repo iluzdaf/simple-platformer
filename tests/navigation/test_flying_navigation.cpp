@@ -1,7 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <algorithm>
-#include <cstddef>
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
@@ -11,38 +9,22 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/tile_map_builder.hpp"
 
-TEST_CASE("Flying neighbors stay inside the map and avoid solid cells", "[navigation][flying]")
+TEST_CASE("Flying connections lead to adjacent open cells at cost one", "[navigation][flying]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"...", ".#.", "###"});
+    const std::vector<simple_platformer::NavigationConnection> connections =
+        simple_platformer::flyingConnections(map, {0, 0});
 
-    const std::vector<simple_platformer::GridPosition> neighbors =
-        simple_platformer::flyingNeighbors(map, {0, 0});
-
-    REQUIRE(neighbors.size() == 2);
-    REQUIRE(
-        std::find(neighbors.begin(), neighbors.end(), simple_platformer::GridPosition{1, 0}) !=
-        neighbors.end());
-    REQUIRE(
-        std::find(neighbors.begin(), neighbors.end(), simple_platformer::GridPosition{0, 1}) !=
-        neighbors.end());
-    REQUIRE(simple_platformer::flyingNeighbors(map, {1, 0}).size() == 2);
-}
-
-TEST_CASE("Flying connections follow the neighbor policy at cost one", "[navigation][flying]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({"...", ".#.", "###"});
-    const auto neighbors = simple_platformer::flyingNeighbors(map, {0, 0});
-    const auto connections = simple_platformer::flyingConnections(map, {0, 0});
-
-    REQUIRE(connections.size() == neighbors.size());
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    REQUIRE(connections.size() == 2);
+    REQUIRE(connections[0].step.destinationCell == simple_platformer::GridPosition{1, 0});
+    REQUIRE(connections[1].step.destinationCell == simple_platformer::GridPosition{0, 1});
+    for (const auto& connection : connections)
     {
-        const auto& connection = connections[index];
-        REQUIRE(connection.step.destinationCell == neighbors[index]);
         REQUIRE(connection.step.traversal == simple_platformer::Traversal::Fly);
         REQUIRE(connection.step.inputs.empty());
         REQUIRE(connection.cost == 1);
     }
+    REQUIRE(simple_platformer::flyingConnections(map, {1, 0}).size() == 2);
 }
 
 TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying]")

@@ -252,11 +252,11 @@ machine and ordinary movement. Then read:
 1. [`path_search.cpp`](../src/navigation/path_search.cpp) for the generic lowest-cost
    search;
 2. [`flying_navigation.cpp`](../src/navigation/flying_navigation.cpp) for the simplest
-   adjacent-cell neighbor policy and the connections made from it;
+   outgoing-connection policy;
 3. [`path_follower.cpp`](../src/navigation/path_follower.cpp) for turning a path into
    intentions;
 4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for standability,
-   candidate neighbors, supported start cells, and destinations near a target;
+   supported start cells, and destinations near a target;
 5. [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp) for
    simulated walks, falls, and jumps;
 6. [`connection_cache.cpp`](../src/navigation/connection_cache.cpp) for the

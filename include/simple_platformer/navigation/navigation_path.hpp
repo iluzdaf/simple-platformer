@@ -28,8 +28,8 @@ namespace simple_platformer
         InputProgram inputs;
     };
 
-    // A traversable edge leaving a cell. Search uses its cost; a selected path keeps
-    // its step. A neighboring cell alone is not a connection.
+    // A traversable edge leaving a cell. Its destination is a neighbor; search uses
+    // its cost, and a selected path keeps its step.
     struct NavigationConnection
     {
         NavigationStep step;

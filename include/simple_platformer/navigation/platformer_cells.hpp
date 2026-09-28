@@ -1,8 +1,6 @@
 #pragma once
 
 #include <optional>
-#include <vector>
-
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/coordinates.hpp"
@@ -15,13 +13,6 @@ namespace simple_platformer
     // Whether the body can stand in the cell: the cell blocks nothing, nor does any cell
     // the body covers standing there, and the cell below blocks movement.
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize);
-
-    // Candidate destinations for a platformer search. They may be unreachable;
-    // connection simulation decides which ones the actor can actually traverse to.
-    std::vector<GridPosition> platformerNeighbors(
-        const TileMap& map,
-        GridPosition start,
-        glm::vec2 bodySize);
 
     // Maps a grounded body's collider to a standable cell at its feet row. At a ledge,
     // its feet may extend past the cell that still supports it.

@@ -103,11 +103,6 @@ namespace simple_platformer
             int cellsExpanded = 0;
             int cellsReused = 0;
             int simulatedTicks = 0;
-            const GridNeighborFunction neighbors = [&map, &profile, frameProfile](GridPosition cell)
-            {
-                const PhaseScope neighborPhase(frameProfile, "Navigation", "Neighbor generation");
-                return platformerNeighbors(map, cell, profile.size);
-            };
             const GridConnectionFunction connections = [&map,
                                                         &query,
                                                         &profile,
@@ -154,13 +149,7 @@ namespace simple_platformer
             {
                 const PhaseScope algorithmPhase(frameProfile, "Navigation", "Search algorithm");
                 result = findLowestCostPath(
-                    query.start,
-                    query.goal,
-                    map.size(),
-                    neighbors,
-                    connections,
-                    heuristic,
-                    canExpand);
+                    query.start, query.goal, map.size(), connections, heuristic, canExpand);
             }
             addFrameStatistic(frameProfile, "Navigation", "Cells expanded", cellsExpanded);
             addFrameStatistic(frameProfile, "Navigation", "Cells reused", cellsReused);

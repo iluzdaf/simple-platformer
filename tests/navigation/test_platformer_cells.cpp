@@ -3,7 +3,6 @@
 #include <limits>
 #include <optional>
 #include <stdexcept>
-#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -30,16 +29,6 @@ TEST_CASE("A standable cell has support below and room for the body", "[navigati
     // The tall body would reach into the tile above.
     REQUIRE_FALSE(simple_platformer::canStandAt(map, {1, 1}, TallBody));
     REQUIRE_FALSE(simple_platformer::canStandAt(map, {1, 0}, SmallBody));
-}
-
-TEST_CASE("Platformer neighbors include every other standable cell", "[navigation][platformer]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({"..#..", "#####"});
-
-    REQUIRE(
-        simple_platformer::platformerNeighbors(map, {0, 0}, SmallBody) ==
-        std::vector<GridPosition>{{1, 0}, {3, 0}, {4, 0}});
-    REQUIRE(simple_platformer::platformerNeighbors(map, {2, 0}, SmallBody).empty());
 }
 
 TEST_CASE(

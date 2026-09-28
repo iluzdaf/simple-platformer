@@ -3,7 +3,6 @@
 #include <cmath>
 #include <optional>
 #include <stdexcept>
-#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -73,30 +72,6 @@ namespace simple_platformer
         return map.contains(cell) && !map.blocksMovement(cell) &&
                map.blocksMovement({cell.x, cell.y + 1}) &&
                bodyFits(map, boxInCell(map.tileSize(), cell, bodySize));
-    }
-
-    std::vector<GridPosition> platformerNeighbors(
-        const TileMap& map,
-        GridPosition start,
-        glm::vec2 bodySize)
-    {
-        std::vector<GridPosition> neighbors;
-        if (!canStandAt(map, start, bodySize))
-        {
-            return neighbors;
-        }
-        for (int row = 0; row < map.height(); ++row)
-        {
-            for (int column = 0; column < map.width(); ++column)
-            {
-                const GridPosition candidate{column, row};
-                if (candidate != start && canStandAt(map, candidate, bodySize))
-                {
-                    neighbors.push_back(candidate);
-                }
-            }
-        }
-        return neighbors;
     }
 
     std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds)

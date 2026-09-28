@@ -43,20 +43,19 @@ namespace simple_platformer
         const TileMap& map,
         GridPosition start,
         GridPosition goal,
-        PathSearchStatistics* statistics,
         FrameProfile* profile)
     {
+        addFrameStatistic(profile, "Navigation", "Path searches");
         if (!map.contains(start) || !map.contains(goal))
         {
             return {NavigationPathStatus::Unreachable, {}};
         }
-        const GridConnectionFunction connections = [&map, statistics, profile](GridPosition cell)
+        int cellsExpanded = 0;
+        const GridConnectionFunction connections =
+            [&map, profile, &cellsExpanded](GridPosition cell)
         {
             const PhaseScope connectionPhase(profile, "Navigation", "Connection retrieval");
-            if (statistics != nullptr)
-            {
-                ++statistics->nodesExpanded;
-            }
+            ++cellsExpanded;
             return flyingConnections(map, cell);
         };
         const GridNeighborFunction neighbors = [&map, profile](GridPosition cell)
@@ -71,6 +70,7 @@ namespace simple_platformer
             result = findLowestCostPath(
                 start, goal, map.size(), neighbors, connections, manhattanHeuristic);
         }
+        addFrameStatistic(profile, "Navigation", "Cells expanded", cellsExpanded);
         if (result.status == PathSearchStatus::Found)
         {
             return {NavigationPathStatus::Found, std::move(result.path)};

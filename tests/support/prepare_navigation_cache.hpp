@@ -17,8 +17,7 @@ namespace tests
         simple_platformer::queueNavigationFill(map, world, FixedStepSeconds);
         simple_platformer::PlatformerConnectionCache& cache = world.platformerConnections();
         while (simple_platformer::advanceNavigationFill(
-                   map, cache, simple_platformer::NavigationFillTicksPerStep)
-                   .cellsCached > 0)
+                   map, cache, simple_platformer::NavigationFillTicksPerStep) > 0)
         {
         }
     }

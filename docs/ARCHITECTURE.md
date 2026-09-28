@@ -616,8 +616,8 @@ replaced with its level, and the NPC system hands it to every platformer search.
 stored connections, building and storing them separately on a miss. A cached path or
 reachable set may answer before search; a completed search stores its result. The result
 distinguishes a found path, an unreachable goal, and a search
-deferred until pending connections are filled. Search statistics report expanded cells,
-cached paths and connections reused, deferred searches, and ticks simulated.
+deferred until pending connections are filled. Optional frame profiling counts expanded
+cells, remembered paths, reused connections, deferred searches, and simulated ticks.
 
 ### Filling the cache
 
@@ -858,16 +858,11 @@ collection and selection logic testable without a window.
 without editing it.
 
 Frame profiling is optional. The application owns each frame record and passes it to
-the simulation; work measures its own duration with nested scopes. Parent phases
-exclude child time, so the phase totals do not double-count. `FrameHistory` retains
-completed records for the debug UI. See `timing/frame_profile` for the API and
+the simulation; work measures its own duration with nested scopes and adds named
+statistics at the point where it knows them. Parent phases exclude child time, so
+the phase totals do not double-count. `FrameHistory` retains completed records for
+the debug UI. See `timing/frame_profile` for the API and
 [Debug overlay](../README.md#debug-overlay) for its presentation.
-
-Results intrinsic to a call are returned by value, such as `PathSearchResult` and
-`NavigationFillStatistics`. Optional reporting uses a nullable pointer, such as
-`PathSearchStatistics*` or `FrameProfile*`. Required mutable collaborators use
-references: `findPlatformerPath` takes a `PlatformerConnectionCache&`, and systems
-write shared requests through `WorldRequests&`.
 
 The inventory UI is an example presentation, not an engine rule. It derives its rows
 from the configured slot count, uses at most three columns, pauses simulation while

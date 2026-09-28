@@ -21,21 +21,6 @@ namespace simple_platformer
     // requested. An empty function allows every cell; a cache may wait for pending work.
     using GridExpansionReady = std::function<bool(GridPosition cell)>;
 
-    // Search work and cache outcomes for a navigation path request.
-    struct PathSearchStatistics
-    {
-        // Cells whose neighbors and connections the search asked for.
-        int nodesExpanded = 0;
-        // Of those, cells whose connections a cache already held.
-        int cellsReused = 0;
-        // Searches answered with a cached path from an earlier one, expanding nothing.
-        int pathsRemembered = 0;
-        // Searches stopped at a cell still waiting for the fill; the caller asks again.
-        int deferred = 0;
-        // Movement ticks simulated to build connections; only platformer searches do this.
-        int simulatedTicks = 0;
-    };
-
     enum class PathSearchStatus
     {
         Found,

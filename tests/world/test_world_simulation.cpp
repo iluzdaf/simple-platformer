@@ -131,7 +131,7 @@ TEST_CASE(
             plain.actors()[index].body.bounds.position);
     }
     // The chasing NPC searched for a path at least once.
-    REQUIRE(profile.pathSearches >= 1);
+    REQUIRE(simple_platformer::frameStatisticCount(profile, "Path searches") >= 1);
     REQUIRE(std::any_of(
         profile.phases.begin(),
         profile.phases.end(),

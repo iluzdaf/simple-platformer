@@ -11,10 +11,10 @@
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
@@ -25,9 +25,9 @@
 
 namespace
 {
+    using simple_platformer::FrameProfile;
     using simple_platformer::GridPosition;
     using simple_platformer::NavigationConnection;
-    using simple_platformer::PathSearchStatistics;
     using simple_platformer::PlatformerConnectionCache;
     using simple_platformer::PlatformerTraversalProfile;
 
@@ -164,29 +164,29 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
     const PlatformerTraversalProfile profile{BodySize, {}, tests::FixedStepSeconds};
     tests::prepareNavigationCache(map, world);
     PlatformerConnectionCache& cache = world.platformerConnections();
-    const auto search = [&](PathSearchStatistics& statistics)
+    const auto search = [&](FrameProfile& frame)
     {
         return simple_platformer::findPlatformerPath(
-            map, start, goal, BodySize, {}, tests::FixedStepSeconds, cache, {}, &statistics);
+            map, start, goal, BodySize, {}, tests::FixedStepSeconds, cache, {}, &frame);
     };
 
-    PathSearchStatistics blocked;
+    FrameProfile blocked;
     const auto blockedResult = search(blocked);
     REQUIRE(blockedResult.status == simple_platformer::NavigationPathStatus::Unreachable);
     REQUIRE_FALSE(blockedResult.path.has_value());
-    REQUIRE(blocked.simulatedTicks == 0);
+    REQUIRE(simple_platformer::frameStatisticCount(blocked, "Search simulated ticks") == 0);
     REQUIRE(cache.cachedReachableCells(start, profile) != nullptr);
 
     REQUIRE(map.breakTile({3, 1}));
 
     // The search applies the break, then waits at the dropped start instead of
     // simulating it. The start moves to the front of the fill queue.
-    PathSearchStatistics waiting;
+    FrameProfile waiting;
     const auto waitingResult = search(waiting);
     REQUIRE(waitingResult.status == simple_platformer::NavigationPathStatus::Deferred);
     REQUIRE_FALSE(waitingResult.path.has_value());
-    REQUIRE(waiting.deferred == 1);
-    REQUIRE(waiting.simulatedTicks == 0);
+    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Paths deferred") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Search simulated ticks") == 0);
     REQUIRE(cache.cachedConnections(start, profile) == nullptr);
     REQUIRE(cache.cachedReachableCells(start, profile) == nullptr);
     REQUIRE(cache.nextPending(profile).value_or(GridPosition{}) == start);
@@ -195,18 +195,19 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
 
     // A fill with ticks to spare recaches every dropped cell; the search then finds the
     // route through the gap without simulating.
-    const simple_platformer::NavigationFillStatistics fillStatistics =
-        simple_platformer::advanceNavigationFill(map, cache, 1000000);
-    REQUIRE(fillStatistics.cellsCached == static_cast<int>(pending));
-    REQUIRE(fillStatistics.simulatedTicks > 0);
+    FrameProfile fillProfile;
+    const int cellsCached =
+        simple_platformer::advanceNavigationFill(map, cache, 1000000, &fillProfile);
+    REQUIRE(cellsCached == static_cast<int>(pending));
+    REQUIRE(simple_platformer::frameStatisticCount(fillProfile, "Fill simulated ticks") > 0);
     REQUIRE(cache.cellsPending(profile) == 0);
-    PathSearchStatistics opened;
+    FrameProfile opened;
     const auto openedResult = search(opened);
     REQUIRE(openedResult.status == simple_platformer::NavigationPathStatus::Found);
     REQUIRE(openedResult.path.has_value());
-    REQUIRE(opened.deferred == 0);
-    REQUIRE(opened.simulatedTicks == 0);
-    REQUIRE(opened.pathsRemembered == 0);
+    REQUIRE(simple_platformer::frameStatisticCount(opened, "Paths deferred") == 0);
+    REQUIRE(simple_platformer::frameStatisticCount(opened, "Search simulated ticks") == 0);
+    REQUIRE(simple_platformer::frameStatisticCount(opened, "Paths remembered") == 0);
 }
 
 TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cache]")

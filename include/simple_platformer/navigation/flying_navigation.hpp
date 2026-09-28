@@ -4,7 +4,6 @@
 
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/navigation/path_search.hpp"
 
 namespace simple_platformer
 {
@@ -20,11 +19,10 @@ namespace simple_platformer
 
     // The cheapest flight from one cell to another: every cell that allows movement is a
     // node, joined to its four neighbors at a cost of one. No path when either cell is
-    // off the map. Optional statistics count expanded cells.
+    // off the map. An optional frame profile records search work.
     NavigationPathResult findFlyingPath(
         const TileMap& map,
         GridPosition start,
         GridPosition goal,
-        PathSearchStatistics* statistics = nullptr,
         FrameProfile* profile = nullptr);
 }

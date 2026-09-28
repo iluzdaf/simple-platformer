@@ -45,20 +45,21 @@ namespace simple_platformer
             return seconds;
         }
 
-        // The categories of the phases, in the order the simulation first charged them.
-        std::vector<const char*> categoriesOf(const std::vector<PhaseTiming>& phases)
+        // Categories in the order their measurements first appeared.
+        template <typename Measurement>
+        std::vector<const char*> categoriesOf(const std::vector<Measurement>& measurements)
         {
             std::vector<const char*> categories;
-            for (const PhaseTiming& phase : phases)
+            for (const Measurement& measurement : measurements)
             {
                 const bool seen = std::any_of(
                     categories.begin(),
                     categories.end(),
                     [&](const char* category)
-                    { return std::string_view(category) == phase.category; });
+                    { return std::string_view(category) == measurement.category; });
                 if (!seen)
                 {
-                    categories.push_back(phase.category);
+                    categories.push_back(measurement.category);
                 }
             }
             return categories;
@@ -263,6 +264,36 @@ namespace simple_platformer
             ImGui::EndTable();
         }
 
+        void drawStatisticTable(const std::vector<FrameStatistic>& statistics)
+        {
+            if (statistics.empty() ||
+                !ImGui::BeginTable("statistics", 2, ImGuiTableFlags_SizingStretchProp))
+            {
+                return;
+            }
+            ImGui::TableSetupColumn("statistic", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("count", ImGuiTableColumnFlags_WidthFixed);
+            for (const char* category : categoriesOf(statistics))
+            {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(category);
+                for (const FrameStatistic& statistic : statistics)
+                {
+                    if (std::string_view(statistic.category) != category)
+                    {
+                        continue;
+                    }
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::Text("   %s", statistic.name);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", statistic.count);
+                }
+            }
+            ImGui::EndTable();
+        }
+
         // The history's summary under the plot: the latest frame, the average and the
         // worst, then the simulation's costs per step over every frame held.
         void drawHistorySummary(const FrameHistory& history, const std::vector<PhaseTiming>& phases)
@@ -293,19 +324,8 @@ namespace simple_platformer
                 "simulation %6.3f ms per tick over %d ticks",
                 std::accumulate(simulationSeconds.begin(), simulationSeconds.end(), 0.0F) * scale,
                 ticks);
-            ImGui::Text(
-                "searches %d   remembered %d   deferred %d",
-                history.totalPathSearches(),
-                history.totalPathSearchesRemembered(),
-                history.totalPathSearchesDeferred());
-            ImGui::Text(
-                "cells %d   reused %d",
-                history.totalPathSearchNodes(),
-                history.totalPathSearchCellsReused());
-            ImGui::Text(
-                "sim ticks %d   fill ticks %d",
-                history.totalPathSearchSimulatedTicks(),
-                history.totalNavigationFillTicks());
+            ImGui::Text("statistics over %d ticks", ticks);
+            drawStatisticTable(history.statisticsSummed());
             drawPhaseTable(phases, "ms per tick", scale);
         }
 
@@ -332,16 +352,8 @@ namespace simple_platformer
                 "simulation %6.3f ms over %d ticks",
                 frame.simulationSeconds * 1000.0F,
                 frame.simulationTicks);
-            ImGui::Text(
-                "searches %d   remembered %d   deferred %d",
-                frame.pathSearches,
-                frame.pathSearchesRemembered,
-                frame.pathSearchesDeferred);
-            ImGui::Text("cells %d   reused %d", frame.pathSearchNodes, frame.pathSearchCellsReused);
-            ImGui::Text(
-                "sim ticks %d   fill ticks %d",
-                frame.pathSearchSimulatedTicks,
-                frame.navigationFillTicks);
+            ImGui::TextUnformatted("statistics this frame");
+            drawStatisticTable(frame.statistics);
             drawPhaseTable(phasesByCost(frame.phases), "ms", 1000.0F);
         }
 

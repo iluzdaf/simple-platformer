@@ -15,6 +15,7 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -25,14 +26,17 @@ namespace simple_platformer
         // Account for cache writes even when a cell needs no movement simulation.
         constexpr int CacheWriteCostTicks = 3;
 
-        NavigationFillStatistics fillPlatformerConnections(
+        int fillPlatformerConnections(
             const TileMap& map,
             const PlatformerTraversalProfile& profile,
             PlatformerConnectionCache& cache,
-            int tickBudget)
+            int tickBudget,
+            FrameProfile* frameProfile)
         {
-            NavigationFillStatistics fillStatistics;
-            while (fillStatistics.budgetSpent < tickBudget)
+            int cellsCached = 0;
+            int simulatedTicks = 0;
+            int budgetSpent = 0;
+            while (budgetSpent < tickBudget)
             {
                 const std::optional<GridPosition> next = cache.nextPending(profile);
                 if (!next.has_value())
@@ -42,13 +46,16 @@ namespace simple_platformer
                 const GridPosition cell = next.value();
                 BuiltPlatformerConnections built =
                     buildPlatformerConnections(map, cell, profile, &cache);
-                const int simulatedTicks = built.simulatedTicks;
+                const int ticksForCell = built.simulatedTicks;
                 storePlatformerConnections(cache, cell, profile, std::move(built));
-                ++fillStatistics.cellsCached;
-                fillStatistics.simulatedTicks += simulatedTicks;
-                fillStatistics.budgetSpent += simulatedTicks + CacheWriteCostTicks;
+                ++cellsCached;
+                simulatedTicks += ticksForCell;
+                budgetSpent += ticksForCell + CacheWriteCostTicks;
             }
-            return fillStatistics;
+            addFrameStatistic(frameProfile, "Navigation", "Fill cells cached", cellsCached);
+            addFrameStatistic(frameProfile, "Navigation", "Fill simulated ticks", simulatedTicks);
+            addFrameStatistic(frameProfile, "Navigation", "Fill budget spent", budgetSpent);
+            return cellsCached;
         }
 
         std::vector<PlatformerTraversalProfile> platformerTraversalProfilesIn(
@@ -97,10 +104,11 @@ namespace simple_platformer
         }
     }
 
-    NavigationFillStatistics advanceNavigationFill(
+    int advanceNavigationFill(
         const TileMap& map,
         PlatformerConnectionCache& cache,
-        int tickBudget)
+        int tickBudget,
+        FrameProfile* frameProfile)
     {
         if (tickBudget < 0)
         {
@@ -116,15 +124,11 @@ namespace simple_platformer
             [&cache](const PlatformerTraversalProfile& profile)
             { return cache.cellsPending(profile) > 0; }));
         const int budgetEach = tickBudget / std::max(1, waiting);
-        NavigationFillStatistics total;
+        int cellsCached = 0;
         for (const PlatformerTraversalProfile& profile : profiles)
         {
-            const NavigationFillStatistics profileStatistics =
-                fillPlatformerConnections(map, profile, cache, budgetEach);
-            total.cellsCached += profileStatistics.cellsCached;
-            total.simulatedTicks += profileStatistics.simulatedTicks;
-            total.budgetSpent += profileStatistics.budgetSpent;
+            cellsCached += fillPlatformerConnections(map, profile, cache, budgetEach, frameProfile);
         }
-        return total;
+        return cellsCached;
     }
 }

@@ -12,10 +12,10 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/fixed_step.hpp"
 #include "support/tile_map_builder.hpp"
@@ -190,7 +190,7 @@ TEST_CASE("Platformer searches report what they cost", "[navigation][platformer]
     REQUIRE(!built.connections.empty());
     REQUIRE(built.simulatedTicks > 0);
 
-    simple_platformer::PathSearchStatistics searchCost;
+    simple_platformer::FrameProfile searchCost;
     const std::optional<simple_platformer::NavigationPath> path =
         simple_platformer::findPlatformerPath(
             map,
@@ -206,6 +206,8 @@ TEST_CASE("Platformer searches report what they cost", "[navigation][platformer]
     REQUIRE(path.has_value());
     // The search expands at least its start cell, and simulating that cell's connections
     // is part of what it cost.
-    REQUIRE(searchCost.nodesExpanded >= 1);
-    REQUIRE(searchCost.simulatedTicks >= built.simulatedTicks);
+    REQUIRE(simple_platformer::frameStatisticCount(searchCost, "Cells expanded") >= 1);
+    REQUIRE(
+        simple_platformer::frameStatisticCount(searchCost, "Search simulated ticks") >=
+        built.simulatedTicks);
 }

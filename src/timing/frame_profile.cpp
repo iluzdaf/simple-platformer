@@ -3,13 +3,13 @@
 #include <algorithm>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "simple_platformer/math/validation.hpp"
-#include "simple_platformer/timing/stopwatch.hpp"
 
 namespace simple_platformer
 {
@@ -66,6 +66,48 @@ namespace simple_platformer
             }
         }
         profile.phases.push_back({category, name, seconds});
+    }
+
+    void addFrameStatistic(FrameProfile* profile, const char* category, const char* name, int count)
+    {
+        if (profile == nullptr)
+        {
+            return;
+        }
+        if (count < 0)
+        {
+            throw std::invalid_argument(std::string("Statistic ") + name + " cannot be negative");
+        }
+        for (FrameStatistic& statistic : profile->statistics)
+        {
+            if (std::string_view(statistic.name) != name)
+            {
+                continue;
+            }
+            if (std::string_view(statistic.category) != category)
+            {
+                throw std::invalid_argument(
+                    std::string("Statistic ") + name + " is already charged to " +
+                    statistic.category);
+            }
+            if (count > std::numeric_limits<int>::max() - statistic.count)
+            {
+                throw std::overflow_error(std::string("Statistic ") + name + " is too large");
+            }
+            statistic.count += count;
+            return;
+        }
+        profile->statistics.push_back({category, name, count});
+    }
+
+    int frameStatisticCount(const FrameProfile& profile, const char* name)
+    {
+        const auto found = std::find_if(
+            profile.statistics.begin(),
+            profile.statistics.end(),
+            [name](const FrameStatistic& statistic)
+            { return std::string_view(statistic.name) == name; });
+        return found == profile.statistics.end() ? 0 : found->count;
     }
 
     PhaseScope::PhaseScope(FrameProfile* profile, const char* category, const char* name)
@@ -177,13 +219,16 @@ namespace simple_platformer
         requireSeconds(frame.sceneSeconds, "Scene time");
         requireSeconds(frame.renderSeconds, "Render time");
         requireSeconds(frame.interfaceSeconds, "Interface time");
-        if (frame.simulationTicks < 0 || frame.pathSearches < 0 ||
-            frame.pathSearchesRemembered < 0 || frame.pathSearchesDeferred < 0 ||
-            frame.pathSearchNodes < 0 || frame.pathSearchCellsReused < 0 ||
-            frame.pathSearchSimulatedTicks < 0 || frame.navigationFillTicks < 0)
+        if (frame.simulationTicks < 0)
         {
-            throw std::invalid_argument(
-                "A frame cannot run a negative number of steps, searches, cells or ticks");
+            throw std::invalid_argument("A frame cannot run a negative number of steps");
+        }
+        for (const FrameStatistic& statistic : frame.statistics)
+        {
+            if (statistic.count < 0)
+            {
+                throw std::invalid_argument("A frame cannot record a negative statistic");
+            }
         }
         if (!frame.nestedSecondsOfOpenPhases.empty())
         {
@@ -252,6 +297,37 @@ namespace simple_platformer
         return summed;
     }
 
+    std::vector<FrameStatistic> FrameHistory::statisticsSummed() const
+    {
+        std::vector<FrameStatistic> summed;
+        for (std::size_t index = 0; index < count; ++index)
+        {
+            for (const FrameStatistic& statistic : frames[index].statistics)
+            {
+                const auto existing = std::find_if(
+                    summed.begin(),
+                    summed.end(),
+                    [&statistic](const FrameStatistic& entry)
+                    { return std::string_view(entry.name) == statistic.name; });
+                if (existing == summed.end())
+                {
+                    summed.push_back(statistic);
+                    continue;
+                }
+                if (std::string_view(existing->category) != statistic.category)
+                {
+                    throw std::invalid_argument("A statistic changed category between frames");
+                }
+                if (statistic.count > std::numeric_limits<int>::max() - existing->count)
+                {
+                    throw std::overflow_error("A statistic total is too large");
+                }
+                existing->count += statistic.count;
+            }
+        }
+        return summed;
+    }
+
     const FrameProfile& FrameHistory::worst() const
     {
         if (count == 0)
@@ -287,49 +363,6 @@ namespace simple_platformer
     {
         return sumOver(
             frames, count, [](const FrameProfile& frame) { return frame.simulationTicks; });
-    }
-
-    int FrameHistory::totalPathSearches() const
-    {
-        return sumOver(frames, count, [](const FrameProfile& frame) { return frame.pathSearches; });
-    }
-
-    int FrameHistory::totalPathSearchesRemembered() const
-    {
-        return sumOver(
-            frames, count, [](const FrameProfile& frame) { return frame.pathSearchesRemembered; });
-    }
-
-    int FrameHistory::totalPathSearchesDeferred() const
-    {
-        return sumOver(
-            frames, count, [](const FrameProfile& frame) { return frame.pathSearchesDeferred; });
-    }
-
-    int FrameHistory::totalPathSearchNodes() const
-    {
-        return sumOver(
-            frames, count, [](const FrameProfile& frame) { return frame.pathSearchNodes; });
-    }
-
-    int FrameHistory::totalPathSearchCellsReused() const
-    {
-        return sumOver(
-            frames, count, [](const FrameProfile& frame) { return frame.pathSearchCellsReused; });
-    }
-
-    int FrameHistory::totalPathSearchSimulatedTicks() const
-    {
-        return sumOver(
-            frames,
-            count,
-            [](const FrameProfile& frame) { return frame.pathSearchSimulatedTicks; });
-    }
-
-    int FrameHistory::totalNavigationFillTicks() const
-    {
-        return sumOver(
-            frames, count, [](const FrameProfile& frame) { return frame.navigationFillTicks; });
     }
 
     std::vector<float> FrameHistory::frameSecondsOldestFirst() const

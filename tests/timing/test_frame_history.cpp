@@ -79,15 +79,9 @@ TEST_CASE("A frame history rejects impossible measurements", "[timing][profile]"
     FrameProfile negativeTicks;
     negativeTicks.simulationTicks = -1;
     REQUIRE_THROWS_AS(history.push(negativeTicks), std::invalid_argument);
-    FrameProfile negativeCells;
-    negativeCells.pathSearchNodes = -1;
-    REQUIRE_THROWS_AS(history.push(negativeCells), std::invalid_argument);
-    FrameProfile negativeReuse;
-    negativeReuse.pathSearchCellsReused = -1;
-    REQUIRE_THROWS_AS(history.push(negativeReuse), std::invalid_argument);
-    FrameProfile negativeMemory;
-    negativeMemory.pathSearchesRemembered = -1;
-    REQUIRE_THROWS_AS(history.push(negativeMemory), std::invalid_argument);
+    FrameProfile negativeStatistic;
+    negativeStatistic.statistics.push_back({"Category A", "First", -1});
+    REQUIRE_THROWS_AS(history.push(negativeStatistic), std::invalid_argument);
     FrameProfile stillTiming;
     stillTiming.nestedSecondsOfOpenPhases.push_back(0.0F);
     REQUIRE_THROWS_AS(history.push(stillTiming), std::invalid_argument);
@@ -112,6 +106,34 @@ TEST_CASE("Adding to a phase sums repeats and keeps first-seen order", "[timing]
     REQUIRE_THROWS_AS(
         simple_platformer::addPhaseSeconds(profile, "Category B", "First", 0.001F),
         std::invalid_argument);
+}
+
+TEST_CASE("Adding a statistic sums repeats and keeps its category", "[timing][profile]")
+{
+    FrameProfile profile;
+    simple_platformer::addFrameStatistic(nullptr, "Category A", "First");
+    simple_platformer::addFrameStatistic(&profile, "Category A", "First", 2);
+    simple_platformer::addFrameStatistic(&profile, "Category B", "Second");
+    simple_platformer::addFrameStatistic(&profile, "Category A", "First", 3);
+
+    REQUIRE(profile.statistics.size() == 2);
+    REQUIRE(std::string(profile.statistics[0].category) == "Category A");
+    REQUIRE(std::string(profile.statistics[0].name) == "First");
+    REQUIRE(profile.statistics[0].count == 5);
+    REQUIRE(simple_platformer::frameStatisticCount(profile, "First") == 5);
+    REQUIRE(simple_platformer::frameStatisticCount(profile, "Absent") == 0);
+    REQUIRE(std::string(profile.statistics[1].name) == "Second");
+    REQUIRE(profile.statistics[1].count == 1);
+    REQUIRE_THROWS_AS(
+        simple_platformer::addFrameStatistic(&profile, "Category A", "First", -1),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::addFrameStatistic(&profile, "Category B", "First"),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        simple_platformer::addFrameStatistic(
+            &profile, "Category A", "First", std::numeric_limits<int>::max()),
+        std::overflow_error);
 }
 
 TEST_CASE(
@@ -189,42 +211,37 @@ TEST_CASE("A frame history reports one measurement across its frames", "[timing]
     REQUIRE(history.categorySecondsOldestFirst("Category B") == std::vector<float>{0.0F, 0.0F});
 }
 
-TEST_CASE("A frame history totals ticks and path searches across its frames", "[timing][profile]")
+TEST_CASE(
+    "A frame history totals ticks and named statistics across its frames",
+    "[timing][profile]")
 {
     FrameHistory history(2);
     FrameProfile first = frameTaking(0.016F);
     first.simulationTicks = 2;
-    first.pathSearches = 1;
-    first.pathSearchesRemembered = 1;
-    first.pathSearchesDeferred = 1;
-    first.pathSearchNodes = 10;
-    first.pathSearchCellsReused = 4;
-    first.pathSearchSimulatedTicks = 100;
-    first.navigationFillTicks = 30;
+    simple_platformer::addFrameStatistic(&first, "Category A", "First", 2);
+    simple_platformer::addFrameStatistic(&first, "Category B", "Last", 10);
     FrameProfile second = frameTaking(0.016F);
     second.simulationTicks = 1;
-    second.pathSearches = 3;
-    second.pathSearchesRemembered = 2;
-    second.pathSearchesDeferred = 0;
-    second.pathSearchNodes = 5;
-    second.pathSearchCellsReused = 5;
-    second.pathSearchSimulatedTicks = 50;
-    second.navigationFillTicks = 20;
+    simple_platformer::addFrameStatistic(&second, "Category A", "First", 3);
+    simple_platformer::addFrameStatistic(&second, "Category C", "Middle", 7);
+    simple_platformer::addFrameStatistic(&second, "Category B", "Last", 5);
     history.push(first);
     history.push(second);
     REQUIRE(history.totalSimulationTicks() == 3);
-    REQUIRE(history.totalPathSearches() == 4);
-    REQUIRE(history.totalPathSearchesRemembered() == 3);
-    REQUIRE(history.totalPathSearchesDeferred() == 1);
-    REQUIRE(history.totalPathSearchNodes() == 15);
-    REQUIRE(history.totalPathSearchCellsReused() == 9);
-    REQUIRE(history.totalPathSearchSimulatedTicks() == 150);
-    REQUIRE(history.totalNavigationFillTicks() == 50);
+    const std::vector<simple_platformer::FrameStatistic> summed = history.statisticsSummed();
+    REQUIRE(summed.size() == 3);
+    REQUIRE(std::string(summed[0].name) == "First");
+    REQUIRE(std::string(summed[0].category) == "Category A");
+    REQUIRE(summed[0].count == 5);
+    REQUIRE(std::string(summed[1].name) == "Last");
+    REQUIRE(summed[1].count == 15);
+    REQUIRE(std::string(summed[2].name) == "Middle");
+    REQUIRE(summed[2].count == 7);
 
     // A third frame evicts the first.
     history.push(frameTaking(0.007F));
     REQUIRE(history.totalSimulationTicks() == 1);
-    REQUIRE(history.totalPathSearches() == 3);
+    REQUIRE(history.statisticsSummed()[0].count == 3);
 }
 
 TEST_CASE("A phase scope closes when work exits early", "[timing][profile]")

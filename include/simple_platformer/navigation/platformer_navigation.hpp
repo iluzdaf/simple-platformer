@@ -5,7 +5,6 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/navigation/path_search.hpp"
 
 namespace simple_platformer
 {
@@ -37,7 +36,7 @@ namespace simple_platformer
     // Missing connections are simulated unless queued for fill. A cached path or
     // proven failure can answer without searching. Off-map endpoints are Unreachable;
     // pending cells return Deferred so the caller can retry next step. Only Found
-    // carries a path. Statistics report search and simulation work when requested.
+    // carries a path. An optional frame profile records search and simulation work.
     NavigationPathResult findPlatformerPath(
         const TileMap& map,
         GridPosition start,
@@ -47,6 +46,5 @@ namespace simple_platformer
         float stepSeconds,
         PlatformerConnectionCache& cache,
         const PlatformerNavigationConfig& navigation = {},
-        PathSearchStatistics* statistics = nullptr,
         FrameProfile* profile = nullptr);
 }

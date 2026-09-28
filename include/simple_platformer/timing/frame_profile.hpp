@@ -19,6 +19,15 @@ namespace simple_platformer
         float seconds = 0.0F;
     };
 
+    // An additive count collected during one frame. Names are stable labels so new
+    // measurements need no new FrameProfile fields or history accessors.
+    struct FrameStatistic
+    {
+        const char* category = "";
+        const char* name = "";
+        int count = 0;
+    };
+
     // What one frame of the application cost, in wall-clock seconds. The application
     // measures the frame; the simulation measures its own phases when handed a profile.
     struct FrameProfile
@@ -32,18 +41,7 @@ namespace simple_platformer
         float interfaceSeconds = 0.0F;
         // In the order the simulation runs them.
         std::vector<PhaseTiming> phases;
-        // Navigation searches are the simulation's one expensive, occasional job: how many
-        // ran, how many of those were answered with a path kept from an earlier one, how
-        // many gave up to wait for a fill, the cells they expanded, how many of those
-        // the connection cache already held, the movement ticks they simulated to build
-        // platformer connections, and the ticks the fill phase simulated.
-        int pathSearches = 0;
-        int pathSearchesRemembered = 0;
-        int pathSearchesDeferred = 0;
-        int pathSearchNodes = 0;
-        int pathSearchCellsReused = 0;
-        int pathSearchSimulatedTicks = 0;
-        int navigationFillTicks = 0;
+        std::vector<FrameStatistic> statistics;
         // Bookkeeping for nested phase scopes: for each phase being timed, outermost
         // first, the seconds already charged to phases timed inside it. Empty between steps.
         std::vector<float> nestedSecondsOfOpenPhases;
@@ -82,6 +80,15 @@ namespace simple_platformer
         const char* name,
         float seconds);
 
+    // Adds a non-negative count under a stable name. Null profiles collect nothing.
+    void addFrameStatistic(
+        FrameProfile* profile,
+        const char* category,
+        const char* name,
+        int count = 1);
+    // An absent statistic has a count of zero.
+    int frameStatisticCount(const FrameProfile& profile, const char* name);
+
     // The phases by cost, for reading a still frame: categories from the dearest by their
     // total, each followed by its phases from the dearest. Equal costs keep their order.
     std::vector<PhaseTiming> phasesByCost(const std::vector<PhaseTiming>& phases);
@@ -106,15 +113,10 @@ namespace simple_platformer
         // the frames. A phase that runs only now and then, such as a path search, keeps its
         // place as long as one held frame ran it.
         std::vector<PhaseTiming> phasesSummed() const;
+        // Each count summed over the held frames, in first-seen order.
+        std::vector<FrameStatistic> statisticsSummed() const;
         // Summed over every frame held, for costs per simulation step.
         int totalSimulationTicks() const;
-        int totalPathSearches() const;
-        int totalPathSearchesRemembered() const;
-        int totalPathSearchesDeferred() const;
-        int totalPathSearchNodes() const;
-        int totalPathSearchCellsReused() const;
-        int totalPathSearchSimulatedTicks() const;
-        int totalNavigationFillTicks() const;
         std::vector<float> frameSecondsOldestFirst() const;
         std::vector<float> simulationSecondsOldestFirst() const;
         // Every phase in one category summed, per frame; zero for frames that ran none.

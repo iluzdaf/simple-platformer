@@ -6,7 +6,6 @@
 #include "simple_platformer/combat/projectile_system.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/level_exit.hpp"
@@ -38,32 +37,14 @@ namespace simple_platformer
             "Navigation fill",
             [&]
             {
-                const NavigationFillStatistics fillStatistics = advanceNavigationFill(
-                    map, world.platformerConnections(), NavigationFillTicksPerStep);
-                if (profile != nullptr)
-                {
-                    profile->navigationFillTicks += fillStatistics.simulatedTicks;
-                }
+                advanceNavigationFill(
+                    map, world.platformerConnections(), NavigationFillTicksPerStep, profile);
             });
         phase("NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
         phase(
             "NPC",
             "NPC behaviour",
-            [&]
-            {
-                const NpcBehaviourStatistics behaviourStatistics =
-                    updateNpcBehaviour(map, world, deltaTime, scripts, profile);
-                if (profile == nullptr || behaviourStatistics.pathSearches == 0)
-                {
-                    return;
-                }
-                profile->pathSearches += behaviourStatistics.pathSearches;
-                profile->pathSearchesRemembered += behaviourStatistics.searches.pathsRemembered;
-                profile->pathSearchesDeferred += behaviourStatistics.searches.deferred;
-                profile->pathSearchNodes += behaviourStatistics.searches.nodesExpanded;
-                profile->pathSearchCellsReused += behaviourStatistics.searches.cellsReused;
-                profile->pathSearchSimulatedTicks += behaviourStatistics.searches.simulatedTicks;
-            });
+            [&] { updateNpcBehaviour(map, world, deltaTime, scripts, profile); });
         phase("Movement", "Actor movement", [&] { updateActorMovement(map, world, deltaTime); });
         phase("Movement", "Pickup movement", [&] { updatePickupMovement(map, world, deltaTime); });
         WorldRequests requests;

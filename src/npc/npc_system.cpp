@@ -22,7 +22,6 @@
 #include "simple_platformer/navigation/flying_navigation.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/navigation/path_search.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
@@ -46,7 +45,6 @@ namespace simple_platformer
             const TileMap& map;
             World& world;
             float deltaTime;
-            NpcBehaviourStatistics& statistics;
             NpcActivityScripts* scripts;
             FrameProfile* profile;
         };
@@ -144,13 +142,11 @@ namespace simple_platformer
             }
 
             NavigationPathResult pathResult;
-            PathSearchStatistics searchStatistics;
             {
                 const PhaseScope searchPhase(update.profile, "Navigation", "Path search");
                 if (actor.flyingMovement.has_value())
                 {
-                    pathResult =
-                        findFlyingPath(map, start, goal, &searchStatistics, update.profile);
+                    pathResult = findFlyingPath(map, start, goal, update.profile);
                 }
                 else if (actor.platformerMovement.has_value())
                 {
@@ -163,17 +159,9 @@ namespace simple_platformer
                         update.deltaTime,
                         update.world.platformerConnections(),
                         PlatformerNavigationConfig{},
-                        &searchStatistics,
                         update.profile);
                 }
             }
-            NpcBehaviourStatistics& behaviourStatistics = update.statistics;
-            ++behaviourStatistics.pathSearches;
-            behaviourStatistics.searches.nodesExpanded += searchStatistics.nodesExpanded;
-            behaviourStatistics.searches.cellsReused += searchStatistics.cellsReused;
-            behaviourStatistics.searches.pathsRemembered += searchStatistics.pathsRemembered;
-            behaviourStatistics.searches.deferred += searchStatistics.deferred;
-            behaviourStatistics.searches.simulatedTicks += searchStatistics.simulatedTicks;
             follower.destinationCell = goal;
             follower.breaksWhenPlanned = map.brokenCells().size();
             // A deferred search is asked again next step, once the fill has caught up.
@@ -630,7 +618,7 @@ namespace simple_platformer
         }
     }
 
-    NpcBehaviourStatistics updateNpcBehaviour(
+    void updateNpcBehaviour(
         const TileMap& map,
         World& world,
         float deltaTime,
@@ -638,8 +626,7 @@ namespace simple_platformer
         FrameProfile* profile)
     {
         requireSeconds(deltaTime, "NPC behaviour time step");
-        NpcBehaviourStatistics statistics;
-        const NpcUpdate update{map, world, deltaTime, statistics, scripts, profile};
+        const NpcUpdate update{map, world, deltaTime, scripts, profile};
 
         for (Actor& actor : world.actors())
         {
@@ -669,7 +656,6 @@ namespace simple_platformer
                 }
             }
         }
-        return statistics;
     }
 
     void forgetNpcActivities(const std::vector<ActorId>& actors, NpcActivityScripts& scripts)

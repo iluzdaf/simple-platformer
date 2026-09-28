@@ -16,6 +16,7 @@
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
@@ -34,6 +35,17 @@ namespace
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
     }
+
+    simple_platformer::FrameProfile profiledNpcUpdate(
+        const simple_platformer::TileMap& map,
+        simple_platformer::World& world)
+    {
+        simple_platformer::FrameProfile profile;
+        simple_platformer::updateNpcBehaviour(
+            map, world, tests::FixedStepSeconds, nullptr, &profile);
+        return profile;
+    }
+
 }
 
 TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][navigation]")
@@ -51,30 +63,27 @@ TEST_CASE("A walking NPC's searches fill the world's connection cache", "[npc][n
     tests::perception(world, npcId).targetVisible = false;
     REQUIRE(world.platformerConnections().size() == 0);
 
-    const simple_platformer::NpcBehaviourStatistics first =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(first.pathSearches == 1);
-    REQUIRE(first.searches.cellsReused == 0);
-    REQUIRE(first.searches.simulatedTicks > 0);
+    const simple_platformer::FrameProfile first = profiledNpcUpdate(map, world);
+    REQUIRE(simple_platformer::frameStatisticCount(first, "Path searches") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(first, "Cells reused") == 0);
+    REQUIRE(simple_platformer::frameStatisticCount(first, "Search simulated ticks") > 0);
     REQUIRE(world.platformerConnections().size() > 0);
 
     // A search to a new destination reuses what the first one simulated.
     brain(world, npcId).lastKnownTargetFeet = {24.0F, 32.0F};
     pathFollower(world, npcId).repathRemaining = 0.0F;
-    const simple_platformer::NpcBehaviourStatistics second =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(second.pathSearches == 1);
-    REQUIRE(second.searches.cellsReused > 0);
-    REQUIRE(second.searches.simulatedTicks == 0);
+    const simple_platformer::FrameProfile second = profiledNpcUpdate(map, world);
+    REQUIRE(simple_platformer::frameStatisticCount(second, "Path searches") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(second, "Cells reused") > 0);
+    REQUIRE(simple_platformer::frameStatisticCount(second, "Search simulated ticks") == 0);
 
     // Back to the first destination, the path is remembered and nothing is expanded.
     brain(world, npcId).lastKnownTargetFeet = {8.0F, 32.0F};
     pathFollower(world, npcId).repathRemaining = 0.0F;
-    const simple_platformer::NpcBehaviourStatistics third =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(third.pathSearches == 1);
-    REQUIRE(third.searches.pathsRemembered == 1);
-    REQUIRE(third.searches.nodesExpanded == 0);
+    const simple_platformer::FrameProfile third = profiledNpcUpdate(map, world);
+    REQUIRE(simple_platformer::frameStatisticCount(third, "Path searches") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(third, "Paths remembered") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(third, "Cells expanded") == 0);
 }
 
 TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[npc][navigation]")
@@ -98,15 +107,14 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastKnownTargetFeet = {72.0F, 32.0F};
     tests::perception(world, npcId).targetVisible = false;
-    const simple_platformer::NpcBehaviourStatistics waiting =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
+    const simple_platformer::FrameProfile waiting = profiledNpcUpdate(map, world);
 
     // The search synced with the map first, so the cells the break touched were dropped;
     // it met one and gave up rather than simulate it, and the NPC asks again next step
     // instead of waiting out its cooldown.
-    REQUIRE(waiting.pathSearches == 1);
-    REQUIRE(waiting.searches.deferred == 1);
-    REQUIRE(waiting.searches.simulatedTicks == 0);
+    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Path searches") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Paths deferred") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Search simulated ticks") == 0);
     REQUIRE(world.platformerConnections().cellsPending(profile) > 0);
     REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
     REQUIRE(pathFollower(world, npcId).repathRemaining == 0.0F);
@@ -120,10 +128,13 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
          step < pending && world.platformerConnections().cellsPending(profile) > 0;
          ++step)
     {
-        filledTicks +=
-            simple_platformer::advanceNavigationFill(
-                map, world.platformerConnections(), simple_platformer::NavigationFillTicksPerStep)
-                .simulatedTicks;
+        simple_platformer::FrameProfile fillProfile;
+        simple_platformer::advanceNavigationFill(
+            map,
+            world.platformerConnections(),
+            simple_platformer::NavigationFillTicksPerStep,
+            &fillProfile);
+        filledTicks += simple_platformer::frameStatisticCount(fillProfile, "Fill simulated ticks");
     }
     REQUIRE(filledTicks > 0);
     REQUIRE(world.platformerConnections().cellsPending(profile) == 0);
@@ -131,10 +142,9 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
         world.platformerConnections().cachedConnections({2, 1}, profile);
     REQUIRE(overTheHole != nullptr);
     REQUIRE(overTheHole->empty());
-    const simple_platformer::NpcBehaviourStatistics searched =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(searched.pathSearches == 1);
-    REQUIRE(searched.searches.deferred == 0);
+    const simple_platformer::FrameProfile searched = profiledNpcUpdate(map, world);
+    REQUIRE(simple_platformer::frameStatisticCount(searched, "Path searches") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(searched, "Paths deferred") == 0);
     REQUIRE(pathFollower(world, npcId).repathRemaining > 0.0F);
 }
 
@@ -154,21 +164,18 @@ TEST_CASE("An NPC plans its path again after a break, cooldown or not", "[npc][n
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastKnownTargetFeet = {40.0F, 32.0F};
     tests::perception(world, npcId).targetVisible = false;
-    const simple_platformer::NpcBehaviourStatistics planned =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(planned.pathSearches == 1);
+    const simple_platformer::FrameProfile planned = profiledNpcUpdate(map, world);
+    REQUIRE(simple_platformer::frameStatisticCount(planned, "Path searches") == 1);
     REQUIRE(pathFollower(world, npcId).path.has_value());
     REQUIRE(pathFollower(world, npcId).repathRemaining > 0.0F);
 
     // With the path planned and the map as it was, the next step searches nothing.
-    const simple_platformer::NpcBehaviourStatistics settled =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(settled.pathSearches == 0);
+    const simple_platformer::FrameProfile settled = profiledNpcUpdate(map, world);
+    REQUIRE(simple_platformer::frameStatisticCount(settled, "Path searches") == 0);
 
     // A break may have cut the path, so it is planned again before the cooldown is up.
     REQUIRE(map.breakTile({7, 2}));
-    const simple_platformer::NpcBehaviourStatistics broken =
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
-    REQUIRE(broken.pathSearches == 1);
+    const simple_platformer::FrameProfile broken = profiledNpcUpdate(map, world);
+    REQUIRE(simple_platformer::frameStatisticCount(broken, "Path searches") == 1);
     REQUIRE(pathFollower(world, npcId).breaksWhenPlanned == 1);
 }

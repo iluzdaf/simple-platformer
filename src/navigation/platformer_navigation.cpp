@@ -59,16 +59,11 @@ namespace simple_platformer
         std::optional<NavigationPathResult> tryAnswerFromCache(
             const PlatformerConnectionCache& cache,
             const PathQuery& query,
-            const PlatformerTraversalProfile& profile,
-            PathSearchStatistics* statistics)
+            const PlatformerTraversalProfile& profile)
         {
             const NavigationPath* cached = cache.cachedPath(query, profile);
             if (cached != nullptr)
             {
-                if (statistics != nullptr)
-                {
-                    ++statistics->pathsRemembered;
-                }
                 return NavigationPathResult{NavigationPathStatus::Found, *cached};
             }
             const std::vector<GridPosition>* reachable =
@@ -102,40 +97,42 @@ namespace simple_platformer
             const TileMap& map,
             const PathQuery& query,
             const PlatformerTraversalProfile& profile,
-            PathSearchStatistics* statistics,
             PlatformerConnectionCache& cache,
             FrameProfile* frameProfile)
         {
+            int cellsExpanded = 0;
+            int cellsReused = 0;
+            int simulatedTicks = 0;
             const GridNeighborFunction neighbors = [&map, &profile, frameProfile](GridPosition cell)
             {
                 const PhaseScope neighborPhase(frameProfile, "Navigation", "Neighbor generation");
                 return platformerNeighbors(map, cell, profile.size);
             };
-            const GridConnectionFunction connections =
-                [&map, &query, &profile, statistics, &cache, frameProfile](GridPosition cell)
+            const GridConnectionFunction connections = [&map,
+                                                        &query,
+                                                        &profile,
+                                                        &cache,
+                                                        frameProfile,
+                                                        &cellsExpanded,
+                                                        &cellsReused,
+                                                        &simulatedTicks](GridPosition cell)
             {
                 const PhaseScope connectionPhase(
                     frameProfile, "Navigation", "Connection retrieval");
-                if (statistics != nullptr)
-                {
-                    ++statistics->nodesExpanded;
-                }
+                ++cellsExpanded;
                 const std::vector<NavigationConnection>* cached =
                     cache.cachedConnections(cell, profile);
                 if (cached == nullptr)
                 {
                     BuiltPlatformerConnections built =
                         buildPlatformerConnections(map, cell, profile, &cache);
-                    if (statistics != nullptr)
-                    {
-                        statistics->simulatedTicks += built.simulatedTicks;
-                    }
+                    simulatedTicks += built.simulatedTicks;
                     storePlatformerConnections(cache, cell, profile, std::move(built));
                     cached = cache.cachedConnections(cell, profile);
                 }
-                else if (statistics != nullptr)
+                else
                 {
-                    ++statistics->cellsReused;
+                    ++cellsReused;
                 }
                 if (cached == nullptr)
                 {
@@ -153,9 +150,22 @@ namespace simple_platformer
             };
             const GridExpansionReady canExpand = [&cache, &profile](GridPosition cell)
             { return !cache.isPending(cell, profile); };
-            const PhaseScope algorithmPhase(frameProfile, "Navigation", "Search algorithm");
-            return findLowestCostPath(
-                query.start, query.goal, map.size(), neighbors, connections, heuristic, canExpand);
+            PathSearchResult result;
+            {
+                const PhaseScope algorithmPhase(frameProfile, "Navigation", "Search algorithm");
+                result = findLowestCostPath(
+                    query.start,
+                    query.goal,
+                    map.size(),
+                    neighbors,
+                    connections,
+                    heuristic,
+                    canExpand);
+            }
+            addFrameStatistic(frameProfile, "Navigation", "Cells expanded", cellsExpanded);
+            addFrameStatistic(frameProfile, "Navigation", "Cells reused", cellsReused);
+            addFrameStatistic(frameProfile, "Navigation", "Search simulated ticks", simulatedTicks);
+            return result;
         }
 
         void cacheSearchResult(
@@ -184,7 +194,6 @@ namespace simple_platformer
         float stepSeconds,
         PlatformerConnectionCache& cache,
         const PlatformerNavigationConfig& navigation,
-        PathSearchStatistics* statistics,
         FrameProfile* frameProfile)
     {
         requirePositiveSeconds(stepSeconds, "Navigation simulation step");
@@ -192,6 +201,7 @@ namespace simple_platformer
         {
             throw std::invalid_argument("A jump start penalty cannot be negative");
         }
+        addFrameStatistic(frameProfile, "Navigation", "Path searches");
         if (!map.contains(start) || !map.contains(goal))
         {
             return {NavigationPathStatus::Unreachable, std::nullopt};
@@ -203,14 +213,17 @@ namespace simple_platformer
         {
             const PhaseScope cachePhase(frameProfile, "Navigation", "Path cache");
             cache.applyRecordedTileBreaks(map);
-            answer = tryAnswerFromCache(cache, query, profile, statistics);
+            answer = tryAnswerFromCache(cache, query, profile);
         }
         if (answer.has_value())
         {
+            if (answer->status == NavigationPathStatus::Found)
+            {
+                addFrameStatistic(frameProfile, "Navigation", "Paths remembered");
+            }
             return answer.value();
         }
-        PathSearchResult result =
-            searchPlatformerPath(map, query, profile, statistics, cache, frameProfile);
+        PathSearchResult result = searchPlatformerPath(map, query, profile, cache, frameProfile);
 
         if (result.status == PathSearchStatus::Incomplete)
         {
@@ -222,10 +235,7 @@ namespace simple_platformer
                 const PhaseScope cachePhase(frameProfile, "Navigation", "Path cache");
                 cache.prioritise(result.unexpandedCell.value(), profile);
             }
-            if (statistics != nullptr)
-            {
-                ++statistics->deferred;
-            }
+            addFrameStatistic(frameProfile, "Navigation", "Paths deferred");
             return {NavigationPathStatus::Deferred, std::nullopt};
         }
         {

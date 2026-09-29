@@ -18,13 +18,13 @@ namespace simple_platformer
         int height,
         std::vector<int> tiles,
         std::vector<TileDefinition> definitions)
-        : cellSize(tileSize),
+        : mapTileSize(tileSize),
           mapWidth(width),
           mapHeight(height),
           tileIds(std::move(tiles)),
           tileDefinitions(std::move(definitions))
     {
-        if (cellSize <= 0)
+        if (mapTileSize <= 0)
         {
             throw std::invalid_argument("A tile map must have a positive tile size");
         }
@@ -126,17 +126,17 @@ namespace simple_platformer
 
     int TileMap::tileSize() const
     {
-        return cellSize;
+        return mapTileSize;
     }
 
     float TileMap::pixelWidth() const
     {
-        return static_cast<float>(mapWidth * cellSize);
+        return static_cast<float>(mapWidth * mapTileSize);
     }
 
     float TileMap::pixelHeight() const
     {
-        return static_cast<float>(mapHeight * cellSize);
+        return static_cast<float>(mapHeight * mapTileSize);
     }
 
     bool TileMap::contains(Cell cell) const

@@ -73,7 +73,7 @@ namespace simple_platformer
         // Row-major offset into tileIds. The cell must be inside the map.
         std::size_t indexOf(Cell cell) const;
 
-        int cellSize = 0;
+        int mapTileSize = 0;
         int mapWidth = 0;
         int mapHeight = 0;
         std::vector<int> tileIds;

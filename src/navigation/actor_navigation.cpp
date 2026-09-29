@@ -49,7 +49,7 @@ namespace simple_platformer
         // the profile can rest near it, the one whose resting bounds match the body within
         // a pixel across its surface, and lie nearest along it, within a tile. Nothing
         // when the body rests nowhere, as when it is in the air.
-        std::optional<NavigationLocation> restingLocationOf(
+        std::optional<RouteLocation> restingLocationOf(
             const TileMap& map,
             const Aabb& bounds,
             const PlatformerTraversalProfile& profile)
@@ -64,7 +64,7 @@ namespace simple_platformer
             }
             const int tileSize = map.tileSize();
             const CellRange covered = cellsCovered(tileSize, bounds);
-            std::optional<NavigationLocation> resting;
+            std::optional<RouteLocation> resting;
             float restingOffset = static_cast<float>(tileSize);
             for (int row = covered.first.y - 1; row <= covered.last.y + 1; ++row)
             {
@@ -72,7 +72,7 @@ namespace simple_platformer
                 {
                     for (const ClimbSurface surface : Surfaces)
                     {
-                        const NavigationLocation candidate{{column, row}, surface};
+                        const RouteLocation candidate{{column, row}, surface};
                         if ((surface != ClimbSurface::None && !profile.climb.has_value()) ||
                             !canOccupy(map, candidate, bounds.size))
                         {
@@ -97,11 +97,11 @@ namespace simple_platformer
         }
 
         // The path a route of locations gives: the body's resting feet at each.
-        NavigationPath waypointsOf(int tileSize, const LocationPath& route, glm::vec2 bodySize)
+        NavigationPath waypointsOf(int tileSize, const Route& route, glm::vec2 bodySize)
         {
             NavigationPath path{feetOf(boundsAtSurface(tileSize, route.start, bodySize)), {}};
             path.waypoints.reserve(route.steps.size());
-            for (const NavigationStep& step : route.steps)
+            for (const RouteStep& step : route.steps)
             {
                 path.waypoints.push_back(
                     {feetOf(boundsAtSurface(
@@ -117,7 +117,7 @@ namespace simple_platformer
         // target point.
         NavigationPathResult pathResultOf(
             int tileSize,
-            const LocationPath& route,
+            const Route& route,
             glm::vec2 bodySize,
             Cell goal,
             glm::vec2 target)
@@ -137,12 +137,12 @@ namespace simple_platformer
         }
 
         // Cost-one flight connections to adjacent open cells.
-        std::vector<NavigationConnection> flyingConnections(const TileMap& map, Cell cell)
+        std::vector<RouteConnection> flyingConnections(const TileMap& map, Cell cell)
         {
             constexpr std::array<glm::ivec2, 4> Directions{
                 glm::ivec2{-1, 0}, glm::ivec2{1, 0}, glm::ivec2{0, -1}, glm::ivec2{0, 1}};
 
-            std::vector<NavigationConnection> connections;
+            std::vector<RouteConnection> connections;
             for (const glm::ivec2 direction : Directions)
             {
                 const Cell candidate{cell.x + direction.x, cell.y + direction.y};
@@ -182,24 +182,24 @@ namespace simple_platformer
             const Cell goal = cellAtFeet(tileSize, target);
             int cellsExpanded = 0;
             const ConnectionFunction connections =
-                [&map, profile, &cellsExpanded](NavigationLocation location)
+                [&map, profile, &cellsExpanded](RouteLocation location)
             {
                 const PhaseScope connectionPhase(profile, "Navigation", "Connection retrieval");
                 ++cellsExpanded;
                 return flyingConnections(map, location.cell);
             };
-            PathSearchResult result;
+            RouteSearchResult result;
             {
                 const PhaseScope algorithmPhase(profile, "Navigation", "Search algorithm");
                 result =
-                    findLowestCostPath({start}, goal, map.size(), connections, manhattanHeuristic);
+                    findLowestCostRoute({start}, goal, map.size(), connections, manhattanHeuristic);
             }
             addFrameStatistic(profile, "Navigation", "Cells expanded", cellsExpanded);
-            if (!result.path.has_value())
+            if (!result.route.has_value())
             {
                 throw std::logic_error("A completed path search returned no path");
             }
-            return pathResultOf(tileSize, *result.path, body.size, goal, target);
+            return pathResultOf(tileSize, *result.route, body.size, goal, target);
         }
 
         // Optimistic remaining travel time in ticks from a cell to the goal cell, at the
@@ -236,9 +236,9 @@ namespace simple_platformer
         }
 
         // Adjust this search's copy, not the simulated travel costs shared by the cache.
-        void applyJumpStartPenalty(std::vector<NavigationConnection>& connections, int penaltyTicks)
+        void applyJumpStartPenalty(std::vector<RouteConnection>& connections, int penaltyTicks)
         {
-            for (NavigationConnection& connection : connections)
+            for (RouteConnection& connection : connections)
             {
                 if (connection.step.traversal != Traversal::Jump)
                 {
@@ -246,7 +246,7 @@ namespace simple_platformer
                 }
                 if (connection.cost > std::numeric_limits<int>::max() - penaltyTicks)
                 {
-                    throw std::overflow_error("A navigation connection cost is too large");
+                    throw std::overflow_error("A route connection cost is too large");
                 }
                 connection.cost += penaltyTicks;
             }
@@ -280,12 +280,12 @@ namespace simple_platformer
         {
             requireValid(target, profile);
             addFrameStatistic(frameProfile, "Navigation", "Path searches");
-            const std::optional<NavigationLocation> resting = restingLocationOf(map, body, profile);
+            const std::optional<RouteLocation> resting = restingLocationOf(map, body, profile);
             if (!resting.has_value())
             {
                 return std::nullopt;
             }
-            const NavigationLocation start = *resting;
+            const RouteLocation start = *resting;
             const int tileSize = map.tileSize();
             const Cell goal = cellAtFeet(tileSize, target);
             {
@@ -295,7 +295,7 @@ namespace simple_platformer
 
             int cellsExpanded = 0;
             const ConnectionFunction connections =
-                [&profile, &cache, frameProfile, &cellsExpanded](NavigationLocation location)
+                [&profile, &cache, frameProfile, &cellsExpanded](RouteLocation location)
             {
                 const PhaseScope connectionPhase(
                     frameProfile, "Navigation", "Connection retrieval");
@@ -304,7 +304,7 @@ namespace simple_platformer
                 // 1. Read the cell's connections from the cache. One entry holds the
                 //    connections leaving every surface of the cell. The search only
                 //    expands cells the cache holds, so this never misses.
-                const std::vector<NavigationConnection>* cellConnections =
+                const std::vector<RouteConnection>* cellConnections =
                     cache.cachedConnections(location.cell, profile);
                 if (cellConnections == nullptr)
                 {
@@ -313,8 +313,8 @@ namespace simple_platformer
 
                 // 2. Keep the connections that leave this location's surface. A floor
                 //    expands with floor connections, a wall with that wall's climbs.
-                std::vector<NavigationConnection> leaving;
-                for (const NavigationConnection& connection : *cellConnections)
+                std::vector<RouteConnection> leaving;
+                for (const RouteConnection& connection : *cellConnections)
                 {
                     if (connection.sourceSurface == location.surface)
                     {
@@ -330,13 +330,13 @@ namespace simple_platformer
             const HeuristicFunction heuristic = [tileSize, &profile](Cell cell, Cell goalCell)
             { return platformerTickHeuristic(tileSize, cell, goalCell, profile); };
             // A cell the cache does not hold yet pauses the search; the fill builds it.
-            const ExpansionReady canExpand = [&cache, &profile](NavigationLocation location)
+            const ExpansionReady canExpand = [&cache, &profile](RouteLocation location)
             { return cache.cachedConnections(location.cell, profile) != nullptr; };
-            PathSearchResult result;
+            RouteSearchResult result;
             {
                 const PhaseScope algorithmPhase(frameProfile, "Navigation", "Search algorithm");
                 result =
-                    findLowestCostPath(start, goal, map.size(), connections, heuristic, canExpand);
+                    findLowestCostRoute(start, goal, map.size(), connections, heuristic, canExpand);
             }
             addFrameStatistic(frameProfile, "Navigation", "Cells expanded", cellsExpanded);
 
@@ -350,11 +350,11 @@ namespace simple_platformer
                 addFrameStatistic(frameProfile, "Navigation", "Paths deferred");
                 return NavigationPathResult{NavigationPathStatus::Deferred, std::nullopt};
             }
-            if (!result.path.has_value())
+            if (!result.route.has_value())
             {
                 throw std::logic_error("A completed path search returned no path");
             }
-            return pathResultOf(tileSize, *result.path, profile.size, goal, target);
+            return pathResultOf(tileSize, *result.route, profile.size, goal, target);
         }
     }
 

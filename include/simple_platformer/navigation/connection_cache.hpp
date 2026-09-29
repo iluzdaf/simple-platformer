@@ -42,7 +42,7 @@ namespace simple_platformer
 
         // The cached connections for this cell and profile, or nothing if absent. A
         // climber's cell holds the connections leaving each of its surfaces.
-        const std::vector<NavigationConnection>* cachedConnections(
+        const std::vector<RouteConnection>* cachedConnections(
             Cell cell,
             const PlatformerTraversalProfile& profile) const;
         // The cached footprint, for showing why a break drops the cell.
@@ -52,10 +52,10 @@ namespace simple_platformer
         // Stores these as the cell's connections for the profile, replacing any previous value,
         // and returns the stored connections. The footprint is every cell their
         // simulation swept: a break inside it drops them.
-        const std::vector<NavigationConnection>& storeConnections(
+        const std::vector<RouteConnection>& storeConnections(
             Cell cell,
             const PlatformerTraversalProfile& profile,
-            std::vector<NavigationConnection> connections,
+            std::vector<RouteConnection> connections,
             const CellRange& footprint);
         // A flat-ground walk result keyed by signed cell distance (negative for left).
         // Successful walks start and end at rest, so their costs and relative sweeps
@@ -84,7 +84,7 @@ namespace simple_platformer
     private:
         struct CachedConnections
         {
-            std::vector<NavigationConnection> connections;
+            std::vector<RouteConnection> connections;
             CellRange footprint;
         };
 

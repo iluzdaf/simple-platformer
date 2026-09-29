@@ -20,7 +20,7 @@ namespace tests
 {
     // The profile's body resting at the location, where a search can start from it.
     inline simple_platformer::Aabb restingBody(
-        simple_platformer::NavigationLocation location,
+        simple_platformer::RouteLocation location,
         const simple_platformer::PlatformerTraversalProfile& profile)
     {
         return simple_platformer::boundsAtSurface(TileSize, location, profile.size);
@@ -45,10 +45,10 @@ namespace tests
     // assemble a path from simulated connections.
     inline simple_platformer::NavigationPath floorPath(
         simple_platformer::Cell start,
-        std::vector<simple_platformer::NavigationStep> steps)
+        std::vector<simple_platformer::RouteStep> steps)
     {
         simple_platformer::NavigationPath path{simple_platformer::feetInCell(TileSize, start), {}};
-        for (simple_platformer::NavigationStep& step : steps)
+        for (simple_platformer::RouteStep& step : steps)
         {
             path.waypoints.push_back(
                 {simple_platformer::feetInCell(TileSize, step.destinationCell),

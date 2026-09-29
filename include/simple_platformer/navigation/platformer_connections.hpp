@@ -27,7 +27,7 @@ namespace simple_platformer
 
     struct BuiltPlatformerConnections
     {
-        std::vector<NavigationConnection> connections;
+        std::vector<RouteConnection> connections;
         // Conservative rectangle covering the tiles probed or swept by simulation.
         CellRange footprint;
         std::vector<WalkSimulationResult> walksToCache;

@@ -239,14 +239,12 @@ namespace simple_platformer
             return result;
         }
 
-        void keepCheapest(
-            std::vector<NavigationConnection>& connections,
-            NavigationConnection candidate)
+        void keepCheapest(std::vector<RouteConnection>& connections, RouteConnection candidate)
         {
             const auto existing = std::find_if(
                 connections.begin(),
                 connections.end(),
-                [&candidate](const NavigationConnection& connection)
+                [&candidate](const RouteConnection& connection)
                 {
                     return connection.step.destinationCell == candidate.step.destinationCell &&
                            connection.step.traversal == candidate.step.traversal;
@@ -397,8 +395,8 @@ namespace simple_platformer
         InputIntentions climbToward(
             const TileMap& map,
             const Body& body,
-            NavigationLocation from,
-            NavigationLocation destination,
+            RouteLocation from,
+            RouteLocation destination,
             const Aabb& target,
             float distancePerTick)
         {
@@ -436,8 +434,8 @@ namespace simple_platformer
         // and footprint.
         BuiltPlatformerConnections buildClimbConnection(
             const TileMap& map,
-            NavigationLocation from,
-            NavigationLocation destination,
+            RouteLocation from,
+            RouteLocation destination,
             const PlatformerTraversalProfile& profile,
             const SurfaceClimbConfig& climbConfig)
         {
@@ -509,7 +507,7 @@ namespace simple_platformer
         // Where a climb from the location may lead: onto the walls beside the floor,
         // along a wall or ceiling to the next cell, around the corner between them, and
         // off a wall onto the floor. Simulation decides which of them succeed.
-        std::vector<NavigationLocation> climbDestinationsFrom(NavigationLocation from)
+        std::vector<RouteLocation> climbDestinationsFrom(RouteLocation from)
         {
             const Cell cell = from.cell;
             switch (from.surface)
@@ -550,20 +548,20 @@ namespace simple_platformer
                 {}, cellsCovered(tileSize, boxInCell(tileSize, cell, profile.size)), {}, 0};
             for (const ClimbSurface surface : Surfaces)
             {
-                const NavigationLocation from{cell, surface};
+                const RouteLocation from{cell, surface};
                 includeCellsAroundBounds(
                     combined.footprint, tileSize, boundsAtSurface(tileSize, from, profile.size));
                 if (!canOccupy(map, from, profile.size))
                 {
                     continue;
                 }
-                for (const NavigationLocation destination : climbDestinationsFrom(from))
+                for (const RouteLocation destination : climbDestinationsFrom(from))
                 {
                     BuiltPlatformerConnections attempt =
                         buildClimbConnection(map, from, destination, profile, climbConfig);
                     combined.footprint = unionOf(combined.footprint, attempt.footprint);
                     combined.simulatedTicks += attempt.simulatedTicks;
-                    for (NavigationConnection& connection : attempt.connections)
+                    for (RouteConnection& connection : attempt.connections)
                     {
                         combined.connections.push_back(std::move(connection));
                     }
@@ -599,7 +597,7 @@ namespace simple_platformer
             }
             combined.footprint = unionOf(combined.footprint, attemptResult.footprint);
             combined.simulatedTicks += attemptResult.simulatedTicks;
-            for (NavigationConnection& connection : attemptResult.connections)
+            for (RouteConnection& connection : attemptResult.connections)
             {
                 keepCheapest(combined.connections, std::move(connection));
             }
@@ -615,7 +613,7 @@ namespace simple_platformer
                 buildClimbConnections(map, cell, profile, *profile.climb);
             combined.footprint = unionOf(combined.footprint, climbs.footprint);
             combined.simulatedTicks += climbs.simulatedTicks;
-            for (NavigationConnection& connection : climbs.connections)
+            for (RouteConnection& connection : climbs.connections)
             {
                 combined.connections.push_back(std::move(connection));
             }

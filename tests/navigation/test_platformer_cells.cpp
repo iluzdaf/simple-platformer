@@ -47,7 +47,7 @@ TEST_CASE("A wall location may extend above the open map top", "[navigation][pla
         tests::TileMapBuilder({".c..", ".c..", "####"})
             .where('c', tests::Tile{}.blocksMovement().climbable());
     const glm::vec2 tall{12.0F, 40.0F};
-    const simple_platformer::NavigationLocation onWall{{2, 0}, ClimbSurface::LeftWall};
+    const simple_platformer::RouteLocation onWall{{2, 0}, ClimbSurface::LeftWall};
 
     REQUIRE(simple_platformer::boundsAtSurface(tests::TileSize, onWall, tall).position.y < 0.0F);
     REQUIRE(simple_platformer::canOccupy(map, onWall, tall));

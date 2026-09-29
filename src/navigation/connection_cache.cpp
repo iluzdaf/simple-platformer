@@ -98,7 +98,7 @@ namespace simple_platformer
         }
     }
 
-    const std::vector<NavigationConnection>* PlatformerConnectionCache::cachedConnections(
+    const std::vector<RouteConnection>* PlatformerConnectionCache::cachedConnections(
         Cell cell,
         const PlatformerTraversalProfile& profile) const
     {
@@ -129,10 +129,10 @@ namespace simple_platformer
         return connections->second.footprint;
     }
 
-    const std::vector<NavigationConnection>& PlatformerConnectionCache::storeConnections(
+    const std::vector<RouteConnection>& PlatformerConnectionCache::storeConnections(
         Cell cell,
         const PlatformerTraversalProfile& profile,
-        std::vector<NavigationConnection> connections,
+        std::vector<RouteConnection> connections,
         const CellRange& footprint)
     {
         requireValid(profile);

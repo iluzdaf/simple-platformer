@@ -54,11 +54,10 @@ namespace simple_platformer
                 const Aabb last = cellBounds(tileSize, range.last);
                 info.footprint = Aabb{first.position, last.position + last.size - first.position};
             }
-            const std::vector<NavigationConnection>* cached =
-                cache.cachedConnections(cell, profile);
+            const std::vector<RouteConnection>* cached = cache.cachedConnections(cell, profile);
             if (cached != nullptr)
             {
-                for (const NavigationConnection& connection : *cached)
+                for (const RouteConnection& connection : *cached)
                 {
                     info.connections.push_back(
                         {feetOf(boundsAtSurface(
@@ -180,8 +179,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                const std::vector<NavigationConnection>* cached =
-                    cache.cachedConnections(cell, profile);
+                const std::vector<RouteConnection>* cached = cache.cachedConnections(cell, profile);
                 info.cells.push_back(
                     {bounds,
                      cached == nullptr ? std::nullopt

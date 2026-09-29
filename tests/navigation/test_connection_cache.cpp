@@ -25,9 +25,9 @@ namespace
     using simple_platformer::BuiltPlatformerConnections;
     using simple_platformer::Cell;
     using simple_platformer::CellRange;
-    using simple_platformer::NavigationConnection;
     using simple_platformer::PlatformerConnectionCache;
     using simple_platformer::PlatformerTraversalProfile;
+    using simple_platformer::RouteConnection;
     using simple_platformer::WalkSimulationResult;
 
     constexpr glm::vec2 BodySize{12.0F, 12.0F};
@@ -49,7 +49,7 @@ TEST_CASE("Built connections enter the cache only when stored", "[navigation][ca
     REQUIRE_FALSE(built.walksToCache.empty());
     const int simulatedTicks = built.simulatedTicks;
     simple_platformer::storePlatformerConnections(cache, cell, profile, std::move(built));
-    const std::vector<NavigationConnection>* simulated = cache.cachedConnections(cell, profile);
+    const std::vector<RouteConnection>* simulated = cache.cachedConnections(cell, profile);
     REQUIRE(simulated != nullptr);
     REQUIRE_FALSE(simulated->empty());
     REQUIRE(simulatedTicks > 0);
@@ -115,7 +115,7 @@ TEST_CASE("A non-standable cell is cached with no connections", "[navigation][ca
     BuiltPlatformerConnections built =
         simple_platformer::buildPlatformerConnections(map, {3, 0}, profile, &cache);
     simple_platformer::storePlatformerConnections(cache, {3, 0}, profile, std::move(built));
-    const std::vector<NavigationConnection>* connections = cache.cachedConnections({3, 0}, profile);
+    const std::vector<RouteConnection>* connections = cache.cachedConnections({3, 0}, profile);
     REQUIRE(connections != nullptr);
     REQUIRE(connections->empty());
     REQUIRE(cache.size() == 1);
@@ -193,7 +193,7 @@ TEST_CASE("Cached walks change nothing but the ticks simulated", "[navigation][c
         simple_platformer::buildPlatformerConnections(map, second, profile, &cache);
     const int secondSimulatedTicks = secondBuild.simulatedTicks;
     simple_platformer::storePlatformerConnections(cache, second, profile, std::move(secondBuild));
-    const std::vector<NavigationConnection>* cached = cache.cachedConnections(second, profile);
+    const std::vector<RouteConnection>* cached = cache.cachedConnections(second, profile);
     REQUIRE(cached != nullptr);
     REQUIRE(secondSimulatedTicks < firstSimulatedTicks);
     REQUIRE(cache.cachedWalkCount(profile) == walks);
@@ -201,9 +201,9 @@ TEST_CASE("Cached walks change nothing but the ticks simulated", "[navigation][c
     BuiltPlatformerConnections aloneBuild =
         simple_platformer::buildPlatformerConnections(map, second, profile, &alone);
     simple_platformer::storePlatformerConnections(alone, second, profile, std::move(aloneBuild));
-    const std::vector<NavigationConnection>* simulated = alone.cachedConnections(second, profile);
+    const std::vector<RouteConnection>* simulated = alone.cachedConnections(second, profile);
     REQUIRE(simulated != nullptr);
-    tests::requireSameNavigationConnections(*cached, *simulated);
+    tests::requireSameRouteConnections(*cached, *simulated);
     const CellRange cachedFootprint = cache.cachedFootprint(second, profile).value_or(CellRange{});
     const CellRange simulatedFootprint =
         alone.cachedFootprint(second, profile).value_or(CellRange{});

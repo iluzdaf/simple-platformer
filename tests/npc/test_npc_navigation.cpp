@@ -206,7 +206,7 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
     }
     REQUIRE(filledTicks > 0);
     REQUIRE(world.platformerConnections().cellsPending(profile) == 0);
-    const std::vector<simple_platformer::NavigationConnection>* overTheHole =
+    const std::vector<simple_platformer::RouteConnection>* overTheHole =
         world.platformerConnections().cachedConnections({2, 1}, profile);
     REQUIRE(overTheHole != nullptr);
     REQUIRE(overTheHole->empty());

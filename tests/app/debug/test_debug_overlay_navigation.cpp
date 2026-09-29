@@ -86,14 +86,14 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const simple_platformer::PlatformerMovementConfig movementConfig;
-    const std::vector<simple_platformer::NavigationConnection> connections =
+    const std::vector<simple_platformer::RouteConnection> connections =
         simple_platformer::buildPlatformerConnections(
             map,
             {2, 2},
             simple_platformer::PlatformerTraversalProfile{
                 {12.0F, 12.0F}, movementConfig, tests::FixedStepSeconds})
             .connections;
-    const simple_platformer::NavigationConnection& jump =
+    const simple_platformer::RouteConnection& jump =
         tests::connectionWith(connections, simple_platformer::Traversal::Jump);
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})

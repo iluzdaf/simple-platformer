@@ -13,19 +13,19 @@ namespace simple_platformer
     // NavigationPath of waypoints instead.
 
     // A cell can hold several distinct places for a climber. None is the floor.
-    struct NavigationLocation
+    struct RouteLocation
     {
         Cell cell;
         ClimbSurface surface = ClimbSurface::None;
     };
 
-    constexpr bool operator==(NavigationLocation left, NavigationLocation right)
+    constexpr bool operator==(RouteLocation left, RouteLocation right)
     {
         return left.cell == right.cell && left.surface == right.surface;
     }
 
     // One edge of a route: its destination, traversal, and any recorded inputs.
-    struct NavigationStep
+    struct RouteStep
     {
         Cell destinationCell;
         Traversal traversal = Traversal::Fly;
@@ -36,9 +36,9 @@ namespace simple_platformer
 
     // A traversable edge leaving a cell. Its destination is a neighbor; search uses
     // its cost, and a selected route keeps its step.
-    struct NavigationConnection
+    struct RouteConnection
     {
-        NavigationStep step;
+        RouteStep step;
         // Cost must be greater than zero. All connections in one search must
         // measure cost in the same unit, such as grid steps or simulation ticks.
         int cost = 1;
@@ -48,19 +48,19 @@ namespace simple_platformer
 
     // The route a search found, as nodes: where it begins and the steps that lead
     // from there, in the order travelled. No steps means the start is the end.
-    struct LocationPath
+    struct Route
     {
-        NavigationLocation start;
-        std::vector<NavigationStep> steps;
+        RouteLocation start;
+        std::vector<RouteStep> steps;
     };
 
     // The last step's destination, or the start of a route without steps.
-    inline NavigationLocation endOf(const LocationPath& path)
+    inline RouteLocation endOf(const Route& route)
     {
-        if (path.steps.empty())
+        if (route.steps.empty())
         {
-            return path.start;
+            return route.start;
         }
-        return {path.steps.back().destinationCell, path.steps.back().destinationSurface};
+        return {route.steps.back().destinationCell, route.steps.back().destinationSurface};
     }
 }

@@ -33,9 +33,9 @@ namespace
 {
     using simple_platformer::Cell;
     using simple_platformer::FrameProfile;
-    using simple_platformer::NavigationConnection;
     using simple_platformer::PlatformerConnectionCache;
     using simple_platformer::PlatformerTraversalProfile;
+    using simple_platformer::RouteConnection;
 
     constexpr glm::vec2 BodySize{12.0F, 12.0F};
 }
@@ -224,21 +224,21 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
     const PlatformerTraversalProfile profile{BodySize, {}, tests::FixedStepSeconds};
     tests::prepareNavigationCache(map, world);
     PlatformerConnectionCache& cache = world.platformerConnections();
-    const auto walksTo = [](const std::vector<NavigationConnection>& connections, Cell cell)
+    const auto walksTo = [](const std::vector<RouteConnection>& connections, Cell cell)
     {
         return std::any_of(
             connections.begin(),
             connections.end(),
-            [cell](const NavigationConnection& connection)
+            [cell](const RouteConnection& connection)
             {
                 return connection.step.traversal == simple_platformer::Traversal::Walk &&
                        connection.step.destinationCell == cell;
             });
     };
     REQUIRE(walksTo(*cache.cachedConnections({1, 0}, profile), {6, 0}));
-    const std::vector<NavigationConnection>* farAway = cache.cachedConnections({23, 0}, profile);
+    const std::vector<RouteConnection>* farAway = cache.cachedConnections({23, 0}, profile);
     REQUIRE(farAway != nullptr);
-    const std::vector<NavigationConnection> farAwayBefore = *farAway;
+    const std::vector<RouteConnection> farAwayBefore = *farAway;
     REQUIRE_FALSE(farAwayBefore.empty());
     const std::size_t writesBeforeBreak = cache.connectionWritesSoFar();
     const std::size_t dropsBeforeBreak = cache.cellsDroppedSoFar();
@@ -251,40 +251,39 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
     REQUIRE(cache.cellsDroppedSoFar() > dropsBeforeBreak);
     auto firstBuild = simple_platformer::buildPlatformerConnections(map, {1, 0}, profile, &cache);
     simple_platformer::storePlatformerConnections(cache, {1, 0}, profile, std::move(firstBuild));
-    const std::vector<NavigationConnection>* afterBreak = cache.cachedConnections({1, 0}, profile);
+    const std::vector<RouteConnection>* afterBreak = cache.cachedConnections({1, 0}, profile);
     REQUIRE(afterBreak != nullptr);
     REQUIRE_FALSE(walksTo(*afterBreak, {6, 0}));
     auto edgeBuild = simple_platformer::buildPlatformerConnections(map, {2, 0}, profile, &cache);
     simple_platformer::storePlatformerConnections(cache, {2, 0}, profile, std::move(edgeBuild));
-    const std::vector<NavigationConnection>* fromTheEdge = cache.cachedConnections({2, 0}, profile);
+    const std::vector<RouteConnection>* fromTheEdge = cache.cachedConnections({2, 0}, profile);
     REQUIRE(fromTheEdge != nullptr);
     REQUIRE(std::any_of(
         fromTheEdge->begin(),
         fromTheEdge->end(),
-        [](const NavigationConnection& connection)
+        [](const RouteConnection& connection)
         {
             return connection.step.traversal == simple_platformer::Traversal::Fall &&
                    connection.step.destinationCell == Cell{3, 2};
         }));
     // A cell whose simulations never came near the hole was left as it was.
-    const std::vector<NavigationConnection>* farAwayAfter =
-        cache.cachedConnections({23, 0}, profile);
+    const std::vector<RouteConnection>* farAwayAfter = cache.cachedConnections({23, 0}, profile);
     REQUIRE(farAwayAfter != nullptr);
-    tests::requireSameNavigationConnections(*farAwayAfter, farAwayBefore);
+    tests::requireSameRouteConnections(*farAwayAfter, farAwayBefore);
     REQUIRE(cache.connectionWritesSoFar() == writesBeforeBreak + 2);
 }
 
 TEST_CASE("A broken climbable tile takes its climbs away", "[navigation][cache][climb]")
 {
     using simple_platformer::ClimbSurface;
-    using simple_platformer::NavigationLocation;
+    using simple_platformer::RouteLocation;
     simple_platformer::TileMap map =
         tests::TileMapBuilder({"......", ".c....", ".g....", ".c....", "######"})
             .where('c', tests::Tile().blocksMovement().climbable())
             .where('g', tests::Tile().blocksMovement().climbable().breaksInto('.'));
     const PlatformerTraversalProfile climber{BodySize, {}, tests::FixedStepSeconds, {{60.0F}}};
-    const NavigationLocation start{{2, 3}};
-    const NavigationLocation onWall{{2, 1}, ClimbSurface::LeftWall};
+    const RouteLocation start{{2, 3}};
+    const RouteLocation onWall{{2, 1}, ClimbSurface::LeftWall};
     const glm::vec2 wallFeet = simple_platformer::feetOf(
         simple_platformer::boundsAtSurface(tests::TileSize, onWall, BodySize));
     PlatformerConnectionCache cache;

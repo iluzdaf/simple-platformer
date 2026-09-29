@@ -17,9 +17,9 @@ namespace simple_platformer
 
     // The body's resting bounds at a location: standing in the cell, flush against
     // the cell's wall side, or hanging from the cell's top edge.
-    Aabb boundsAtSurface(int tileSize, NavigationLocation location, glm::vec2 bodySize);
+    Aabb boundsAtSurface(int tileSize, RouteLocation location, glm::vec2 bodySize);
 
     // Whether the body can rest at the location. The floor must be standable; a wall
     // or ceiling must be climbable where the resting bounds touch it.
-    bool canOccupy(const TileMap& map, NavigationLocation location, glm::vec2 bodySize);
+    bool canOccupy(const TileMap& map, RouteLocation location, glm::vec2 bodySize);
 }

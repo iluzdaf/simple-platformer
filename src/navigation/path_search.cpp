@@ -16,18 +16,18 @@ namespace simple_platformer
 {
     namespace
     {
-        // How a node was cheapest reached, for walking the path back to the start.
+        // How a node was cheapest reached, for walking the route back to the start.
         struct IncomingStep
         {
             std::size_t parentIndex;
-            NavigationStep step;
+            RouteStep step;
         };
 
         // A location the search has reached. Closed once expanded, and opened again if a
         // cheaper way to it turns up.
         struct SearchNode
         {
-            NavigationLocation location;
+            RouteLocation location;
             int costFromStart = 0;
             int estimatedTotalCost = 0;
             std::optional<IncomingStep> incoming;
@@ -39,7 +39,7 @@ namespace simple_platformer
 
         int estimateRemainingCost(
             const HeuristicFunction& heuristic,
-            NavigationLocation location,
+            RouteLocation location,
             Cell goal)
         {
             const int estimate = heuristic(location.cell, goal);
@@ -67,9 +67,9 @@ namespace simple_platformer
             }
         };
 
-        LocationPath reconstructPath(const std::vector<SearchNode>& nodes, std::size_t goalIndex)
+        Route reconstructRoute(const std::vector<SearchNode>& nodes, std::size_t goalIndex)
         {
-            std::vector<NavigationStep> steps;
+            std::vector<RouteStep> steps;
             std::size_t current = goalIndex;
             while (true)
             {
@@ -87,7 +87,7 @@ namespace simple_platformer
             return {nodes[current].location, std::move(steps)};
         }
 
-        std::size_t slotOf(GridSize grid, NavigationLocation location)
+        std::size_t slotOf(GridSize grid, RouteLocation location)
         {
             const std::size_t cell =
                 static_cast<std::size_t>(location.cell.y) * static_cast<std::size_t>(grid.width) +
@@ -96,15 +96,15 @@ namespace simple_platformer
                    static_cast<std::size_t>(location.surface);
         }
 
-        bool containsLocation(GridSize grid, NavigationLocation location)
+        bool containsLocation(GridSize grid, RouteLocation location)
         {
             const int surface = static_cast<int>(location.surface);
             return contains(grid, location.cell) && surface >= 0 && surface < SurfacesPerCell;
         }
     }
 
-    PathSearchResult findLowestCostPath(
-        NavigationLocation start,
+    RouteSearchResult findLowestCostRoute(
+        RouteLocation start,
         Cell goal,
         GridSize grid,
         const ConnectionFunction& connections,
@@ -140,13 +140,13 @@ namespace simple_platformer
         frontier.push({nodes.front().estimatedTotalCost, 0});
 
         const auto relax =
-            [&](const NavigationConnection& connection, std::size_t parentIndex, int parentCost)
+            [&](const RouteConnection& connection, std::size_t parentIndex, int parentCost)
         {
-            const NavigationLocation destination{
+            const RouteLocation destination{
                 connection.step.destinationCell, connection.step.destinationSurface};
             if (connection.cost <= 0)
             {
-                throw std::invalid_argument("A navigation connection must have positive cost");
+                throw std::invalid_argument("A route connection must have positive cost");
             }
             if (!containsLocation(grid, destination))
             {
@@ -154,7 +154,7 @@ namespace simple_platformer
             }
             if (parentCost > std::numeric_limits<int>::max() - connection.cost)
             {
-                throw std::overflow_error("A navigation connection cost is too large");
+                throw std::overflow_error("A route connection cost is too large");
             }
             const int nextCost = parentCost + connection.cost;
             int& existing = nodeAt[slotOf(grid, destination)];
@@ -166,7 +166,7 @@ namespace simple_platformer
             const int estimate = estimateRemainingCost(heuristic, destination, goal);
             if (nextCost > std::numeric_limits<int>::max() - estimate)
             {
-                throw std::overflow_error("A navigation path estimate is too large");
+                throw std::overflow_error("A route estimate is too large");
             }
             const int total = nextCost + estimate;
             if (existing == NoNode)
@@ -201,22 +201,22 @@ namespace simple_platformer
             }
             if (node.location.cell == goal)
             {
-                return {reconstructPath(nodes, next.nodeIndex), std::nullopt};
+                return {reconstructRoute(nodes, next.nodeIndex), std::nullopt};
             }
-            const NavigationLocation location = node.location;
+            const RouteLocation location = node.location;
             if (canExpand && !canExpand(location))
             {
                 return {std::nullopt, location};
             }
             const int parentCost = node.costFromStart;
             node.closed = true;
-            for (const NavigationConnection& connection : connections(location))
+            for (const RouteConnection& connection : connections(location))
             {
                 relax(connection, next.nodeIndex, parentCost);
             }
         }
 
-        PathSearchResult result;
+        RouteSearchResult result;
         std::size_t closest = 0;
         long long closestDistance = std::numeric_limits<long long>::max();
         for (std::size_t index = 0; index < nodes.size(); ++index)
@@ -231,7 +231,7 @@ namespace simple_platformer
                 closestDistance = distanceSquared;
             }
         }
-        result.path = reconstructPath(nodes, closest);
+        result.route = reconstructRoute(nodes, closest);
         return result;
     }
 }

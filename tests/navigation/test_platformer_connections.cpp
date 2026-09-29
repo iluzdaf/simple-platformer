@@ -32,21 +32,21 @@
 namespace
 {
     using simple_platformer::Cell;
-    using simple_platformer::NavigationConnection;
     using simple_platformer::PlatformerTraversalProfile;
+    using simple_platformer::RouteConnection;
     using simple_platformer::Traversal;
 
     constexpr glm::vec2 SmallBody{12.0F, 12.0F};
 
     bool hasConnection(
-        const std::vector<NavigationConnection>& connections,
+        const std::vector<RouteConnection>& connections,
         Cell destination,
         Traversal traversal)
     {
         return std::any_of(
             connections.begin(),
             connections.end(),
-            [destination, traversal](const NavigationConnection& connection)
+            [destination, traversal](const RouteConnection& connection)
             {
                 return connection.step.destinationCell == destination &&
                        connection.step.traversal == traversal;
@@ -58,13 +58,13 @@ TEST_CASE("Walk connections reach every cell on the floor", "[navigation][platfo
 {
     const PlatformerTraversalProfile profile{SmallBody, {}, tests::FixedStepSeconds};
     const simple_platformer::TileMap floor = tests::TileMapBuilder({"......", "######"});
-    const std::vector<NavigationConnection> walks =
+    const std::vector<RouteConnection> walks =
         simple_platformer::buildPlatformerConnections(floor, {1, 0}, profile).connections;
     REQUIRE(
         std::count_if(
             walks.begin(),
             walks.end(),
-            [](const NavigationConnection& connection)
+            [](const RouteConnection& connection)
             { return connection.step.traversal == Traversal::Walk; }) == 5);
     REQUIRE(hasConnection(walks, {0, 0}, Traversal::Walk));
     REQUIRE(hasConnection(walks, {5, 0}, Traversal::Walk));
@@ -74,13 +74,13 @@ TEST_CASE("A direct walk costs less than stopping along the way", "[navigation][
 {
     const PlatformerTraversalProfile profile{SmallBody, {}, tests::FixedStepSeconds};
     const simple_platformer::TileMap floor = tests::TileMapBuilder({"......", "######"});
-    const std::vector<NavigationConnection> walks =
+    const std::vector<RouteConnection> walks =
         simple_platformer::buildPlatformerConnections(floor, {1, 0}, profile).connections;
-    const NavigationConnection& direct = tests::connectionWith(walks, {3, 0}, Traversal::Walk);
-    const NavigationConnection& first = tests::connectionWith(walks, {2, 0}, Traversal::Walk);
-    const std::vector<NavigationConnection> onward =
+    const RouteConnection& direct = tests::connectionWith(walks, {3, 0}, Traversal::Walk);
+    const RouteConnection& first = tests::connectionWith(walks, {2, 0}, Traversal::Walk);
+    const std::vector<RouteConnection> onward =
         simple_platformer::buildPlatformerConnections(floor, {2, 0}, profile).connections;
-    const NavigationConnection& second = tests::connectionWith(onward, {3, 0}, Traversal::Walk);
+    const RouteConnection& second = tests::connectionWith(onward, {3, 0}, Traversal::Walk);
     REQUIRE(direct.cost < first.cost + second.cost);
 }
 
@@ -89,9 +89,9 @@ TEST_CASE("A fall from a ledge records inputs", "[navigation][platformer]")
     const simple_platformer::TileMap ledge =
         tests::TileMapBuilder({"........", "###.....", "........", "........", "########"});
     const PlatformerTraversalProfile profile{SmallBody, {}, tests::FixedStepSeconds};
-    const std::vector<NavigationConnection> offTheEdge =
+    const std::vector<RouteConnection> offTheEdge =
         simple_platformer::buildPlatformerConnections(ledge, {2, 0}, profile).connections;
-    const NavigationConnection& fall = tests::connectionWith(offTheEdge, Traversal::Fall);
+    const RouteConnection& fall = tests::connectionWith(offTheEdge, Traversal::Fall);
     REQUIRE(fall.step.destinationCell.y > 0);
     REQUIRE_FALSE(fall.step.inputs.empty());
 }
@@ -101,9 +101,9 @@ TEST_CASE("A jump reaches the platform above and records inputs", "[navigation][
     const simple_platformer::TileMap platform =
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const PlatformerTraversalProfile profile{SmallBody, {}, tests::FixedStepSeconds};
-    const std::vector<NavigationConnection> beside =
+    const std::vector<RouteConnection> beside =
         simple_platformer::buildPlatformerConnections(platform, {2, 2}, profile).connections;
-    const NavigationConnection& jump = tests::jumpUpFrom(beside, 2);
+    const RouteConnection& jump = tests::jumpUpFrom(beside, 2);
     REQUIRE_FALSE(jump.step.inputs.empty());
 }
 
@@ -113,9 +113,9 @@ TEST_CASE("A recorded jump replays to the landing it promised", "[navigation][pl
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const simple_platformer::PlatformerMovementConfig config;
     const PlatformerTraversalProfile profile{SmallBody, config, tests::FixedStepSeconds};
-    const std::vector<NavigationConnection> connections =
+    const std::vector<RouteConnection> connections =
         simple_platformer::buildPlatformerConnections(map, {2, 2}, profile).connections;
-    const NavigationConnection& jump = tests::connectionWith(connections, Traversal::Jump);
+    const RouteConnection& jump = tests::connectionWith(connections, Traversal::Jump);
 
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, SmallBody), {0.0F, 0.0F}};
@@ -154,9 +154,9 @@ TEST_CASE("A walk connection costs the ticks its follower takes", "[navigation][
     const simple_platformer::PlatformerMovementConfig config;
     const PlatformerTraversalProfile profile{SmallBody, config, tests::FixedStepSeconds};
     const simple_platformer::TileMap walkMap = tests::TileMapBuilder({"....", "####"});
-    const std::vector<NavigationConnection> walkConnections =
+    const std::vector<RouteConnection> walkConnections =
         simple_platformer::buildPlatformerConnections(walkMap, {1, 0}, profile).connections;
-    const NavigationConnection& walk = tests::connectionWith(walkConnections, Traversal::Walk);
+    const RouteConnection& walk = tests::connectionWith(walkConnections, Traversal::Walk);
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(follower, tests::floorPath({1, 0}, {walk.step}));
     simple_platformer::Body body{
@@ -187,9 +187,9 @@ TEST_CASE("Airborne connection costs use the recorded program's ticks", "[naviga
     {
         const simple_platformer::TileMap map =
             tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
-        const std::vector<NavigationConnection> connections =
+        const std::vector<RouteConnection> connections =
             simple_platformer::buildPlatformerConnections(map, {2, 2}, profile).connections;
-        const NavigationConnection& jump = tests::connectionWith(connections, Traversal::Jump);
+        const RouteConnection& jump = tests::connectionWith(connections, Traversal::Jump);
         REQUIRE_THAT(
             simple_platformer::durationOf(jump.step.inputs),
             Catch::Matchers::WithinAbs(
@@ -200,9 +200,9 @@ TEST_CASE("Airborne connection costs use the recorded program's ticks", "[naviga
     {
         const simple_platformer::TileMap map =
             tests::TileMapBuilder({"........", "###.....", "........", "........", "########"});
-        const std::vector<NavigationConnection> connections =
+        const std::vector<RouteConnection> connections =
             simple_platformer::buildPlatformerConnections(map, {2, 0}, profile).connections;
-        const NavigationConnection& fall = tests::connectionWith(connections, Traversal::Fall);
+        const RouteConnection& fall = tests::connectionWith(connections, Traversal::Fall);
         REQUIRE_THAT(
             simple_platformer::durationOf(fall.step.inputs),
             Catch::Matchers::WithinAbs(
@@ -245,7 +245,7 @@ TEST_CASE(
         return std::any_of(
             climbing.connections.begin(),
             climbing.connections.end(),
-            [from, cell, surface](const NavigationConnection& connection)
+            [from, cell, surface](const RouteConnection& connection)
             {
                 return connection.step.traversal == Traversal::Climb &&
                        connection.sourceSurface == from &&
@@ -274,7 +274,7 @@ TEST_CASE(
     REQUIRE(std::all_of(
         upTheWall.connections.begin(),
         upTheWall.connections.end(),
-        [](const NavigationConnection& connection)
+        [](const RouteConnection& connection)
         {
             return connection.step.traversal == Traversal::Climb &&
                    connection.sourceSurface == ClimbSurface::LeftWall;
@@ -288,13 +288,13 @@ TEST_CASE("A climber cannot hold an unmarked wall", "[navigation][platformer][cl
         tests::TileMapBuilder({"......", ".#....", ".#....", ".#....", ".#....", "######"});
     const PlatformerTraversalProfile climber{SmallBody, {}, tests::FixedStepSeconds, {{60.0F}}};
 
-    const std::vector<NavigationConnection> connections =
+    const std::vector<RouteConnection> connections =
         simple_platformer::buildPlatformerConnections(map, {2, 4}, climber).connections;
     REQUIRE(hasConnection(connections, {3, 4}, Traversal::Walk));
     REQUIRE(std::none_of(
         connections.begin(),
         connections.end(),
-        [](const NavigationConnection& connection)
+        [](const RouteConnection& connection)
         { return connection.step.traversal == Traversal::Climb; }));
 }
 
@@ -309,12 +309,12 @@ TEST_CASE(
     const PlatformerTraversalProfile tallClimber{
         {12.0F, 40.0F}, {}, tests::FixedStepSeconds, {{60.0F}}};
 
-    const std::vector<NavigationConnection> connections =
+    const std::vector<RouteConnection> connections =
         simple_platformer::buildPlatformerConnections(map, {2, 1}, tallClimber).connections;
     REQUIRE(std::any_of(
         connections.begin(),
         connections.end(),
-        [](const NavigationConnection& connection)
+        [](const RouteConnection& connection)
         {
             return connection.step.traversal == Traversal::Climb &&
                    connection.sourceSurface == ClimbSurface::LeftWall &&

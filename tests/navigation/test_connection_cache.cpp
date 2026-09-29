@@ -9,7 +9,6 @@
 
 #include <glm/vec2.hpp>
 
-#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"

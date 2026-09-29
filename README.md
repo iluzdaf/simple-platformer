@@ -79,6 +79,10 @@ To run all automated tests from Visual Studio, find the `run_tests` project in
 Solution Explorer, right-click it, and choose **Build**. This first builds the test
 executable and then displays the CTest results in Visual Studio's Output window.
 
+To debug the tests, right-click `simple_platformer_tests` in Solution Explorer, choose
+**Set as Startup Project**, and press **F5**. Set `simple_platformer` as the startup
+project again to run the game.
+
 The solution is generated from `CMakeLists.txt` and `CMakePresets.json`. It belongs in
 the ignored `build/` directory and should not be committed. Run `setup-windows.bat`
 again after changing the CMake configuration.

@@ -13,7 +13,7 @@ namespace simple_platformer
 
     // Whether the body can stand in the cell: the cell blocks nothing, nor does any cell
     // the body covers standing there, and the cell below blocks movement.
-    bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize);
+    bool canStandAt(const TileMap& map, Cell cell, glm::vec2 bodySize);
 
     // The body's resting bounds at a location: standing in the cell, flush against
     // the cell's wall side, or hanging from the cell's top edge.

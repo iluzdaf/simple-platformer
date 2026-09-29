@@ -31,7 +31,7 @@
 
 namespace
 {
-    using simple_platformer::GridPosition;
+    using simple_platformer::Cell;
     using simple_platformer::NavigationConnection;
     using simple_platformer::PlatformerTraversalProfile;
     using simple_platformer::Traversal;
@@ -40,7 +40,7 @@ namespace
 
     bool hasConnection(
         const std::vector<NavigationConnection>& connections,
-        GridPosition destination,
+        Cell destination,
         Traversal traversal)
     {
         return std::any_of(
@@ -234,13 +234,13 @@ TEST_CASE(
             .where('c', tests::Tile{}.blocksMovement().climbable());
     const PlatformerTraversalProfile walker{SmallBody, {}, tests::FixedStepSeconds};
     const PlatformerTraversalProfile climber{SmallBody, {}, tests::FixedStepSeconds, {{60.0F}}};
-    const GridPosition besideWall{2, 4};
+    const Cell besideWall{2, 4};
 
     const simple_platformer::BuiltPlatformerConnections walking =
         simple_platformer::buildPlatformerConnections(map, besideWall, walker);
     const simple_platformer::BuiltPlatformerConnections climbing =
         simple_platformer::buildPlatformerConnections(map, besideWall, climber);
-    const auto climbs = [&climbing](ClimbSurface from, GridPosition cell, ClimbSurface surface)
+    const auto climbs = [&climbing](ClimbSurface from, Cell cell, ClimbSurface surface)
     {
         return std::any_of(
             climbing.connections.begin(),
@@ -318,7 +318,7 @@ TEST_CASE(
         {
             return connection.step.traversal == Traversal::Climb &&
                    connection.sourceSurface == ClimbSurface::LeftWall &&
-                   connection.step.destinationCell == GridPosition{2, 0} &&
+                   connection.step.destinationCell == Cell{2, 0} &&
                    connection.step.destinationSurface == ClimbSurface::LeftWall;
         }));
 }

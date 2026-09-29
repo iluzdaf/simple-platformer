@@ -220,7 +220,7 @@ namespace simple_platformer
             {
                 return std::nullopt;
             }
-            const GridPosition cell = worldToGrid(map.tileSize(), cursor);
+            const Cell cell = cellAt(map.tileSize(), cursor);
             if (!map.definitionAt(cell).breaksIntoTileId.has_value())
             {
                 return std::nullopt;

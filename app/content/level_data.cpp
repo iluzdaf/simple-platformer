@@ -24,10 +24,7 @@ namespace simple_platformer
     {
         using Json = nlohmann::json;
 
-        GridPosition jsonGridPosition(
-            const Json& value,
-            std::string_view sourceName,
-            std::string_view path)
+        Cell jsonCell(const Json& value, std::string_view sourceName, std::string_view path)
         {
             checkJsonPair(value, "[column, row]", sourceName, path);
             return {
@@ -58,7 +55,7 @@ namespace simple_platformer
             }
             if (cell != object.end())
             {
-                return jsonGridPosition(*cell, sourceName, fieldPath(path, cellKey));
+                return jsonCell(*cell, sourceName, fieldPath(path, cellKey));
             }
             return jsonVector(*feet, sourceName, fieldPath(path, feetKey));
         }

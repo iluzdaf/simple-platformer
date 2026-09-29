@@ -13,7 +13,7 @@
 
 namespace
 {
-    using simple_platformer::GridPosition;
+    using simple_platformer::Cell;
 
     constexpr glm::vec2 SmallBody{12.0F, 12.0F};
     constexpr glm::vec2 TallBody{12.0F, 20.0F};

@@ -44,7 +44,7 @@ namespace tests
     // The waypoints a route of floor steps from the start cell gives, for tests that
     // assemble a path from simulated connections.
     inline simple_platformer::NavigationPath floorPath(
-        simple_platformer::GridPosition start,
+        simple_platformer::Cell start,
         std::vector<simple_platformer::NavigationStep> steps)
     {
         simple_platformer::NavigationPath path{simple_platformer::feetInCell(TileSize, start), {}};

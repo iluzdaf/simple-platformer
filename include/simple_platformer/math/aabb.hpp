@@ -17,18 +17,7 @@ namespace simple_platformer
     glm::vec2 feetOf(const Aabb& box);
     void placeFeetAt(Aabb& box, glm::vec2 feet);
     // A box of this size standing in the cell, its feet at the middle of the cell's bottom edge.
-    Aabb boxInCell(int tileSize, GridPosition cell, glm::vec2 size);
-
-    struct CellRange
-    {
-        GridPosition first;
-        // Inclusive.
-        GridPosition last;
-    };
-
-    bool contains(const CellRange& range, GridPosition cell);
-    // The smallest range holding both.
-    CellRange unionOf(const CellRange& left, const CellRange& right);
+    Aabb boxInCell(int tileSize, Cell cell, glm::vec2 size);
 
     // The cells the box lies over. Its edges are read EdgeTolerance inside, so a box resting
     // exactly on a boundary does not also cover the cell beyond it.

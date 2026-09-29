@@ -69,7 +69,7 @@ namespace
         return simple_platformer::World({coin});
     }
 
-    void addPlayerIn(simple_platformer::World& world, simple_platformer::GridPosition cell)
+    void addPlayerIn(simple_platformer::World& world, simple_platformer::Cell cell)
     {
         tests::addPlayer(
             world,
@@ -79,7 +79,7 @@ namespace
                 .withSprite(square(PlayerTexture, 12.0F)));
     }
 
-    void addNpcIn(simple_platformer::World& world, simple_platformer::GridPosition cell)
+    void addNpcIn(simple_platformer::World& world, simple_platformer::Cell cell)
     {
         world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                            .inCell(cell)

@@ -40,14 +40,14 @@ namespace simple_platformer
     // previously simulated walks; newly simulated walks are returned for later storage.
     BuiltPlatformerConnections buildPlatformerConnections(
         const TileMap& map,
-        GridPosition cell,
+        Cell cell,
         const PlatformerTraversalProfile& profile,
         const PlatformerConnectionCache* walkCache = nullptr);
 
     // Stores a completed build; it does not simulate connections or check for a hit.
     void storePlatformerConnections(
         PlatformerConnectionCache& cache,
-        GridPosition cell,
+        Cell cell,
         const PlatformerTraversalProfile& profile,
         BuiltPlatformerConnections built);
 

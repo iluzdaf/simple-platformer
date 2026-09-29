@@ -38,7 +38,7 @@ namespace
 
     simple_platformer::ActorId addPlayerIn(
         simple_platformer::World& world,
-        simple_platformer::GridPosition cell)
+        simple_platformer::Cell cell)
     {
         return tests::addPlayer(
             world, tests::ActorBuilder::sized({12.0F, 12.0F}).inCell(cell).walking());
@@ -46,12 +46,12 @@ namespace
 
     simple_platformer::ActorId addNpcIn(
         simple_platformer::World& world,
-        simple_platformer::GridPosition cell)
+        simple_platformer::Cell cell)
     {
         return world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F}).inCell(cell).flying(0.0F));
     }
 
-    void movePlayerTo(simple_platformer::World& world, simple_platformer::GridPosition cell)
+    void movePlayerTo(simple_platformer::World& world, simple_platformer::Cell cell)
     {
         tests::player(world).body.bounds =
             simple_platformer::boxInCell(tests::TileSize, cell, {12.0F, 12.0F});

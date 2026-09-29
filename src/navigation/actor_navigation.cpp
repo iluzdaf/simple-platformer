@@ -119,7 +119,7 @@ namespace simple_platformer
             int tileSize,
             const LocationPath& route,
             glm::vec2 bodySize,
-            GridPosition goal,
+            Cell goal,
             glm::vec2 target)
         {
             NavigationPath path = waypointsOf(tileSize, route, bodySize);
@@ -131,21 +131,21 @@ namespace simple_platformer
         }
 
         // Grid steps between two cells: the fewest cost-one flights between them.
-        int manhattanHeuristic(GridPosition cell, GridPosition goal)
+        int manhattanHeuristic(Cell cell, Cell goal)
         {
             return std::abs(cell.x - goal.x) + std::abs(cell.y - goal.y);
         }
 
         // Cost-one flight connections to adjacent open cells.
-        std::vector<NavigationConnection> flyingConnections(const TileMap& map, GridPosition cell)
+        std::vector<NavigationConnection> flyingConnections(const TileMap& map, Cell cell)
         {
-            constexpr std::array<GridPosition, 4> Directions{
-                GridPosition{-1, 0}, GridPosition{1, 0}, GridPosition{0, -1}, GridPosition{0, 1}};
+            constexpr std::array<glm::ivec2, 4> Directions{
+                glm::ivec2{-1, 0}, glm::ivec2{1, 0}, glm::ivec2{0, -1}, glm::ivec2{0, 1}};
 
             std::vector<NavigationConnection> connections;
-            for (const GridPosition direction : Directions)
+            for (const glm::ivec2 direction : Directions)
             {
-                const GridPosition candidate{cell.x + direction.x, cell.y + direction.y};
+                const Cell candidate{cell.x + direction.x, cell.y + direction.y};
                 if (map.contains(candidate) && !map.blocksMovement(candidate))
                 {
                     connections.push_back({{candidate, Traversal::Fly, {}}, 1});
@@ -174,12 +174,12 @@ namespace simple_platformer
             }
             addFrameStatistic(profile, "Navigation", "Path searches");
             const int tileSize = map.tileSize();
-            const GridPosition start = cellAtFeet(tileSize, feetOf(body));
+            const Cell start = cellAtFeet(tileSize, feetOf(body));
             if (!map.contains(start))
             {
                 return std::nullopt;
             }
-            const GridPosition goal = cellAtFeet(tileSize, target);
+            const Cell goal = cellAtFeet(tileSize, target);
             int cellsExpanded = 0;
             const ConnectionFunction connections =
                 [&map, profile, &cellsExpanded](NavigationLocation location)
@@ -208,8 +208,8 @@ namespace simple_platformer
         // Acceleration, braking, obstacles, and vertical travel are ignored.
         int platformerTickHeuristic(
             int tileSize,
-            GridPosition cell,
-            GridPosition goal,
+            Cell cell,
+            Cell goal,
             const PlatformerTraversalProfile& profile)
         {
             requirePositiveSeconds(profile.stepSeconds, "Navigation simulation step");
@@ -287,7 +287,7 @@ namespace simple_platformer
             }
             const NavigationLocation start = *resting;
             const int tileSize = map.tileSize();
-            const GridPosition goal = cellAtFeet(tileSize, target);
+            const Cell goal = cellAtFeet(tileSize, target);
             {
                 const PhaseScope cachePhase(frameProfile, "Navigation", "Path cache");
                 cache.applyRecordedTileBreaks(map);
@@ -327,8 +327,7 @@ namespace simple_platformer
                 applyJumpStartPenalty(leaving, JumpStartPenaltyTicks);
                 return leaving;
             };
-            const HeuristicFunction heuristic =
-                [tileSize, &profile](GridPosition cell, GridPosition goalCell)
+            const HeuristicFunction heuristic = [tileSize, &profile](Cell cell, Cell goalCell)
             { return platformerTickHeuristic(tileSize, cell, goalCell, profile); };
             // A cell the cache does not hold yet pauses the search; the fill builds it.
             const ExpansionReady canExpand = [&cache, &profile](NavigationLocation location)

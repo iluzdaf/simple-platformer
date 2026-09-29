@@ -48,7 +48,7 @@ namespace simple_platformer
         }
 
         // canStandAt without the size check, for callers that have made it.
-        bool standsAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize)
+        bool standsAt(const TileMap& map, Cell cell, glm::vec2 bodySize)
         {
             return map.contains(cell) && !map.blocksMovement(cell) &&
                    map.blocksMovement({cell.x, cell.y + 1}) &&
@@ -56,7 +56,7 @@ namespace simple_platformer
         }
     }
 
-    bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize)
+    bool canStandAt(const TileMap& map, Cell cell, glm::vec2 bodySize)
     {
         requireBodySize(bodySize);
         return standsAt(map, cell, bodySize);

@@ -182,7 +182,7 @@ namespace tests
 
         // Standing in the cell, its feet on the middle of the cell's bottom edge. Every test
         // map has tests::TileSize tiles, so the cell is unambiguous.
-        Placed inCell(simple_platformer::GridPosition cell) &&
+        Placed inCell(simple_platformer::Cell cell) &&
         {
             return Placed(simple_platformer::boxInCell(TileSize, cell, size));
         }

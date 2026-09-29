@@ -49,35 +49,35 @@ namespace simple_platformer
         float pixelWidth() const;
         float pixelHeight() const;
 
-        bool contains(GridPosition cell) const;
-        int tileAt(GridPosition cell) const;
-        const TileDefinition& definitionAt(GridPosition cell) const;
+        bool contains(Cell cell) const;
+        int tileAt(Cell cell) const;
+        const TileDefinition& definitionAt(Cell cell) const;
 
         // Outside the map, both queries block at the left, right, and bottom.
         // Above the map is open.
-        bool blocksMovement(GridPosition cell) const;
-        bool blocksSight(GridPosition cell) const;
+        bool blocksMovement(Cell cell) const;
+        bool blocksSight(Cell cell) const;
         // Out-of-map walls are not climbable.
-        bool climbableAt(GridPosition cell) const;
+        bool climbableAt(Cell cell) const;
 
         // Replaces the cell with whatever its definition breaks into, and reports
         // whether that happened. A cell outside the map, or one whose definition has no
         // breaksIntoTileId, is left alone: callers pass in cells that came from a cast,
         // and map boundaries report as blocking cells that lie outside the map.
-        bool breakTile(GridPosition cell);
+        bool breakTile(Cell cell);
         // Every cell broken so far, in order, so whatever was worked out from the map as it
         // was can find out what changed since.
-        const std::vector<GridPosition>& brokenCells() const;
+        const std::vector<Cell>& brokenCells() const;
 
     private:
         // Row-major offset into tileIds. The cell must be inside the map.
-        std::size_t indexOf(GridPosition cell) const;
+        std::size_t indexOf(Cell cell) const;
 
         int cellSize = 0;
         int mapWidth = 0;
         int mapHeight = 0;
         std::vector<int> tileIds;
         std::vector<TileDefinition> tileDefinitions;
-        std::vector<GridPosition> brokenCellLog;
+        std::vector<Cell> brokenCellLog;
     };
 }

@@ -77,7 +77,7 @@ namespace simple_platformer
         float pickupPhaseOffset(int tileSize, const Aabb& bounds)
         {
             // Spread level-start pickups across four phases instead of bobbing in lockstep.
-            const GridPosition cell = worldToGrid(tileSize, bounds.position);
+            const Cell cell = cellAt(tileSize, bounds.position);
             int phaseIndex = (cell.x + cell.y) % PickupBobPhaseCount;
             if (phaseIndex < 0)
             {
@@ -113,7 +113,7 @@ namespace simple_platformer
             {
                 for (int column = firstColumn; column <= lastColumn; ++column)
                 {
-                    const GridPosition cell{column, row};
+                    const Cell cell{column, row};
                     if (map.tileAt(cell) == 0)
                     {
                         continue;

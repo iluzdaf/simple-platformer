@@ -40,7 +40,7 @@ namespace simple_platformer
         int estimateRemainingCost(
             const HeuristicFunction& heuristic,
             NavigationLocation location,
-            GridPosition goal)
+            Cell goal)
         {
             const int estimate = heuristic(location.cell, goal);
             if (estimate < 0)
@@ -105,7 +105,7 @@ namespace simple_platformer
 
     PathSearchResult findLowestCostPath(
         NavigationLocation start,
-        GridPosition goal,
+        Cell goal,
         GridSize grid,
         const ConnectionFunction& connections,
         const HeuristicFunction& heuristic,
@@ -221,7 +221,7 @@ namespace simple_platformer
         long long closestDistance = std::numeric_limits<long long>::max();
         for (std::size_t index = 0; index < nodes.size(); ++index)
         {
-            const GridPosition cell = nodes[index].location.cell;
+            const Cell cell = nodes[index].location.cell;
             const long long dx = static_cast<long long>(cell.x) - goal.x;
             const long long dy = static_cast<long long>(cell.y) - goal.y;
             const long long distanceSquared = dx * dx + dy * dy;

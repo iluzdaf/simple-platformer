@@ -31,7 +31,7 @@ namespace simple_platformer
     {
         glm::vec2 feetOf(const TileMap& map, const LevelPosition& position)
         {
-            if (const auto* cell = std::get_if<GridPosition>(&position))
+            if (const auto* cell = std::get_if<Cell>(&position))
             {
                 return feetInCell(map.tileSize(), *cell);
             }

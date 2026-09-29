@@ -17,7 +17,7 @@ namespace simple_platformer
 {
     // A position as the level file gives it: a map cell, or feet in world pixels. The file
     // never knows the tile size, so cells stay cells until level composition has the map.
-    using LevelPosition = std::variant<GridPosition, glm::vec2>;
+    using LevelPosition = std::variant<Cell, glm::vec2>;
 
     struct PatrolPlacement
     {

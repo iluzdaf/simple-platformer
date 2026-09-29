@@ -35,9 +35,9 @@
 
 namespace
 {
+    using simple_platformer::Cell;
     using simple_platformer::ClimbSurface;
     using simple_platformer::FrameProfile;
-    using simple_platformer::GridPosition;
     using simple_platformer::NavigationConnection;
     using simple_platformer::NavigationLocation;
     using simple_platformer::NavigationPathResult;
@@ -53,12 +53,12 @@ namespace
     const PlatformerTraversalProfile Walker{SmallBody, {}, tests::FixedStepSeconds};
     const PlatformerTraversalProfile Climber{SmallBody, {}, tests::FixedStepSeconds, {{60.0F}}};
 
-    glm::vec2 feetIn(GridPosition cell)
+    glm::vec2 feetIn(Cell cell)
     {
         return simple_platformer::feetInCell(tests::TileSize, cell);
     }
 
-    GridPosition cellOf(glm::vec2 feet)
+    Cell cellOf(glm::vec2 feet)
     {
         return simple_platformer::cellAtFeet(tests::TileSize, feet);
     }
@@ -136,7 +136,7 @@ namespace
 
     std::optional<NavigationPathResult> findFlight(
         const simple_platformer::TileMap& map,
-        GridPosition cell,
+        Cell cell,
         glm::vec2 target,
         FrameProfile* frameProfile = nullptr)
     {
@@ -294,7 +294,7 @@ TEST_CASE("A walker starts from the standable cell that supports it", "[navigati
     // stood on; the body starts from the supporting cell.
     simple_platformer::Aabb atTheLedge{{0.0F, 0.0F}, TallBody};
     simple_platformer::placeFeetAt(atTheLedge, {80.5F, 32.0F});
-    REQUIRE(cellOf(simple_platformer::feetOf(atTheLedge)) == GridPosition{5, 1});
+    REQUIRE(cellOf(simple_platformer::feetOf(atTheLedge)) == Cell{5, 1});
     REQUIRE(startFrom(atTheLedge) == feetIn({4, 1}));
 
     // In the air, or a little above the floor, it rests nowhere and gets no result.
@@ -361,8 +361,8 @@ TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying
     REQUIRE(result.status == simple_platformer::NavigationPathStatus::Found);
     REQUIRE(result.path.has_value());
     const simple_platformer::NavigationPath route = pathOf(result);
-    REQUIRE(cellOf(route.startFeet) == simple_platformer::GridPosition{0, 1});
-    REQUIRE(cellOf(route.waypoints.back().feet) == simple_platformer::GridPosition{3, 1});
+    REQUIRE(cellOf(route.startFeet) == simple_platformer::Cell{0, 1});
+    REQUIRE(cellOf(route.waypoints.back().feet) == simple_platformer::Cell{3, 1});
     REQUIRE(route.waypoints.front().traversal == simple_platformer::Traversal::Fly);
     // A flying search expands cells but simulates no movement.
     REQUIRE(simple_platformer::frameStatisticCount(profile, "Cells expanded") >= 1);
@@ -513,7 +513,7 @@ TEST_CASE(
     // Holding the wall at the foot of the far side is already in the target's cell.
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, endOf(result)) ==
-        simple_platformer::GridPosition{11, 5});
+        simple_platformer::Cell{11, 5});
 
     simple_platformer::Body body{
         simple_platformer::boundsAtSurface(tests::TileSize, start, SmallBody), {0.0F, 0.0F}};
@@ -561,10 +561,10 @@ TEST_CASE(
     "[navigation][cache]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"...."});
-    const GridPosition start{0, 0};
-    const GridPosition pending{1, 0};
-    const GridPosition goal{2, 0};
-    const GridPosition unrelated{3, 0};
+    const Cell start{0, 0};
+    const Cell pending{1, 0};
+    const Cell goal{2, 0};
+    const Cell unrelated{3, 0};
     const PlatformerTraversalProfile profile{SmallBody, {}, tests::FixedStepSeconds};
     PlatformerConnectionCache cache;
     cache.storeConnections(

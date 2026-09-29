@@ -15,7 +15,7 @@ namespace simple_platformer
     // A cell can hold several distinct places for a climber. None is the floor.
     struct NavigationLocation
     {
-        GridPosition cell;
+        Cell cell;
         ClimbSurface surface = ClimbSurface::None;
     };
 
@@ -27,7 +27,7 @@ namespace simple_platformer
     // One edge of a route: its destination, traversal, and any recorded inputs.
     struct NavigationStep
     {
-        GridPosition destinationCell;
+        Cell destinationCell;
         Traversal traversal = Traversal::Fly;
         // Replay inputs for a jump, fall, or climb; empty for a walk or flight.
         InputProgram inputs;

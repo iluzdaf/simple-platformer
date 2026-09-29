@@ -50,7 +50,7 @@ TEST_CASE("A solid tile cast reports the earliest tile", "[physics][segment][til
         throw std::logic_error("Expected the cast to hit a tile");
     }
     REQUIRE_NEAR(hit->segmentTime, 0.2F);
-    REQUIRE(hit->cell == simple_platformer::GridPosition{1, 1});
+    REQUIRE(hit->cell == simple_platformer::Cell{1, 1});
 }
 
 TEST_CASE("A solid tile cast accounts for the moving box size", "[physics][segment][tile]")

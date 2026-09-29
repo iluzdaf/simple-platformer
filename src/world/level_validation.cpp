@@ -39,7 +39,7 @@ namespace simple_platformer
         {
             const CellRange cells = cellsCovered(map.tileSize(), bounds);
             const int rowBelow =
-                worldToGrid(
+                cellAt(
                     map.tileSize(),
                     {bounds.position.x, bounds.position.y + bounds.size.y + EdgeTolerance})
                     .y;

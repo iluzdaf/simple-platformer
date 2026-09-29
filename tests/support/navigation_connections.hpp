@@ -36,7 +36,7 @@ namespace tests
     // did not produce one.
     inline const simple_platformer::NavigationConnection& connectionWith(
         const std::vector<simple_platformer::NavigationConnection>& connections,
-        simple_platformer::GridPosition destination,
+        simple_platformer::Cell destination,
         simple_platformer::Traversal traversal)
     {
         const auto connection = std::find_if(

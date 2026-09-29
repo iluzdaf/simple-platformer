@@ -14,7 +14,7 @@
 
 namespace
 {
-    simple_platformer::Aabb boxIn(simple_platformer::GridPosition cell)
+    simple_platformer::Aabb boxIn(simple_platformer::Cell cell)
     {
         return simple_platformer::boxInCell(tests::TileSize, cell, {12.0F, 12.0F});
     }

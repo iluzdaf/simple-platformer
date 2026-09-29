@@ -109,7 +109,7 @@ TEST_CASE("A tile map logs the cells it broke, in order", "[world][tile-map]")
     // Neither an empty cell nor a solid one that declares nothing to break into is logged.
     REQUIRE_FALSE(map.breakTile({1, 0}));
     REQUIRE_FALSE(map.breakTile({2, 0}));
-    REQUIRE(map.brokenCells() == std::vector<simple_platformer::GridPosition>{{1, 0}, {0, 0}});
+    REQUIRE(map.brokenCells() == std::vector<simple_platformer::Cell>{{1, 0}, {0, 0}});
 }
 
 TEST_CASE("Breaking reports failure outside the map instead of throwing", "[world][tile-map]")

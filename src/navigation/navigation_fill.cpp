@@ -37,12 +37,12 @@ namespace simple_platformer
             int budgetSpent = 0;
             while (budgetSpent < tickBudget)
             {
-                const std::optional<GridPosition> next = cache.nextPending(profile);
+                const std::optional<Cell> next = cache.nextPending(profile);
                 if (!next.has_value())
                 {
                     break;
                 }
-                const GridPosition cell = next.value();
+                const Cell cell = next.value();
                 BuiltPlatformerConnections built =
                     buildPlatformerConnections(map, cell, profile, &cache);
                 const int ticksForCell = built.simulatedTicks;

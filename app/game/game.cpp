@@ -266,7 +266,7 @@ namespace simple_platformer
         {
             return false;
         }
-        return level.map.breakTile(worldToGrid(level.map.tileSize(), world));
+        return level.map.breakTile(cellAt(level.map.tileSize(), world));
     }
 
     void Game::restart()

@@ -71,14 +71,14 @@ namespace simple_platformer
 
     void PlatformerConnectionCache::applyRecordedTileBreaks(const TileMap& map)
     {
-        const std::vector<GridPosition>& broken = map.brokenCells();
+        const std::vector<Cell>& broken = map.brokenCells();
         for (; breaksSeen < broken.size(); ++breaksSeen)
         {
             invalidate(broken[breaksSeen]);
         }
     }
 
-    void PlatformerConnectionCache::invalidate(GridPosition brokenCell)
+    void PlatformerConnectionCache::invalidate(Cell brokenCell)
     {
         for (ProfileCache& profileCache : profileCaches)
         {
@@ -100,7 +100,7 @@ namespace simple_platformer
     }
 
     const std::vector<NavigationConnection>* PlatformerConnectionCache::cachedConnections(
-        GridPosition cell,
+        Cell cell,
         const PlatformerTraversalProfile& profile) const
     {
         const ProfileCache* profileCache = findCacheFor(profile);
@@ -114,7 +114,7 @@ namespace simple_platformer
     }
 
     std::optional<CellRange> PlatformerConnectionCache::cachedFootprint(
-        GridPosition cell,
+        Cell cell,
         const PlatformerTraversalProfile& profile) const
     {
         const ProfileCache* profileCache = findCacheFor(profile);
@@ -131,7 +131,7 @@ namespace simple_platformer
     }
 
     const std::vector<NavigationConnection>& PlatformerConnectionCache::storeConnections(
-        GridPosition cell,
+        Cell cell,
         const PlatformerTraversalProfile& profile,
         std::vector<NavigationConnection> connections,
         const CellRange& footprint)
@@ -178,9 +178,7 @@ namespace simple_platformer
         connectionWriteCount = 0;
     }
 
-    void PlatformerConnectionCache::queue(
-        GridPosition cell,
-        const PlatformerTraversalProfile& profile)
+    void PlatformerConnectionCache::queue(Cell cell, const PlatformerTraversalProfile& profile)
     {
         requireValid(profile);
         ProfileCache& forProfile = cacheFor(profile);
@@ -199,15 +197,14 @@ namespace simple_platformer
         return profileCache == nullptr ? 0 : profileCache->pending.size();
     }
 
-    bool PlatformerConnectionCache::isPending(
-        GridPosition cell,
-        const PlatformerTraversalProfile& profile) const
+    bool PlatformerConnectionCache::isPending(Cell cell, const PlatformerTraversalProfile& profile)
+        const
     {
         const ProfileCache* profileCache = findCacheFor(profile);
         return profileCache != nullptr && profileCache->waiting.count(cell) > 0;
     }
 
-    std::optional<GridPosition> PlatformerConnectionCache::nextPending(
+    std::optional<Cell> PlatformerConnectionCache::nextPending(
         const PlatformerTraversalProfile& profile) const
     {
         const ProfileCache* profileCache = findCacheFor(profile);
@@ -218,9 +215,7 @@ namespace simple_platformer
         return profileCache->pending.front();
     }
 
-    void PlatformerConnectionCache::prioritise(
-        GridPosition cell,
-        const PlatformerTraversalProfile& profile)
+    void PlatformerConnectionCache::prioritise(Cell cell, const PlatformerTraversalProfile& profile)
     {
         ProfileCache* profileCache = findCacheFor(profile);
         if (profileCache == nullptr)

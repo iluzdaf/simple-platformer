@@ -1,7 +1,5 @@
 #include "simple_platformer/math/aabb.hpp"
 
-#include <algorithm>
-
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/coordinates.hpp"
@@ -23,7 +21,7 @@ namespace simple_platformer
         box.position = {feet.x - box.size.x * 0.5F, feet.y - box.size.y};
     }
 
-    Aabb boxInCell(int tileSize, GridPosition cell, glm::vec2 size)
+    Aabb boxInCell(int tileSize, Cell cell, glm::vec2 size)
     {
         Aabb box{{0.0F, 0.0F}, size};
         placeFeetAt(box, feetInCell(tileSize, cell));
@@ -34,8 +32,8 @@ namespace simple_platformer
     {
         const glm::vec2 inset{EdgeTolerance, EdgeTolerance};
         return {
-            worldToGrid(tileSize, box.position + inset),
-            worldToGrid(tileSize, box.position + box.size - inset)};
+            cellAt(tileSize, box.position + inset),
+            cellAt(tileSize, box.position + box.size - inset)};
     }
 
     bool overlaps(const Aabb& first, const Aabb& second)
@@ -50,18 +48,5 @@ namespace simple_platformer
     {
         return point.x >= box.position.x && point.y >= box.position.y &&
                point.x < box.position.x + box.size.x && point.y < box.position.y + box.size.y;
-    }
-
-    bool contains(const CellRange& range, GridPosition cell)
-    {
-        return cell.x >= range.first.x && cell.x <= range.last.x && cell.y >= range.first.y &&
-               cell.y <= range.last.y;
-    }
-
-    CellRange unionOf(const CellRange& left, const CellRange& right)
-    {
-        return {
-            {std::min(left.first.x, right.first.x), std::min(left.first.y, right.first.y)},
-            {std::max(left.last.x, right.last.x), std::max(left.last.y, right.last.y)}};
     }
 }

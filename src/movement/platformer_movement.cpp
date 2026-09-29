@@ -113,9 +113,9 @@ namespace simple_platformer
             const float front = body.bounds.position.x + (side > 0 ? body.bounds.size.x : 0.0F);
             const float probeX = front + static_cast<float>(side);
             const float belowFeet = feetOf(body.bounds).y + 1.0F;
-            const GridPosition first = worldToGrid(map.tileSize(), {probeX, belowFeet});
+            const Cell first = cellAt(map.tileSize(), {probeX, belowFeet});
             const int last =
-                worldToGrid(map.tileSize(), {probeX + body.velocity.x * deltaTime, belowFeet}).x;
+                cellAt(map.tileSize(), {probeX + body.velocity.x * deltaTime, belowFeet}).x;
             for (int x = first.x; side > 0 ? x <= last : x >= last; x += side)
             {
                 if (!map.blocksMovement({x, first.y}))

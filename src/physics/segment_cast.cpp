@@ -70,8 +70,8 @@ namespace simple_platformer
             return SegmentSpan{first, last};
         }
 
-        using TileBlockingQuery = std::function<bool(GridPosition)>;
-        using BlockingTileVisitor = std::function<void(GridPosition, const Aabb&)>;
+        using TileBlockingQuery = std::function<bool(Cell)>;
+        using BlockingTileVisitor = std::function<void(Cell, const Aabb&)>;
 
         // Visits every blocking tile the segment's bounds overlap, expanded for the moving
         // box, in no particular order.
@@ -151,8 +151,8 @@ namespace simple_platformer
             start,
             end,
             movingSize,
-            [&map](GridPosition cell) { return map.blocksMovement(cell); },
-            [&](GridPosition cell, const Aabb& tile)
+            [&map](Cell cell) { return map.blocksMovement(cell); },
+            [&](Cell cell, const Aabb& tile)
             {
                 const std::optional<float> hit = segmentCast(tile, start, end);
                 if (hit.has_value() && (!earliest.has_value() || *hit < earliest->segmentTime))
@@ -174,8 +174,8 @@ namespace simple_platformer
             start,
             end,
             {0.0F, 0.0F},
-            [&map](GridPosition cell) { return map.blocksSight(cell); },
-            [&](GridPosition /*cell*/, const Aabb& tile)
+            [&map](Cell cell) { return map.blocksSight(cell); },
+            [&](Cell /*cell*/, const Aabb& tile)
             {
                 const std::optional<SegmentSpan> span = segmentSpan(tile, start, end);
                 if (span.has_value())

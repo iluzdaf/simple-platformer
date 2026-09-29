@@ -29,7 +29,7 @@ namespace simple_platformer
 {
     namespace
     {
-        Aabb cellBounds(int tileSize, GridPosition cell)
+        Aabb cellBounds(int tileSize, Cell cell)
         {
             const auto size = static_cast<float>(tileSize);
             return {
@@ -41,7 +41,7 @@ namespace simple_platformer
             const TileMap& map,
             const PlatformerConnectionCache& cache,
             const PlatformerTraversalProfile& profile,
-            GridPosition cell)
+            Cell cell)
         {
             const int tileSize = map.tileSize();
             CursorCellDebugInfo info;
@@ -170,7 +170,7 @@ namespace simple_platformer
         {
             for (int column = 0; column < map.width(); ++column)
             {
-                const GridPosition cell{column, row};
+                const Cell cell{column, row};
                 if (!canStandAt(map, cell, profile.size))
                 {
                     continue;
@@ -195,7 +195,7 @@ namespace simple_platformer
                 cursor.y < map.pixelHeight())
             {
                 info.cursorCell =
-                    cursorCellDebugInfo(map, cache, profile, worldToGrid(map.tileSize(), cursor));
+                    cursorCellDebugInfo(map, cache, profile, cellAt(map.tileSize(), cursor));
             }
         }
         return info;

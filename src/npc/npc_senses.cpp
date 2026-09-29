@@ -133,8 +133,8 @@ namespace simple_platformer
 
     bool onSameGroundRun(const TileMap& map, const Aabb& observer, const Aabb& target)
     {
-        const GridPosition first = cellAtFeet(map.tileSize(), feetOf(observer));
-        const GridPosition last = cellAtFeet(map.tileSize(), feetOf(target));
+        const Cell first = cellAtFeet(map.tileSize(), feetOf(observer));
+        const Cell last = cellAtFeet(map.tileSize(), feetOf(target));
         if (first.y != last.y)
         {
             return false;

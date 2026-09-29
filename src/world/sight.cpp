@@ -27,8 +27,8 @@ namespace simple_platformer
         }
 
         const glm::vec2 boundsEnd = bounds.position + bounds.size;
-        const GridPosition first = worldToGrid(map.tileSize(), bounds.position);
-        const GridPosition last = worldToGrid(map.tileSize(), boundsEnd);
+        const Cell first = cellAt(map.tileSize(), bounds.position);
+        const Cell last = cellAt(map.tileSize(), boundsEnd);
         float coveredArea = 0.0F;
         for (int row = first.y; row <= last.y; ++row)
         {
@@ -38,7 +38,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                const glm::vec2 cellStart = gridToWorld(map.tileSize(), {column, row});
+                const glm::vec2 cellStart = cellCorner(map.tileSize(), {column, row});
                 const glm::vec2 cellEnd = cellStart + static_cast<float>(map.tileSize());
                 const glm::vec2 overlap = glm::max(
                     glm::min(boundsEnd, cellEnd) - glm::max(bounds.position, cellStart),

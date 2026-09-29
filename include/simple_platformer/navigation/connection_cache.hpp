@@ -29,32 +29,32 @@ namespace simple_platformer
         void applyRecordedTileBreaks(const TileMap& map);
         // Drops what one broken cell can have changed; recorded breaks use this rule.
         // Every cell dropped joins its profile's fill queue.
-        void invalidate(GridPosition brokenCell);
+        void invalidate(Cell brokenCell);
 
         // The cells waiting to be cached, in the order the fill takes them: every cell of
         // the map when a level starts, and the cells a break drops after. Storing a cell
         // takes it off. A search that needs one before its turn moves it to the front.
         // Queuing a cell that is cached or waiting already changes nothing.
-        void queue(GridPosition cell, const PlatformerTraversalProfile& profile);
+        void queue(Cell cell, const PlatformerTraversalProfile& profile);
         std::size_t cellsPending(const PlatformerTraversalProfile& profile) const;
-        bool isPending(GridPosition cell, const PlatformerTraversalProfile& profile) const;
-        std::optional<GridPosition> nextPending(const PlatformerTraversalProfile& profile) const;
-        void prioritise(GridPosition cell, const PlatformerTraversalProfile& profile);
+        bool isPending(Cell cell, const PlatformerTraversalProfile& profile) const;
+        std::optional<Cell> nextPending(const PlatformerTraversalProfile& profile) const;
+        void prioritise(Cell cell, const PlatformerTraversalProfile& profile);
 
         // The cached connections for this cell and profile, or nothing if absent. A
         // climber's cell holds the connections leaving each of its surfaces.
         const std::vector<NavigationConnection>* cachedConnections(
-            GridPosition cell,
+            Cell cell,
             const PlatformerTraversalProfile& profile) const;
         // The cached footprint, for showing why a break drops the cell.
         std::optional<CellRange> cachedFootprint(
-            GridPosition cell,
+            Cell cell,
             const PlatformerTraversalProfile& profile) const;
         // Stores these as the cell's connections for the profile, replacing any previous value,
         // and returns the stored connections. The footprint is every cell their
         // simulation swept: a break inside it drops them.
         const std::vector<NavigationConnection>& storeConnections(
-            GridPosition cell,
+            Cell cell,
             const PlatformerTraversalProfile& profile,
             std::vector<NavigationConnection> connections,
             const CellRange& footprint);
@@ -89,8 +89,7 @@ namespace simple_platformer
             CellRange footprint;
         };
 
-        using CellConnections =
-            std::unordered_map<GridPosition, CachedConnections, GridPositionHash>;
+        using CellConnections = std::unordered_map<Cell, CachedConnections, CellHash>;
 
         struct ProfileCache
         {
@@ -98,8 +97,8 @@ namespace simple_platformer
             CellConnections cells;
             std::unordered_map<int, WalkSimulationResult> walks;
             // The queue, and the same cells as a set so membership is a lookup.
-            std::deque<GridPosition> pending;
-            std::unordered_set<GridPosition, GridPositionHash> waiting;
+            std::deque<Cell> pending;
+            std::unordered_set<Cell, CellHash> waiting;
         };
 
         void requireValid(const PlatformerTraversalProfile& profile) const;

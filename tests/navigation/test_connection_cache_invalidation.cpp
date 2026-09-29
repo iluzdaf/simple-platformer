@@ -31,8 +31,8 @@
 
 namespace
 {
+    using simple_platformer::Cell;
     using simple_platformer::FrameProfile;
-    using simple_platformer::GridPosition;
     using simple_platformer::NavigationConnection;
     using simple_platformer::PlatformerConnectionCache;
     using simple_platformer::PlatformerTraversalProfile;
@@ -105,11 +105,11 @@ TEST_CASE("Dropped and queued cells wait in one queue, each once", "[navigation]
 
     // A cell moved to the front comes next; caching a cell takes it off the queue.
     cache.prioritise({1, 1}, profile);
-    REQUIRE(cache.nextPending(profile).value_or(GridPosition{}) == GridPosition{1, 1});
+    REQUIRE(cache.nextPending(profile).value_or(Cell{}) == Cell{1, 1});
     cache.storeConnections({1, 1}, profile, {}, {{0, 0}, {6, 2}});
     REQUIRE(cache.cellsPending(profile) == 3);
     REQUIRE_FALSE(cache.isPending({1, 1}, profile));
-    REQUIRE(cache.nextPending(profile).value_or(GridPosition{1, 1}) != GridPosition{1, 1});
+    REQUIRE(cache.nextPending(profile).value_or(Cell{1, 1}) != Cell{1, 1});
     // Moving a cell that is not waiting, or one of an unknown profile, changes nothing.
     cache.prioritise({1, 1}, profile);
     cache.prioritise({0, 1}, {{1.0F, 1.0F}, {}, tests::FixedStepSeconds});
@@ -147,8 +147,8 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
     simple_platformer::TileMap map =
         tests::TileMapBuilder({"########", "#..g...#", "########"})
             .where('g', tests::Tile().blocksMovement().breaksInto('.'));
-    const GridPosition start{1, 1};
-    const GridPosition goal{5, 1};
+    const Cell start{1, 1};
+    const Cell goal{5, 1};
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized(BodySize)
                        .atFeet({24.0F, 32.0F})
@@ -188,7 +188,7 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
     REQUIRE_FALSE(waitingResult.path.has_value());
     REQUIRE(simple_platformer::frameStatisticCount(waiting, "Paths deferred") == 1);
     REQUIRE(cache.cachedConnections(start, profile) == nullptr);
-    REQUIRE(cache.nextPending(profile).value_or(GridPosition{}) == start);
+    REQUIRE(cache.nextPending(profile).value_or(Cell{}) == start);
     const std::size_t pending = cache.cellsPending(profile);
     REQUIRE(pending > 0);
 
@@ -224,7 +224,7 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
     const PlatformerTraversalProfile profile{BodySize, {}, tests::FixedStepSeconds};
     tests::prepareNavigationCache(map, world);
     PlatformerConnectionCache& cache = world.platformerConnections();
-    const auto walksTo = [](const std::vector<NavigationConnection>& connections, GridPosition cell)
+    const auto walksTo = [](const std::vector<NavigationConnection>& connections, Cell cell)
     {
         return std::any_of(
             connections.begin(),
@@ -264,7 +264,7 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
         [](const NavigationConnection& connection)
         {
             return connection.step.traversal == simple_platformer::Traversal::Fall &&
-                   connection.step.destinationCell == GridPosition{3, 2};
+                   connection.step.destinationCell == Cell{3, 2};
         }));
     // A cell whose simulations never came near the hole was left as it was.
     const std::vector<NavigationConnection>* farAwayAfter =
@@ -318,5 +318,5 @@ TEST_CASE("A broken climbable tile takes its climbs away", "[navigation][cache][
         simple_platformer::cellAtFeet(
             tests::TileSize,
             simple_platformer::endOf(stopped.path.value_or(simple_platformer::NavigationPath{}))) ==
-        GridPosition{2, 3});
+        Cell{2, 3});
 }

@@ -26,7 +26,7 @@ namespace simple_platformer
         {
             float segmentTime = 1.0F;
             std::optional<ActorId> actor;
-            std::optional<GridPosition> tile;
+            std::optional<Cell> tile;
 
             bool occurred() const
             {
@@ -108,7 +108,7 @@ namespace simple_platformer
         // The map belongs to GameLevel, not World, so breaks are not WorldRequests. They are
         // still held back until every shot has been traced, so one shot cannot open a hole
         // that a later shot in the same frame flies through.
-        std::vector<GridPosition> brokenTiles;
+        std::vector<Cell> brokenTiles;
         for (std::size_t index = 0; index < world.projectiles().size(); ++index)
         {
             Projectile& projectile = world.projectiles()[index];
@@ -147,7 +147,7 @@ namespace simple_platformer
             }
         }
 
-        for (const GridPosition cell : brokenTiles)
+        for (const Cell cell : brokenTiles)
         {
             map.breakTile(cell);
         }

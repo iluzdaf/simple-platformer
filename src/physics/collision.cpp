@@ -50,9 +50,9 @@ namespace simple_platformer
             int alongCount = 0;
             int acrossCount = 0;
 
-            GridPosition cell(int along, int across) const
+            Cell cell(int along, int across) const
             {
-                return axis == 0 ? GridPosition{along, across} : GridPosition{across, along};
+                return axis == 0 ? Cell{along, across} : Cell{across, along};
             }
         };
 
@@ -78,7 +78,7 @@ namespace simple_platformer
         {
             for (int across = firstAcross; across <= lastAcross; ++across)
             {
-                const GridPosition cell = view.cell(along, across);
+                const Cell cell = view.cell(along, across);
                 if (kind == SurfaceKind::Climbable ? map.climbableAt(cell)
                                                    : map.blocksMovement(cell))
                 {

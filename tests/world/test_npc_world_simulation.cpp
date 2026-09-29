@@ -133,8 +133,8 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
     simple_platformer::TileMap map = tests::TileMapBuilder(
         {"..........", "..........", "..........", "....###...", "..........", "##########"});
     simple_platformer::World world;
-    constexpr simple_platformer::GridPosition LowerEndpoint{2, 4};
-    constexpr simple_platformer::GridPosition UpperEndpoint{4, 2};
+    constexpr simple_platformer::Cell LowerEndpoint{2, 4};
+    constexpr simple_platformer::Cell UpperEndpoint{4, 2};
     const glm::vec2 lowerFeet = simple_platformer::feetInCell(tests::TileSize, LowerEndpoint);
     const glm::vec2 upperFeet = simple_platformer::feetInCell(tests::TileSize, UpperEndpoint);
 
@@ -160,7 +160,7 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
         const simple_platformer::PlatformerMovement& movement =
             tests::platformerMovement(storedNpc);
         const simple_platformer::Patrol& patrol = tests::patrol(storedNpc);
-        const simple_platformer::GridPosition cell = simple_platformer::cellAtFeet(
+        const simple_platformer::Cell cell = simple_platformer::cellAtFeet(
             tests::TileSize, simple_platformer::feetOf(storedNpc.body.bounds));
 
         enteredPatrol =
@@ -195,9 +195,9 @@ TEST_CASE(
     simple_platformer::TileMap map =
         tests::TileMapBuilder({".....###.....", ".............", ".............", "#############"});
     simple_platformer::World world;
-    constexpr simple_platformer::GridPosition FirstEndpoint{4, 2};
-    constexpr simple_platformer::GridPosition SpawnCell{12, 2};
-    constexpr simple_platformer::GridPosition SecondEndpoint{12, 2};
+    constexpr simple_platformer::Cell FirstEndpoint{4, 2};
+    constexpr simple_platformer::Cell SpawnCell{12, 2};
+    constexpr simple_platformer::Cell SecondEndpoint{12, 2};
     const glm::vec2 firstFeet = simple_platformer::feetInCell(tests::TileSize, FirstEndpoint);
     const glm::vec2 secondFeet = simple_platformer::feetInCell(tests::TileSize, SecondEndpoint);
 
@@ -240,8 +240,8 @@ TEST_CASE(
                                           .onTeam(simple_platformer::Team::Player);
     const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
 
-    constexpr simple_platformer::GridPosition LeftPatrolCell{2, 1};
-    constexpr simple_platformer::GridPosition RightPatrolCell{4, 1};
+    constexpr simple_platformer::Cell LeftPatrolCell{2, 1};
+    constexpr simple_platformer::Cell RightPatrolCell{4, 1};
     const glm::vec2 leftPatrolFeet = simple_platformer::feetInCell(tests::TileSize, LeftPatrolCell);
     const glm::vec2 rightPatrolFeet =
         simple_platformer::feetInCell(tests::TileSize, RightPatrolCell);
@@ -380,7 +380,7 @@ TEST_CASE(
         {"..........", "..........", "..#######.", "..........", "##########"});
     constexpr int MaximumChaseTicks = 180;
     const glm::vec2 upperPlatformFeet = simple_platformer::feetInCell(tests::TileSize, {2, 1});
-    const float platformLeftEdge = simple_platformer::gridToWorld(tests::TileSize, {2, 2}).x;
+    const float platformLeftEdge = simple_platformer::cellCorner(tests::TileSize, {2, 2}).x;
     // Control: feet at the first cell's centre. Regression: feet just outside
     // the platform, while part of the player's collider is still supported.
     const bool feetOutsidePlatform = GENERATE(false, true);

@@ -14,7 +14,7 @@ namespace simple_platformer
     using ConnectionFunction =
         std::function<std::vector<NavigationConnection>(NavigationLocation location)>;
     // A non-negative lower bound on the cost from a cell to the goal cell.
-    using HeuristicFunction = std::function<int(GridPosition cell, GridPosition goal)>;
+    using HeuristicFunction = std::function<int(Cell cell, Cell goal)>;
     // False pauses expansion of a non-goal location before its connections are
     // requested. An empty function allows every location; a cache may wait for
     // pending work.
@@ -38,7 +38,7 @@ namespace simple_platformer
     // location, the search pauses there.
     PathSearchResult findLowestCostPath(
         NavigationLocation start,
-        GridPosition goal,
+        Cell goal,
         GridSize grid,
         const ConnectionFunction& connections,
         const HeuristicFunction& heuristic,

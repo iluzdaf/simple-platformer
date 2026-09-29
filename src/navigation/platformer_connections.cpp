@@ -83,8 +83,8 @@ namespace simple_platformer
         // limit, with the cells it swept as offsets from the start.
         WalkSimulationResult simulateWalk(
             const TileMap& map,
-            GridPosition start,
-            GridPosition destinationCell,
+            Cell start,
+            Cell destinationCell,
             const PlatformerTraversalProfile& profile)
         {
             const int tileSize = map.tileSize();
@@ -157,13 +157,13 @@ namespace simple_platformer
             return intentions;
         }
 
-        std::optional<GridPosition> tryFindLandingCell(
+        std::optional<Cell> tryFindLandingCell(
             const TileMap& map,
-            GridPosition start,
+            Cell start,
             const Aabb& bounds,
             glm::vec2 bodySize)
         {
-            const GridPosition destinationCell = cellAtFeet(map.tileSize(), feetOf(bounds));
+            const Cell destinationCell = cellAtFeet(map.tileSize(), feetOf(bounds));
             if (destinationCell == start || !canStandAt(map, destinationCell, bodySize))
             {
                 return std::nullopt;
@@ -173,7 +173,7 @@ namespace simple_platformer
 
         struct AirborneSimulationResult
         {
-            std::optional<GridPosition> landingCell;
+            std::optional<Cell> landingCell;
             int simulatedTicks = 0;
             InputProgram inputs;
             CellRange footprint;
@@ -184,7 +184,7 @@ namespace simple_platformer
         // simulated ticks and footprint.
         AirborneSimulationResult simulateAirborneTraversal(
             const TileMap& map,
-            GridPosition start,
+            Cell start,
             const PlatformerTraversalProfile& profile,
             const ManeuverAttempt& attempt)
         {
@@ -193,7 +193,7 @@ namespace simple_platformer
             AirborneSimulationResult result{
                 std::nullopt, 0, {}, cellsCovered(map.tileSize(), body.bounds)};
             bool leftGround = false;
-            std::optional<GridPosition> landing;
+            std::optional<Cell> landing;
             const float direction = static_cast<float>(attempt.direction);
 
             for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
@@ -228,7 +228,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                const GridPosition stoppedCell = cellAtFeet(map.tileSize(), feetOf(body.bounds));
+                const Cell stoppedCell = cellAtFeet(map.tileSize(), feetOf(body.bounds));
                 if (stoppedCell != landing.value())
                 {
                     return result;
@@ -269,14 +269,11 @@ namespace simple_platformer
 
         // The policy decides which maneuvers to try; simulation later determines
         // whether they succeed and where they end.
-        ConnectionPlan planPlatformerConnections(
-            const TileMap& map,
-            GridPosition start,
-            glm::vec2 bodySize)
+        ConnectionPlan planPlatformerConnections(const TileMap& map, Cell start, glm::vec2 bodySize)
         {
             const int tileSize = map.tileSize();
             ConnectionPlan plan{{}, cellsCovered(tileSize, boxInCell(tileSize, start, bodySize))};
-            const auto recordProbe = [&](GridPosition cell) {
+            const auto recordProbe = [&](Cell cell) {
                 includeCellsAroundBounds(
                     plan.footprint, tileSize, boxInCell(tileSize, cell, bodySize));
             };
@@ -291,7 +288,7 @@ namespace simple_platformer
             plan.attempts.reserve(Directions.size() * (1 + JumpHoldTicks.size()));
             for (const int direction : Directions)
             {
-                const GridPosition adjacent{start.x + direction, start.y};
+                const Cell adjacent{start.x + direction, start.y};
                 recordProbe(adjacent);
                 const PlatformerManeuver ground = canStandAt(map, adjacent, bodySize)
                                                       ? PlatformerManeuver::Walk
@@ -308,7 +305,7 @@ namespace simple_platformer
         // The adjacent cell has already passed the standability check.
         BuiltPlatformerConnections buildWalkConnections(
             const TileMap& map,
-            GridPosition start,
+            Cell start,
             const PlatformerTraversalProfile& profile,
             const PlatformerConnectionCache* walkCache,
             int direction)
@@ -316,7 +313,7 @@ namespace simple_platformer
             const int tileSize = map.tileSize();
             BuiltPlatformerConnections result{
                 {}, cellsCovered(tileSize, boxInCell(tileSize, start, profile.size)), {}, 0};
-            GridPosition destination{start.x + direction, start.y};
+            Cell destination{start.x + direction, start.y};
             do
             {
                 const int columns = destination.x - start.x;
@@ -352,7 +349,7 @@ namespace simple_platformer
 
         BuiltPlatformerConnections buildAirborneConnection(
             const TileMap& map,
-            GridPosition start,
+            Cell start,
             const PlatformerTraversalProfile& profile,
             const ManeuverAttempt& attempt)
         {
@@ -514,7 +511,7 @@ namespace simple_platformer
         // off a wall onto the floor. Simulation decides which of them succeed.
         std::vector<NavigationLocation> climbDestinationsFrom(NavigationLocation from)
         {
-            const GridPosition cell = from.cell;
+            const Cell cell = from.cell;
             switch (from.surface)
             {
             case ClimbSurface::None:
@@ -539,7 +536,7 @@ namespace simple_platformer
         // Climbs leaving every location the body can rest at in the cell.
         BuiltPlatformerConnections buildClimbConnections(
             const TileMap& map,
-            GridPosition cell,
+            Cell cell,
             const PlatformerTraversalProfile& profile,
             const SurfaceClimbConfig& climbConfig)
         {
@@ -579,7 +576,7 @@ namespace simple_platformer
 
     BuiltPlatformerConnections buildPlatformerConnections(
         const TileMap& map,
-        GridPosition cell,
+        Cell cell,
         const PlatformerTraversalProfile& profile,
         const PlatformerConnectionCache* walkCache)
     {
@@ -628,7 +625,7 @@ namespace simple_platformer
 
     void storePlatformerConnections(
         PlatformerConnectionCache& cache,
-        GridPosition cell,
+        Cell cell,
         const PlatformerTraversalProfile& profile,
         BuiltPlatformerConnections built)
     {

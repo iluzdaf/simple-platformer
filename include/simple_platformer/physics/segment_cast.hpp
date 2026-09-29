@@ -25,7 +25,7 @@ namespace simple_platformer
     struct TileSegmentHit
     {
         float segmentTime = 0.0F;
-        GridPosition cell;
+        Cell cell;
     };
 
     // Earliest movement-blocking tile. Start and end are the moving box's centre

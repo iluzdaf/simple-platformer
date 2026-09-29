@@ -74,8 +74,8 @@ namespace simple_platformer
         std::vector<glm::vec2> sampleAirborneTraversal(
             const Actor& actor,
             const TileMap& map,
-            GridPosition start,
-            const NavigationStep& step,
+            glm::vec2 startFeet,
+            const Waypoint& waypoint,
             float stepSeconds)
         {
             if (!actor.platformerMovement.has_value())
@@ -84,11 +84,11 @@ namespace simple_platformer
             }
             return sampleAirborneProgram(
                 map,
-                start,
+                startFeet,
                 actor.body.bounds.size,
                 actor.platformerMovement.value().config,
-                step.traversal,
-                step.inputs,
+                waypoint.traversal,
+                waypoint.inputs,
                 stepSeconds);
         }
 
@@ -99,10 +99,7 @@ namespace simple_platformer
             float stepSeconds)
         {
             PathFollowerDebugInfo info;
-            if (follower.destinationCell.has_value())
-            {
-                info.destinationFeet = feetInCell(map.tileSize(), *follower.destinationCell);
-            }
+            info.destinationFeet = follower.target;
             if (!follower.path.has_value())
             {
                 return info;
@@ -110,24 +107,21 @@ namespace simple_platformer
 
             info.hasPath = true;
             info.nextStep = follower.nextStep;
-            info.stepCount = follower.path->steps.size();
+            info.stepCount = follower.path->waypoints.size();
             info.connections.reserve(info.stepCount);
 
-            GridPosition fromCell = follower.path->start;
-            glm::vec2 from = feetInCell(map.tileSize(), fromCell);
-            for (std::size_t index = 0; index < follower.path->steps.size(); ++index)
+            glm::vec2 from = follower.path->startFeet;
+            for (std::size_t index = 0; index < follower.path->waypoints.size(); ++index)
             {
-                const NavigationStep& step = follower.path->steps[index];
-                const glm::vec2 to = feetInCell(map.tileSize(), step.destinationCell);
+                const Waypoint& waypoint = follower.path->waypoints[index];
                 info.connections.push_back(
                     {from,
-                     to,
-                     step.traversal,
+                     waypoint.feet,
+                     waypoint.traversal,
                      index < follower.nextStep,
                      index == follower.nextStep,
-                     sampleAirborneTraversal(actor, map, fromCell, step, stepSeconds)});
-                fromCell = step.destinationCell;
-                from = to;
+                     sampleAirborneTraversal(actor, map, from, waypoint, stepSeconds)});
+                from = waypoint.feet;
             }
             return info;
         }

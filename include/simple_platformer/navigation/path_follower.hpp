@@ -5,7 +5,6 @@
 
 #include <glm/vec2.hpp>
 
-#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 
 namespace simple_platformer
@@ -15,6 +14,7 @@ namespace simple_platformer
     struct FlyingMovement;
     struct InputIntentions;
     struct PlatformerMovement;
+    struct SurfaceClimb;
 
     // Where an actor is along the path it is following. An NPC actor keeps one; the NPC
     // system asks it for the intentions that move the actor, and the ordinary movement
@@ -22,42 +22,42 @@ namespace simple_platformer
     struct PathFollower
     {
         std::optional<NavigationPath> path;
-        // The step being travelled; one past the last once the path is complete.
+        // The waypoint being travelled to; one past the last once the path is complete.
         std::size_t nextStep = 0;
         // How far into the current step's input program the follower is. Zero means the
         // program has not started, so the follower is still getting to its takeoff.
         float programElapsed = 0.0F;
-        // The cell the path was requested for, so a request for the same cell again does
-        // not search again.
-        std::optional<GridPosition> destinationCell;
-        // How long after a search before another may run, and how long of that is left.
-        float repathCooldown = 0.25F;
-        float repathRemaining = 0.0F;
+        // The point the path was requested for, so a request for much the same point
+        // again does not search again. The path ends short of it when it cannot be
+        // reached.
+        std::optional<glm::vec2> target;
         // How many tiles the map had broken when the path was planned, so a break after
         // that, which the path may run through, has it planned again.
         std::size_t breaksWhenPlanned = 0;
     };
 
-    // Starts following the path, which must end in the destination cell.
-    void setPath(PathFollower& follower, NavigationPath path, GridPosition destinationCell);
+    // Starts following the path from its first waypoint.
+    void setPath(PathFollower& follower, NavigationPath path);
     void clearPath(PathFollower& follower);
-    // Whether every step has been travelled. Never true without a path.
+    // Whether every waypoint has been reached. Never true without a path.
     bool pathComplete(const PathFollower& follower);
 
-    // The intentions that carry the actor towards its next step this tick. A flyer steers
-    // straight at each step's cell. A platformer walks to a walk's cell and brakes there;
-    // for a jump or a fall it first stops at the takeoff, then replays the recorded
-    // inputs, and moves on once it stands in the step's cell.
+    // The intentions that carry the actor towards its next waypoint this tick. A flyer
+    // steers straight at each waypoint. A platformer walks to a walk's waypoint and
+    // brakes there; for a jump or fall it stops at the takeoff before replaying the
+    // recorded inputs, and is done once it lands and stops on the waypoint's row. For
+    // a climb it reaches the climb's start, holding a surface if it is on one, then
+    // replays the inputs. A climber holds on between climbs. A step that ends away
+    // from its waypoint drops the path.
     InputIntentions followFlyingPath(
-        int tileSize,
         const Aabb& bounds,
         const FlyingMovement& movement,
         PathFollower& follower,
         float deltaTime);
     InputIntentions followPlatformerPath(
-        int tileSize,
         const Body& body,
         const PlatformerMovement& movement,
         PathFollower& follower,
-        float deltaTime);
+        float deltaTime,
+        const SurfaceClimb* climb = nullptr);
 }

@@ -25,10 +25,10 @@ levels remain equivalent.
 The rat and boar already use Lua activities over C++ sensing, movement, navigation,
 and combat. See [NPC behaviour](ARCHITECTURE.md#npc-behaviour) for the current boundary.
 The engine now has opt-in wall and ceiling climbing on explicitly marked tiles.
-The spider still needs surface navigation and path following in C++. Build and test
-those capabilities without Lua first. A pounce would also need an engine-owned
-movement request. Lua can then choose when to patrol, chase, or pounce; C++ executes
-those moves.
+The engine can now route and follow one path across floors, walls, and ceilings.
+The spider still needs its actor content, policy, and artwork. A pounce would also
+need an engine-owned movement request. Lua can then choose when to patrol, chase,
+or pounce; C++ executes those moves.
 
 ## Optional movement abilities
 
@@ -45,13 +45,3 @@ If several abilities coexist, use an explicit update order:
 Resolve competing abilities in visible policy code, with a documented priority. Test
 each ability on its own and cover interactions that change the result. Introduce this
 phase with a real ability rather than a general callback framework in advance.
-
-## Closest reachable chase destination
-
-Chase currently selects the nearest standable cell to the target's last known feet;
-that cell can be unreachable. A future search could try candidates in deterministic
-nearest-first order and return both the reachable path and its destination, avoiding
-a second search for the chosen cell. Use path cost to break ties and the existing
-repath delay to bound extra work. The NPC would wait at the closest reachable endpoint
-while remaining in Chase. The search must use remembered position, never the hidden
-player's current position.

@@ -11,6 +11,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/actor_navigation.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
@@ -70,8 +71,8 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                const PlatformerTraversalProfile profile{
-                    actor.body.bounds.size, actor.platformerMovement->config, stepSeconds};
+                const PlatformerTraversalProfile profile =
+                    platformerTraversalProfileFor(actor, stepSeconds);
                 const bool known = std::any_of(
                     profiles.begin(),
                     profiles.end(),

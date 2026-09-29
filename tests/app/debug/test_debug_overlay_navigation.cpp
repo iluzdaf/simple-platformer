@@ -13,6 +13,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/navigation/navigation_graph.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
@@ -24,18 +25,19 @@
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 #include "support/fixed_step.hpp"
-#include "support/connection_with.hpp"
+#include "support/navigation_paths.hpp"
+#include "support/navigation_connections.hpp"
 
 TEST_CASE("Debug overlay data describes path connections and progress", "[app][debug]")
 {
     simple_platformer::PathFollower follower;
-    follower.path = simple_platformer::NavigationPath{
+    follower.path = tests::floorPath(
         {1, 2},
         {{{3, 2}, simple_platformer::Traversal::Walk, {}},
          {{4, 1}, simple_platformer::Traversal::Jump, {}},
-         {{4, 3}, simple_platformer::Traversal::Fall, {}}}};
+         {{4, 3}, simple_platformer::Traversal::Fall, {}}});
     follower.nextStep = 1;
-    follower.destinationCell = simple_platformer::GridPosition{4, 3};
+    follower.target = simple_platformer::feetInCell(tests::TileSize, {4, 3});
 
     simple_platformer::Actor npc =
         tests::ActorBuilder::sized({12.0F, 12.0F}).at({16.0F, 32.0F}).walking().thinking({});
@@ -99,7 +101,10 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
                                        .walking(movementConfig)
                                        .thinking({});
     npc.pathFollower = simple_platformer::PathFollower{
-        simple_platformer::NavigationPath{{2, 2}, {jump.step}}, 0, 0.0F, jump.step.destinationCell};
+        tests::floorPath({2, 2}, {jump.step}),
+        0,
+        0.0F,
+        simple_platformer::feetInCell(tests::TileSize, jump.step.destinationCell)};
 
     simple_platformer::World world;
     world.addActor(npc);

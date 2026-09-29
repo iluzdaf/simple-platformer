@@ -44,8 +44,8 @@ TEST_CASE("An actor's optional climb component uses its climb request", "[actor]
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"......", "..c...", "..c...", "..c...", "######"})
             .where('c', tests::Tile{}.blocksMovement().climbable());
-    simple_platformer::Actor climber = makeActor({54.0F, 48.0F});
-    climber.surfaceClimb = simple_platformer::SurfaceClimb{};
+    simple_platformer::Actor climber =
+        tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet({54.0F, 48.0F}).walking().climbing();
     climber.intentions.climbRequested = true;
     climber.intentions.direction.y = -1.0F;
     simple_platformer::World world;

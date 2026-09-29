@@ -59,6 +59,8 @@ namespace simple_platformer
                 return "Fall";
             case Traversal::Jump:
                 return "Jump";
+            case Traversal::Climb:
+                return "Climb";
             }
 
             return "Unknown";
@@ -106,6 +108,8 @@ namespace simple_platformer
                 return FallingPathColour;
             case Traversal::Jump:
                 return JumpingPathColour;
+            case Traversal::Climb:
+                return WalkingPathColour;
             }
 
             return UnknownPathColour;

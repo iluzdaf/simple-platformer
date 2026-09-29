@@ -11,7 +11,6 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/camera.hpp"

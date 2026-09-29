@@ -19,11 +19,10 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/flying_navigation.hpp"
+#include "simple_platformer/navigation/actor_navigation.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
@@ -39,6 +38,9 @@ namespace simple_platformer
     namespace
     {
         constexpr float SearchTurnSeconds = 0.5F;
+        // In pixels: a goal that moves less than this keeps its path, so a target that
+        // drifts every frame is not searched for every frame.
+        constexpr float RetargetDistance = 8.0F;
 
         struct NpcUpdate
         {
@@ -93,18 +95,21 @@ namespace simple_platformer
             return patrol.headingToSecond ? patrol.secondFeet : patrol.firstFeet;
         }
 
-        // Whether the follower needs a path to this goal: it has none, or one to another
-        // cell, or has finished its path and been moved off the goal since.
-        bool needsPath(const PathFollower& follower, GridPosition start, GridPosition goal)
+        // Whether the follower needs a path to this goal: it has none, or one requested
+        // for a point that has since moved away, or has finished its path and been moved
+        // off its end since.
+        bool needsPath(const PathFollower& follower, glm::vec2 feet, glm::vec2 goal)
         {
-            const bool destinationChanged = !follower.destinationCell.has_value() ||
-                                            follower.destinationCell.value_or(goal) != goal;
-            const bool displacedAfterCompletion = pathComplete(follower) && start != goal;
-            return destinationChanged || !follower.path.has_value() || displacedAfterCompletion;
+            const bool targetMoved = !follower.target.has_value() ||
+                                     glm::distance(*follower.target, goal) > RetargetDistance;
+            const bool displacedAfterCompletion =
+                pathComplete(follower) &&
+                glm::distance(feet, endOf(*follower.path)) > RetargetDistance;
+            return targetMoved || !follower.path.has_value() || displacedAfterCompletion;
         }
 
         // Whether a tile has broken since the path was planned. The path may run through
-        // it, so the follower plans again at once, cooldown or not.
+        // it, so the follower plans again at once, whatever the target.
         bool plannedBeforeABreak(const TileMap& map, const PathFollower& follower)
         {
             return follower.breaksWhenPlanned != map.brokenCells().size();
@@ -119,61 +124,37 @@ namespace simple_platformer
             glm::vec2 goalFeet)
         {
             const TileMap& map = update.map;
-            GridPosition start = cellAtFeet(map.tileSize(), feetOf(actor.body.bounds));
-            if (actor.platformerMovement.has_value())
-            {
-                if (!actor.platformerMovement->grounded)
-                {
-                    return;
-                }
-                const std::optional<GridPosition> supportedStart =
-                    findPlatformerStartCell(map, actor.body.bounds);
-                if (!supportedStart.has_value())
-                {
-                    return;
-                }
-                start = supportedStart.value_or(start);
-            }
-            const GridPosition goal = cellAtFeet(map.tileSize(), goalFeet);
             if (!plannedBeforeABreak(map, follower) &&
-                (!needsPath(follower, start, goal) || follower.repathRemaining > 0.0F))
+                !needsPath(follower, feetOf(actor.body.bounds), goalFeet))
             {
                 return;
             }
 
-            NavigationPathResult pathResult;
+            std::optional<NavigationPathResult> pathResult;
             {
                 const PhaseScope searchPhase(update.profile, "Navigation", "Path search");
-                if (actor.flyingMovement.has_value())
-                {
-                    pathResult = findFlyingPath(map, start, goal, update.profile);
-                }
-                else if (actor.platformerMovement.has_value())
-                {
-                    pathResult = findPlatformerPath(
-                        map,
-                        start,
-                        goal,
-                        actor.body.bounds.size,
-                        actor.platformerMovement->config,
-                        update.deltaTime,
-                        update.world.platformerConnections(),
-                        PlatformerNavigationConfig{},
-                        update.profile);
-                }
+                pathResult = findActorPath(
+                    map,
+                    actor,
+                    goalFeet,
+                    update.deltaTime,
+                    update.world.platformerConnections(),
+                    update.profile);
             }
-            follower.destinationCell = goal;
-            follower.breaksWhenPlanned = map.brokenCells().size();
-            // A deferred search is asked again next step, once the fill has caught up.
-            follower.repathRemaining = pathResult.status == NavigationPathStatus::Deferred
-                                           ? 0.0F
-                                           : follower.repathCooldown;
-            if (pathResult.path.has_value())
+            if (!pathResult.has_value())
             {
-                setPath(follower, std::move(pathResult.path.value()), goal);
+                return;
+            }
+            follower.target = goalFeet;
+            follower.breaksWhenPlanned = map.brokenCells().size();
+            if (pathResult->path.has_value())
+            {
+                setPath(follower, std::move(pathResult->path.value()));
             }
             else
             {
+                // A deferred search has no path, so the next step asks again once the
+                // fill has caught up.
                 follower.path.reset();
                 follower.nextStep = 0;
                 follower.programElapsed = 0.0F;
@@ -187,16 +168,19 @@ namespace simple_platformer
             glm::vec2 destinationFeet)
         {
             requestPath(update, actor, follower, destinationFeet);
-            const int tileSize = update.map.tileSize();
             if (actor.flyingMovement.has_value())
             {
                 return followFlyingPath(
-                    tileSize, actor.body.bounds, *actor.flyingMovement, follower, update.deltaTime);
+                    actor.body.bounds, *actor.flyingMovement, follower, update.deltaTime);
             }
             if (actor.platformerMovement.has_value())
             {
                 return followPlatformerPath(
-                    tileSize, actor.body, *actor.platformerMovement, follower, update.deltaTime);
+                    actor.body,
+                    *actor.platformerMovement,
+                    follower,
+                    update.deltaTime,
+                    actor.surfaceClimb.has_value() ? &*actor.surfaceClimb : nullptr);
             }
             return {};
         }
@@ -276,26 +260,6 @@ namespace simple_platformer
             }
         }
 
-        // Where the last known feet send a pursuer. A platformer needs a standable cell
-        // near them, and has nowhere to go when there is none.
-        std::optional<glm::vec2> lastKnownDestination(
-            const NpcUpdate& update,
-            const Actor& actor,
-            const NpcBrain& brain)
-        {
-            if (!actor.platformerMovement.has_value())
-            {
-                return brain.lastKnownTargetFeet;
-            }
-            const std::optional<GridPosition> chaseCell = findNearestStandableCell(
-                update.map, brain.lastKnownTargetFeet, actor.body.bounds.size);
-            if (!chaseCell.has_value())
-            {
-                return std::nullopt;
-            }
-            return feetInCell(update.map.tileSize(), chaseCell.value());
-        }
-
         void updateChaseState(
             const NpcUpdate& update,
             Actor& actor,
@@ -309,13 +273,7 @@ namespace simple_platformer
             }
 
             aimToward(actor, brain.lastKnownTargetFeet);
-            const std::optional<glm::vec2> destination = lastKnownDestination(update, actor, brain);
-            if (!destination.has_value())
-            {
-                clearPath(follower);
-                return;
-            }
-            followDestination(update, actor, follower, *destination);
+            followDestination(update, actor, follower, brain.lastKnownTargetFeet);
         }
 
         // Looking about is an aim that turns every SearchTurnSeconds, first towards where
@@ -341,15 +299,7 @@ namespace simple_platformer
             PathFollower& follower,
             float stateElapsed)
         {
-            const std::optional<glm::vec2> destination = lastKnownDestination(update, actor, brain);
-            if (destination.has_value())
-            {
-                followDestination(update, actor, follower, *destination);
-            }
-            else
-            {
-                clearPath(follower);
-            }
+            followDestination(update, actor, follower, brain.lastKnownTargetFeet);
             if (!follower.path.has_value() || pathComplete(follower))
             {
                 lookAbout(actor, brain, stateElapsed);
@@ -473,6 +423,7 @@ namespace simple_platformer
                 actor.intentions.direction = movement.direction;
                 actor.intentions.jumpPressed = movement.jumpPressed;
                 actor.intentions.jumpHeld = movement.jumpHeld;
+                actor.intentions.climbRequested = movement.climbRequested;
             }
             if (command.aimAt.has_value())
             {
@@ -641,8 +592,6 @@ namespace simple_platformer
 
             actor.intentions = {};
             NpcBrain& brain = *actor.brain;
-            PathFollower& follower = *actor.pathFollower;
-            follower.repathRemaining = std::max(0.0F, follower.repathRemaining - deltaTime);
             if (actor.life == LifeState::Alive)
             {
                 updateNpcState(update, actor);

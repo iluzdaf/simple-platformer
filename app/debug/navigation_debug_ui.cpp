@@ -24,7 +24,6 @@ namespace simple_platformer
         constexpr ImU32 NavigationEmptyColour = IM_COL32(128, 128, 128, 70);
         constexpr ImU32 NavigationMissingColour = IM_COL32(255, 96, 32, 220);
         constexpr ImU32 NavigationFootprintColour = IM_COL32(255, 224, 64, 200);
-        constexpr ImU32 NavigationReachableColour = IM_COL32(64, 224, 255, 50);
 
         ImU32 traversalColour(Traversal traversal)
         {
@@ -36,6 +35,8 @@ namespace simple_platformer
                 return FallingPathColour;
             case Traversal::Jump:
                 return JumpingPathColour;
+            case Traversal::Climb:
+                return WalkingPathColour;
             case Traversal::Fly:
                 return FlyingPathColour;
             }
@@ -84,15 +85,6 @@ namespace simple_platformer
             const Aabb& cameraBounds,
             const WindowViewport& viewport)
         {
-            for (const Aabb& reachable : cell.reachable)
-            {
-                const ImVec2 minimum = screenPosition(reachable.position, cameraBounds, viewport);
-                drawList.AddRectFilled(
-                    minimum,
-                    {minimum.x + reachable.size.x * viewport.scale.x,
-                     minimum.y + reachable.size.y * viewport.scale.y},
-                    NavigationReachableColour);
-            }
             if (cell.footprint.has_value())
             {
                 drawWorldBounds(
@@ -189,8 +181,6 @@ namespace simple_platformer
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         line("pending:", cache.cellsPending);
         line("walks:", cache.cachedWalkCount);
-        line("sets:", cache.cachedReachableSetCount);
-        line("paths:", cache.cachedPathCount);
         line("breaks:", cache.breaksApplied);
         line("dropped:", cache.cellsDropped);
         line("writes:", cache.connectionWritesSoFar);

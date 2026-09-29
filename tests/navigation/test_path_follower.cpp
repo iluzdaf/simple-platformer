@@ -7,6 +7,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/navigation/navigation_graph.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
@@ -17,35 +18,35 @@
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 #include "support/fixed_step.hpp"
-#include "support/connection_with.hpp"
+#include "support/navigation_paths.hpp"
+#include "support/navigation_connections.hpp"
 
 TEST_CASE("A flying path follower produces intentions for its next step", "[navigation][follower]")
 {
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower,
-        {{0, 0},
-         {{{1, 0}, simple_platformer::Traversal::Fly, {}},
-          {{1, 1}, simple_platformer::Traversal::Fly, {}}}},
-        {1, 1});
+        tests::floorPath(
+            {0, 0},
+            {{{1, 0}, simple_platformer::Traversal::Fly, {}},
+             {{1, 1}, simple_platformer::Traversal::Fly, {}}}));
     simple_platformer::Aabb bounds{{4.0F, 4.0F}, {8.0F, 12.0F}};
     const simple_platformer::FlyingMovement movement;
 
-    const simple_platformer::InputIntentions right = simple_platformer::followFlyingPath(
-        tests::TileSize, bounds, movement, follower, tests::FixedStepSeconds);
+    const simple_platformer::InputIntentions right =
+        simple_platformer::followFlyingPath(bounds, movement, follower, tests::FixedStepSeconds);
     REQUIRE(right.direction.x == 1.0F);
     REQUIRE(right.direction.y == 0.0F);
 
     bounds = simple_platformer::boxInCell(tests::TileSize, {1, 0}, bounds.size);
-    const simple_platformer::InputIntentions down = simple_platformer::followFlyingPath(
-        tests::TileSize, bounds, movement, follower, tests::FixedStepSeconds);
+    const simple_platformer::InputIntentions down =
+        simple_platformer::followFlyingPath(bounds, movement, follower, tests::FixedStepSeconds);
     REQUIRE(down.direction.x == 0.0F);
     REQUIRE(down.direction.y == 1.0F);
 
     bounds = simple_platformer::boxInCell(tests::TileSize, {1, 1}, bounds.size);
     REQUIRE(
-        simple_platformer::followFlyingPath(
-            tests::TileSize, bounds, movement, follower, tests::FixedStepSeconds)
+        simple_platformer::followFlyingPath(bounds, movement, follower, tests::FixedStepSeconds)
             .direction == glm::vec2{0.0F});
     REQUIRE(simple_platformer::pathComplete(follower));
 }
@@ -56,12 +57,12 @@ TEST_CASE(
 {
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
-        follower, {{0, 0}, {{{1, 0}, simple_platformer::Traversal::Fly, {}}}}, {1, 0});
+        follower, tests::floorPath({0, 0}, {{{1, 0}, simple_platformer::Traversal::Fly, {}}}));
     simple_platformer::Aabb bounds{{19.75F, 4.0F}, {8.0F, 12.0F}};
     const simple_platformer::FlyingMovement movement{60.0F};
 
-    const simple_platformer::InputIntentions intentions = simple_platformer::followFlyingPath(
-        tests::TileSize, bounds, movement, follower, tests::FixedStepSeconds);
+    const simple_platformer::InputIntentions intentions =
+        simple_platformer::followFlyingPath(bounds, movement, follower, tests::FixedStepSeconds);
 
     REQUIRE_NEAR(intentions.direction.x, 0.25F);
     REQUIRE(intentions.direction.y == 0.0F);
@@ -87,7 +88,7 @@ TEST_CASE(
         tests::connectionWith(connections, simple_platformer::Traversal::Jump);
 
     simple_platformer::PathFollower follower;
-    simple_platformer::setPath(follower, {{2, 2}, {jump.step}}, jump.step.destinationCell);
+    simple_platformer::setPath(follower, tests::floorPath({2, 2}, {jump.step}));
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -96,7 +97,7 @@ TEST_CASE(
     {
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
-                tests::TileSize, body, movement, follower, tests::FixedStepSeconds);
+                body, movement, follower, tests::FixedStepSeconds);
         simple_platformer::updatePlatformerMovement(
             map, body, movement, intentions, tests::FixedStepSeconds);
     }
@@ -126,7 +127,7 @@ TEST_CASE(
         tests::connectionWith(connections, simple_platformer::Traversal::Jump);
 
     simple_platformer::PathFollower follower;
-    simple_platformer::setPath(follower, {{2, 2}, {jump.step}}, jump.step.destinationCell);
+    simple_platformer::setPath(follower, tests::floorPath({2, 2}, {jump.step}));
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {80.0F, 0.0F}};
     body.bounds.position.x -= 6.0F;
@@ -139,7 +140,7 @@ TEST_CASE(
         const glm::vec2 velocityBeforeFollowing = body.velocity;
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
-                tests::TileSize, body, movement, follower, tests::FixedStepSeconds);
+                body, movement, follower, tests::FixedStepSeconds);
         preparedForJump = preparedForJump || follower.programElapsed == 0.0F;
 
         REQUIRE(body.bounds.position == positionBeforeFollowing);
@@ -176,8 +177,7 @@ TEST_CASE(
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower,
-        {{1, 2}, {{{2, 2}, simple_platformer::Traversal::Walk, {}}, jump.step}},
-        jump.step.destinationCell);
+        tests::floorPath({1, 2}, {{{2, 2}, simple_platformer::Traversal::Walk, {}}, jump.step}));
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {1, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -187,7 +187,7 @@ TEST_CASE(
     {
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
-                tests::TileSize, body, movement, follower, tests::FixedStepSeconds);
+                body, movement, follower, tests::FixedStepSeconds);
         brakedAfterWalking =
             brakedAfterWalking ||
             (follower.nextStep == 0 && body.velocity.x != 0.0F && intentions.direction.x == 0.0F);
@@ -200,4 +200,44 @@ TEST_CASE(
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
         jump.step.destinationCell);
+}
+
+TEST_CASE(
+    "A platformer path follower drops a path whose jump lands on another row",
+    "[navigation][follower]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
+    const glm::vec2 bodySize{12.0F, 12.0F};
+    const simple_platformer::PlatformerMovementConfig config;
+    const std::vector<simple_platformer::NavigationConnection> connections =
+        simple_platformer::buildPlatformerConnections(
+            map,
+            {2, 2},
+            simple_platformer::PlatformerTraversalProfile{
+                bodySize, config, tests::FixedStepSeconds})
+            .connections;
+    const simple_platformer::NavigationConnection& jump =
+        tests::connectionWith(connections, simple_platformer::Traversal::Jump);
+
+    // The same jump, but its waypoint claims a row above where it really lands.
+    simple_platformer::NavigationPath path = tests::floorPath({2, 2}, {jump.step});
+    path.waypoints.front().feet.y -= static_cast<float>(tests::TileSize);
+    simple_platformer::PathFollower follower;
+    simple_platformer::setPath(follower, path);
+    simple_platformer::Body body{
+        simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {0.0F, 0.0F}};
+    simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
+
+    for (int tick = 0; tick < 240 && follower.path.has_value(); ++tick)
+    {
+        const simple_platformer::InputIntentions intentions =
+            simple_platformer::followPlatformerPath(
+                body, movement, follower, tests::FixedStepSeconds);
+        simple_platformer::updatePlatformerMovement(
+            map, body, movement, intentions, tests::FixedStepSeconds);
+    }
+
+    REQUIRE_FALSE(follower.path.has_value());
+    REQUIRE(movement.grounded);
 }

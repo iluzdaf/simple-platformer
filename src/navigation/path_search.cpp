@@ -2,14 +2,15 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdlib>
+#include <limits>
 #include <optional>
+#include <queue>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/navigation_graph.hpp"
 
 namespace simple_platformer
 {
@@ -22,23 +23,26 @@ namespace simple_platformer
             NavigationStep step;
         };
 
-        // A cell the search has reached. Closed once expanded, and opened again if a
+        // A location the search has reached. Closed once expanded, and opened again if a
         // cheaper way to it turns up.
         struct SearchNode
         {
-            GridPosition cell;
+            NavigationLocation location;
             int costFromStart = 0;
             int estimatedTotalCost = 0;
             std::optional<IncomingStep> incoming;
             bool closed = false;
         };
 
+        // Every location of a cell has its own node slot.
+        constexpr int SurfacesPerCell = 4;
+
         int estimateRemainingCost(
-            const GridHeuristicFunction& heuristic,
-            GridPosition cell,
+            const HeuristicFunction& heuristic,
+            NavigationLocation location,
             GridPosition goal)
         {
-            const int estimate = heuristic(cell, goal);
+            const int estimate = heuristic(location.cell, goal);
             if (estimate < 0)
             {
                 throw std::invalid_argument("A path heuristic cannot return a negative cost");
@@ -46,30 +50,24 @@ namespace simple_platformer
             return estimate;
         }
 
-        // Scanning preserves discovery order when estimated costs tie.
-        std::optional<std::size_t> cheapestOpenNode(const std::vector<SearchNode>& nodes)
+        struct FrontierEntry
         {
-            std::optional<std::size_t> cheapest;
-            for (std::size_t index = 0; index < nodes.size(); ++index)
-            {
-                if (nodes[index].closed)
-                {
-                    continue;
-                }
-                if (!cheapest.has_value())
-                {
-                    cheapest = index;
-                    continue;
-                }
-                if (nodes[index].estimatedTotalCost < nodes[cheapest.value()].estimatedTotalCost)
-                {
-                    cheapest = index;
-                }
-            }
-            return cheapest;
-        }
+            int estimatedTotalCost;
+            std::size_t nodeIndex;
+        };
 
-        NavigationPath reconstructPath(const std::vector<SearchNode>& nodes, std::size_t goalIndex)
+        struct MoreExpensive
+        {
+            bool operator()(const FrontierEntry& left, const FrontierEntry& right) const
+            {
+                // Keep discovery order for equal estimates, including after a node reopens.
+                return left.estimatedTotalCost == right.estimatedTotalCost
+                           ? left.nodeIndex > right.nodeIndex
+                           : left.estimatedTotalCost > right.estimatedTotalCost;
+            }
+        };
+
+        LocationPath reconstructPath(const std::vector<SearchNode>& nodes, std::size_t goalIndex)
         {
             std::vector<NavigationStep> steps;
             std::size_t current = goalIndex;
@@ -86,23 +84,32 @@ namespace simple_platformer
                 current = incoming.parentIndex;
             }
             std::reverse(steps.begin(), steps.end());
-            return {nodes[current].cell, std::move(steps)};
+            return {nodes[current].location, std::move(steps)};
         }
 
-    }
+        std::size_t slotOf(GridSize grid, NavigationLocation location)
+        {
+            const std::size_t cell =
+                static_cast<std::size_t>(location.cell.y) * static_cast<std::size_t>(grid.width) +
+                static_cast<std::size_t>(location.cell.x);
+            return cell * static_cast<std::size_t>(SurfacesPerCell) +
+                   static_cast<std::size_t>(location.surface);
+        }
 
-    int manhattanHeuristic(GridPosition cell, GridPosition goal)
-    {
-        return std::abs(cell.x - goal.x) + std::abs(cell.y - goal.y);
+        bool containsLocation(GridSize grid, NavigationLocation location)
+        {
+            const int surface = static_cast<int>(location.surface);
+            return contains(grid, location.cell) && surface >= 0 && surface < SurfacesPerCell;
+        }
     }
 
     PathSearchResult findLowestCostPath(
-        GridPosition start,
+        NavigationLocation start,
         GridPosition goal,
         GridSize grid,
-        const GridConnectionFunction& connections,
-        const GridHeuristicFunction& heuristic,
-        const GridExpansionReady& canExpand)
+        const ConnectionFunction& connections,
+        const HeuristicFunction& heuristic,
+        const ExpansionReady& canExpand)
     {
         if (!connections)
         {
@@ -116,109 +123,115 @@ namespace simple_platformer
         {
             throw std::invalid_argument("Path search requires a grid with cells");
         }
-        if (!contains(grid, start) || !contains(grid, goal))
+        if (!containsLocation(grid, start))
         {
-            throw std::invalid_argument("Path search start and goal must lie within the grid");
+            throw std::invalid_argument("Path search start must lie within the grid");
         }
 
         std::vector<SearchNode> nodes{
             {start, 0, estimateRemainingCost(heuristic, start, goal), std::nullopt, false}};
-        // A slot per cell of the grid holding the index of its node, if it has one, so a
-        // connection's destination is found without a scan.
         constexpr int NoNode = -1;
-        const auto slotOf = [grid](GridPosition cell)
-        {
-            return static_cast<std::size_t>(cell.y) * static_cast<std::size_t>(grid.width) +
-                   static_cast<std::size_t>(cell.x);
-        };
         std::vector<int> nodeAt(
-            static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height), NoNode);
-        nodeAt[slotOf(start)] = 0;
+            static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height) *
+                static_cast<std::size_t>(SurfacesPerCell),
+            NoNode);
+        nodeAt[slotOf(grid, start)] = 0;
+        std::priority_queue<FrontierEntry, std::vector<FrontierEntry>, MoreExpensive> frontier;
+        frontier.push({nodes.front().estimatedTotalCost, 0});
 
-        // Relaxes one connection leaving the cell being expanded: each connection may
-        // lower the best known cost of its destination.
         const auto relax =
             [&](const NavigationConnection& connection, std::size_t parentIndex, int parentCost)
         {
+            const NavigationLocation destination{
+                connection.step.destinationCell, connection.step.destinationSurface};
+            if (connection.cost <= 0)
+            {
+                throw std::invalid_argument("A navigation connection must have positive cost");
+            }
+            if (!containsLocation(grid, destination))
+            {
+                throw std::invalid_argument("A connection leads outside the grid");
+            }
+            if (parentCost > std::numeric_limits<int>::max() - connection.cost)
+            {
+                throw std::overflow_error("A navigation connection cost is too large");
+            }
             const int nextCost = parentCost + connection.cost;
-            int& existing = nodeAt[slotOf(connection.step.destinationCell)];
+            int& existing = nodeAt[slotOf(grid, destination)];
+            if (existing != NoNode &&
+                nextCost >= nodes[static_cast<std::size_t>(existing)].costFromStart)
+            {
+                return;
+            }
+            const int estimate = estimateRemainingCost(heuristic, destination, goal);
+            if (nextCost > std::numeric_limits<int>::max() - estimate)
+            {
+                throw std::overflow_error("A navigation path estimate is too large");
+            }
+            const int total = nextCost + estimate;
             if (existing == NoNode)
             {
                 existing = static_cast<int>(nodes.size());
                 nodes.push_back(
-                    {connection.step.destinationCell,
+                    {destination,
                      nextCost,
-                     nextCost +
-                         estimateRemainingCost(heuristic, connection.step.destinationCell, goal),
+                     total,
                      IncomingStep{parentIndex, connection.step},
                      false});
+                frontier.push({total, static_cast<std::size_t>(existing)});
                 return;
             }
 
             SearchNode& known = nodes[static_cast<std::size_t>(existing)];
-            if (nextCost < known.costFromStart)
-            {
-                known.costFromStart = nextCost;
-                known.estimatedTotalCost =
-                    nextCost +
-                    estimateRemainingCost(heuristic, connection.step.destinationCell, goal);
-                known.incoming = IncomingStep{parentIndex, connection.step};
-                known.closed = false;
-            }
+            known.costFromStart = nextCost;
+            known.estimatedTotalCost = total;
+            known.incoming = IncomingStep{parentIndex, connection.step};
+            known.closed = false;
+            frontier.push({total, static_cast<std::size_t>(existing)});
         };
 
-        // The search: take the open node with the lowest estimated total, cost so far
-        // plus the heuristic's guess of the rest. If it is the goal, the path is found.
-        // Otherwise close it and relax its connections. A cheaper route can reopen a
-        // closed node; a found path is returned when the goal is the cheapest open node.
-        while (true)
+        while (!frontier.empty())
         {
-            const std::optional<std::size_t> currentIndex = cheapestOpenNode(nodes);
-            if (!currentIndex.has_value())
+            const FrontierEntry next = frontier.top();
+            frontier.pop();
+            SearchNode& node = nodes[next.nodeIndex];
+            if (node.closed || next.estimatedTotalCost != node.estimatedTotalCost)
             {
-                // Nothing left to expand: every node is closed, and together they are
-                // every cell the start leads to.
-                PathSearchResult result;
-                result.reachableCells.reserve(nodes.size());
-                for (const SearchNode& node : nodes)
-                {
-                    result.reachableCells.push_back(node.cell);
-                }
-                return result;
+                continue;
             }
-
-            SearchNode& currentNode = nodes[currentIndex.value()];
-            if (currentNode.cell == goal)
+            if (node.location.cell == goal)
             {
-                return {
-                    PathSearchStatus::Found,
-                    reconstructPath(nodes, currentIndex.value()),
-                    {},
-                    std::nullopt};
+                return {reconstructPath(nodes, next.nodeIndex), std::nullopt};
             }
-
-            const GridPosition currentCell = currentNode.cell;
-            if (canExpand && !canExpand(currentCell))
+            const NavigationLocation location = node.location;
+            if (canExpand && !canExpand(location))
             {
-                return {PathSearchStatus::Incomplete, std::nullopt, {}, currentCell};
+                return {std::nullopt, location};
             }
-            const std::size_t parentIndex = currentIndex.value();
-            const int parentCost = currentNode.costFromStart;
-            currentNode.closed = true;
-            // Relaxing may add nodes, which can move them all, so currentNode is not used
-            // after this. Connection order still determines ties.
-            for (const NavigationConnection& connection : connections(currentCell))
+            const int parentCost = node.costFromStart;
+            node.closed = true;
+            for (const NavigationConnection& connection : connections(location))
             {
-                if (connection.cost <= 0)
-                {
-                    throw std::invalid_argument("A navigation connection must have positive cost");
-                }
-                if (!contains(grid, connection.step.destinationCell))
-                {
-                    throw std::invalid_argument("A connection leads outside the grid");
-                }
-                relax(connection, parentIndex, parentCost);
+                relax(connection, next.nodeIndex, parentCost);
             }
         }
+
+        PathSearchResult result;
+        std::size_t closest = 0;
+        long long closestDistance = std::numeric_limits<long long>::max();
+        for (std::size_t index = 0; index < nodes.size(); ++index)
+        {
+            const GridPosition cell = nodes[index].location.cell;
+            const long long dx = static_cast<long long>(cell.x) - goal.x;
+            const long long dy = static_cast<long long>(cell.y) - goal.y;
+            const long long distanceSquared = dx * dx + dy * dy;
+            if (distanceSquared < closestDistance)
+            {
+                closest = index;
+                closestDistance = distanceSquared;
+            }
+        }
+        result.path = reconstructPath(nodes, closest);
+        return result;
     }
 }

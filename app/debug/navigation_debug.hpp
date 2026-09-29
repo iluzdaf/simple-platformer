@@ -20,12 +20,12 @@ namespace simple_platformer
     class World;
     struct PlatformerMovementConfig;
 
-    // The feet along a jump or a fall, replayed from the cell with the real movement code
-    // at the step the program was recorded for, so the drawn arc matches the actor's
-    // movement. Empty for any other traversal, or without inputs.
+    // The feet along a jump or a fall, replayed from the start feet with the real
+    // movement code at the step the program was recorded for, so the drawn arc matches
+    // the actor's movement. Empty for any other traversal, or without inputs.
     std::vector<glm::vec2> sampleAirborneProgram(
         const TileMap& map,
-        GridPosition start,
+        glm::vec2 startFeet,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
         Traversal traversal,
@@ -43,15 +43,13 @@ namespace simple_platformer
         std::vector<glm::vec2> sampledFeet;
     };
 
-    // The cursor cell's cached connections and their footprint, plus any reachable
-    // cells learned from a failed search. A break inside the footprint invalidates
-    // those connections.
+    // The cursor cell's cached connections and their footprint. A break inside the
+    // footprint invalidates those connections.
     struct CursorCellDebugInfo
     {
         Aabb bounds;
         std::optional<Aabb> footprint;
         std::vector<CachedConnectionDebugInfo> connections;
-        std::vector<Aabb> reachable;
     };
 
     // One standable cell as the connection cache sees it: its connection count when
@@ -93,8 +91,6 @@ namespace simple_platformer
         std::size_t cellsPending = 0;
         // Walk lengths simulated once for this profile, including failed attempts.
         std::size_t cachedWalkCount = 0;
-        std::size_t cachedReachableSetCount = 0;
-        std::size_t cachedPathCount = 0;
         // Over every profile since the level started.
         std::size_t breaksApplied = 0;
         std::size_t cellsDropped = 0;

@@ -1,27 +1,25 @@
 #pragma once
 
-#include <optional>
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
+#include "simple_platformer/navigation/navigation_graph.hpp"
 
 namespace simple_platformer
 {
-    struct Aabb;
     class TileMap;
 
     // Whether the body can stand in the cell: the cell blocks nothing, nor does any cell
     // the body covers standing there, and the cell below blocks movement.
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize);
 
-    // Maps a grounded body's collider to a standable cell at its feet row. At a ledge,
-    // its feet may extend past the cell that still supports it.
-    std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds);
+    // The body's resting bounds at a location: standing in the cell, flush against
+    // the cell's wall side, or hanging from the cell's top edge.
+    Aabb boundsAtSurface(int tileSize, NavigationLocation location, glm::vec2 bodySize);
 
-    // Keeps the feet's cell if standable; otherwise chooses the closest standable
-    // cell for this body size. Ties use row, then column order. Reachability is not checked.
-    std::optional<GridPosition> findNearestStandableCell(
-        const TileMap& map,
-        glm::vec2 targetFeet,
-        glm::vec2 bodySize);
+    // Whether the body can rest at the location. The floor must be standable; a wall
+    // or ceiling must be climbable where the resting bounds touch it.
+    bool canOccupy(const TileMap& map, NavigationLocation location, glm::vec2 bodySize);
 }

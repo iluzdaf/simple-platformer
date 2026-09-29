@@ -11,11 +11,12 @@
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
@@ -25,11 +26,13 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
+#include "simple_platformer/world/world_simulation.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/add_player.hpp"
 #include "support/npc_machine_builder.hpp"
+#include "support/fixed_step.hpp"
 
 using tests::actor;
 using tests::brain;
@@ -98,6 +101,45 @@ namespace
         std::vector<float> updateSteps;
         std::vector<simple_platformer::ActorId> forgotten;
     };
+}
+
+TEST_CASE("A scripted route follows a climbing path", "[npc][lua][climb]")
+{
+    simple_platformer::TileMap map = tests::TileMapBuilder({"..............",
+                                                            "..cccccccccc..",
+                                                            ".c..........c.",
+                                                            ".c.########.c.",
+                                                            ".c.########.c.",
+                                                            ".c.########.c.",
+                                                            "..##########..",
+                                                            ".............."})
+                                         .where('c', tests::Tile{}.blocksMovement().climbable());
+    simple_platformer::World world;
+    simple_platformer::Actor npc =
+        tests::ActorBuilder::sized({12.0F, 12.0F})
+            .inCell({2, 5})
+            .walking()
+            .climbing({60.0F})
+            .thinking({})
+            .running(tests::NpcMachineBuilder::named("climber").state(
+                "route", simple_platformer::LuaNpcActivity{"climber", "route"}));
+    tests::platformerMovement(npc).grounded = true;
+    const simple_platformer::ActorId npcId = world.addActor(npc);
+    RecordingNpcScripts scripts;
+    scripts.command.routeTo = simple_platformer::feetInCell(tests::TileSize, {11, 5});
+
+    bool requestedClimb = false;
+    bool reachedCeiling = false;
+    for (int tick = 0; tick < 1500 && !reachedCeiling; ++tick)
+    {
+        simple_platformer::updateWorldSimulation(
+            map, world, tests::FixedStepSeconds, nullptr, &scripts);
+        requestedClimb = requestedClimb || actor(world, npcId).intentions.climbRequested;
+        reachedCeiling =
+            tests::surfaceClimb(world, npcId).surface == simple_platformer::ClimbSurface::Ceiling;
+    }
+    REQUIRE(requestedClimb);
+    REQUIRE(reachedCeiling);
 }
 
 TEST_CASE("Same-run and notice-distance facts are independent", "[npc][facts]")

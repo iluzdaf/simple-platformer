@@ -16,7 +16,6 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -352,13 +351,17 @@ TEST_CASE(
     const float startingDistance =
         glm::distance(simple_platformer::feetOf(rememberedZombie.body.bounds), lastKnownFeet);
 
-    // Then the zombie pursues the airborne remembered point without seeing the player.
-    // Check progress without prescribing a goal cell.
+    // Then the zombie pursues the airborne remembered point until it sees the player
+    // again. Check progress without prescribing a goal cell.
     float distanceToRememberedPosition = startingDistance;
     for (int tick = 0; tick < RememberedChaseTicks; ++tick)
     {
         CAPTURE(tick);
         simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
+        if (tests::perception(tests::actor(world, zombieId)).targetVisible)
+        {
+            break;
+        }
         simple_platformer::Actor& storedZombie = requireUnseenChase();
         REQUIRE(tests::brain(storedZombie).lastKnownTargetFeet == lastKnownFeet);
         distanceToRememberedPosition =

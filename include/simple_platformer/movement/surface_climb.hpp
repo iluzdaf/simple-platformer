@@ -32,6 +32,9 @@ namespace simple_platformer
 
     void validateSurfaceClimbConfig(const SurfaceClimbConfig& config);
 
+    // Whether the contacts include the wall or ceiling. The floor is not a climb surface.
+    bool touchesSurface(ClimbSurface surface, const CollisionContacts& contacts);
+
     CollisionContacts updateSurfaceClimbMovement(
         const TileMap& map,
         Body& body,

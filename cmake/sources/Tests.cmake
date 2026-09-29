@@ -67,16 +67,14 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/movement/test_flying_movement.cpp
     ${PROJECT_SOURCE_DIR}/tests/movement/test_platformer_movement.cpp
     ${PROJECT_SOURCE_DIR}/tests/movement/test_surface_climb.cpp
+    ${PROJECT_SOURCE_DIR}/tests/navigation/test_actor_navigation.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_connection_cache.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_connection_cache_invalidation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_connection_cache_search.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_path_search.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_flying_navigation.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_navigation_fill.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_path_follower.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_platformer_cells.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_platformer_connections.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_platformer_navigation.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_senses.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_state_machine.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_system.cpp

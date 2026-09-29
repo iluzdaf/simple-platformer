@@ -11,13 +11,15 @@
 
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
+#include "simple_platformer/navigation/navigation_graph.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/fixed_step.hpp"
-#include "support/require_same_navigation_connections.hpp"
+#include "support/navigation_connections.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace
@@ -87,6 +89,9 @@ TEST_CASE("Connections are cached separately for each profile", "[navigation][ca
     PlatformerTraversalProfile finer = profile;
     finer.stepSeconds *= 0.5F;
     REQUIRE(cache.cachedConnections(cell, finer) == nullptr);
+    PlatformerTraversalProfile climber = profile;
+    climber.climb = simple_platformer::SurfaceClimbConfig{60.0F};
+    REQUIRE(cache.cachedConnections(cell, climber) == nullptr);
 
     BuiltPlatformerConnections tallBuild =
         simple_platformer::buildPlatformerConnections(map, cell, taller, &cache);
@@ -222,8 +227,6 @@ TEST_CASE("The cache rejects an invalid profile", "[navigation][cache][validatio
     REQUIRE_THROWS_AS(
         cache.storeConnections({0, 0}, stopped, {}, {{0, 0}, {0, 0}}), std::invalid_argument);
     REQUIRE_THROWS_AS(cache.storeWalk(flat, {1, 1, {}}), std::invalid_argument);
-    REQUIRE_THROWS_AS(cache.storeReachableCells({0, 0}, stopped, {}), std::invalid_argument);
-    REQUIRE_THROWS_AS(cache.storePath({{0, 0}, {1, 0}, 0}, flat, {}), std::invalid_argument);
     REQUIRE_THROWS_AS(cache.queue({0, 0}, stopped), std::invalid_argument);
     REQUIRE(cache.size() == 0);
 }

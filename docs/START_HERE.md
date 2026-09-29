@@ -251,20 +251,22 @@ machine and ordinary movement. Then read:
 
 1. [`path_search.cpp`](../src/navigation/path_search.cpp) for the generic lowest-cost
    search;
-2. [`flying_navigation.cpp`](../src/navigation/flying_navigation.cpp) for the simplest
+2. [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp) for `findActorPath`,
+   the one entry point NPCs call, and the flying search behind it, the simplest
    outgoing-connection policy;
 3. [`path_follower.cpp`](../src/navigation/path_follower.cpp) for turning a path into
    intentions;
-4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for standability,
-   supported start cells, and destinations near a target;
+4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for where a body
+   can stand or hold a surface;
 5. [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp) for
-   simulated walks, falls, and jumps;
+   simulated traversals;
 6. [`connection_cache.cpp`](../src/navigation/connection_cache.cpp) for the
    traversal-profile cache and its invalidation rules;
 7. [`navigation_fill.cpp`](../src/navigation/navigation_fill.cpp) for queuing and
    progressively caching connections;
-8. [`platformer_navigation.cpp`](../src/navigation/platformer_navigation.cpp) for
-   searching with the cache and deferring while connections are pending.
+8. the platformer search in [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp)
+   for searching with the cache, deferring while connections are pending, and leading
+   as close as possible to a target out of reach.
 
 The platformer navigation code reuses the real movement and collision functions, but
 it is not the best first example of the engine's general style. The

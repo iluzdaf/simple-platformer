@@ -10,6 +10,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -64,14 +65,15 @@ namespace simple_platformer
             const Actor& actor,
             const Aabb& bounds,
             int level,
-            std::string_view place)
+            std::string_view place,
+            bool needsGround)
         {
             const std::string location = actorLocation(level, actor.id, place);
             if (!hasClearance(map, bounds))
             {
                 throw std::invalid_argument(location + " overlaps a blocked tile");
             }
-            if (actor.platformerMovement.has_value() && !hasGroundSupport(map, bounds))
+            if (needsGround && !hasGroundSupport(map, bounds))
             {
                 throw std::invalid_argument(location + " has no ground support");
             }
@@ -82,11 +84,19 @@ namespace simple_platformer
             const Actor& actor,
             glm::vec2 feet,
             int level,
-            std::string_view place)
+            std::string_view place,
+            bool needsGround)
         {
             Aabb bounds{{0.0F, 0.0F}, actor.body.bounds.size};
             placeFeetAt(bounds, feet);
-            validatePlacement(map, actor, bounds, level, place);
+            validatePlacement(map, actor, bounds, level, place, needsGround);
+        }
+
+        // A climber can patrol to a wall or ceiling; navigation takes it to the nearest
+        // place it can hold.
+        bool patrolNeedsGround(const Actor& actor)
+        {
+            return actor.platformerMovement.has_value() && !actor.surfaceClimb.has_value();
         }
     }
 
@@ -94,19 +104,29 @@ namespace simple_platformer
     {
         for (const Actor& actor : world.actors())
         {
-            validatePlacement(map, actor, actor.body.bounds, level, "spawn");
+            const bool platformer = actor.platformerMovement.has_value();
+            validatePlacement(map, actor, actor.body.bounds, level, "spawn", platformer);
             if (!actor.patrol.has_value())
             {
                 continue;
             }
-            validateAtFeet(map, actor, actor.patrol->firstFeet, level, "first patrol point");
-            validateAtFeet(map, actor, actor.patrol->secondFeet, level, "second patrol point");
+            const bool needsGround = patrolNeedsGround(actor);
+            validateAtFeet(
+                map, actor, actor.patrol->firstFeet, level, "first patrol point", needsGround);
+            validateAtFeet(
+                map, actor, actor.patrol->secondFeet, level, "second patrol point", needsGround);
         }
 
         const Actor* player = world.findActor(world.playerId());
         if (player != nullptr)
         {
-            validateAtFeet(map, *player, world.playerSpawnFeet(), level, "respawn");
+            validateAtFeet(
+                map,
+                *player,
+                world.playerSpawnFeet(),
+                level,
+                "respawn",
+                player->platformerMovement.has_value());
         }
     }
 }

@@ -2,19 +2,21 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/input/input_program.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/physics/body.hpp"
 
@@ -38,36 +40,25 @@ namespace simple_platformer
             return to > from ? 1.0F : 0.0F;
         }
 
-        bool arrivedAt(
-            int tileSize,
-            const Body& body,
-            const PlatformerMovement& movement,
-            GridPosition destinationCell)
+        bool arrivedAt(glm::vec2 feet, glm::vec2 target)
         {
-            const glm::vec2 target = feetInCell(tileSize, destinationCell);
-            const glm::vec2 feet = feetOf(body.bounds);
-            return movement.grounded && std::abs(target.x - feet.x) <= ArrivalDistance &&
+            return std::abs(target.x - feet.x) <= ArrivalDistance &&
                    std::abs(target.y - feet.y) <= ArrivalDistance;
         }
 
-        bool stoppedAtCell(
-            int tileSize,
-            const Body& body,
-            const PlatformerMovement& movement,
-            GridPosition cell)
+        bool stoppedAt(const Body& body, const PlatformerMovement& movement, glm::vec2 target)
         {
-            return arrivedAt(tileSize, body, movement, cell) &&
+            return movement.grounded && arrivedAt(feetOf(body.bounds), target) &&
                    std::abs(body.velocity.x) <= StoppedSpeed;
         }
 
-        // Walks towards the takeoff cell and lets go early enough to brake to a stop within
+        // Walks towards the takeoff and lets go early enough to brake to a stop within
         // arrival distance, so the actor arrives stopped instead of overshooting. Nothing
         // in the air or on another row, where walking would not help.
         InputIntentions approachAndBrake(
-            int tileSize,
             const Body& body,
             const PlatformerMovement& movement,
-            GridPosition takeoff)
+            glm::vec2 takeoff)
         {
             InputIntentions intentions;
             if (!movement.grounded)
@@ -75,17 +66,16 @@ namespace simple_platformer
                 return intentions;
             }
 
-            const glm::vec2 target = feetInCell(tileSize, takeoff);
             const glm::vec2 feet = feetOf(body.bounds);
-            const float horizontalOffset = target.x - feet.x;
-            const float verticalOffset = target.y - feet.y;
+            const float horizontalOffset = takeoff.x - feet.x;
+            const float verticalOffset = takeoff.y - feet.y;
             if (std::abs(verticalOffset) > ArrivalDistance ||
                 std::abs(horizontalOffset) <= ArrivalDistance)
             {
                 return intentions;
             }
 
-            const float direction = directionTowards(feet.x, target.x);
+            const float direction = directionTowards(feet.x, takeoff.x);
             const float speedTowardTarget = body.velocity.x * direction;
             const float deceleration = movement.config.groundDeceleration;
             const float brakingDistance =
@@ -99,6 +89,37 @@ namespace simple_platformer
             return intentions;
         }
 
+        // A climber with nothing to replay keeps its grip; releasing would drop it.
+        InputIntentions holdOn(const SurfaceClimb* climb)
+        {
+            InputIntentions intentions;
+            intentions.climbRequested = climb != nullptr && climb->surface != ClimbSurface::None;
+            return intentions;
+        }
+
+        // Travels the held surface to the start of a climb: along a ceiling sideways,
+        // along a wall up or down. Nothing once there.
+        std::optional<InputIntentions> climbTowards(
+            const Body& body,
+            const SurfaceClimb& climb,
+            glm::vec2 start,
+            float deltaTime)
+        {
+            const glm::vec2 offset = start - feetOf(body.bounds);
+            const float maximumStep = climb.config.speed * deltaTime;
+            const bool alongCeiling = climb.surface == ClimbSurface::Ceiling;
+            const float remaining = alongCeiling ? offset.x : offset.y;
+            if (std::abs(remaining) <= FlyingArrivalDistance || maximumStep == 0.0F)
+            {
+                return std::nullopt;
+            }
+            InputIntentions approach;
+            approach.climbRequested = true;
+            const float direction = std::clamp(remaining / maximumStep, -1.0F, 1.0F);
+            (alongCeiling ? approach.direction.x : approach.direction.y) = direction;
+            return approach;
+        }
+
         struct StepProgress
         {
             bool complete = false;
@@ -106,70 +127,129 @@ namespace simple_platformer
         };
 
         StepProgress followWalkStep(
-            int tileSize,
             const Body& body,
             const PlatformerMovement& movement,
-            GridPosition destination)
+            const Waypoint& waypoint)
         {
-            if (stoppedAtCell(tileSize, body, movement, destination))
+            if (stoppedAt(body, movement, waypoint.feet))
             {
                 return {true, {}};
             }
-            return {false, approachAndBrake(tileSize, body, movement, destination)};
+            return {false, approachAndBrake(body, movement, waypoint.feet)};
         }
 
         StepProgress followAirborneStep(
-            int tileSize,
             const Body& body,
             const PlatformerMovement& movement,
             PathFollower& follower,
-            const NavigationStep& step,
-            GridPosition takeoff,
+            const Waypoint& waypoint,
+            glm::vec2 takeoff,
             float deltaTime)
         {
-            if (step.inputs.empty())
+            if (waypoint.inputs.empty())
             {
                 throw std::invalid_argument("Jump and fall path steps require an input program");
             }
-            // The recorded inputs assume a stationary takeoff at the previous cell.
-            if (follower.programElapsed == 0.0F &&
-                !stoppedAtCell(tileSize, body, movement, takeoff))
+            // The recorded inputs assume a stationary takeoff at the previous waypoint.
+            if (follower.programElapsed == 0.0F && !stoppedAt(body, movement, takeoff))
             {
-                return {false, approachAndBrake(tileSize, body, movement, takeoff)};
+                return {false, approachAndBrake(body, movement, takeoff)};
             }
 
-            const float programDuration = durationOf(step.inputs);
+            const float programDuration = durationOf(waypoint.inputs);
             if (follower.programElapsed < programDuration)
             {
                 const InputIntentions intentions =
-                    replayInput(step.inputs, follower.programElapsed);
+                    replayInput(waypoint.inputs, follower.programElapsed);
                 follower.programElapsed =
                     std::min(programDuration, follower.programElapsed + deltaTime);
                 return {false, intentions};
             }
-            // After the program runs out, wait without input until the actor lands in
-            // the destination cell.
-            if (movement.grounded &&
-                cellAtFeet(tileSize, feetOf(body.bounds)) == step.destinationCell)
+            // After the program runs out, wait without input until the actor lands and
+            // stops. A landing may stop short of the waypoint along its row; the next
+            // step starts by walking there.
+            if (!movement.grounded || std::abs(body.velocity.x) > StoppedSpeed)
+            {
+                return {};
+            }
+            if (std::abs(feetOf(body.bounds).y - waypoint.feet.y) > ArrivalDistance)
+            {
+                // Landed on another row; the NPC plans again.
+                clearPath(follower);
+                return {};
+            }
+            follower.programElapsed = 0.0F;
+            return {true, {}};
+        }
+
+        // The recorded inputs start where the climb starts: a climber already holding a
+        // surface travels along it there, one standing walks there and stops, and one
+        // in the air grabs whatever it touches.
+        StepProgress followClimbStep(
+            const Body& body,
+            const PlatformerMovement& movement,
+            const SurfaceClimb& climb,
+            PathFollower& follower,
+            const Waypoint& waypoint,
+            glm::vec2 start,
+            float deltaTime)
+        {
+            if (waypoint.inputs.empty())
+            {
+                throw std::invalid_argument("Climb path steps require an input program");
+            }
+            if (follower.programElapsed == 0.0F)
+            {
+                if (climb.surface != ClimbSurface::None)
+                {
+                    if (const std::optional<InputIntentions> approach =
+                            climbTowards(body, climb, start, deltaTime))
+                    {
+                        return {false, *approach};
+                    }
+                }
+                else if (!movement.grounded)
+                {
+                    InputIntentions grab;
+                    grab.climbRequested = true;
+                    return {false, grab};
+                }
+                else if (!stoppedAt(body, movement, start))
+                {
+                    return {false, approachAndBrake(body, movement, start)};
+                }
+            }
+
+            const float duration = durationOf(waypoint.inputs);
+            if (follower.programElapsed < duration)
+            {
+                const InputIntentions intentions =
+                    replayInput(waypoint.inputs, follower.programElapsed);
+                follower.programElapsed = std::min(duration, follower.programElapsed + deltaTime);
+                return {false, intentions};
+            }
+            if (arrivedAt(feetOf(body.bounds), waypoint.feet))
             {
                 follower.programElapsed = 0.0F;
                 return {true, {}};
             }
-            return {};
+            // The climb ended somewhere else; the NPC plans again.
+            clearPath(follower);
+            return {false, holdOn(&climb)};
+        }
+
+        // Where the step at this index starts: the previous waypoint, or the path's start.
+        glm::vec2 stepStart(const NavigationPath& path, std::size_t index)
+        {
+            return index == 0 ? path.startFeet : path.waypoints[index - 1].feet;
         }
     }
 
-    void setPath(PathFollower& follower, NavigationPath path, GridPosition destinationCell)
+    void setPath(PathFollower& follower, NavigationPath path)
     {
-        if ((!path.steps.empty() && path.steps.back().destinationCell != destinationCell) ||
-            (path.steps.empty() && path.start != destinationCell))
-        {
-            throw std::invalid_argument("A navigation path does not reach its destination");
-        }
         follower.path = std::move(path);
         follower.nextStep = 0;
         follower.programElapsed = 0.0F;
-        follower.destinationCell = destinationCell;
     }
 
     void clearPath(PathFollower& follower)
@@ -177,16 +257,15 @@ namespace simple_platformer
         follower.path.reset();
         follower.nextStep = 0;
         follower.programElapsed = 0.0F;
-        follower.destinationCell.reset();
+        follower.target.reset();
     }
 
     bool pathComplete(const PathFollower& follower)
     {
-        return follower.path.has_value() && follower.nextStep >= follower.path->steps.size();
+        return follower.path.has_value() && follower.nextStep >= follower.path->waypoints.size();
     }
 
     InputIntentions followFlyingPath(
-        int tileSize,
         const Aabb& bounds,
         const FlyingMovement& movement,
         PathFollower& follower,
@@ -208,18 +287,18 @@ namespace simple_platformer
             throw std::invalid_argument("Flying path movement must be finite");
         }
         const glm::vec2 feet = feetOf(bounds);
-        while (follower.nextStep < follower.path->steps.size())
+        while (follower.nextStep < follower.path->waypoints.size())
         {
-            const NavigationStep& step = follower.path->steps[follower.nextStep];
-            if (step.traversal != Traversal::Fly)
+            const Waypoint& waypoint = follower.path->waypoints[follower.nextStep];
+            if (waypoint.traversal != Traversal::Fly)
             {
                 throw std::invalid_argument("A flying actor requires flying path steps");
             }
-            const glm::vec2 offset = feetInCell(tileSize, step.destinationCell) - feet;
+            const glm::vec2 offset = waypoint.feet - feet;
             const float distance = glm::length(offset);
             if (distance > FlyingArrivalDistance)
             {
-                // Straight at the cell, and no further than it this tick.
+                // Straight at the waypoint, and no further than it this tick.
                 InputIntentions intentions;
                 intentions.direction = maximumMovement > 0.0F && distance <= maximumMovement
                                            ? offset / maximumMovement
@@ -232,39 +311,42 @@ namespace simple_platformer
     }
 
     InputIntentions followPlatformerPath(
-        int tileSize,
         const Body& body,
         const PlatformerMovement& movement,
         PathFollower& follower,
-        float deltaTime)
+        float deltaTime,
+        const SurfaceClimb* climb)
     {
         requireSeconds(deltaTime, "Platformer path following time step");
         if (!follower.path.has_value())
         {
-            return {};
+            return holdOn(climb);
         }
 
-        while (follower.nextStep < follower.path->steps.size())
+        while (follower.nextStep < follower.path->waypoints.size())
         {
-            const NavigationStep& step = follower.path->steps[follower.nextStep];
-            if (step.traversal == Traversal::Fly)
-            {
-                throw std::invalid_argument("A platformer actor cannot follow a flying path step");
-            }
-
+            const Waypoint& waypoint = follower.path->waypoints[follower.nextStep];
+            const glm::vec2 start = stepStart(*follower.path, follower.nextStep);
             StepProgress progress;
-            if (step.traversal == Traversal::Walk)
+            switch (waypoint.traversal)
             {
-                progress = followWalkStep(tileSize, body, movement, step.destinationCell);
-            }
-            else
-            {
-                const GridPosition takeoff =
-                    follower.nextStep == 0
-                        ? follower.path->start
-                        : follower.path->steps[follower.nextStep - 1].destinationCell;
-                progress = followAirborneStep(
-                    tileSize, body, movement, follower, step, takeoff, deltaTime);
+            case Traversal::Fly:
+                throw std::invalid_argument("A platformer actor cannot follow a flying path step");
+            case Traversal::Walk:
+                progress = followWalkStep(body, movement, waypoint);
+                break;
+            case Traversal::Climb:
+                if (climb == nullptr)
+                {
+                    throw std::invalid_argument("A climb path requires a climbing actor");
+                }
+                progress =
+                    followClimbStep(body, movement, *climb, follower, waypoint, start, deltaTime);
+                break;
+            case Traversal::Fall:
+            case Traversal::Jump:
+                progress = followAirborneStep(body, movement, follower, waypoint, start, deltaTime);
+                break;
             }
             if (!progress.complete)
             {
@@ -272,6 +354,6 @@ namespace simple_platformer
             }
             ++follower.nextStep;
         }
-        return {};
+        return holdOn(climb);
     }
 }

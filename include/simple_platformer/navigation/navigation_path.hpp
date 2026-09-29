@@ -3,48 +3,45 @@
 #include <optional>
 #include <vector>
 
-#include "simple_platformer/math/coordinates.hpp"
+#include <glm/vec2.hpp>
+
 #include "simple_platformer/input/input_program.hpp"
 
 namespace simple_platformer
 {
-    // How a connection is travelled. Fly is the one kind a flying actor uses; the rest
-    // are a platformer's.
+    // How a step is travelled. Fly is the one kind a flying actor uses; the rest are a
+    // platformer's.
     enum class Traversal
     {
         Fly,
         Walk,
         Fall,
-        Jump
+        Jump,
+        Climb
     };
 
-    // One connection of a path: the cell it ends in, how it is travelled, and for a jump
-    // or a fall the inputs that get there.
-    struct NavigationStep
+    // Where the body's feet rest at the end of a step, how it gets there, and the
+    // inputs recorded for a fall, jump, or climb; a walk or flight has none.
+    struct Waypoint
     {
-        GridPosition destinationCell;
+        glm::vec2 feet{0.0F, 0.0F};
         Traversal traversal = Traversal::Fly;
-        // Replay inputs for a jump or fall; empty for a walk or flight.
         InputProgram inputs;
     };
 
-    // A traversable edge leaving a cell. Its destination is a neighbor; search uses
-    // its cost, and a selected path keeps its step.
-    struct NavigationConnection
-    {
-        NavigationStep step;
-        // Cost must be greater than zero. All connections in one search must
-        // measure cost in the same unit, such as grid steps or simulation ticks.
-        int cost = 1;
-    };
-
-    // Where a path begins and the connections that lead from there to its goal, in the
-    // order travelled. No steps means the start is the goal.
+    // Where the body's feet rest at the start, and the waypoints that lead from there
+    // in the order travelled. No waypoints means the start is the end.
     struct NavigationPath
     {
-        GridPosition start;
-        std::vector<NavigationStep> steps;
+        glm::vec2 startFeet{0.0F, 0.0F};
+        std::vector<Waypoint> waypoints;
     };
+
+    // The last waypoint's feet, or the start of a path without waypoints.
+    inline glm::vec2 endOf(const NavigationPath& path)
+    {
+        return path.waypoints.empty() ? path.startFeet : path.waypoints.back().feet;
+    }
 
     enum class NavigationPathStatus
     {
@@ -53,11 +50,15 @@ namespace simple_platformer
         Deferred
     };
 
-    // Only Found carries a path. Deferred means the caller should retry after
-    // pending navigation work completes; flying paths never defer.
+    // Found carries a path that ends in the cell holding the target. Unreachable
+    // carries a path to the reachable cell nearest it, without waypoints when the
+    // actor is already there. Deferred carries no path: the caller should retry after
+    // pending navigation work completes. Flying paths never defer.
     struct NavigationPathResult
     {
         NavigationPathStatus status = NavigationPathStatus::Unreachable;
         std::optional<NavigationPath> path;
+        // How far the path's last waypoint is from the target, when there is a path.
+        float remainingDistance = 0.0F;
     };
 }

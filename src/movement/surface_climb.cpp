@@ -15,22 +15,6 @@ namespace simple_platformer
 {
     namespace
     {
-        bool touches(ClimbSurface surface, const CollisionContacts& contacts)
-        {
-            switch (surface)
-            {
-            case ClimbSurface::LeftWall:
-                return contacts.left;
-            case ClimbSurface::RightWall:
-                return contacts.right;
-            case ClimbSurface::Ceiling:
-                return contacts.ceiling;
-            case ClimbSurface::None:
-                return false;
-            }
-            return false;
-        }
-
         ClimbSurface requestedSurface(
             ClimbSurface current,
             const CollisionContacts& contacts,
@@ -58,7 +42,7 @@ namespace simple_platformer
                     return ClimbSurface::RightWall;
                 }
             }
-            if (touches(current, contacts))
+            if (touchesSurface(current, contacts))
             {
                 return current;
             }
@@ -72,6 +56,22 @@ namespace simple_platformer
             }
             return contacts.ceiling ? ClimbSurface::Ceiling : ClimbSurface::None;
         }
+    }
+
+    bool touchesSurface(ClimbSurface surface, const CollisionContacts& contacts)
+    {
+        switch (surface)
+        {
+        case ClimbSurface::LeftWall:
+            return contacts.left;
+        case ClimbSurface::RightWall:
+            return contacts.right;
+        case ClimbSurface::Ceiling:
+            return contacts.ceiling;
+        case ClimbSurface::None:
+            return false;
+        }
+        return false;
     }
 
     void validateSurfaceClimbConfig(const SurfaceClimbConfig& config)
@@ -125,7 +125,7 @@ namespace simple_platformer
         const CollisionContacts surfaces = touchingSurfaces(map, body.bounds);
         movement.grounded = surfaces.ground;
         movement.blocked = contacts.left || contacts.right || contacts.ground || contacts.ceiling;
-        if (!touches(climb.surface, touchingClimbableSurfaces(map, body.bounds)))
+        if (!touchesSurface(climb.surface, touchingClimbableSurfaces(map, body.bounds)))
         {
             climb.surface = ClimbSurface::None;
             body.velocity = {0.0F, 0.0F};

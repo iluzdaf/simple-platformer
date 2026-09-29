@@ -16,7 +16,6 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/inventory/item.hpp"
 #include "simple_platformer/world/pickup.hpp"

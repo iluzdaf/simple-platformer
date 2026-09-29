@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <optional>
 #include <utility>
 #include <vector>
 
+#include <glm/common.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/input/input_program.hpp"
@@ -14,12 +16,15 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
+#include "simple_platformer/navigation/navigation_graph.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/physics/body.hpp"
+#include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
@@ -29,6 +34,14 @@ namespace simple_platformer
         // A traversal must land and stop within this many updates to become a
         // connection. Its duration in seconds depends on the caller's step.
         constexpr int MaximumConnectionSimulationTicks = 120;
+        // A climb crosses at most one cell at the climb speed, which may be slow.
+        constexpr int MaximumClimbSimulationTicks = 240;
+        // In pixels: a climb ends with the body this close to its destination's resting
+        // bounds.
+        constexpr float ClimbArrivalDistance = 0.02F;
+        constexpr float FloorArrivalDistance = 1.0F;
+        // In pixels per second: a climber stepping onto the floor has stopped below this.
+        constexpr float SettledSpeed = 0.02F;
 
         // Airborne simulation leaves climbing, ledge avoidance, and contact damage off,
         // so only its recorded intention fields need comparing when ticks are merged.
@@ -78,14 +91,17 @@ namespace simple_platformer
             Body body{boxInCell(tileSize, start, profile.size), {0.0F, 0.0F}};
             PlatformerMovement movement{profile.movement, true, 0.0F, 0.0F};
             PathFollower follower;
-            setPath(follower, {start, {{destinationCell, Traversal::Walk, {}}}}, destinationCell);
+            setPath(
+                follower,
+                {feetInCell(tileSize, start),
+                 {{feetInCell(tileSize, destinationCell), Traversal::Walk, {}}}});
 
             WalkSimulationResult walk{
                 destinationCell.x - start.x, std::nullopt, cellsCovered(tileSize, body.bounds), 0};
             for (int tick = 0; tick < MaximumConnectionSimulationTicks; ++tick)
             {
                 const InputIntentions intentions =
-                    followPlatformerPath(tileSize, body, movement, follower, profile.stepSeconds);
+                    followPlatformerPath(body, movement, follower, profile.stepSeconds);
                 if (pathComplete(follower))
                 {
                     walk.cost = tick;
@@ -356,6 +372,208 @@ namespace simple_platformer
             return result;
         }
 
+        // A climber settles on its surface at the destination's resting bounds. One
+        // stepping off to the floor stands stopped there, as a walk ends.
+        bool climbArrived(
+            const Body& body,
+            const PlatformerMovement& movement,
+            const SurfaceClimb& climb,
+            const Aabb& target,
+            ClimbSurface surface)
+        {
+            if (climb.surface != surface)
+            {
+                return false;
+            }
+            const bool toFloor = surface == ClimbSurface::None;
+            const float tolerance = toFloor ? FloorArrivalDistance : ClimbArrivalDistance;
+            if (std::abs(body.bounds.position.x - target.position.x) > tolerance ||
+                std::abs(body.bounds.position.y - target.position.y) > tolerance)
+            {
+                return false;
+            }
+            return !toFloor || (movement.grounded && std::abs(body.velocity.x) <= SettledSpeed);
+        }
+
+        // From the floor the body walks until it touches the wall. On a surface it
+        // travels that surface's axis first, then the other to round a corner.
+        InputIntentions climbToward(
+            const TileMap& map,
+            const Body& body,
+            NavigationLocation from,
+            NavigationLocation destination,
+            const Aabb& target,
+            float distancePerTick)
+        {
+            InputIntentions intentions;
+            intentions.climbRequested = true;
+            const glm::vec2 offset = target.position - body.bounds.position;
+            if (from.surface == ClimbSurface::None)
+            {
+                if (!touchesSurface(
+                        destination.surface, touchingClimbableSurfaces(map, body.bounds)))
+                {
+                    intentions.direction.x = offset.x / distancePerTick;
+                }
+            }
+            else if (
+                from.surface == ClimbSurface::Ceiling && std::abs(offset.x) > ClimbArrivalDistance)
+            {
+                intentions.direction.x = offset.x / distancePerTick;
+            }
+            else if (std::abs(offset.y) > ClimbArrivalDistance)
+            {
+                intentions.direction.y = offset.y / distancePerTick;
+            }
+            else if (std::abs(offset.x) > ClimbArrivalDistance)
+            {
+                intentions.direction.x = offset.x / distancePerTick;
+            }
+            intentions.direction = glm::clamp(intentions.direction, -1.0F, 1.0F);
+            return intentions;
+        }
+
+        // Simulates one climb with the real climbing, movement, and collision code. An
+        // unsuccessful attempt has no connection, but still reports its simulated ticks
+        // and footprint.
+        BuiltPlatformerConnections buildClimbConnection(
+            const TileMap& map,
+            NavigationLocation from,
+            NavigationLocation destination,
+            const PlatformerTraversalProfile& profile,
+            const SurfaceClimbConfig& climbConfig)
+        {
+            const int tileSize = map.tileSize();
+            const Aabb target = boundsAtSurface(tileSize, destination, profile.size);
+            Body body{boundsAtSurface(tileSize, from, profile.size), {0.0F, 0.0F}};
+            BuiltPlatformerConnections result{{}, cellsCovered(tileSize, body.bounds), {}, 0};
+            includeCellsAroundBounds(result.footprint, tileSize, body.bounds);
+            includeCellsAroundBounds(result.footprint, tileSize, target);
+            if (!canOccupy(map, destination, profile.size))
+            {
+                return result;
+            }
+
+            PlatformerMovement movement{
+                profile.movement, touchingSurfaces(map, body.bounds).ground, 0.0F, 0.0F};
+            SurfaceClimb climb{climbConfig, from.surface};
+            const bool toFloor = destination.surface == ClimbSurface::None;
+            PathFollower walkToFloor;
+            if (toFloor)
+            {
+                setPath(
+                    walkToFloor, {feetOf(body.bounds), {{feetOf(target), Traversal::Walk, {}}}});
+            }
+            InputProgram inputs;
+            for (int tick = 0; tick < MaximumClimbSimulationTicks; ++tick)
+            {
+                if (climbArrived(body, movement, climb, target, destination.surface))
+                {
+                    // A climb that starts where it ends is no connection.
+                    if (tick > 0)
+                    {
+                        result.connections.push_back(
+                            {{destination.cell,
+                              Traversal::Climb,
+                              std::move(inputs),
+                              destination.surface},
+                             tick,
+                             from.surface});
+                    }
+                    return result;
+                }
+                const InputIntentions intentions =
+                    toFloor ? followPlatformerPath(body, movement, walkToFloor, profile.stepSeconds)
+                            : climbToward(
+                                  map,
+                                  body,
+                                  from,
+                                  destination,
+                                  target,
+                                  climbConfig.speed * profile.stepSeconds);
+                // One step a tick. A climb ends at an exact position, and the summed
+                // duration of merged ticks can round to a tick more on replay.
+                inputs.push_back({profile.stepSeconds, intentions});
+                updateSurfaceClimbMovement(
+                    map, body, movement, climb, intentions, profile.stepSeconds);
+                includeCellsAroundBounds(result.footprint, tileSize, body.bounds);
+                ++result.simulatedTicks;
+                // A climber that lets go between two surfaces has fallen off the route.
+                if (from.surface != ClimbSurface::None && !toFloor &&
+                    climb.surface == ClimbSurface::None)
+                {
+                    return result;
+                }
+            }
+            return result;
+        }
+
+        // Where a climb from the location may lead: onto the walls beside the floor,
+        // along a wall or ceiling to the next cell, around the corner between them, and
+        // off a wall onto the floor. Simulation decides which of them succeed.
+        std::vector<NavigationLocation> climbDestinationsFrom(NavigationLocation from)
+        {
+            const GridPosition cell = from.cell;
+            switch (from.surface)
+            {
+            case ClimbSurface::None:
+                return {{cell, ClimbSurface::LeftWall}, {cell, ClimbSurface::RightWall}};
+            case ClimbSurface::LeftWall:
+            case ClimbSurface::RightWall:
+                return {
+                    {cell, ClimbSurface::None},
+                    {{cell.x, cell.y - 1}, from.surface},
+                    {{cell.x, cell.y + 1}, from.surface},
+                    {cell, ClimbSurface::Ceiling}};
+            case ClimbSurface::Ceiling:
+                return {
+                    {{cell.x - 1, cell.y}, ClimbSurface::Ceiling},
+                    {{cell.x + 1, cell.y}, ClimbSurface::Ceiling},
+                    {cell, ClimbSurface::LeftWall},
+                    {cell, ClimbSurface::RightWall}};
+            }
+            return {};
+        }
+
+        // Climbs leaving every location the body can rest at in the cell.
+        BuiltPlatformerConnections buildClimbConnections(
+            const TileMap& map,
+            GridPosition cell,
+            const PlatformerTraversalProfile& profile,
+            const SurfaceClimbConfig& climbConfig)
+        {
+            constexpr std::array<ClimbSurface, 4> Surfaces{
+                ClimbSurface::None,
+                ClimbSurface::LeftWall,
+                ClimbSurface::RightWall,
+                ClimbSurface::Ceiling};
+            const int tileSize = map.tileSize();
+            BuiltPlatformerConnections combined{
+                {}, cellsCovered(tileSize, boxInCell(tileSize, cell, profile.size)), {}, 0};
+            for (const ClimbSurface surface : Surfaces)
+            {
+                const NavigationLocation from{cell, surface};
+                includeCellsAroundBounds(
+                    combined.footprint, tileSize, boundsAtSurface(tileSize, from, profile.size));
+                if (!canOccupy(map, from, profile.size))
+                {
+                    continue;
+                }
+                for (const NavigationLocation destination : climbDestinationsFrom(from))
+                {
+                    BuiltPlatformerConnections attempt =
+                        buildClimbConnection(map, from, destination, profile, climbConfig);
+                    combined.footprint = unionOf(combined.footprint, attempt.footprint);
+                    combined.simulatedTicks += attempt.simulatedTicks;
+                    for (NavigationConnection& connection : attempt.connections)
+                    {
+                        combined.connections.push_back(std::move(connection));
+                    }
+                }
+            }
+            return combined;
+        }
+
     }
 
     BuiltPlatformerConnections buildPlatformerConnections(
@@ -390,6 +608,18 @@ namespace simple_platformer
             for (const WalkSimulationResult& walk : attemptResult.walksToCache)
             {
                 combined.walksToCache.push_back(walk);
+            }
+        }
+        if (profile.climb.has_value())
+        {
+            validateSurfaceClimbConfig(*profile.climb);
+            BuiltPlatformerConnections climbs =
+                buildClimbConnections(map, cell, profile, *profile.climb);
+            combined.footprint = unionOf(combined.footprint, climbs.footprint);
+            combined.simulatedTicks += climbs.simulatedTicks;
+            for (NavigationConnection& connection : climbs.connections)
+            {
+                combined.connections.push_back(std::move(connection));
             }
         }
         return combined;

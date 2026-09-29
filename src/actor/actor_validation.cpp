@@ -185,12 +185,7 @@ namespace simple_platformer
         {
             if (actor.pathFollower.has_value())
             {
-                requireSeconds(actor.pathFollower->repathRemaining, "NPC repath time remaining");
                 requireSeconds(actor.pathFollower->programElapsed, "NPC path program elapsed");
-                if (!isFinitePositive(actor.pathFollower->repathCooldown))
-                {
-                    throw std::invalid_argument("NPC path timing is invalid");
-                }
             }
         }
     }

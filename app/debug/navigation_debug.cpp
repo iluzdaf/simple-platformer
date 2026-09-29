@@ -13,11 +13,13 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
+#include "simple_platformer/navigation/actor_navigation.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/input/input_program.hpp"
+#include "simple_platformer/navigation/navigation_graph.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -59,26 +61,22 @@ namespace simple_platformer
                 for (const NavigationConnection& connection : *cached)
                 {
                     info.connections.push_back(
-                        {feetInCell(tileSize, cell),
-                         feetInCell(tileSize, connection.step.destinationCell),
+                        {feetOf(boundsAtSurface(
+                             tileSize, {cell, connection.sourceSurface}, profile.size)),
+                         feetOf(boundsAtSurface(
+                             tileSize,
+                             {connection.step.destinationCell, connection.step.destinationSurface},
+                             profile.size)),
                          connection.step.traversal,
                          connection.cost,
                          sampleAirborneProgram(
                              map,
-                             cell,
+                             feetInCell(tileSize, cell),
                              profile.size,
                              profile.movement,
                              connection.step.traversal,
                              connection.step.inputs,
                              profile.stepSeconds)});
-                }
-            }
-            const std::vector<GridPosition>* reachable = cache.cachedReachableCells(cell, profile);
-            if (reachable != nullptr)
-            {
-                for (const GridPosition reached : *reachable)
-                {
-                    info.reachable.push_back(cellBounds(tileSize, reached));
                 }
             }
             return info;
@@ -87,7 +85,7 @@ namespace simple_platformer
 
     std::vector<glm::vec2> sampleAirborneProgram(
         const TileMap& map,
-        GridPosition start,
+        glm::vec2 startFeet,
         glm::vec2 bodySize,
         const PlatformerMovementConfig& movement,
         Traversal traversal,
@@ -99,7 +97,8 @@ namespace simple_platformer
             return {};
         }
         Body body;
-        body.bounds = boxInCell(map.tileSize(), start, bodySize);
+        body.bounds.size = bodySize;
+        placeFeetAt(body.bounds, startFeet);
         PlatformerMovement flight{movement, true, 0.0F, 0.0F};
         std::vector<glm::vec2> sampledFeet;
         sampledFeet.push_back(feetOf(body.bounds));
@@ -129,10 +128,8 @@ namespace simple_platformer
             {
                 continue;
             }
-            const PlatformerTraversalProfile candidate{
-                actor.body.bounds.size,
-                actor.platformerMovement.value().config,
-                simulationStepSeconds};
+            const PlatformerTraversalProfile candidate =
+                platformerTraversalProfileFor(actor, simulationStepSeconds);
             const bool known = std::any_of(
                 profiles.begin(),
                 profiles.end(),
@@ -166,8 +163,6 @@ namespace simple_platformer
         info.cellsConnected = cache.cellsConnected(profile);
         info.cellsPending = cache.cellsPending(profile);
         info.cachedWalkCount = cache.cachedWalkCount(profile);
-        info.cachedReachableSetCount = cache.cachedReachableSetCount(profile);
-        info.cachedPathCount = cache.cachedPathCount(profile);
         info.breaksApplied = cache.breaksApplied();
         info.cellsDropped = cache.cellsDroppedSoFar();
         info.connectionWritesSoFar = cache.connectionWritesSoFar();

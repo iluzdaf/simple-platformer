@@ -14,8 +14,8 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
+#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/navigation/platformer_navigation.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
@@ -25,11 +25,13 @@
 #include "simple_platformer/world/world_requests.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
+#include "support/tile_size.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/add_player.hpp"
 #include "support/fixed_step.hpp"
 #include "support/npc_machine_builder.hpp"
+#include "support/prepare_navigation_cache.hpp"
 
 using tests::actor;
 using tests::bite;
@@ -288,11 +290,12 @@ TEST_CASE(
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastKnownTargetFeet = lastKnownFeet;
     tests::perception(world, npcId).targetVisible = false;
+    tests::prepareNavigationCache(map, world);
 
     simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
 
     REQUIRE(actor(world, npcId).intentions.direction.x < 0.0F);
-    REQUIRE(pathFollower(world, npcId).destinationCell == simple_platformer::GridPosition{0, 1});
+    REQUIRE(pathFollower(world, npcId).target == lastKnownFeet);
     REQUIRE(brain(world, npcId).lastKnownTargetFeet == lastKnownFeet);
 }
 
@@ -397,7 +400,7 @@ TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]
     REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
 }
 
-TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
+TEST_CASE("An unreachable patrol heads as close as it can without retrying", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"....#....", "....#....", "#########"});
@@ -407,12 +410,43 @@ TEST_CASE("An unreachable patrol waits before retrying its path", "[npc][fsm]")
         world.addActor(makeNpc({24.0F, 32.0F}).patrolling({24.0F, 32.0F}, {120.0F, 32.0F}));
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
-    REQUIRE(pathFollower(world, npcId).destinationCell == simple_platformer::GridPosition{7, 1});
-    REQUIRE_NEAR(pathFollower(world, npcId).repathRemaining, 0.25F);
+    const simple_platformer::PathFollower& follower = pathFollower(world, npcId);
+    REQUIRE(follower.path.has_value());
+    const glm::vec2 closest = simple_platformer::feetInCell(tests::TileSize, {3, 1});
+    REQUIRE(
+        simple_platformer::endOf(follower.path.value_or(simple_platformer::NavigationPath{})) ==
+        closest);
+    REQUIRE(follower.target == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
+    REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
+
+    // The path still serves the same target, so the NPC keeps following it.
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(follower.path.has_value());
+    REQUIRE(follower.nextStep == 0);
+    REQUIRE(
+        simple_platformer::endOf(follower.path.value_or(simple_platformer::NavigationPath{})) ==
+        closest);
+}
+
+TEST_CASE("A patrol target that moves is planned for at once", "[npc][fsm]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".........", ".........", "#########"});
+    simple_platformer::World world;
+    tests::addPlayer(world, makePlayer({22.0F, 12.0F}));
+    const simple_platformer::ActorId npcId =
+        world.addActor(makeNpc({24.0F, 32.0F}).patrolling({24.0F, 32.0F}, {120.0F, 32.0F}));
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE_NEAR(pathFollower(world, npcId).repathRemaining, 0.15F);
-    simple_platformer::updateNpcBehaviour(map, world, 0.2F);
-    REQUIRE_NEAR(pathFollower(world, npcId).repathRemaining, 0.25F);
+    const simple_platformer::PathFollower& follower = pathFollower(world, npcId);
+    REQUIRE(follower.target == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
+
+    // A few pixels is not worth a new search; half a tile is.
+    patrol(world, npcId).secondFeet = {124.0F, 32.0F};
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(follower.target == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
+
+    patrol(world, npcId).secondFeet = {88.0F, 32.0F};
+    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+    REQUIRE(follower.target == simple_platformer::feetInCell(tests::TileSize, {5, 1}));
 }

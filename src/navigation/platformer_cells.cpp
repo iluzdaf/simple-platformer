@@ -1,7 +1,5 @@
 #include "simple_platformer/navigation/platformer_cells.hpp"
 
-#include <cmath>
-#include <optional>
 #include <stdexcept>
 
 #include <glm/vec2.hpp>
@@ -9,14 +7,24 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
+#include "simple_platformer/navigation/navigation_graph.hpp"
+#include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
 {
     namespace
     {
+        // Clear of movement-blocking tiles and inside the map's blocking sides and
+        // bottom. The map is open above its top edge, as it is for collision.
         bool bodyFits(const TileMap& map, const Aabb& bounds)
         {
+            if (bounds.position.x < 0.0F || bounds.position.x + bounds.size.x > map.pixelWidth() ||
+                bounds.position.y + bounds.size.y > map.pixelHeight())
+            {
+                return false;
+            }
             const CellRange cells = cellsCovered(map.tileSize(), bounds);
             for (int row = cells.first.y; row <= cells.last.y; ++row)
             {
@@ -31,109 +39,64 @@ namespace simple_platformer
             return true;
         }
 
-        std::optional<GridPosition> scanNearestStandableCell(
-            const TileMap& map,
-            glm::vec2 targetFeet,
-            glm::vec2 bodySize)
+        void requireBodySize(glm::vec2 bodySize)
         {
-            std::optional<GridPosition> closest;
-            double closestDistanceSquared = 0.0;
-            for (int row = 0; row < map.height(); ++row)
+            if (!isFinite(bodySize) || bodySize.x <= 0.0F || bodySize.y <= 0.0F)
             {
-                for (int column = 0; column < map.width(); ++column)
-                {
-                    const GridPosition candidate{column, row};
-                    if (!canStandAt(map, candidate, bodySize))
-                    {
-                        continue;
-                    }
-                    const glm::vec2 candidateFeet = feetInCell(map.tileSize(), candidate);
-                    const double dx = static_cast<double>(candidateFeet.x) - targetFeet.x;
-                    const double dy = static_cast<double>(candidateFeet.y) - targetFeet.y;
-                    const double distanceSquared = dx * dx + dy * dy;
-                    // Row-major order makes an equal-distance candidate keep the first cell.
-                    if (!closest.has_value() || distanceSquared < closestDistanceSquared)
-                    {
-                        closest = candidate;
-                        closestDistanceSquared = distanceSquared;
-                    }
-                }
+                throw std::invalid_argument("Navigation body size must be finite and positive");
             }
-            return closest;
+        }
+
+        // canStandAt without the size check, for callers that have made it.
+        bool standsAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize)
+        {
+            return map.contains(cell) && !map.blocksMovement(cell) &&
+                   map.blocksMovement({cell.x, cell.y + 1}) &&
+                   bodyFits(map, boxInCell(map.tileSize(), cell, bodySize));
         }
     }
 
     bool canStandAt(const TileMap& map, GridPosition cell, glm::vec2 bodySize)
     {
-        if (!isFinite(bodySize) || bodySize.x <= 0.0F || bodySize.y <= 0.0F)
-        {
-            throw std::invalid_argument("Navigation body size must be finite and positive");
-        }
-        return map.contains(cell) && !map.blocksMovement(cell) &&
-               map.blocksMovement({cell.x, cell.y + 1}) &&
-               bodyFits(map, boxInCell(map.tileSize(), cell, bodySize));
+        requireBodySize(bodySize);
+        return standsAt(map, cell, bodySize);
     }
 
-    std::optional<GridPosition> findPlatformerStartCell(const TileMap& map, const Aabb& bounds)
+    Aabb boundsAtSurface(int tileSize, NavigationLocation location, glm::vec2 bodySize)
     {
-        if (!isFinite(bounds.position) || !isFinite(bounds.size) || bounds.size.x <= 0.0F ||
-            bounds.size.y <= 0.0F)
+        Aabb bounds = boxInCell(tileSize, location.cell, bodySize);
+        const float left = static_cast<float>(location.cell.x * tileSize);
+        const float top = static_cast<float>(location.cell.y * tileSize);
+        switch (location.surface)
         {
-            throw std::invalid_argument(
-                "A platformer navigation body must have finite, positive-sized bounds");
+        case ClimbSurface::None:
+            break;
+        case ClimbSurface::LeftWall:
+            bounds.position.x = left;
+            break;
+        case ClimbSurface::RightWall:
+            bounds.position.x = left + static_cast<float>(tileSize) - bodySize.x;
+            break;
+        case ClimbSurface::Ceiling:
+            bounds.position.y = top;
+            break;
         }
-
-        const glm::vec2 feet = feetOf(bounds);
-        const GridPosition feetCell = cellAtFeet(map.tileSize(), feet);
-        if (canStandAt(map, feetCell, bounds.size))
-        {
-            return feetCell;
-        }
-
-        const CellRange cells = cellsCovered(map.tileSize(), bounds);
-        std::optional<GridPosition> closest;
-        float closestDistance = 0.0F;
-        for (int column = cells.first.x; column <= cells.last.x; ++column)
-        {
-            const GridPosition candidate{column, feetCell.y};
-            if (!canStandAt(map, candidate, bounds.size))
-            {
-                continue;
-            }
-
-            const float distance = std::abs(feetInCell(map.tileSize(), candidate).x - feet.x);
-            if (!closest.has_value() || distance < closestDistance)
-            {
-                closest = candidate;
-                closestDistance = distance;
-            }
-        }
-        return closest;
+        return bounds;
     }
 
-    std::optional<GridPosition> findNearestStandableCell(
-        const TileMap& map,
-        glm::vec2 targetFeet,
-        glm::vec2 bodySize)
+    bool canOccupy(const TileMap& map, NavigationLocation location, glm::vec2 bodySize)
     {
-        if (!isFinite(targetFeet) || !isFinite(bodySize) || bodySize.x <= 0.0F ||
-            bodySize.y <= 0.0F)
+        requireBodySize(bodySize);
+        if (location.surface == ClimbSurface::None)
         {
-            throw std::invalid_argument(
-                "A standable-cell search requires finite feet and a finite, positive body size");
+            return standsAt(map, location.cell, bodySize);
         }
-
-        // Avoid converting an out-of-map world position to an integer grid cell.
-        if (targetFeet.x >= 0.0F && targetFeet.x < map.pixelWidth() && targetFeet.y >= 0.0F &&
-            targetFeet.y <= map.pixelHeight())
+        if (!map.contains(location.cell))
         {
-            const GridPosition targetCell = cellAtFeet(map.tileSize(), targetFeet);
-            if (canStandAt(map, targetCell, bodySize))
-            {
-                return targetCell;
-            }
+            return false;
         }
-
-        return scanNearestStandableCell(map, targetFeet, bodySize);
+        const Aabb bounds = boundsAtSurface(map.tileSize(), location, bodySize);
+        return bodyFits(map, bounds) &&
+               touchesSurface(location.surface, touchingClimbableSurfaces(map, bounds));
     }
 }

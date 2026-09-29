@@ -5,6 +5,7 @@
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/world/level_validation.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
@@ -89,4 +90,31 @@ TEST_CASE("Flying actors require clearance but not ground support", "[world][lev
         makeFlyer({24.0F, 16.0F}).thinking({}).patrolling({24.0F, 16.0F}, {32.0F, 24.0F}));
 
     REQUIRE_NOTHROW(simple_platformer::validateLevelActors(map, world, 1));
+}
+
+TEST_CASE("A climber's patrol points need clearance but not ground", "[world][level-validation]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"#####", ".....", ".....", ".....", "#####"});
+    simple_platformer::Actor climber = makePlatformer({24.0F, 64.0F})
+                                           .climbing()
+                                           .thinking({})
+                                           .patrolling({24.0F, 64.0F}, {40.0F, 48.0F});
+
+    SECTION("patrol point in the air")
+    {
+        simple_platformer::World world;
+        world.addActor(climber);
+        REQUIRE_NOTHROW(simple_platformer::validateLevelActors(map, world, 1));
+    }
+
+    SECTION("spawn in the air")
+    {
+        climber.body.bounds.position.y -= 16.0F;
+        simple_platformer::World world;
+        world.addActor(climber);
+        REQUIRE_THROWS_WITH(
+            simple_platformer::validateLevelActors(map, world, 1),
+            "Level 1 actor 1 spawn has no ground support");
+    }
 }

@@ -20,7 +20,7 @@ Use this as a reference when working on a particular feature:
 | Gameplay systems          | [Input and movement](#input-and-movement)                                 | Intentions, platformer and flying movement.                                                                                                   |
 |                           | [Tile map, collision, and validation](#tile-map-collision-and-validation) | Terrain and sweeps.                                                                                                                           |
 |                           | [NPC behaviour](#npc-behaviour)                                           | Sensing, memory, machines, and Lua activities.                                                                                                |
-|                           | [Navigation](#navigation)                                                 | Path search, following, simulated jumps, and the connection cache.                                                                            |
+|                           | [Navigation](#navigation)                                                 | Path search, following, simulated traversals, and the connection cache.                                                                       |
 |                           | [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle) | Attacks and death.                                                                                                                            |
 |                           | [Inventory, pickups, and levels](#inventory-pickups-and-levels)           | The level loop and the [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the file-by-file authoring reference. |
 | Presentation and practice | [Presentation](#presentation)                                             | Animation, rendering, camera, and UI.                                                                                                         |
@@ -198,7 +198,7 @@ A moment or a length of time takes one of two forms.
 
 **Timers.** A `float` on the component its window belongs to, ticked once a step by the
 one system that owns the component. A countdown is over at zero (`coyoteRemaining`,
-`phaseTimeRemaining`, `lifetimeRemaining`, `repathRemaining`, `targetMemoryRemaining`,
+`phaseTimeRemaining`, `lifetimeRemaining`, `targetMemoryRemaining`,
 `deathTimeRemaining`); a count-up is compared against a length (`stateElapsed`,
 `programElapsed`). The length is a duration field beside it, such as
 `targetMemoryDuration`. A timer needs no clock, so it is tested by setting the value and
@@ -266,6 +266,7 @@ components supply its capabilities.
 | Capability     | Components                                               | Rule                                                                    |
 | -------------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
 | Movement       | `PlatformerMovement` or `FlyingMovement`                 | Exactly one is required.                                                |
+| Climbing       | `SurfaceClimb`                                           | Optional; requires `PlatformerMovement`.                                |
 | NPC control    | `NpcBrain`, `NpcPerception`, `NpcSenses`, `PathFollower` | Add these together; a `Patrol` is optional.                             |
 | Machine policy | `NpcMachine`                                             | Requires NPC control; chooses activities instead of the brain's tactic. |
 | Primary attack | `BiteAttack` or `RangedWeapon`                           | At most one is configured.                                              |
@@ -289,8 +290,8 @@ Player input and NPC decisions produce the same
 [`InputIntentions`](../include/simple_platformer/input/input_state.hpp).
 
 An [`InputProgram`](../include/simple_platformer/input/input_program.hpp) holds a timed sequence
-of intentions. Navigation currently records and replays these for jumps and falls; the
-sequence and replay rules belong to input, not to pathfinding.
+of intentions for navigation to replay. The sequence and replay rules belong to input,
+not to pathfinding.
 
 Platformer movement reads the horizontal direction; flying movement reads both axes.
 Aim is independent of travel direction. Facing is left or right, for sprite flipping and
@@ -333,9 +334,10 @@ rules separate from tile collision and avoids a general ability framework.
 
 An optional [`SurfaceClimb`](../include/simple_platformer/movement/surface_climb.hpp)
 replaces gravity and walking while `climbRequested` is held and the body touches a
-climbable tile's wall or underside. Vertical intentions travel along walls; horizontal intentions travel
-along ceilings. Releasing the request, or losing contact, resumes ordinary platformer
-movement. Climbing does not yet produce surface-navigation routes.
+climbable tile's wall or underside. Vertical intentions travel along walls; horizontal
+intentions travel along ceilings. Releasing the request, or losing contact, resumes
+ordinary platformer movement. Navigation routes a climber with the same update; see
+[traversals](#traversals).
 
 ### Flying movement
 
@@ -405,7 +407,10 @@ and use the tile property appropriate to their purpose.
 After level data is loaded and composed into runtime objects, `validateLevelActors`
 checks it against the map.
 Every actor spawn, the player's stored respawn, and every patrol endpoint need body
-clearance. Platformer actors also need ground support, while flying actors do not.
+clearance. A platformer's spawn and respawn also need ground support, and so do its
+patrol endpoints unless it can climb. A climber's endpoint may be on a wall or
+ceiling, since navigation takes it to the nearest place it can hold. Flying actors
+never need ground support.
 Invalid content fails during loading with the level ID, actor ID, and invalid
 location.
 
@@ -438,14 +443,10 @@ cover-fade module. Combat maintains no reveal countdown. Rendering does not adva
 the clock, and consuming noise does not affect the stamp. Hearing never polls this
 timestamp; no noise event needs to persist for the reveal or target-memory window.
 
-Ground NPCs chase a standable destination using their own collider size. If the
-last-known feet cell is not standable (for example, during a jump or just past a
-platform edge), `findNearestStandableCell` selects the nearest standable feet position.
-Equal-distance candidates use row, then column order. Pathfinding still determines
-whether that destination is reachable; there is no fallback to a different destination
-if it is disconnected. This selection never reads the hidden player's current position
-or moves either actor directly. Patrol endpoints remain exact, and flyers continue
-to use the last-known feet cell.
+NPCs pass the last-known feet to navigation as a target point. Navigation leads the
+pursuer as close to it as its own collider and capabilities allow; see
+[targets](#targets). It never reads the hidden player's current position or moves
+either actor directly. Patrol endpoints are targets in the same way.
 
 Sensing only records observations. It does not decide whether to patrol, chase, bite,
 or shoot. This keeps perception and decisions separately testable.
@@ -551,88 +552,137 @@ reads it last. It separates a generic lowest-cost search from the movement-speci
 policies that tell the search how cells connect, and it never moves an actor itself: a
 path is turned into intentions, and the ordinary movement systems do the moving. This
 section starts with the search and movement-specific policies, then explains the
-cache and its background fill. Both `findFlyingPath` and `findPlatformerPath` return a
-`NavigationPathResult`:
-`Found` carries a path, `Unreachable` does not, and `Deferred` asks the caller to
-retry after pending cache work. Flying paths never defer.
+cache and its background fill.
+
+`findActorPath` is the one way in, and with `platformerTraversalProfileFor` the only
+public part of `actor_navigation`; the flying and platformer searches it chooses
+between are private to it. NPCs pass their actor and a target point.
+Navigation reads only the actor's body and its movement
+capabilities, never its current movement state. A flyer starts in the cell at its
+feet. A platformer starts where its body rests, judged from its bounds alone: the
+floor, wall, or ceiling position it matches within a pixel across the surface and
+most nearly along it. A body resting nowhere, as in the air, gets no result.
+
+The result is a `NavigationPath` of waypoints. Each waypoint is where the body's feet
+rest at the end of a step, how the step is travelled, and the inputs recorded for a
+fall, jump, or climb. Cells and surfaces stay inside navigation.
+
+### Targets
+
+A target is a point, and it need not be somewhere the actor can be. It may be
+mid-jump, inside a wall, outside the map, or on a platform the actor cannot reach.
+The search works in cells only: it heads for the cell that holds the point and stops
+at the cheapest node in that cell.
+
+If it reaches the cell, the result is `Found`. If it cannot, the failed search has
+visited everything reachable from the start, and the result is `Unreachable` with a
+path to the visited node whose cell is nearest the target's; of equally near cells,
+the first reached wins. That path has no waypoints when the actor is already there.
+Either way the result carries the distance from the path's last waypoint to the
+target point, so a caller can judge the outcome for itself. `Deferred` carries no path
+and asks for a retry once pending cache work is done. Flying paths never defer.
+
+A cell holding more than one kind of node, such as a floor at the foot of a
+climbable wall, ends at whichever the actor reaches first. A climber approaching
+from the wall stays on it.
 
 ### The search
 
-`path_search` is A* over a grid. For each expanded cell it asks for outgoing
-connections: each destination is a reachable neighbor with a cost and, when needed,
-replay inputs. Flying connects adjacent open cells; platformers simulate walks,
-falls, and jumps to discover their connections. Every cost must be positive,
-and the heuristic must never overestimate; a zero heuristic gives Dijkstra's search.
-Its result distinguishes a found path, a complete failure with every cell reachable
-from the start, and an incomplete search. A separate readiness check can pause at a
-pending non-goal cell before asking for its connections.
-The incomplete result identifies that cell so the caller can prioritise its fill.
+`path_search` is one A* over locations, a cell and a surface. Flying and ground
+policies use only the floor of each cell; climbing policies also use its walls and
+ceiling. For each expanded
+location it asks the movement policy for outgoing connections, each with a cost and
+optional replay inputs. Every cost must be positive, and the heuristic must never
+overestimate; a zero heuristic gives Dijkstra's search. The caller supplies a goal
+cell and a heuristic from a cell to it. The search stops at the cheapest location in
+the goal cell. When it cannot reach it, it returns a path to the reached location
+whose cell is nearest. The goal may lie off the grid. A finished search returns that path; the caller
+tells whether it reached the goal cell from where it ends. A separate readiness check
+can pause the search at a pending location before asking for its connections. A
+paused search returns no path, only that location, so the caller can prioritise its
+fill.
 
 ### Flying paths
 
 Flying navigation treats every cell that allows movement as a node joined to its four
-neighbors at a cost of one, with Manhattan distance as the heuristic. The path
+neighbors at a cost of one, with the grid steps between two cells as the heuristic. The path
 follower steers straight at each step's cell while collision keeps the body outside
 platforms. It shortens the final movement to avoid overshooting the cell's feet point.
 
 ### Platformer connections
 
-`platformer_cells` defines where a body can stand: its cell and the space it occupies
-must be clear, with support below. `findPlatformerStartCell` maps a grounded actor's
-collider to a supporting cell, even when its feet extend past a ledge.
-`findNearestStandableCell` maps remembered target feet to a possible destination for
-the pursuer's body size; it does not establish reachability.
+`platformer_cells` defines where a body can rest. To stand, its cell and the space it
+occupies must be clear, with support below. A climber can also rest flush against a
+climbable wall beside the cell, or hang from a climbable tile above it. A cell and one
+of these surfaces form a location, so the floor, walls, and ceiling of one cell stay
+distinct in the search. These rules are all `platformer_cells` exposes. The search
+itself finds where a body rests from its bounds, including a supporting cell when its
+feet extend past a ledge, and turns its route of locations into the waypoints a
+caller receives.
 
-`platformer_connections` plans walks, falls, and jumps from a standable source cell.
-Movement simulation tests each maneuver with the real physics at the caller's step; successful
-outcomes become graph connections. The NPC system passes its current tick's step, so
-a predicted jump and the real one run the same physics. Walking tries successive
-standable cells in either direction, from a standstill to a stop. A fall or jump is accepted
-only when it lands on another standable cell and stops there. It records the simulated
-intentions as an `InputProgram` for the follower to replay. Costs are the movement
-ticks the simulation took. The heuristic in `platformer_navigation` estimates the
-ticks needed at top speed across the columns between, which never overestimates. The
-search adds a jump-start penalty, also in ticks, so a marginal shortcut does not make
-a grounded NPC hop. Setting it to zero selects strictly by simulated travel time.
+`platformer_connections` builds the connections leaving every location of a cell
+the body can rest at. It tries each traversal the profile allows with the real
+physics at the caller's step, and each success becomes a connection. The NPC system
+passes its current tick's step, so a predicted move and the real one run the same
+physics. A connection records the surface it leaves and the surface it reaches, and
+the search expands a location with the connections leaving its surface. Costs are
+the movement ticks the simulation took.
+
+### Traversals
+
+A traversal that needs an optional capability is tried only for a profile with it.
+A new capability adds a row here, its connections in `platformer_connections`, and
+its config to the traversal profile. The search itself does not change.
+
+| Traversal | Requires       | Tried from → to                                                                                    | Accepted when                                        | Replayed by the follower                                                                                          |
+| --------- | -------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Walk      | —              | Floor → each standable floor cell along the row, in both directions                                | The body stops within a pixel of the cell            | Walking and braking into the cell; no inputs are recorded                                                         |
+| Fall      | —              | Floor → off the edge beside it                                                                     | It lands on another standable cell and stops there   | Stopping at the takeoff, then the recorded inputs                                                                 |
+| Jump      | —              | Floor → a short and a full-height jump each way                                                    | It lands on another standable cell and stops there   | Stopping at the takeoff, then the recorded inputs                                                                 |
+| Climb     | `SurfaceClimb` | Floor → wall beside it; wall or ceiling → next cell along it, round a corner, or down to the floor | The body settles at the destination's resting bounds | Holding a surface, travelling it to the start; standing, stopping there; in the air, grabbing on; then the inputs |
+
+A climber whose feet end a climb off its waypoint drops the path, and the NPC plans
+again.
+
+The platformer heuristic estimates ticks at the profile's fastest
+speed across the whole columns between a cell and the goal cell, since a body's feet
+in the one and in the other lie at least that far apart, whatever surface it holds.
+Walkers and climbers share it; a new capability only adds its speed. The search adds a fixed jump-start penalty,
+also in ticks, so a marginal shortcut does not make a grounded NPC hop.
 
 ### The connection cache
 
 A cell's connections depend only on the map, the cell, and a
-`PlatformerTraversalProfile` (body size, movement configuration, and simulation step),
-so actors with the same profile can share them while the map stands.
-`PlatformerConnectionCache` in `navigation/connection_cache` stores connections built
-by searches or background fill, plus search answers, per profile:
+`PlatformerTraversalProfile` (body size, movement configuration, simulation step,
+and optional climb capability), so actors with the same profile can share them
+while the map stands.
+`PlatformerConnectionCache` in `navigation/connection_cache` stores, per profile:
 
-- the connections leaving each cell, with the footprint their simulation swept;
+- the connections leaving each cell, from every surface of it, with the footprint
+  their simulation swept, built by searches or background fill;
 - walk results by length, including failed attempts; successful flat-ground walks
-  start and end at rest, so their costs can be reused from any cell of any floor;
-- the cells reachable from each start a search failed from, so a later search from
-  there to a goal outside them returns no path without expanding anything;
-- the path found for each query of start, goal and penalty, since while the
-  connections hold so does the cheapest route.
+  start and end at rest, so their costs can be reused from any cell of any floor.
 
 The `World` owns the cache for the map it is simulated with, since the world is
 replaced with its level, and the NPC system hands it to every platformer search.
-`findPlatformerPath` requires the cache and charges each jump its penalty. It reads
-stored connections, building and storing them separately on a miss. A cached path or
-reachable set may answer before search; a completed search stores its result. The result
-distinguishes a found path, an unreachable goal, and a search
-deferred until pending connections are filled. Optional frame profiling counts expanded
-cells, remembered paths, reused connections, deferred searches, and simulated ticks.
+The platformer search requires the cache and charges each jump its penalty. It only
+reads the cache and never simulates or stores connections; the fill is the one thing
+that builds them. Optional frame profiling counts searches, expanded cells, and
+deferred searches.
 
 ### Filling the cache
 
-Background filling uses a queue per profile in `navigation/navigation_fill`; a search
-can also cache an unqueued cell on demand. When a level starts, `queueNavigationFill`
+Background filling uses a queue per profile in `navigation/navigation_fill`. When a
+level starts, `queueNavigationFill`
 gathers the world's distinct platformer NPC profiles and queues every map cell for
 each. Every simulation step begins with a fill phase, `advanceNavigationFill`, that builds and
 stores connections for queued cells. Its budget counts simulation ticks plus
 a fixed charge per cell, even for cells with no connections. The budget is shared among
 profiles with pending cells. A cell is filled as one unit, so its cost can take a
 profile past its share of the budget. Filling continues over subsequent steps without
-delaying level startup. When a search reaches a queued non-goal cell, it stops before expanding
-that cell, prioritises it in the fill queue, and returns `Deferred` without caching a
-path or failure. The NPC asks again next step rather than waiting out its cooldown.
+delaying level startup. When a search reaches a cell the cache does not hold yet, it
+stops before expanding that cell, queues it if it is not already queued, moves it to
+the front, and returns `Deferred`. The NPC asks again next step.
 Tests can fill the queue to completion when they need a full cache.
 
 ### Breaks
@@ -640,9 +690,8 @@ Tests can fill the queue to completion when they need a full cache.
 When a projectile breaks a tile, the cache drops only what the break can have
 changed. Each cell's connections are cached with a footprint, the rectangle of cells
 their simulation swept or read, grown a tile all round for the tiles collision and
-support look at beside the body; a broken tile inside a footprint drops that cell,
-along with any reachable set that held it and every cached path, since a new
-opening can make a cheaper route anywhere. Walks stay, since no tile decided them.
+support look at beside the body; a broken tile inside a footprint drops that cell.
+Walks stay, since no tile decided them.
 The map logs the cells it breaks. Searches and fills apply recorded breaks to the cache
 before using it, so no separate break notification is needed. The cells a break drops
 join the fill queue, and searches that need them wait as they do at a level start. An
@@ -652,17 +701,23 @@ tile.
 ### Following a path
 
 Path following never teleports an actor or writes its velocity. It emits intentions,
-and the ordinary actor movement system performs the motion: a flyer steers at each
-step's cell; a platformer walks to a walk's cell and brakes there, and for a jump or a
-fall first stops at the takeoff, then replays the recorded inputs. End-to-end tests
-replay generated input programs through the real simulation so navigation cannot
-quietly drift away from runtime movement.
+and the ordinary actor movement system performs the motion. A flyer steers at each
+waypoint; a platformer follows each waypoint as its [traversal](#traversals) says.
+The follower owns the climb intention. It requests a climb because the step is a
+climb, reads its own actor's climb state to decide how to reach the climb's start,
+and holds on between climbs. It judges arrival by the feet reaching the waypoint;
+a jump or fall is done once the body lands and stops on the waypoint's row, and the
+next step walks it the rest of the way. A step that ends away from its waypoint drops
+the path, and the NPC plans again. The follower works only in feet positions. It
+remembers the point its path was requested for, and the NPC searches again once its
+goal moves more than 8 pixels from that point; the path itself may end short of
+it. End-to-end tests replay generated
+input programs through the real simulation so navigation cannot quietly drift away
+from runtime movement.
 
-One limitation is deliberate. Ground navigation naturally uses actor feet, while a
-flying actor is easier to reason about from its centre. The current API keeps
-feet-based destinations for both so the navigation data model stays uniform, at the
-cost of a slightly awkward fit for flying actors. An explicitly named navigation
-anchor is [future work](FUTURE_WORK.md).
+Targets are points measured against the body's bounds, so neither ground nor flying
+navigation depends on where the actor is anchored. NPCs still remember and patrol
+by feet, which a floor body's bounds cover at their bottom edge.
 
 ## Combat, projectiles, and life cycle
 

@@ -11,6 +11,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/flying_movement.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
@@ -67,6 +68,13 @@ namespace tests
         ActorBuilder withAnimator(simple_platformer::Animator animator) &&
         {
             built.animator = std::move(animator);
+            return std::move(*this);
+        }
+
+        // Only a walking actor can climb; World rejects a climbing flyer.
+        ActorBuilder climbing(simple_platformer::SurfaceClimbConfig config = {}) &&
+        {
+            built.surfaceClimb = simple_platformer::SurfaceClimb{config};
             return std::move(*this);
         }
 

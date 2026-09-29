@@ -113,7 +113,7 @@ namespace simple_platformer
         {
             throw std::invalid_argument("A fill budget cannot be negative");
         }
-        cache.applyRecordedTileBreaks(map);
+        cache.applyRecordedTileBreaks(map, frameProfile);
         const std::vector<PlatformerTraversalProfile> profiles = cache.knownProfiles();
         // The step's budget is shared among profiles with cells waiting. A profile
         // without pending cells costs nothing.

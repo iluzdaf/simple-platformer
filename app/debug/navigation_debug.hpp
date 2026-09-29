@@ -90,10 +90,6 @@ namespace simple_platformer
         std::size_t cellsPending = 0;
         // Walk lengths simulated once for this profile, including failed attempts.
         std::size_t cachedWalkCount = 0;
-        // Over every profile since the level started.
-        std::size_t breaksApplied = 0;
-        std::size_t cellsDropped = 0;
-        std::size_t connectionWritesSoFar = 0;
         std::vector<NavigationCellDebugInfo> cells;
         std::optional<CursorCellDebugInfo> cursorCell;
     };

@@ -143,18 +143,17 @@ TEST_CASE("A walking NPC's search reads the fill's cache and never simulates", "
     REQUIRE(simple_platformer::frameStatisticCount(waiting, "Path searches") == 1);
     REQUIRE(simple_platformer::frameStatisticCount(waiting, "Paths deferred") == 1);
     REQUIRE(cache.size() == 0);
-    REQUIRE(cache.connectionWritesSoFar() == 0);
     REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
 
     // Once the fill has cached the map, the search finds a route and writes nothing.
     tests::prepareNavigationCache(map, world);
-    const std::size_t writesAfterFill = cache.connectionWritesSoFar();
+    const std::size_t cachedAfterFill = cache.size();
     const simple_platformer::FrameProfile searched = profiledNpcUpdate(map, world);
     REQUIRE(simple_platformer::frameStatisticCount(searched, "Path searches") == 1);
     REQUIRE(simple_platformer::frameStatisticCount(searched, "Paths deferred") == 0);
     REQUIRE(simple_platformer::frameStatisticCount(searched, "Cells expanded") > 0);
     REQUIRE(pathFollower(world, npcId).path.has_value());
-    REQUIRE(cache.connectionWritesSoFar() == writesAfterFill);
+    REQUIRE(cache.size() == cachedAfterFill);
 }
 
 TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[npc][navigation]")
@@ -182,6 +181,10 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
 
     // The search synced with the map first, so the cells the break touched were dropped;
     // it met one and gave up rather than simulate it, and the NPC asks again next step.
+    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Tile breaks applied") == 1);
+    REQUIRE(
+        simple_platformer::frameStatisticCount(waiting, "Cells dropped") ==
+        static_cast<int>(world.platformerConnections().cellsPending(profile)));
     REQUIRE(simple_platformer::frameStatisticCount(waiting, "Path searches") == 1);
     REQUIRE(simple_platformer::frameStatisticCount(waiting, "Paths deferred") == 1);
     REQUIRE(world.platformerConnections().cellsPending(profile) > 0);

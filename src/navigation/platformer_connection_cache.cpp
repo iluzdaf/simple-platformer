@@ -15,6 +15,7 @@
 #include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
@@ -68,17 +69,26 @@ namespace simple_platformer
         return profileCaches.back();
     }
 
-    void PlatformerConnectionCache::applyRecordedTileBreaks(const TileMap& map)
+    void PlatformerConnectionCache::applyRecordedTileBreaks(
+        const TileMap& map,
+        FrameProfile* frameProfile)
     {
         const std::vector<Cell>& broken = map.brokenCells();
+        int breaksApplied = 0;
+        std::size_t cellsDropped = 0;
         for (; breaksSeen < broken.size(); ++breaksSeen)
         {
-            invalidate(broken[breaksSeen]);
+            cellsDropped += invalidate(broken[breaksSeen]);
+            ++breaksApplied;
         }
+        addFrameStatistic(frameProfile, "Navigation", "Tile breaks applied", breaksApplied);
+        addFrameStatistic(
+            frameProfile, "Navigation", "Cells dropped", static_cast<int>(cellsDropped));
     }
 
-    void PlatformerConnectionCache::invalidate(Cell brokenCell)
+    std::size_t PlatformerConnectionCache::invalidate(Cell brokenCell)
     {
+        std::size_t dropped = 0;
         for (ProfileCache& profileCache : profileCaches)
         {
             for (auto entry = profileCache.cells.begin(); entry != profileCache.cells.end();)
@@ -87,7 +97,7 @@ namespace simple_platformer
                 {
                     profileCache.pending.push_back(entry->first);
                     profileCache.waiting.insert(entry->first);
-                    ++dropsSoFar;
+                    ++dropped;
                     entry = profileCache.cells.erase(entry);
                 }
                 else
@@ -96,6 +106,7 @@ namespace simple_platformer
                 }
             }
         }
+        return dropped;
     }
 
     const std::vector<RouteConnection>* PlatformerConnectionCache::cachedConnections(
@@ -144,7 +155,6 @@ namespace simple_platformer
         }
         CachedConnections& cached = forProfile.cells[cell];
         cached = {std::move(connections), footprint};
-        ++connectionWriteCount;
         return cached.connections;
     }
 
@@ -173,8 +183,6 @@ namespace simple_platformer
     {
         profileCaches.clear();
         breaksSeen = 0;
-        dropsSoFar = 0;
-        connectionWriteCount = 0;
     }
 
     void PlatformerConnectionCache::queue(Cell cell, const PlatformerTraversalProfile& profile)
@@ -256,21 +264,6 @@ namespace simple_platformer
     {
         const ProfileCache* profileCache = findCacheFor(profile);
         return profileCache == nullptr ? 0 : profileCache->walks.size();
-    }
-
-    std::size_t PlatformerConnectionCache::breaksApplied() const
-    {
-        return breaksSeen;
-    }
-
-    std::size_t PlatformerConnectionCache::cellsDroppedSoFar() const
-    {
-        return dropsSoFar;
-    }
-
-    std::size_t PlatformerConnectionCache::connectionWritesSoFar() const
-    {
-        return connectionWriteCount;
     }
 
     std::vector<PlatformerTraversalProfile> PlatformerConnectionCache::knownProfiles() const

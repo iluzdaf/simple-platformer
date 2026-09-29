@@ -136,15 +136,10 @@ TEST_CASE(
     REQUIRE(filled.cachedCellCount == 15);
     REQUIRE(filled.cellsConnected == 5);
     REQUIRE(filled.cachedWalkCount > 0);
-    REQUIRE(filled.connectionWritesSoFar == 30);
-    REQUIRE(filled.breaksApplied == 0);
-    REQUIRE(filled.cellsDropped == 0);
 
     REQUIRE(map.breakTile({2, 2}));
     world.platformerConnections().applyRecordedTileBreaks(map);
     const simple_platformer::NavigationCacheDebugInfo broken = infoFor(0);
-    REQUIRE(broken.breaksApplied == 1);
-    REQUIRE(broken.cellsDropped > 0);
     REQUIRE(broken.cachedCellCount < 15);
     REQUIRE(broken.cellsPending == 15 - broken.cachedCellCount);
     for (std::size_t step = 0; step < broken.cellsPending && infoFor(0).cellsPending > 0; ++step)

@@ -57,22 +57,18 @@ TEST_CASE("A break drops only the cells whose footprint holds it", "[navigation]
         {{{{{10, 1}}, simple_platformer::Traversal::Walk, {}}, 1}},
         {{8, 0}, {10, 2}});
     REQUIRE(cache.cellsConnected(profile) == 1);
-    REQUIRE(cache.connectionWritesSoFar() == 3);
 
-    cache.invalidate({5, 1});
+    REQUIRE(cache.invalidate({5, 1}) == 1);
 
     REQUIRE(cache.cachedConnections({0, 1}, profile) == nullptr);
     REQUIRE(cache.cachedConnections({9, 1}, profile) != nullptr);
     REQUIRE(cache.size() == 1);
     REQUIRE(cache.cachedCellCount(profile) == 1);
-    REQUIRE(cache.cellsDroppedSoFar() == 1);
 
     cache.storeConnections({0, 1}, profile, {}, {{0, 0}, {6, 2}});
-    REQUIRE(cache.connectionWritesSoFar() == 4);
+    REQUIRE(cache.cachedCellCount(profile) == 2);
     cache.clear();
-    REQUIRE(cache.connectionWritesSoFar() == 0);
-    REQUIRE(cache.cellsDroppedSoFar() == 0);
-    REQUIRE(cache.breaksApplied() == 0);
+    REQUIRE(cache.size() == 0);
 }
 
 TEST_CASE("Dropped and queued cells wait in one queue, each once", "[navigation][cache]")
@@ -132,14 +128,19 @@ TEST_CASE("Syncing with the map applies each break once", "[navigation][cache]")
     REQUIRE(cache.cachedConnections({3, 0}, profile) != nullptr);
 
     REQUIRE(map.breakTile({3, 1}));
-    cache.applyRecordedTileBreaks(map);
+    FrameProfile breaking;
+    cache.applyRecordedTileBreaks(map, &breaking);
     REQUIRE(cache.cachedConnections({3, 0}, profile) == nullptr);
-    REQUIRE(cache.breaksApplied() == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(breaking, "Tile breaks applied") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(breaking, "Cells dropped") == 1);
 
     // Reapplying the same break log leaves the recached cell intact.
     cache.storeConnections({3, 0}, profile, {}, {{2, 0}, {4, 1}});
-    cache.applyRecordedTileBreaks(map);
+    FrameProfile again;
+    cache.applyRecordedTileBreaks(map, &again);
     REQUIRE(cache.cachedConnections({3, 0}, profile) != nullptr);
+    REQUIRE(simple_platformer::frameStatisticCount(again, "Tile breaks applied") == 0);
+    REQUIRE(simple_platformer::frameStatisticCount(again, "Cells dropped") == 0);
 }
 
 TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigation][cache]")
@@ -241,15 +242,16 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
     REQUIRE(farAway != nullptr);
     const std::vector<RouteConnection> farAwayBefore = *farAway;
     REQUIRE_FALSE(farAwayBefore.empty());
-    const std::size_t writesBeforeBreak = cache.connectionWritesSoFar();
-    const std::size_t dropsBeforeBreak = cache.cellsDroppedSoFar();
+    const std::size_t cachedBeforeBreak = cache.cachedCellCount(profile);
 
     REQUIRE(map.breakTile({3, 1}));
 
     // The walk across the hole is gone, and a fall into it has appeared.
-    cache.applyRecordedTileBreaks(map);
-    REQUIRE(cache.connectionWritesSoFar() == writesBeforeBreak);
-    REQUIRE(cache.cellsDroppedSoFar() > dropsBeforeBreak);
+    FrameProfile breaking;
+    cache.applyRecordedTileBreaks(map, &breaking);
+    const int dropped = simple_platformer::frameStatisticCount(breaking, "Cells dropped");
+    REQUIRE(dropped > 0);
+    REQUIRE(cache.cachedCellCount(profile) == cachedBeforeBreak - dropped);
     auto firstBuild = simple_platformer::buildPlatformerConnections(map, {1, 0}, profile, &cache);
     simple_platformer::storePlatformerConnections(cache, {1, 0}, profile, std::move(firstBuild));
     const std::vector<RouteConnection>* afterBreak = cache.cachedConnections({1, 0}, profile);
@@ -271,7 +273,7 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
     const std::vector<RouteConnection>* farAwayAfter = cache.cachedConnections({23, 0}, profile);
     REQUIRE(farAwayAfter != nullptr);
     tests::requireSameRouteConnections(*farAwayAfter, farAwayBefore);
-    REQUIRE(cache.connectionWritesSoFar() == writesBeforeBreak + 2);
+    REQUIRE(cache.cachedCellCount(profile) == cachedBeforeBreak - dropped + 2);
 }
 
 TEST_CASE("A broken climbable tile takes its climbs away", "[navigation][cache][climb]")

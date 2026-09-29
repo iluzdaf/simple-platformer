@@ -155,7 +155,7 @@ TEST_CASE("A fill caches queued cells until its budget is spent", "[navigation][
         simple_platformer::frameStatisticCount(secondFrame, "Fill budget spent") ==
         2 * firstBudgetSpent);
     REQUIRE(cache.cellsPending(profile) == cells - 3);
-    REQUIRE(cache.connectionWritesSoFar() == 3);
+    REQUIRE(cache.cachedCellCount(profile) == 3);
 
     // The rest go with ticks to spare, and a fill with nothing waiting does nothing.
     simple_platformer::FrameProfile restFrame;
@@ -179,4 +179,25 @@ TEST_CASE("A fill caches queued cells until its budget is spent", "[navigation][
     REQUIRE_THROWS_AS(fill(-1, emptyFrame), std::invalid_argument);
     REQUIRE_THROWS_AS(
         simple_platformer::queueNavigationFill(map, world, 0.0F), std::invalid_argument);
+}
+
+TEST_CASE("A fill counts the breaks it applies and the cells they drop", "[navigation][fill]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "###g####"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    PlatformerConnectionCache cache;
+    cache.storeConnections({3, 0}, Small, {}, {{2, 0}, {4, 1}});
+    cache.storeConnections({7, 0}, Small, {}, {{6, 0}, {7, 1}});
+
+    REQUIRE(map.breakTile({3, 1}));
+    simple_platformer::FrameProfile breaking;
+    simple_platformer::advanceNavigationFill(map, cache, 0, &breaking);
+    REQUIRE(simple_platformer::frameStatisticCount(breaking, "Tile breaks applied") == 1);
+    REQUIRE(simple_platformer::frameStatisticCount(breaking, "Cells dropped") == 1);
+
+    simple_platformer::FrameProfile quiet;
+    simple_platformer::advanceNavigationFill(map, cache, 0, &quiet);
+    REQUIRE(simple_platformer::frameStatisticCount(quiet, "Tile breaks applied") == 0);
+    REQUIRE(simple_platformer::frameStatisticCount(quiet, "Cells dropped") == 0);
 }

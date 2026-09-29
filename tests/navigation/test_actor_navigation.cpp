@@ -543,7 +543,6 @@ TEST_CASE("A search never simulates or writes to the cache", "[navigation][cache
     REQUIRE(deferred.status == NavigationPathStatus::Deferred);
     REQUIRE_FALSE(deferred.path.has_value());
     REQUIRE(cache.cachedCellCount(Walker) == 0);
-    REQUIRE(cache.connectionWritesSoFar() == 0);
     REQUIRE(cache.cellsPending(Walker) == 1);
     REQUIRE(cache.nextPending(Walker) == start.cell);
     REQUIRE(simple_platformer::frameStatisticCount(waiting, "Cells expanded") == 0);
@@ -551,13 +550,14 @@ TEST_CASE("A search never simulates or writes to the cache", "[navigation][cache
 
     // Once the fill has cached the map, the search reads it and still writes nothing.
     tests::fillConnections(map, cache, Walker);
-    const std::size_t writesBeforeSearching = cache.connectionWritesSoFar();
+    const std::size_t cachedBeforeSearching = cache.size();
     FrameProfile reading;
     const NavigationPathResult found =
         resultOf(searchWith(map, tests::restingBody(start, Walker), goal, Walker, cache, &reading));
     REQUIRE(found.status == NavigationPathStatus::Found);
     REQUIRE(simple_platformer::frameStatisticCount(reading, "Cells expanded") > 0);
-    REQUIRE(cache.connectionWritesSoFar() == writesBeforeSearching);
+    REQUIRE(cache.size() == cachedBeforeSearching);
+    REQUIRE(cache.cellsPending(Walker) == 0);
 }
 
 TEST_CASE(

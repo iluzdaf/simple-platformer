@@ -160,9 +160,6 @@ namespace simple_platformer
         info.cellsConnected = cache.cellsConnected(profile);
         info.cellsPending = cache.cellsPending(profile);
         info.cachedWalkCount = cache.cachedWalkCount(profile);
-        info.breaksApplied = cache.breaksApplied();
-        info.cellsDropped = cache.cellsDroppedSoFar();
-        info.connectionWritesSoFar = cache.connectionWritesSoFar();
         for (int row = 0; row < map.height(); ++row)
         {
             for (int column = 0; column < map.width(); ++column)

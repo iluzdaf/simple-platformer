@@ -290,7 +290,7 @@ namespace simple_platformer
             const Cell goal = cellAtFeet(tileSize, target);
             {
                 const PhaseScope cachePhase(frameProfile, "Navigation", "Path cache");
-                cache.applyRecordedTileBreaks(map);
+                cache.applyRecordedTileBreaks(map, frameProfile);
             }
 
             int cellsExpanded = 0;

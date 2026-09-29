@@ -14,6 +14,7 @@
 
 namespace simple_platformer
 {
+    struct FrameProfile;
     class TileMap;
 
     // Stores simulated connections and reusable walk results for one map, separated by
@@ -24,11 +25,12 @@ namespace simple_platformer
     {
     public:
         // Applies map breaks recorded since the last call. Searches and fill call this
-        // before using cached connections.
-        void applyRecordedTileBreaks(const TileMap& map);
+        // before using cached connections. An optional frame profile counts the breaks
+        // applied and the cells they dropped.
+        void applyRecordedTileBreaks(const TileMap& map, FrameProfile* frameProfile = nullptr);
         // Drops what one broken cell can have changed; recorded breaks use this rule.
-        // Every cell dropped joins its profile's fill queue.
-        void invalidate(Cell brokenCell);
+        // Every cell dropped joins its profile's fill queue. Returns how many were dropped.
+        std::size_t invalidate(Cell brokenCell);
 
         // The cells waiting to be cached, in the order the fill takes them: every cell of
         // the map when a level starts, and the cells a break drops after. Storing a cell
@@ -71,15 +73,11 @@ namespace simple_platformer
         // Every profile anything has been cached or queued for, in the order first met.
         std::vector<PlatformerTraversalProfile> knownProfiles() const;
 
-        // The first three counts are per profile; the rest cover the cache since it was
-        // cleared. Cached cells include non-standable cells; connected cells have at least
-        // one connection.
+        // Per profile. Cached cells include non-standable cells; connected cells have at
+        // least one connection.
         std::size_t cachedCellCount(const PlatformerTraversalProfile& profile) const;
         std::size_t cellsConnected(const PlatformerTraversalProfile& profile) const;
         std::size_t cachedWalkCount(const PlatformerTraversalProfile& profile) const;
-        std::size_t breaksApplied() const;
-        std::size_t cellsDroppedSoFar() const;
-        std::size_t connectionWritesSoFar() const;
 
     private:
         struct CachedConnections
@@ -106,9 +104,7 @@ namespace simple_platformer
         const ProfileCache* findCacheFor(const PlatformerTraversalProfile& profile) const;
 
         std::vector<ProfileCache> profileCaches;
-        // Breaks, dropped cells, and connection writes since the cache was cleared.
+        // How far into the map's log of broken cells the cache has applied.
         std::size_t breaksSeen = 0;
-        std::size_t dropsSoFar = 0;
-        std::size_t connectionWriteCount = 0;
     };
 }

@@ -181,8 +181,5 @@ namespace simple_platformer
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         line("pending:", cache.cellsPending);
         line("walks:", cache.cachedWalkCount);
-        line("breaks:", cache.breaksApplied);
-        line("dropped:", cache.cellsDropped);
-        line("writes:", cache.connectionWritesSoFar);
     }
 }

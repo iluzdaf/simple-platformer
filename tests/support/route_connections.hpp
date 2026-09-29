@@ -42,7 +42,8 @@ namespace tests
         const auto connection = std::find_if(
             connections.begin(),
             connections.end(),
-            [destination, traversal](const simple_platformer::RouteConnection& candidate) {
+            [destination, traversal](const simple_platformer::RouteConnection& candidate)
+            {
                 return candidate.step.destination.cell == destination &&
                        candidate.step.traversal == traversal;
             });

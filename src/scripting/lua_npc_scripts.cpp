@@ -410,7 +410,8 @@ namespace simple_platformer
         std::ifstream input(path);
         if (!input)
         {
-            throw std::invalid_argument("Cannot read Lua script '" + path.string() + "'");
+            throw std::invalid_argument(
+                "Cannot read Lua script '" + std::filesystem::absolute(path).string() + "'");
         }
         std::ostringstream source;
         source << input.rdbuf();

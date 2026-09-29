@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -216,7 +217,8 @@ namespace simple_platformer
         if (pixels == nullptr)
         {
             throw std::runtime_error(
-                "Could not load texture '" + path + "': " + stbi_failure_reason());
+                "Could not load texture '" + std::filesystem::absolute(path).string() +
+                "': " + stbi_failure_reason());
         }
 
         Texture texture;

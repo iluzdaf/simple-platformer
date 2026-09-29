@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <filesystem>
+
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
@@ -10,6 +12,15 @@ namespace
 {
     constexpr simple_platformer::ActorId FirstActor{1};
     const simple_platformer::LuaNpcActivity Activity{"example", "decide"};
+}
+
+TEST_CASE("A Lua script that cannot be read is reported by its full path", "[lua][npc]")
+{
+    simple_platformer::LuaNpcScripts scripts;
+    const std::filesystem::path missing = "missing-script.lua";
+    REQUIRE_THROWS_WITH(
+        scripts.loadScript("missing", missing),
+        Catch::Matchers::ContainsSubstring(std::filesystem::absolute(missing).string()));
 }
 
 TEST_CASE("A Lua script can be loaded from an asset file", "[lua][npc]")

@@ -107,6 +107,10 @@ if(BUILD_TESTING)
         VERBATIM
     )
     add_dependencies(simple_platformer_tests game_assets test_fixtures)
+    set_target_properties(
+        simple_platformer_tests
+        PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:simple_platformer_tests>"
+    )
 
     if(
         CMAKE_CXX_COMPILER_ID MATCHES "Clang"

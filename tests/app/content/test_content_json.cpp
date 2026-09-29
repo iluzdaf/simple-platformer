@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <nlohmann/json.hpp>
+#include <filesystem>
 #include <limits>
 #include <string>
 #include "content/content_json.hpp"
@@ -82,4 +83,14 @@ TEST_CASE(
             "file.json",
             "icon"),
         Catch::Matchers::ContainsSubstring("file.json: icon.anchor:"));
+}
+
+TEST_CASE(
+    "A content file that cannot be opened is reported by its full path",
+    "[app][content][json]")
+{
+    const std::filesystem::path missing = "missing-content.json";
+    REQUIRE_THROWS_WITH(
+        simple_platformer::loadContentText(missing),
+        Catch::Matchers::ContainsSubstring(std::filesystem::absolute(missing).string()));
 }

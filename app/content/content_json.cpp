@@ -389,7 +389,8 @@ namespace simple_platformer
         std::ifstream file(path);
         if (!file)
         {
-            throw std::invalid_argument("Could not open content file '" + path.string() + "'");
+            throw std::invalid_argument(
+                "Could not open content file '" + std::filesystem::absolute(path).string() + "'");
         }
         return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
     }

@@ -18,6 +18,7 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/physics/body.hpp"
 
 namespace simple_platformer

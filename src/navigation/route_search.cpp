@@ -142,8 +142,7 @@ namespace simple_platformer
         const auto relax =
             [&](const RouteConnection& connection, std::size_t parentIndex, int parentCost)
         {
-            const RouteLocation destination{
-                connection.step.destinationCell, connection.step.destinationSurface};
+            const RouteLocation destination = connection.step.destination;
             if (connection.cost <= 0)
             {
                 throw std::invalid_argument("A route connection must have positive cost");

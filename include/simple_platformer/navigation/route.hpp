@@ -5,7 +5,7 @@
 #include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 
 namespace simple_platformer
 {
@@ -27,11 +27,10 @@ namespace simple_platformer
     // One edge of a route: its destination, traversal, and any recorded inputs.
     struct RouteStep
     {
-        Cell destinationCell;
+        RouteLocation destination;
         Traversal traversal = Traversal::Fly;
         // Replay inputs for a jump, fall, or climb; empty for a walk or flight.
         InputProgram inputs;
-        ClimbSurface destinationSurface = ClimbSurface::None;
     };
 
     // A traversable edge leaving a cell. Its destination is a neighbor; search uses
@@ -57,10 +56,6 @@ namespace simple_platformer
     // The last step's destination, or the start of a route without steps.
     inline RouteLocation endOf(const Route& route)
     {
-        if (route.steps.empty())
-        {
-            return route.start;
-        }
-        return {route.steps.back().destinationCell, route.steps.back().destinationSurface};
+        return route.steps.empty() ? route.start : route.steps.back().destination;
     }
 }

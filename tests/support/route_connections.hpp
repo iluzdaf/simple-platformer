@@ -9,7 +9,7 @@
 
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/route.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "support/require_same_input_program.hpp"
 
 namespace tests
@@ -43,7 +43,7 @@ namespace tests
             connections.begin(),
             connections.end(),
             [destination, traversal](const simple_platformer::RouteConnection& candidate) {
-                return candidate.step.destinationCell == destination &&
+                return candidate.step.destination.cell == destination &&
                        candidate.step.traversal == traversal;
             });
         if (connection == connections.end())
@@ -65,7 +65,7 @@ namespace tests
             [row](const simple_platformer::RouteConnection& connection)
             {
                 return connection.step.traversal == simple_platformer::Traversal::Jump &&
-                       connection.step.destinationCell.y < row;
+                       connection.step.destination.cell.y < row;
             });
         if (jump == connections.end())
         {
@@ -82,8 +82,8 @@ namespace tests
         for (std::size_t index = 0; index < left.size(); ++index)
         {
             REQUIRE(left[index].sourceSurface == right[index].sourceSurface);
-            REQUIRE(left[index].step.destinationCell == right[index].step.destinationCell);
-            REQUIRE(left[index].step.destinationSurface == right[index].step.destinationSurface);
+            REQUIRE(left[index].step.destination.cell == right[index].step.destination.cell);
+            REQUIRE(left[index].step.destination.surface == right[index].step.destination.surface);
             REQUIRE(left[index].step.traversal == right[index].step.traversal);
             REQUIRE(left[index].cost == right[index].cost);
             requireSameInputProgram(left[index].step.inputs, right[index].step.inputs);

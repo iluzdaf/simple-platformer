@@ -9,8 +9,8 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/route.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/route_search.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 
 namespace
 {
@@ -95,14 +95,14 @@ TEST_CASE("Search keeps different attachments in one cell distinct", "[navigatio
         {
         case ClimbSurface::None:
             return std::vector<RouteConnection>{
-                {{{0, 0}, Traversal::Climb, {}, ClimbSurface::Ceiling}, 5},
-                {{{0, 0}, Traversal::Climb, {}, ClimbSurface::LeftWall}, 1}};
+                {{{{0, 0}, ClimbSurface::Ceiling}, Traversal::Climb, {}}, 5},
+                {{{{0, 0}, ClimbSurface::LeftWall}, Traversal::Climb, {}}, 1}};
         case ClimbSurface::LeftWall:
             return std::vector<RouteConnection>{
-                {{{0, 0}, Traversal::Climb, {}, ClimbSurface::Ceiling}, 1}};
+                {{{{0, 0}, ClimbSurface::Ceiling}, Traversal::Climb, {}}, 1}};
         case ClimbSurface::Ceiling:
             return std::vector<RouteConnection>{
-                {{{1, 0}, Traversal::Climb, {}, ClimbSurface::Ceiling}, 1}};
+                {{{{1, 0}, ClimbSurface::Ceiling}, Traversal::Climb, {}}, 1}};
         case ClimbSurface::RightWall:
             break;
         }
@@ -112,9 +112,9 @@ TEST_CASE("Search keeps different attachments in one cell distinct", "[navigatio
         RouteLocation{{0, 0}, ClimbSurface::None}, {1, 0}, {2, 1}, connections, zeroHeuristic);
     REQUIRE(result.route.has_value());
     REQUIRE(routeOf(result).steps.size() == 3);
-    REQUIRE(routeOf(result).steps[0].destinationSurface == ClimbSurface::LeftWall);
-    REQUIRE(routeOf(result).steps[1].destinationSurface == ClimbSurface::Ceiling);
-    REQUIRE(routeOf(result).steps[2].destinationCell == Cell{1, 0});
+    REQUIRE(routeOf(result).steps[0].destination.surface == ClimbSurface::LeftWall);
+    REQUIRE(routeOf(result).steps[1].destination.surface == ClimbSurface::Ceiling);
+    REQUIRE(routeOf(result).steps[2].destination.cell == Cell{1, 0});
 }
 
 TEST_CASE(
@@ -124,9 +124,9 @@ TEST_CASE(
     // A jump straight to the goal costs more than two walks by way of the middle cell.
     const simple_platformer::ConnectionFunction connections = connectionsFrom(
         {{{0, 0},
-          {{{{2, 0}, simple_platformer::Traversal::Jump, {}}, 8},
-           {{{1, 0}, simple_platformer::Traversal::Walk, {}}, 1}}},
-         {{1, 0}, {{{{2, 0}, simple_platformer::Traversal::Walk, {}}, 1}}}});
+          {{{{{2, 0}}, simple_platformer::Traversal::Jump, {}}, 8},
+           {{{{1, 0}}, simple_platformer::Traversal::Walk, {}}, 1}}},
+         {{1, 0}, {{{{{2, 0}}, simple_platformer::Traversal::Walk, {}}, 1}}}});
     const auto path = simple_platformer::findLowestCostRoute(
         floorOf(0, 0), floorOf(2, 0).cell, TestGrid, connections, zeroHeuristic);
     REQUIRE(path.route.has_value());
@@ -136,13 +136,13 @@ TEST_CASE(
 
     // A connection may cross several cells for less than their number.
     const simple_platformer::ConnectionFunction leaping =
-        connectionsFrom({{{0, 0}, {{{{4, 0}, simple_platformer::Traversal::Jump, {}}, 2}}}});
+        connectionsFrom({{{0, 0}, {{{{{4, 0}}, simple_platformer::Traversal::Jump, {}}, 2}}}});
     const auto leap = simple_platformer::findLowestCostRoute(
         floorOf(0, 0), floorOf(4, 0).cell, TestGrid, leaping, zeroHeuristic);
     REQUIRE(leap.route.has_value());
     const simple_platformer::Route leapRoute = routeOf(leap);
     REQUIRE(leapRoute.steps.size() == 1);
-    REQUIRE(leapRoute.steps.front().destinationCell == Cell{4, 0});
+    REQUIRE(leapRoute.steps.front().destination.cell == Cell{4, 0});
 }
 
 TEST_CASE("A failed search leads to the closest reachable location", "[navigation][search]")
@@ -154,7 +154,7 @@ TEST_CASE("A failed search leads to the closest reachable location", "[navigatio
         if (position.x < 2)
         {
             return std::vector<simple_platformer::RouteConnection>{
-                {{{position.x + 1, position.y}, simple_platformer::Traversal::Fly, {}}, 1}};
+                {{{{position.x + 1, position.y}}, simple_platformer::Traversal::Fly, {}}, 1}};
         }
         return std::vector<simple_platformer::RouteConnection>{};
     };
@@ -175,11 +175,11 @@ TEST_CASE("A connection policy's costs determine the cheapest path", "[navigatio
     // Two ways from the start to the goal: a jump straight there and a walk by way of a
     // middle cell. Changing the jump's cost changes the chosen route.
     const simple_platformer::RouteConnection jump{
-        {{2, 0}, simple_platformer::Traversal::Jump, {{0.5F, {}}}}, 1};
+        {{{2, 0}}, simple_platformer::Traversal::Jump, {{0.5F, {}}}}, 1};
     const simple_platformer::RouteConnection walkOut{
-        {{1, 0}, simple_platformer::Traversal::Walk, {}}, 1};
+        {{{1, 0}}, simple_platformer::Traversal::Walk, {}}, 1};
     const simple_platformer::RouteConnection walkIn{
-        {{2, 0}, simple_platformer::Traversal::Walk, {}}, 1};
+        {{{2, 0}}, simple_platformer::Traversal::Walk, {}}, 1};
     const simple_platformer::ConnectionFunction expensiveJump = [&](RouteLocation location)
     {
         if (location.cell == Cell{0, 0})
@@ -227,7 +227,7 @@ TEST_CASE(
     const auto leadsOut = [](RouteLocation)
     {
         return std::vector<simple_platformer::RouteConnection>{
-            {{{8, 0}, simple_platformer::Traversal::Fly, {}}, 1}};
+            {{{{8, 0}}, simple_platformer::Traversal::Fly, {}}, 1}};
     };
     REQUIRE_THROWS_AS(
         simple_platformer::findLowestCostRoute(
@@ -261,7 +261,7 @@ TEST_CASE(
     const auto costsNothing = [](RouteLocation)
     {
         return std::vector<simple_platformer::RouteConnection>{
-            {{{1, 0}, simple_platformer::Traversal::Walk, {}}, 0}};
+            {{{{1, 0}}, simple_platformer::Traversal::Walk, {}}, 0}};
     };
     REQUIRE_THROWS_AS(
         simple_platformer::findLowestCostRoute(
@@ -280,7 +280,7 @@ TEST_CASE(
         if (location.cell == Cell{0, 0})
         {
             return std::vector<simple_platformer::RouteConnection>{
-                {{{1, 0}, simple_platformer::Traversal::Walk, {}}, 1}};
+                {{{{1, 0}}, simple_platformer::Traversal::Walk, {}}, 1}};
         }
         return std::vector<simple_platformer::RouteConnection>{};
     };
@@ -304,8 +304,8 @@ TEST_CASE("A search stops at the cheapest location in the goal cell", "[navigati
     // Both the floor and the wall of the goal cell arrive; the cheaper is chosen.
     const simple_platformer::ConnectionFunction connections = connectionsFrom(
         {{{0, 0},
-          {{{{1, 0}, Traversal::Walk, {}}, 5},
-           {{{1, 0}, Traversal::Climb, {}, ClimbSurface::LeftWall}, 2}}}});
+          {{{{{1, 0}}, Traversal::Walk, {}}, 5},
+           {{{{1, 0}, ClimbSurface::LeftWall}, Traversal::Climb, {}}, 2}}}});
 
     const RouteSearchResult result = simple_platformer::findLowestCostRoute(
         floorOf(0, 0), {1, 0}, TestGrid, connections, zeroHeuristic);
@@ -322,7 +322,7 @@ TEST_CASE("A goal off the grid is searched for and never reached", "[navigation]
         if (position.x < 7)
         {
             return std::vector<simple_platformer::RouteConnection>{
-                {{{position.x + 1, position.y}, simple_platformer::Traversal::Fly, {}}, 1}};
+                {{{{position.x + 1, position.y}}, simple_platformer::Traversal::Fly, {}}, 1}};
         }
         return std::vector<simple_platformer::RouteConnection>{};
     };

@@ -51,7 +51,7 @@ namespace tests
         for (simple_platformer::RouteStep& step : steps)
         {
             path.waypoints.push_back(
-                {simple_platformer::feetInCell(TileSize, step.destinationCell),
+                {simple_platformer::feetInCell(TileSize, step.destination.cell),
                  step.traversal,
                  std::move(step.inputs)});
         }

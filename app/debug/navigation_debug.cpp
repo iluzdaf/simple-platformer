@@ -18,9 +18,9 @@
 #include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/navigation/route.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -62,10 +62,8 @@ namespace simple_platformer
                     info.connections.push_back(
                         {feetOf(boundsAtSurface(
                              tileSize, {cell, connection.sourceSurface}, profile.size)),
-                         feetOf(boundsAtSurface(
-                             tileSize,
-                             {connection.step.destinationCell, connection.step.destinationSurface},
-                             profile.size)),
+                         feetOf(
+                             boundsAtSurface(tileSize, connection.step.destination, profile.size)),
                          connection.step.traversal,
                          connection.cost,
                          sampleAirborneProgram(

@@ -14,9 +14,9 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/route.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/pickup.hpp"
@@ -33,9 +33,9 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
     simple_platformer::PathFollower follower;
     follower.path = tests::floorPath(
         {1, 2},
-        {{{3, 2}, simple_platformer::Traversal::Walk, {}},
-         {{4, 1}, simple_platformer::Traversal::Jump, {}},
-         {{4, 3}, simple_platformer::Traversal::Fall, {}}});
+        {{{{3, 2}}, simple_platformer::Traversal::Walk, {}},
+         {{{4, 1}}, simple_platformer::Traversal::Jump, {}},
+         {{{4, 3}}, simple_platformer::Traversal::Fall, {}}});
     follower.nextStep = 1;
     follower.target = simple_platformer::feetInCell(tests::TileSize, {4, 3});
 
@@ -104,7 +104,7 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
         tests::floorPath({2, 2}, {jump.step}),
         0,
         0.0F,
-        simple_platformer::feetInCell(tests::TileSize, jump.step.destinationCell)};
+        simple_platformer::feetInCell(tests::TileSize, jump.step.destination.cell)};
 
     simple_platformer::World world;
     world.addActor(npc);

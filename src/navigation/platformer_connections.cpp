@@ -19,10 +19,10 @@
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/navigation/route.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -124,16 +124,10 @@ namespace simple_platformer
                     bounds.position.x + bounds.size.x >= map.pixelWidth() - EdgeTolerance);
         }
 
-        enum class PlatformerManeuver
+        // A walk, fall, or jump to simulate from a floor.
+        struct TraversalAttempt
         {
-            Walk,
-            Fall,
-            Jump
-        };
-
-        struct ManeuverAttempt
-        {
-            PlatformerManeuver maneuver;
+            Traversal traversal;
             int direction;
             int jumpHoldTicks = 0;
         };
@@ -141,7 +135,7 @@ namespace simple_platformer
         // The inputs of a fall or a jump at this tick: pushing one way until landed, and
         // for a jump, pressing on the first tick and holding for as many as asked.
         InputIntentions makeTraversalIntentions(
-            PlatformerManeuver maneuver,
+            Traversal traversal,
             float direction,
             int tick,
             int jumpHoldTicks,
@@ -149,7 +143,7 @@ namespace simple_platformer
         {
             InputIntentions intentions;
             intentions.direction.x = hasLanded ? 0.0F : direction;
-            if (maneuver == PlatformerManeuver::Jump && !hasLanded)
+            if (traversal == Traversal::Jump && !hasLanded)
             {
                 intentions.jumpPressed = tick == 0;
                 intentions.jumpHeld = tick < jumpHoldTicks;
@@ -186,7 +180,7 @@ namespace simple_platformer
             const TileMap& map,
             Cell start,
             const PlatformerTraversalProfile& profile,
-            const ManeuverAttempt& attempt)
+            const TraversalAttempt& attempt)
         {
             Body body{boxInCell(map.tileSize(), start, profile.size), {0.0F, 0.0F}};
             PlatformerMovement movement{profile.movement, true, 0.0F, 0.0F};
@@ -204,7 +198,7 @@ namespace simple_platformer
                 }
 
                 const InputIntentions intentions = makeTraversalIntentions(
-                    attempt.maneuver, direction, tick, attempt.jumpHoldTicks, landing.has_value());
+                    attempt.traversal, direction, tick, attempt.jumpHoldTicks, landing.has_value());
                 recordSimulationInput(result.inputs, intentions, profile.stepSeconds);
                 updatePlatformerMovement(map, body, movement, intentions, profile.stepSeconds);
                 includeCellsAroundBounds(result.footprint, map.tileSize(), body.bounds);
@@ -246,7 +240,7 @@ namespace simple_platformer
                 connections.end(),
                 [&candidate](const RouteConnection& connection)
                 {
-                    return connection.step.destinationCell == candidate.step.destinationCell &&
+                    return connection.step.destination.cell == candidate.step.destination.cell &&
                            connection.step.traversal == candidate.step.traversal;
                 });
             if (existing == connections.end())
@@ -261,11 +255,11 @@ namespace simple_platformer
 
         struct ConnectionPlan
         {
-            std::vector<ManeuverAttempt> attempts;
+            std::vector<TraversalAttempt> attempts;
             CellRange footprint;
         };
 
-        // The policy decides which maneuvers to try; simulation later determines
+        // The policy decides which traversals to try; simulation later determines
         // whether they succeed and where they end.
         ConnectionPlan planPlatformerConnections(const TileMap& map, Cell start, glm::vec2 bodySize)
         {
@@ -288,13 +282,12 @@ namespace simple_platformer
             {
                 const Cell adjacent{start.x + direction, start.y};
                 recordProbe(adjacent);
-                const PlatformerManeuver ground = canStandAt(map, adjacent, bodySize)
-                                                      ? PlatformerManeuver::Walk
-                                                      : PlatformerManeuver::Fall;
+                const Traversal ground =
+                    canStandAt(map, adjacent, bodySize) ? Traversal::Walk : Traversal::Fall;
                 plan.attempts.push_back({ground, direction});
                 for (const int holdTicks : JumpHoldTicks)
                 {
-                    plan.attempts.push_back({PlatformerManeuver::Jump, direction, holdTicks});
+                    plan.attempts.push_back({Traversal::Jump, direction, holdTicks});
                 }
             }
             return plan;
@@ -337,7 +330,7 @@ namespace simple_platformer
                     break;
                 }
                 result.connections.push_back(
-                    {{destination, Traversal::Walk, {}}, walk.cost.value()});
+                    {{{destination}, Traversal::Walk, {}}, walk.cost.value()});
                 destination.x += direction;
                 includeCellsAroundBounds(
                     result.footprint, tileSize, boxInCell(tileSize, destination, profile.size));
@@ -349,7 +342,7 @@ namespace simple_platformer
             const TileMap& map,
             Cell start,
             const PlatformerTraversalProfile& profile,
-            const ManeuverAttempt& attempt)
+            const TraversalAttempt& attempt)
         {
             AirborneSimulationResult simulated =
                 simulateAirborneTraversal(map, start, profile, attempt);
@@ -357,11 +350,10 @@ namespace simple_platformer
                 {}, simulated.footprint, {}, simulated.simulatedTicks};
             if (simulated.landingCell.has_value())
             {
-                const Traversal traversal = attempt.maneuver == PlatformerManeuver::Fall
-                                                ? Traversal::Fall
-                                                : Traversal::Jump;
                 result.connections.push_back(
-                    {{simulated.landingCell.value(), traversal, std::move(simulated.inputs)},
+                    {{{simulated.landingCell.value()},
+                      attempt.traversal,
+                      std::move(simulated.inputs)},
                      simulated.simulatedTicks});
             }
             return result;
@@ -469,10 +461,7 @@ namespace simple_platformer
                     if (tick > 0)
                     {
                         result.connections.push_back(
-                            {{destination.cell,
-                              Traversal::Climb,
-                              std::move(inputs),
-                              destination.surface},
+                            {{destination, Traversal::Climb, std::move(inputs)},
                              tick,
                              from.surface});
                     }
@@ -581,20 +570,12 @@ namespace simple_platformer
         requirePositiveSeconds(profile.stepSeconds, "Navigation simulation step");
         const ConnectionPlan plan = planPlatformerConnections(map, cell, profile.size);
         BuiltPlatformerConnections combined{{}, plan.footprint, {}, 0};
-        for (const ManeuverAttempt& attempt : plan.attempts)
+        for (const TraversalAttempt& attempt : plan.attempts)
         {
-            BuiltPlatformerConnections attemptResult;
-            switch (attempt.maneuver)
-            {
-            case PlatformerManeuver::Walk:
-                attemptResult =
-                    buildWalkConnections(map, cell, profile, walkCache, attempt.direction);
-                break;
-            case PlatformerManeuver::Fall:
-            case PlatformerManeuver::Jump:
-                attemptResult = buildAirborneConnection(map, cell, profile, attempt);
-                break;
-            }
+            BuiltPlatformerConnections attemptResult =
+                attempt.traversal == Traversal::Walk
+                    ? buildWalkConnections(map, cell, profile, walkCache, attempt.direction)
+                    : buildAirborneConnection(map, cell, profile, attempt);
             combined.footprint = unionOf(combined.footprint, attemptResult.footprint);
             combined.simulatedTicks += attemptResult.simulatedTicks;
             for (RouteConnection& connection : attemptResult.connections)

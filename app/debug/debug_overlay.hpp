@@ -9,7 +9,7 @@
 
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 
 #include "debug/navigation_debug.hpp"

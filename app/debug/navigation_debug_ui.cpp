@@ -13,7 +13,7 @@
 #include "graphics/display_viewport.hpp"
 #include "navigation_debug.hpp"
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "ui/hud_draw.hpp"
 
 namespace simple_platformer

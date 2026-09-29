@@ -16,7 +16,7 @@
 #include <imgui.h>
 
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "ui/hud_draw.hpp"
 

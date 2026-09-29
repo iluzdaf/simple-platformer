@@ -25,6 +25,7 @@
 #include "simple_platformer/navigation/route_search.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
@@ -104,8 +105,7 @@ namespace simple_platformer
             for (const RouteStep& step : route.steps)
             {
                 path.waypoints.push_back(
-                    {feetOf(boundsAtSurface(
-                         tileSize, {step.destinationCell, step.destinationSurface}, bodySize)),
+                    {feetOf(boundsAtSurface(tileSize, step.destination, bodySize)),
                      step.traversal,
                      step.inputs});
             }
@@ -148,7 +148,7 @@ namespace simple_platformer
                 const Cell candidate{cell.x + direction.x, cell.y + direction.y};
                 if (map.contains(candidate) && !map.blocksMovement(candidate))
                 {
-                    connections.push_back({{candidate, Traversal::Fly, {}}, 1});
+                    connections.push_back({{{candidate}, Traversal::Fly, {}}, 1});
                 }
             }
             return connections;

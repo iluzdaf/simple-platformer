@@ -6,20 +6,10 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/input/input_program.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 
 namespace simple_platformer
 {
-    // How a step is travelled. Fly is the one kind a flying actor uses; the rest are a
-    // platformer's.
-    enum class Traversal
-    {
-        Fly,
-        Walk,
-        Fall,
-        Jump,
-        Climb
-    };
-
     // Where the body's feet rest at the end of a step, how it gets there, and the
     // inputs recorded for a fall, jump, or climb; a walk or flight has none.
     struct Waypoint

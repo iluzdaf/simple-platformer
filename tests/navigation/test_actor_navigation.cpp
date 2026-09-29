@@ -23,6 +23,7 @@
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -405,7 +406,10 @@ TEST_CASE(
         simple_platformer::buildPlatformerConnections(platform, {2, 2}, profile).connections;
     const RouteConnection& up = tests::jumpUpFrom(connections, 2);
     const simple_platformer::NavigationPath climbed = pathOf(findPath(
-        platform, tests::restingBody({{2, 2}}, profile), feetIn(up.step.destinationCell), profile));
+        platform,
+        tests::restingBody({{2, 2}}, profile),
+        feetIn(up.step.destination.cell),
+        profile));
     REQUIRE(hasStep(climbed, Traversal::Jump));
 }
 
@@ -570,8 +574,8 @@ TEST_CASE(
     cache.storeConnections(
         start,
         profile,
-        {{{pending, simple_platformer::Traversal::Walk, {}}, 1},
-         {{goal, simple_platformer::Traversal::Walk, {}}, 100}},
+        {{{{pending}, simple_platformer::Traversal::Walk, {}}, 1},
+         {{{goal}, simple_platformer::Traversal::Walk, {}}, 100}},
         {start, goal});
     cache.queue(unrelated, profile);
     cache.queue(pending, profile);
@@ -587,7 +591,7 @@ TEST_CASE(
     REQUIRE(cache.nextPending(profile) == pending);
 
     cache.storeConnections(
-        pending, profile, {{{goal, simple_platformer::Traversal::Walk, {}}, 1}}, {pending, goal});
+        pending, profile, {{{{goal}, simple_platformer::Traversal::Walk, {}}, 1}}, {pending, goal});
     const auto found = resultOf(
         searchWith(map, tests::restingBody({start}, profile), feetIn(goal), profile, cache));
     REQUIRE(found.status == simple_platformer::NavigationPathStatus::Found);

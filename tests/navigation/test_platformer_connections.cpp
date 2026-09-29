@@ -16,11 +16,11 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/route.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/fixed_step.hpp"
@@ -48,7 +48,7 @@ namespace
             connections.end(),
             [destination, traversal](const RouteConnection& connection)
             {
-                return connection.step.destinationCell == destination &&
+                return connection.step.destination.cell == destination &&
                        connection.step.traversal == traversal;
             });
     }
@@ -92,7 +92,7 @@ TEST_CASE("A fall from a ledge records inputs", "[navigation][platformer]")
     const std::vector<RouteConnection> offTheEdge =
         simple_platformer::buildPlatformerConnections(ledge, {2, 0}, profile).connections;
     const RouteConnection& fall = tests::connectionWith(offTheEdge, Traversal::Fall);
-    REQUIRE(fall.step.destinationCell.y > 0);
+    REQUIRE(fall.step.destination.cell.y > 0);
     REQUIRE_FALSE(fall.step.inputs.empty());
 }
 
@@ -134,7 +134,7 @@ TEST_CASE("A recorded jump replays to the landing it promised", "[navigation][pl
     REQUIRE(movement.grounded);
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.step.destinationCell);
+        jump.step.destination.cell);
 }
 
 TEST_CASE("Failed airborne attempts still count their simulated ticks", "[navigation][platformer]")
@@ -249,8 +249,8 @@ TEST_CASE(
             {
                 return connection.step.traversal == Traversal::Climb &&
                        connection.sourceSurface == from &&
-                       connection.step.destinationCell == cell &&
-                       connection.step.destinationSurface == surface &&
+                       connection.step.destination.cell == cell &&
+                       connection.step.destination.surface == surface &&
                        !connection.step.inputs.empty() && connection.cost > 0;
             });
     };
@@ -318,7 +318,7 @@ TEST_CASE(
         {
             return connection.step.traversal == Traversal::Climb &&
                    connection.sourceSurface == ClimbSurface::LeftWall &&
-                   connection.step.destinationCell == Cell{2, 0} &&
-                   connection.step.destinationSurface == ClimbSurface::LeftWall;
+                   connection.step.destination.cell == Cell{2, 0} &&
+                   connection.step.destination.surface == ClimbSurface::LeftWall;
         }));
 }

@@ -12,6 +12,7 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/require_near.hpp"
@@ -28,8 +29,8 @@ TEST_CASE("A flying path follower produces intentions for its next step", "[navi
         follower,
         tests::floorPath(
             {0, 0},
-            {{{1, 0}, simple_platformer::Traversal::Fly, {}},
-             {{1, 1}, simple_platformer::Traversal::Fly, {}}}));
+            {{{{1, 0}}, simple_platformer::Traversal::Fly, {}},
+             {{{1, 1}}, simple_platformer::Traversal::Fly, {}}}));
     simple_platformer::Aabb bounds{{4.0F, 4.0F}, {8.0F, 12.0F}};
     const simple_platformer::FlyingMovement movement;
 
@@ -57,7 +58,7 @@ TEST_CASE(
 {
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
-        follower, tests::floorPath({0, 0}, {{{1, 0}, simple_platformer::Traversal::Fly, {}}}));
+        follower, tests::floorPath({0, 0}, {{{{1, 0}}, simple_platformer::Traversal::Fly, {}}}));
     simple_platformer::Aabb bounds{{19.75F, 4.0F}, {8.0F, 12.0F}};
     const simple_platformer::FlyingMovement movement{60.0F};
 
@@ -105,7 +106,7 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.step.destinationCell);
+        jump.step.destination.cell);
 }
 
 TEST_CASE(
@@ -153,7 +154,7 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.step.destinationCell);
+        jump.step.destination.cell);
 }
 
 TEST_CASE(
@@ -177,7 +178,7 @@ TEST_CASE(
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(
         follower,
-        tests::floorPath({1, 2}, {{{2, 2}, simple_platformer::Traversal::Walk, {}}, jump.step}));
+        tests::floorPath({1, 2}, {{{{2, 2}}, simple_platformer::Traversal::Walk, {}}, jump.step}));
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {1, 2}, bodySize), {0.0F, 0.0F}};
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
@@ -199,7 +200,7 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.step.destinationCell);
+        jump.step.destination.cell);
 }
 
 TEST_CASE(

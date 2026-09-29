@@ -18,6 +18,7 @@
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/actor_navigation.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -53,7 +54,7 @@ TEST_CASE("A break drops only the cells whose footprint holds it", "[navigation]
     cache.storeConnections(
         {9, 1},
         profile,
-        {{{{10, 1}, simple_platformer::Traversal::Walk, {}}, 1}},
+        {{{{{10, 1}}, simple_platformer::Traversal::Walk, {}}, 1}},
         {{8, 0}, {10, 2}});
     REQUIRE(cache.cellsConnected(profile) == 1);
     REQUIRE(cache.connectionWritesSoFar() == 3);
@@ -232,7 +233,7 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
             [cell](const RouteConnection& connection)
             {
                 return connection.step.traversal == simple_platformer::Traversal::Walk &&
-                       connection.step.destinationCell == cell;
+                       connection.step.destination.cell == cell;
             });
     };
     REQUIRE(walksTo(*cache.cachedConnections({1, 0}, profile), {6, 0}));
@@ -264,7 +265,7 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
         [](const RouteConnection& connection)
         {
             return connection.step.traversal == simple_platformer::Traversal::Fall &&
-                   connection.step.destinationCell == Cell{3, 2};
+                   connection.step.destination.cell == Cell{3, 2};
         }));
     // A cell whose simulations never came near the hole was left as it was.
     const std::vector<RouteConnection>* farAwayAfter = cache.cachedConnections({23, 0}, profile);

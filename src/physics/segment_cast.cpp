@@ -93,11 +93,11 @@ namespace simple_platformer
             const glm::vec2 halfSize = movingSize * 0.5F;
             const glm::vec2 minimum = glm::min(start, end) - halfSize;
             const glm::vec2 maximum = glm::max(start, end) + halfSize;
-            const float cellSize = static_cast<float>(tileSize);
-            const int firstColumn = static_cast<int>(std::floor(minimum.x / cellSize));
-            const int lastColumn = static_cast<int>(std::floor(maximum.x / cellSize));
-            const int firstRow = static_cast<int>(std::floor(minimum.y / cellSize));
-            const int lastRow = static_cast<int>(std::floor(maximum.y / cellSize));
+            const float tileLength = static_cast<float>(tileSize);
+            const int firstColumn = static_cast<int>(std::floor(minimum.x / tileLength));
+            const int lastColumn = static_cast<int>(std::floor(maximum.x / tileLength));
+            const int firstRow = static_cast<int>(std::floor(minimum.y / tileLength));
+            const int lastRow = static_cast<int>(std::floor(maximum.y / tileLength));
 
             for (int row = firstRow; row <= lastRow; ++row)
             {
@@ -110,7 +110,7 @@ namespace simple_platformer
 
                     const Aabb tile{
                         {static_cast<float>(column * tileSize), static_cast<float>(row * tileSize)},
-                        {cellSize, cellSize}};
+                        {tileLength, tileLength}};
                     visit({column, row}, expandedForMovingBox(tile, movingSize));
                 }
             }

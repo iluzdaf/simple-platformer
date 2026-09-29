@@ -234,5 +234,20 @@ jobs:
           "/p:CLToolPath=$env:SCCACHE_MSBUILD_PATH"
           /p:TrackFileAccess=false
           /p:UseMultiToolTask=true
+      # F5 starts a target in its LocalDebuggerWorkingDirectory, or in its project
+      # directory when none is set. CTest chooses its own, so it cannot catch this.
+      - name: Run tests where the Visual Studio debugger starts them
+        run: |
+          $project = Resolve-Path build\windows-vs\simple_platformer_tests.vcxproj
+          $tests = Resolve-Path build\windows-vs\Debug\simple_platformer_tests.exe
+          $directory = (msbuild $project -nologo -p:Configuration=Debug -p:Platform=x64 `
+            -getProperty:LocalDebuggerWorkingDirectory | Out-String).Trim()
+          if (-not $directory) { $directory = Split-Path $project }
+          Write-Output "The debugger starts the tests in $directory"
+          Push-Location $directory
+          & $tests
+          $status = $LASTEXITCODE
+          Pop-Location
+          exit $status
       - name: Show compiler cache statistics
         run: "& $env:SCCACHE_PATH --show-stats"

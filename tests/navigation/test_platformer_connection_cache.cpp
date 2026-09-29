@@ -11,13 +11,13 @@
 
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
-#include "simple_platformer/navigation/connection_cache.hpp"
-#include "simple_platformer/navigation/navigation_graph.hpp"
+#include "simple_platformer/navigation/platformer_connection_cache.hpp"
+#include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/fixed_step.hpp"
-#include "support/navigation_connections.hpp"
+#include "support/route_connections.hpp"
 #include "support/tile_map_builder.hpp"
 
 namespace

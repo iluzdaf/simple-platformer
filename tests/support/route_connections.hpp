@@ -8,7 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "simple_platformer/math/coordinates.hpp"
-#include "simple_platformer/navigation/navigation_graph.hpp"
+#include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "support/require_same_input_program.hpp"
 

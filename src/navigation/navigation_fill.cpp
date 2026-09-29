@@ -11,7 +11,7 @@
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/actor_navigation.hpp"
-#include "simple_platformer/navigation/connection_cache.hpp"
+#include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"

@@ -13,7 +13,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/navigation/navigation_graph.hpp"
+#include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
@@ -26,7 +26,7 @@
 #include "support/tile_size.hpp"
 #include "support/fixed_step.hpp"
 #include "support/navigation_paths.hpp"
-#include "support/navigation_connections.hpp"
+#include "support/route_connections.hpp"
 
 TEST_CASE("Debug overlay data describes path connections and progress", "[app][debug]")
 {

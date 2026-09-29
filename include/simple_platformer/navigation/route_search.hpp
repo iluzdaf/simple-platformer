@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "simple_platformer/math/coordinates.hpp"
-#include "simple_platformer/navigation/navigation_graph.hpp"
+#include "simple_platformer/navigation/route.hpp"
 
 namespace simple_platformer
 {

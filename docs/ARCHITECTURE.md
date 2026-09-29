@@ -588,7 +588,7 @@ from the wall stays on it.
 
 ### The search
 
-`path_search` is one A* over locations, a cell and a surface. Flying and ground
+`route_search` is one A* over locations, a cell and a surface. Flying and ground
 policies use only the floor of each cell; climbing policies also use its walls and
 ceiling. For each expanded
 location it asks the movement policy for outgoing connections, each with a cost and
@@ -656,7 +656,7 @@ A cell's connections depend only on the map, the cell, and a
 `PlatformerTraversalProfile` (body size, movement configuration, simulation step,
 and optional climb capability), so actors with the same profile can share them
 while the map stands.
-`PlatformerConnectionCache` in `navigation/connection_cache` stores, per profile:
+`PlatformerConnectionCache` in `navigation/platformer_connection_cache` stores, per profile:
 
 - the connections leaving each cell, from every surface of it, with the footprint
   their simulation swept, built by searches or background fill;

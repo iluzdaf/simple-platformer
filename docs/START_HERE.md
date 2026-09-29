@@ -249,7 +249,7 @@ still applies the requested attacks and contact damage.
 Navigation is the most advanced part of the repository. First understand the NPC state
 machine and ordinary movement. Then read:
 
-1. [`path_search.cpp`](../src/navigation/path_search.cpp) for the generic lowest-cost
+1. [`route_search.cpp`](../src/navigation/route_search.cpp) for the generic lowest-cost
    search;
 2. [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp) for `findActorPath`,
    the one entry point NPCs call, and the flying search behind it, the simplest
@@ -260,8 +260,8 @@ machine and ordinary movement. Then read:
    can stand or hold a surface;
 5. [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp) for
    simulated traversals;
-6. [`connection_cache.cpp`](../src/navigation/connection_cache.cpp) for the
-   traversal-profile cache and its invalidation rules;
+6. [`platformer_connection_cache.cpp`](../src/navigation/platformer_connection_cache.cpp)
+   for the traversal-profile cache and its invalidation rules;
 7. [`navigation_fill.cpp`](../src/navigation/navigation_fill.cpp) for queuing and
    progressively caching connections;
 8. the platformer search in [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp)

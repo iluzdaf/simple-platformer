@@ -7,7 +7,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/connection_cache.hpp"
+#include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"

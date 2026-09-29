@@ -8,7 +8,6 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"

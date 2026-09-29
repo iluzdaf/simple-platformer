@@ -1,6 +1,5 @@
 #include "simple_platformer/npc/npc_system.hpp"
 
-#include <algorithm>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -100,12 +99,16 @@ namespace simple_platformer
         // off its end since.
         bool needsPath(const PathFollower& follower, glm::vec2 feet, glm::vec2 goal)
         {
-            const bool targetMoved = !follower.target.has_value() ||
-                                     glm::distance(*follower.target, goal) > RetargetDistance;
-            const bool displacedAfterCompletion =
-                pathComplete(follower) &&
-                glm::distance(feet, endOf(*follower.path)) > RetargetDistance;
-            return targetMoved || !follower.path.has_value() || displacedAfterCompletion;
+            if (!follower.path.has_value() || !follower.target.has_value())
+            {
+                return true;
+            }
+            if (glm::distance(*follower.target, goal) > RetargetDistance)
+            {
+                return true;
+            }
+            return pathComplete(follower) &&
+                   glm::distance(feet, endOf(*follower.path)) > RetargetDistance;
         }
 
         // Whether a tile has broken since the path was planned. The path may run through

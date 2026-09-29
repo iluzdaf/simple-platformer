@@ -33,6 +33,7 @@
 #include "support/add_player.hpp"
 #include "support/npc_machine_builder.hpp"
 #include "support/fixed_step.hpp"
+#include "support/tile_size.hpp"
 
 using tests::actor;
 using tests::brain;

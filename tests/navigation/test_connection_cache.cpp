@@ -14,7 +14,6 @@
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_graph.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"

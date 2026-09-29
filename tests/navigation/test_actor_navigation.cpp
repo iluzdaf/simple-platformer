@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -69,9 +70,24 @@ namespace
             simple_platformer::boundsAtSurface(tests::TileSize, location, SmallBody));
     }
 
+    // The search's result, or a failure if the body rested nowhere.
+    NavigationPathResult resultOf(const std::optional<NavigationPathResult>& result)
+    {
+        if (!result.has_value())
+        {
+            throw std::logic_error("The search found nowhere to start from");
+        }
+        return *result;
+    }
+
+    simple_platformer::NavigationPath pathOf(const NavigationPathResult& result)
+    {
+        return result.path.value_or(simple_platformer::NavigationPath{});
+    }
+
     glm::vec2 endOf(const NavigationPathResult& result)
     {
-        return simple_platformer::endOf(result.path.value_or(simple_platformer::NavigationPath{}));
+        return simple_platformer::endOf(pathOf(result));
     }
 
     std::optional<NavigationPathResult> searchWith(
@@ -88,7 +104,7 @@ namespace
 
     // A search once the fill has cached every cell of the map for the profile, as the
     // game's world does for each NPC.
-    std::optional<NavigationPathResult> findPath(
+    NavigationPathResult findPath(
         const simple_platformer::TileMap& map,
         const simple_platformer::Aabb& body,
         glm::vec2 target,
@@ -97,7 +113,7 @@ namespace
     {
         PlatformerConnectionCache cache;
         tests::fillConnections(map, cache, profile);
-        return searchWith(map, body, target, profile, cache, frameProfile);
+        return resultOf(searchWith(map, body, target, profile, cache, frameProfile));
     }
 
     // Where a search from this body starts: the resting feet it chose, or nothing when
@@ -107,8 +123,10 @@ namespace
         const simple_platformer::Aabb& body,
         const PlatformerTraversalProfile& profile)
     {
+        PlatformerConnectionCache cache;
+        tests::fillConnections(map, cache, profile);
         const std::optional<NavigationPathResult> result =
-            findPath(map, body, simple_platformer::feetOf(body), profile);
+            searchWith(map, body, simple_platformer::feetOf(body), profile, cache);
         if (!result.has_value() || !result->path.has_value())
         {
             return std::nullopt;
@@ -200,7 +218,6 @@ TEST_CASE("Actor navigation searches with the actor's capabilities", "[navigatio
     const glm::vec2 goalFeet = simple_platformer::feetInCell(tests::TileSize, {11, 5});
     simple_platformer::Actor actor =
         tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(startFeet).walking();
-    actor.platformerMovement->grounded = true;
 
     const auto searchAs = [&map, &goalFeet](const simple_platformer::Actor& navigator)
     {
@@ -209,24 +226,17 @@ TEST_CASE("Actor navigation searches with the actor's capabilities", "[navigatio
             map,
             cache,
             simple_platformer::platformerTraversalProfileFor(navigator, tests::FixedStepSeconds));
-        return simple_platformer::findActorPath(
-            map, navigator, goalFeet, tests::FixedStepSeconds, cache);
+        return resultOf(simple_platformer::findActorPath(
+            map, navigator, goalFeet, tests::FixedStepSeconds, cache));
     };
 
-    const auto walking = searchAs(actor);
-    REQUIRE(walking.has_value());
-    REQUIRE(walking->status == simple_platformer::NavigationPathStatus::Unreachable);
+    REQUIRE(searchAs(actor).status == simple_platformer::NavigationPathStatus::Unreachable);
 
     actor.surfaceClimb = simple_platformer::SurfaceClimb{{60.0F}};
-    const auto climbing = searchAs(actor);
-    REQUIRE(climbing.has_value());
-    REQUIRE(climbing->status == simple_platformer::NavigationPathStatus::Found);
-    REQUIRE(climbing->path.has_value());
-    REQUIRE(std::any_of(
-        climbing->path->waypoints.begin(),
-        climbing->path->waypoints.end(),
-        [](const simple_platformer::Waypoint& waypoint)
-        { return waypoint.traversal == simple_platformer::Traversal::Climb; }));
+    const NavigationPathResult climbing = searchAs(actor);
+    REQUIRE(climbing.status == simple_platformer::NavigationPathStatus::Found);
+    REQUIRE(climbing.path.has_value());
+    REQUIRE(hasStep(pathOf(climbing), Traversal::Climb));
 }
 
 TEST_CASE("Actor navigation starts from where the body rests", "[navigation][actor]")
@@ -254,13 +264,15 @@ TEST_CASE("Actor navigation starts from where the body rests", "[navigation][act
     // Against the ceiling, the body rests there; the climb state is not consulted.
     const NavigationLocation hanging{{3, 1}, ClimbSurface::Ceiling};
     actor.body.bounds = simple_platformer::boundsAtSurface(tests::TileSize, hanging, bodySize);
-    REQUIRE(actor.surfaceClimb->surface == ClimbSurface::None);
-    const auto held =
-        simple_platformer::findActorPath(map, actor, floorFeet, tests::FixedStepSeconds, cache);
-    REQUIRE(held.has_value());
-    REQUIRE(held->status == simple_platformer::NavigationPathStatus::Found);
-    REQUIRE(held->path.has_value());
-    REQUIRE(held->path->startFeet == simple_platformer::feetOf(actor.body.bounds));
+    REQUIRE(actor.surfaceClimb.has_value());
+    REQUIRE(
+        actor.surfaceClimb.value_or(simple_platformer::SurfaceClimb{}).surface ==
+        ClimbSurface::None);
+    const NavigationPathResult held = resultOf(
+        simple_platformer::findActorPath(map, actor, floorFeet, tests::FixedStepSeconds, cache));
+    REQUIRE(held.status == simple_platformer::NavigationPathStatus::Found);
+    REQUIRE(held.path.has_value());
+    REQUIRE(pathOf(held).startFeet == simple_platformer::feetOf(actor.body.bounds));
 }
 
 TEST_CASE("A walker starts from the standable cell that supports it", "[navigation][actor]")
@@ -327,10 +339,10 @@ TEST_CASE("Traversal profiles distinguish optional climbing capabilities", "[nav
     const auto climbing =
         simple_platformer::platformerTraversalProfileFor(actor, tests::FixedStepSeconds);
     REQUIRE(climbing.climb.has_value());
-    REQUIRE(climbing.climb->speed == 60.0F);
+    REQUIRE(climbing.climb.value_or(simple_platformer::SurfaceClimbConfig{}).speed == 60.0F);
     REQUIRE_FALSE(climbing == walking);
 
-    actor.surfaceClimb->config.speed = 90.0F;
+    actor.surfaceClimb = simple_platformer::SurfaceClimb{{90.0F}};
     REQUIRE_FALSE(
         simple_platformer::platformerTraversalProfileFor(actor, tests::FixedStepSeconds) ==
         climbing);
@@ -343,13 +355,12 @@ TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", ".##.", "...."});
 
     simple_platformer::FrameProfile profile;
-    const simple_platformer::NavigationPathResult result =
-        *findFlight(map, {0, 1}, simple_platformer::feetInCell(tests::TileSize, {3, 1}), &profile);
+    const simple_platformer::NavigationPathResult result = resultOf(
+        findFlight(map, {0, 1}, simple_platformer::feetInCell(tests::TileSize, {3, 1}), &profile));
 
     REQUIRE(result.status == simple_platformer::NavigationPathStatus::Found);
     REQUIRE(result.path.has_value());
-    const simple_platformer::NavigationPath route =
-        result.path.value_or(simple_platformer::NavigationPath{});
+    const simple_platformer::NavigationPath route = pathOf(result);
     REQUIRE(cellOf(route.startFeet) == simple_platformer::GridPosition{0, 1});
     REQUIRE(cellOf(route.waypoints.back().feet) == simple_platformer::GridPosition{3, 1});
     REQUIRE(route.waypoints.front().traversal == simple_platformer::Traversal::Fly);
@@ -376,14 +387,11 @@ TEST_CASE(
         tests::TileMapBuilder({".....###.....", ".............", ".............", "#############"});
     simple_platformer::PlatformerMovementConfig movement;
     movement.maximumSpeed = 60.0F;
-    const simple_platformer::NavigationPath preferred =
-        findPath(
-            hop,
-            tests::restingBody({{12, 2}}, {TallBody, movement, tests::FixedStepSeconds}),
-            feetIn({4, 2}),
-            {TallBody, movement, tests::FixedStepSeconds})
-            .value()
-            .path.value_or(simple_platformer::NavigationPath{});
+    const simple_platformer::NavigationPath preferred = pathOf(findPath(
+        hop,
+        tests::restingBody({{12, 2}}, {TallBody, movement, tests::FixedStepSeconds}),
+        feetIn({4, 2}),
+        {TallBody, movement, tests::FixedStepSeconds}));
     REQUIRE_FALSE(preferred.waypoints.empty());
     REQUIRE_FALSE(hasStep(preferred, Traversal::Jump));
 
@@ -396,14 +404,8 @@ TEST_CASE(
     const std::vector<NavigationConnection> connections =
         simple_platformer::buildPlatformerConnections(platform, {2, 2}, profile).connections;
     const NavigationConnection& up = tests::jumpUpFrom(connections, 2);
-    const simple_platformer::NavigationPath climbed =
-        findPath(
-            platform,
-            tests::restingBody({{2, 2}}, profile),
-            feetIn(up.step.destinationCell),
-            profile)
-            .value()
-            .path.value_or(simple_platformer::NavigationPath{});
+    const simple_platformer::NavigationPath climbed = pathOf(findPath(
+        platform, tests::restingBody({{2, 2}}, profile), feetIn(up.step.destinationCell), profile));
     REQUIRE(hasStep(climbed, Traversal::Jump));
 }
 
@@ -419,8 +421,7 @@ TEST_CASE("Platformer search rejects an invalid step", "[navigation][platformer]
                 map,
                 tests::restingBody({{0, 0}}, {SmallBody, movement, step}),
                 feetIn({1, 0}),
-                {SmallBody, movement, step})
-                .value(),
+                {SmallBody, movement, step}),
             std::invalid_argument);
     }
 }
@@ -437,7 +438,6 @@ TEST_CASE("Platformer searches report what they cost", "[navigation][platformer]
     simple_platformer::FrameProfile searchCost;
     const std::optional<simple_platformer::NavigationPath> path =
         findPath(map, tests::restingBody({{2, 2}}, profile), feetIn({7, 2}), profile, &searchCost)
-            .value()
             .path;
     REQUIRE(path.has_value());
     // The search expands at least its start cell.
@@ -454,7 +454,7 @@ TEST_CASE(
     const glm::vec2 midJump = feetIn({5, 1}) - glm::vec2{0.0F, 4.0F};
 
     const NavigationPathResult result =
-        findPath(map, tests::restingBody({{1, 2}}, Walker), midJump, Walker).value();
+        findPath(map, tests::restingBody({{1, 2}}, Walker), midJump, Walker);
 
     // No body resting anywhere reaches the point, so the path stops as close as it can.
     REQUIRE(result.status == NavigationPathStatus::Unreachable);
@@ -472,18 +472,14 @@ TEST_CASE(
     const simple_platformer::TileMap map = climbableWall();
     const NavigationLocation start{{2, 3}, ClimbSurface::LeftWall};
     const NavigationPathResult result = findPath(
-                                            map,
-                                            tests::restingBody(start, Climber),
-                                            feetAt({{2, 2}, ClimbSurface::LeftWall}),
-                                            Climber)
-                                            .value();
+        map, tests::restingBody(start, Climber), feetAt({{2, 2}, ClimbSurface::LeftWall}), Climber);
     REQUIRE(result.path.has_value());
 
     simple_platformer::Body body{
         simple_platformer::boundsAtSurface(tests::TileSize, start, SmallBody), {0.0F, 0.0F}};
     body.bounds.position.y -= 6.0F;
     simple_platformer::SurfaceClimb climb{{60.0F}, ClimbSurface::LeftWall};
-    REQUIRE(followsToTheEnd(map, *result.path, body, climb, 120));
+    REQUIRE(followsToTheEnd(map, pathOf(result), body, climb, 120));
 }
 
 TEST_CASE(
@@ -494,20 +490,20 @@ TEST_CASE(
     const NavigationLocation start{{2, 5}};
 
     const NavigationPathResult walking =
-        findPath(map, tests::restingBody(start, Walker), feetIn({11, 5}), Walker).value();
+        findPath(map, tests::restingBody(start, Walker), feetIn({11, 5}), Walker);
     REQUIRE(walking.status == NavigationPathStatus::Unreachable);
 
     simple_platformer::FrameProfile searchCost;
     const NavigationPathResult result =
-        findPath(map, tests::restingBody(start, Climber), feetIn({11, 5}), Climber, &searchCost)
-            .value();
+        findPath(map, tests::restingBody(start, Climber), feetIn({11, 5}), Climber, &searchCost);
     REQUIRE(result.status == NavigationPathStatus::Found);
     REQUIRE(result.path.has_value());
-    const auto passes = [&](NavigationLocation location)
+    const simple_platformer::NavigationPath route = pathOf(result);
+    const auto passes = [&route](NavigationLocation location)
     {
         return std::any_of(
-            result.path->waypoints.begin(),
-            result.path->waypoints.end(),
+            route.waypoints.begin(),
+            route.waypoints.end(),
             [location](const simple_platformer::Waypoint& waypoint)
             { return waypoint.feet == feetAt(location); });
     };
@@ -522,7 +518,7 @@ TEST_CASE(
     simple_platformer::Body body{
         simple_platformer::boundsAtSurface(tests::TileSize, start, SmallBody), {0.0F, 0.0F}};
     simple_platformer::SurfaceClimb climb{{60.0F}};
-    REQUIRE(followsToTheEnd(map, *result.path, body, climb, 2000));
+    REQUIRE(followsToTheEnd(map, pathOf(result), body, climb, 2000));
 }
 
 // Searching with the connection cache
@@ -538,10 +534,10 @@ TEST_CASE("A search never simulates or writes to the cache", "[navigation][cache
     // An empty cache: the search stores nothing, queues the cell it needs at the front
     // of the fill, and defers.
     FrameProfile waiting;
-    const std::optional<NavigationPathResult> deferred =
-        searchWith(map, tests::restingBody(start, Walker), goal, Walker, cache, &waiting);
-    REQUIRE(deferred->status == NavigationPathStatus::Deferred);
-    REQUIRE_FALSE(deferred->path.has_value());
+    const NavigationPathResult deferred =
+        resultOf(searchWith(map, tests::restingBody(start, Walker), goal, Walker, cache, &waiting));
+    REQUIRE(deferred.status == NavigationPathStatus::Deferred);
+    REQUIRE_FALSE(deferred.path.has_value());
     REQUIRE(cache.cachedCellCount(Walker) == 0);
     REQUIRE(cache.connectionWritesSoFar() == 0);
     REQUIRE(cache.cellsPending(Walker) == 1);
@@ -553,9 +549,9 @@ TEST_CASE("A search never simulates or writes to the cache", "[navigation][cache
     tests::fillConnections(map, cache, Walker);
     const std::size_t writesBeforeSearching = cache.connectionWritesSoFar();
     FrameProfile reading;
-    const std::optional<NavigationPathResult> found =
-        searchWith(map, tests::restingBody(start, Walker), goal, Walker, cache, &reading);
-    REQUIRE(found->status == NavigationPathStatus::Found);
+    const NavigationPathResult found =
+        resultOf(searchWith(map, tests::restingBody(start, Walker), goal, Walker, cache, &reading));
+    REQUIRE(found.status == NavigationPathStatus::Found);
     REQUIRE(simple_platformer::frameStatisticCount(reading, "Cells expanded") > 0);
     REQUIRE(cache.connectionWritesSoFar() == writesBeforeSearching);
 }
@@ -582,10 +578,8 @@ TEST_CASE(
     REQUIRE(cache.nextPending(profile) == unrelated);
 
     FrameProfile waiting;
-    const auto deferred =
-        searchWith(
-            map, tests::restingBody({start}, profile), feetIn(goal), profile, cache, &waiting)
-            .value();
+    const auto deferred = resultOf(searchWith(
+        map, tests::restingBody({start}, profile), feetIn(goal), profile, cache, &waiting));
     REQUIRE(deferred.status == simple_platformer::NavigationPathStatus::Deferred);
     REQUIRE_FALSE(deferred.path.has_value());
     REQUIRE(simple_platformer::frameStatisticCount(waiting, "Paths deferred") == 1);
@@ -594,12 +588,11 @@ TEST_CASE(
 
     cache.storeConnections(
         pending, profile, {{{goal, simple_platformer::Traversal::Walk, {}}, 1}}, {pending, goal});
-    const auto found =
-        searchWith(map, tests::restingBody({start}, profile), feetIn(goal), profile, cache).value();
+    const auto found = resultOf(
+        searchWith(map, tests::restingBody({start}, profile), feetIn(goal), profile, cache));
     REQUIRE(found.status == simple_platformer::NavigationPathStatus::Found);
     REQUIRE(found.path.has_value());
-    const simple_platformer::NavigationPath route =
-        found.path.value_or(simple_platformer::NavigationPath{});
+    const simple_platformer::NavigationPath route = pathOf(found);
     REQUIRE(route.waypoints.size() == 2);
     REQUIRE(route.waypoints.front().feet == feetIn(pending));
 }

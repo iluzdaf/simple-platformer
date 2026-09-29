@@ -6,12 +6,12 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/navigation_graph.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/npc/npc.hpp"
@@ -27,6 +27,7 @@
 #include "support/actor_components.hpp"
 #include "support/prepare_navigation_cache.hpp"
 #include "support/fixed_step.hpp"
+#include "support/tile_size.hpp"
 
 TEST_CASE("A climbing NPC patrols over a wall and ceiling", "[npc][navigation][climb]")
 {

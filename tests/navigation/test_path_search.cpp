@@ -53,6 +53,11 @@ namespace
         return std::abs(cell.x - goal.x) + std::abs(cell.y - goal.y);
     }
 
+    simple_platformer::LocationPath routeOf(const PathSearchResult& result)
+    {
+        return result.path.value_or(simple_platformer::LocationPath{});
+    }
+
     // The floor of the cell, the only location a policy without climbing uses.
     NavigationLocation floorOf(int x, int y)
     {
@@ -67,13 +72,12 @@ TEST_CASE(
     const PathSearchResult unreachable = simple_platformer::findLowestCostPath(
         floorOf(0, 0), floorOf(1, 0).cell, TestGrid, noConnections, zeroHeuristic);
     REQUIRE(unreachable.path.has_value());
-    REQUIRE(unreachable.path->steps.empty());
+    REQUIRE(routeOf(unreachable).steps.empty());
 
     const auto path = simple_platformer::findLowestCostPath(
         floorOf(2, 3), floorOf(2, 3).cell, TestGrid, noConnections, zeroHeuristic);
     REQUIRE(path.path.has_value());
-    const simple_platformer::LocationPath route =
-        path.path.value_or(simple_platformer::LocationPath{});
+    const simple_platformer::LocationPath route = routeOf(path);
     REQUIRE(route.start.cell == GridPosition{2, 3});
     REQUIRE(route.steps.empty());
 }
@@ -108,10 +112,10 @@ TEST_CASE("Search keeps different attachments in one cell distinct", "[navigatio
     const PathSearchResult result = simple_platformer::findLowestCostPath(
         NavigationLocation{{0, 0}, ClimbSurface::None}, {1, 0}, {2, 1}, connections, zeroHeuristic);
     REQUIRE(result.path.has_value());
-    REQUIRE(result.path->steps.size() == 3);
-    REQUIRE(result.path->steps[0].destinationSurface == ClimbSurface::LeftWall);
-    REQUIRE(result.path->steps[1].destinationSurface == ClimbSurface::Ceiling);
-    REQUIRE(result.path->steps[2].destinationCell == GridPosition{1, 0});
+    REQUIRE(routeOf(result).steps.size() == 3);
+    REQUIRE(routeOf(result).steps[0].destinationSurface == ClimbSurface::LeftWall);
+    REQUIRE(routeOf(result).steps[1].destinationSurface == ClimbSurface::Ceiling);
+    REQUIRE(routeOf(result).steps[2].destinationCell == GridPosition{1, 0});
 }
 
 TEST_CASE(
@@ -127,8 +131,7 @@ TEST_CASE(
     const auto path = simple_platformer::findLowestCostPath(
         floorOf(0, 0), floorOf(2, 0).cell, TestGrid, connections, zeroHeuristic);
     REQUIRE(path.path.has_value());
-    const simple_platformer::LocationPath route =
-        path.path.value_or(simple_platformer::LocationPath{});
+    const simple_platformer::LocationPath route = routeOf(path);
     REQUIRE(route.steps.size() == 2);
     REQUIRE(route.steps.front().traversal == simple_platformer::Traversal::Walk);
 
@@ -138,8 +141,7 @@ TEST_CASE(
     const auto leap = simple_platformer::findLowestCostPath(
         floorOf(0, 0), floorOf(4, 0).cell, TestGrid, leaping, zeroHeuristic);
     REQUIRE(leap.path.has_value());
-    const simple_platformer::LocationPath leapRoute =
-        leap.path.value_or(simple_platformer::LocationPath{});
+    const simple_platformer::LocationPath leapRoute = routeOf(leap);
     REQUIRE(leapRoute.steps.size() == 1);
     REQUIRE(leapRoute.steps.front().destinationCell == GridPosition{4, 0});
 }
@@ -161,8 +163,8 @@ TEST_CASE("A failed search leads to the closest reachable location", "[navigatio
     const PathSearchResult none = simple_platformer::findLowestCostPath(
         floorOf(0, 0), floorOf(5, 0).cell, TestGrid, forwardOnly, gridSteps);
     REQUIRE(none.path.has_value());
-    REQUIRE(simple_platformer::endOf(*none.path) == floorOf(2, 0));
-    REQUIRE(none.path->steps.size() == 2);
+    REQUIRE(simple_platformer::endOf(routeOf(none)) == floorOf(2, 0));
+    REQUIRE(routeOf(none).steps.size() == 2);
 
     const PathSearchResult found = simple_platformer::findLowestCostPath(
         floorOf(0, 0), floorOf(2, 0).cell, TestGrid, forwardOnly, gridSteps);
@@ -197,8 +199,7 @@ TEST_CASE("A connection policy's costs determine the cheapest path", "[navigatio
     const auto path = simple_platformer::findLowestCostPath(
         floorOf(0, 0), floorOf(2, 0).cell, TestGrid, expensiveJump, zeroHeuristic);
     REQUIRE(path.path.has_value());
-    const simple_platformer::LocationPath route =
-        path.path.value_or(simple_platformer::LocationPath{});
+    const simple_platformer::LocationPath route = routeOf(path);
     REQUIRE(route.steps.size() == 2);
     REQUIRE(route.steps.front().traversal == simple_platformer::Traversal::Walk);
 
@@ -214,8 +215,7 @@ TEST_CASE("A connection policy's costs determine the cheapest path", "[navigatio
     const auto direct = simple_platformer::findLowestCostPath(
         floorOf(0, 0), floorOf(2, 0).cell, TestGrid, originalCosts, zeroHeuristic);
     REQUIRE(direct.path.has_value());
-    const simple_platformer::LocationPath directRoute =
-        direct.path.value_or(simple_platformer::LocationPath{});
+    const simple_platformer::LocationPath directRoute = routeOf(direct);
     REQUIRE(directRoute.steps.size() == 1);
     REQUIRE(directRoute.steps.front().traversal == simple_platformer::Traversal::Jump);
     REQUIRE(directRoute.steps.front().inputs.size() == 1);
@@ -313,7 +313,7 @@ TEST_CASE("A search stops at the cheapest location in the goal cell", "[navigati
         floorOf(0, 0), {1, 0}, TestGrid, connections, zeroHeuristic);
     REQUIRE(result.path.has_value());
     REQUIRE(
-        simple_platformer::endOf(*result.path) ==
+        simple_platformer::endOf(routeOf(result)) ==
         NavigationLocation{{1, 0}, ClimbSurface::LeftWall});
 }
 
@@ -332,5 +332,5 @@ TEST_CASE("A goal off the grid is searched for and never reached", "[navigation]
     const PathSearchResult result = simple_platformer::findLowestCostPath(
         floorOf(0, 0), {20, 0}, TestGrid, forwardOnly, gridSteps);
     REQUIRE(result.path.has_value());
-    REQUIRE(simple_platformer::endOf(*result.path) == floorOf(7, 0));
+    REQUIRE(simple_platformer::endOf(routeOf(result)) == floorOf(7, 0));
 }

@@ -416,18 +416,19 @@ namespace simple_platformer
                     intentions.direction.x = offset.x / distancePerTick;
                 }
             }
-            else if (
-                from.surface == ClimbSurface::Ceiling && std::abs(offset.x) > ClimbArrivalDistance)
+            else
             {
-                intentions.direction.x = offset.x / distancePerTick;
-            }
-            else if (std::abs(offset.y) > ClimbArrivalDistance)
-            {
-                intentions.direction.y = offset.y / distancePerTick;
-            }
-            else if (std::abs(offset.x) > ClimbArrivalDistance)
-            {
-                intentions.direction.x = offset.x / distancePerTick;
+                // A ceiling is travelled sideways, a wall up or down.
+                const glm::length_t alongSurface = from.surface == ClimbSurface::Ceiling ? 0 : 1;
+                const glm::length_t acrossSurface = 1 - alongSurface;
+                if (std::abs(offset[alongSurface]) > ClimbArrivalDistance)
+                {
+                    intentions.direction[alongSurface] = offset[alongSurface] / distancePerTick;
+                }
+                else if (std::abs(offset[acrossSurface]) > ClimbArrivalDistance)
+                {
+                    intentions.direction[acrossSurface] = offset[acrossSurface] / distancePerTick;
+                }
             }
             intentions.direction = glm::clamp(intentions.direction, -1.0F, 1.0F);
             return intentions;

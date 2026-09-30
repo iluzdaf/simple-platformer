@@ -217,7 +217,7 @@ namespace simple_platformer
 
         SpriteRenderer renderer;
         const int atlas = renderer.loadTexture("assets/textures/sprites.png");
-        const TextureView atlasTexture = renderer.textureView(atlas);
+        const Texture atlasTexture = renderer.texture(atlas);
         FixedStep fixedStep;
         LevelCatalog levelCatalog = loadLevelCatalog("assets/levels/levels.json");
         GameCatalogs gameCatalogs =

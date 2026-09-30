@@ -14,7 +14,7 @@ namespace simple_platformer
 {
     InterfaceRequests drawInterface(
         const Game& game,
-        const TextureView& atlas,
+        const Texture& atlas,
         const std::optional<WindowViewport>& viewport,
         bool inventoryOpen,
         bool simulationPaused)

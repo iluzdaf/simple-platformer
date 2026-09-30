@@ -33,7 +33,7 @@ namespace simple_platformer
     }
 
     bool drawInventoryButton(
-        const TextureView& atlas,
+        const Texture& atlas,
         const SpriteRegion& bagIcon,
         const WindowViewport& viewport)
     {
@@ -72,7 +72,7 @@ namespace simple_platformer
 
     std::optional<std::size_t> drawInventory(
         const Game& game,
-        const TextureView& atlas,
+        const Texture& atlas,
         const WindowViewport& viewport)
     {
         const auto& slots = game.playerInventory().slots();

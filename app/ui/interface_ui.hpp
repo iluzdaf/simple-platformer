@@ -6,7 +6,7 @@
 namespace simple_platformer
 {
     class Game;
-    struct TextureView;
+    struct Texture;
     struct WindowViewport;
 
     // What the player asked for through the interface. The loop applies them after the
@@ -25,7 +25,7 @@ namespace simple_platformer
     // bag click pauses the same frame instead of firing a shot.
     InterfaceRequests drawInterface(
         const Game& game,
-        const TextureView& atlas,
+        const Texture& atlas,
         const std::optional<WindowViewport>& viewport,
         bool inventoryOpen,
         bool simulationPaused);

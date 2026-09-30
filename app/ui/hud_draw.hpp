@@ -5,7 +5,7 @@
 namespace simple_platformer
 {
     struct SpriteRegion;
-    struct TextureView;
+    struct Texture;
 
     constexpr ImU32 HudTextColour = IM_COL32(255, 255, 255, 255);
 
@@ -16,7 +16,7 @@ namespace simple_platformer
     // The atlas region stretched over the screen rectangle.
     void drawAtlasRegion(
         ImDrawList& drawList,
-        const TextureView& atlas,
+        const Texture& atlas,
         const SpriteRegion& region,
         ImVec2 topLeft,
         ImVec2 bottomRight);

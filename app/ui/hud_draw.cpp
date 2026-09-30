@@ -29,7 +29,7 @@ namespace simple_platformer
 
     void drawAtlasRegion(
         ImDrawList& drawList,
-        const TextureView& atlas,
+        const Texture& atlas,
         const SpriteRegion& region,
         ImVec2 topLeft,
         ImVec2 bottomRight)

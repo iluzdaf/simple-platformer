@@ -14,7 +14,7 @@ namespace simple_platformer
     void drawHealthHud(
         const Health& health,
         const HudIcons& icons,
-        const TextureView& atlas,
+        const Texture& atlas,
         const WindowViewport& viewport)
     {
         ImDrawList* drawList = ImGui::GetBackgroundDrawList();

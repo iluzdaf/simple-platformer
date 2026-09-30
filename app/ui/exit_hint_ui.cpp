@@ -14,10 +14,7 @@
 
 namespace simple_platformer
 {
-    void drawLockedExitHint(
-        const Game& game,
-        const TextureView& atlas,
-        const WindowViewport& viewport)
+    void drawLockedExitHint(const Game& game, const Texture& atlas, const WindowViewport& viewport)
     {
         const std::optional<Sprite> icon = game.lockedExitHintIcon();
         const std::optional<glm::vec2> doorTopCenter = game.levelExitScreenPosition();

@@ -196,7 +196,7 @@ namespace simple_platformer
 
     SpriteRenderer::~SpriteRenderer()
     {
-        for (const TextureView& texture : textures)
+        for (const Texture& texture : textures)
         {
             glDeleteTextures(1, &texture.handle);
         }
@@ -221,7 +221,7 @@ namespace simple_platformer
                 "': " + stbi_failure_reason());
         }
 
-        TextureView texture;
+        Texture texture;
         texture.width = width;
         texture.height = height;
         glGenTextures(1, &texture.handle);
@@ -238,7 +238,7 @@ namespace simple_platformer
         return static_cast<int>(textures.size() - 1);
     }
 
-    TextureView SpriteRenderer::textureView(int textureId) const
+    Texture SpriteRenderer::texture(int textureId) const
     {
         if (textureId < 0 || static_cast<std::size_t>(textureId) >= textures.size())
         {
@@ -274,7 +274,7 @@ namespace simple_platformer
                 throw std::out_of_range("A sprite refers to an unknown texture");
             }
 
-            const TextureView& texture = textures[static_cast<std::size_t>(command.textureId)];
+            const Texture& texture = textures[static_cast<std::size_t>(command.textureId)];
             float leftUv = command.source.position.x / static_cast<float>(texture.width);
             float rightUv = (command.source.position.x + command.source.size.x) /
                             static_cast<float>(texture.width);

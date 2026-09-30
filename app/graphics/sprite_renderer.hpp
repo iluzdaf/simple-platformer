@@ -7,8 +7,9 @@ namespace simple_platformer
 {
     struct RenderScene;
 
-    // A loaded texture, for drawing with. The renderer owns and deletes the GL texture.
-    struct TextureView
+    // A loaded texture. The SpriteRenderer owns and deletes it; copies are only for drawing
+    // with.
+    struct Texture
     {
         unsigned int handle = 0;
         int width = 0;
@@ -25,7 +26,7 @@ namespace simple_platformer
         SpriteRenderer& operator=(const SpriteRenderer&) = delete;
 
         int loadTexture(const std::string& path);
-        TextureView textureView(int textureId) const;
+        Texture texture(int textureId) const;
         void render(const RenderScene& scene, int framebufferWidth, int framebufferHeight);
 
     private:
@@ -39,6 +40,6 @@ namespace simple_platformer
         int opacityLocation = -1;
         int whiteFlashLocation = -1;
         int shadeLocation = -1;
-        std::vector<TextureView> textures;
+        std::vector<Texture> textures;
     };
 }

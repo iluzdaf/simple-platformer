@@ -12,6 +12,7 @@
 namespace
 {
     using simple_platformer::Body;
+    using simple_platformer::ClimbGrip;
     using simple_platformer::ClimbSurface;
     using simple_platformer::InputIntentions;
     using simple_platformer::PlatformerMovement;
@@ -29,7 +30,7 @@ TEST_CASE("A climb request holds and moves along a wall", "[movement][climb]")
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
     InputIntentions intentions;
-    intentions.climbRequested = true;
+    intentions.climbGrip = ClimbGrip::Hold;
     intentions.direction.y = -1.0F;
 
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
@@ -87,7 +88,7 @@ TEST_CASE("The opposite side of a wall can also be climbed", "[movement][climb]"
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
     InputIntentions intentions;
-    intentions.climbRequested = true;
+    intentions.climbGrip = ClimbGrip::Hold;
     intentions.direction.y = -1.0F;
 
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
@@ -105,7 +106,7 @@ TEST_CASE("A ceiling climb moves horizontally without gravity", "[movement][clim
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
     InputIntentions intentions;
-    intentions.climbRequested = true;
+    intentions.climbGrip = ClimbGrip::Hold;
     intentions.direction.x = 1.0F;
 
     simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
@@ -126,7 +127,7 @@ TEST_CASE("A wall climber can turn onto a ceiling", "[movement][climb]")
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
     InputIntentions intentions;
-    intentions.climbRequested = true;
+    intentions.climbGrip = ClimbGrip::Hold;
     intentions.direction.y = -1.0F;
     simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
     REQUIRE(climb.surface == ClimbSurface::LeftWall);
@@ -140,17 +141,41 @@ TEST_CASE("A wall climber can turn onto a ceiling", "[movement][climb]")
     REQUIRE_NEAR(body.bounds.topLeft.y, 32.0F);
 }
 
+TEST_CASE("Keeping the grip stays on a held wall and never grabs one", "[movement][climb]")
+{
+    Body body{{{48.0F, 36.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+    PlatformerMovement movement;
+    SurfaceClimb climb{{60.0F}};
+    InputIntentions intentions;
+    REQUIRE(intentions.climbGrip == ClimbGrip::Keep);
+
+    // Touching the wall without holding it: Keep leaves the actor off, so it falls.
+    simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
+    REQUIRE(climb.surface == ClimbSurface::None);
+
+    body = Body{{{48.0F, 36.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+    intentions.climbGrip = ClimbGrip::Hold;
+    simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
+    REQUIRE(climb.surface == ClimbSurface::LeftWall);
+
+    // Holding it: Keep stays on, without moving.
+    intentions.climbGrip = ClimbGrip::Keep;
+    simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
+    REQUIRE(climb.surface == ClimbSurface::LeftWall);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 36.0F);
+}
+
 TEST_CASE("Releasing climb resumes ordinary falling", "[movement][climb]")
 {
     Body body{{{48.0F, 36.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
     InputIntentions intentions;
-    intentions.climbRequested = true;
+    intentions.climbGrip = ClimbGrip::Hold;
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
     REQUIRE(climb.surface == ClimbSurface::LeftWall);
 
-    intentions.climbRequested = false;
+    intentions.climbGrip = ClimbGrip::Release;
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
 
     REQUIRE(climb.surface == ClimbSurface::None);
@@ -166,7 +191,7 @@ TEST_CASE("A climb request needs an adjacent surface", "[movement][climb]")
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
     InputIntentions intentions;
-    intentions.climbRequested = true;
+    intentions.climbGrip = ClimbGrip::Hold;
 
     simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
 
@@ -183,7 +208,7 @@ TEST_CASE("A climb request cannot attach to an unmarked solid wall", "[movement]
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
     InputIntentions intentions;
-    intentions.climbRequested = true;
+    intentions.climbGrip = ClimbGrip::Hold;
     intentions.direction.y = -1.0F;
 
     simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
@@ -201,7 +226,7 @@ TEST_CASE("A climb request cannot attach to an unmarked solid ceiling", "[moveme
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
     InputIntentions intentions;
-    intentions.climbRequested = true;
+    intentions.climbGrip = ClimbGrip::Hold;
     intentions.direction.x = 1.0F;
 
     simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
@@ -219,7 +244,7 @@ TEST_CASE("Climbing ends when the surface ends", "[movement][climb]")
     PlatformerMovement movement;
     SurfaceClimb climb{{60.0F}};
     InputIntentions intentions;
-    intentions.climbRequested = true;
+    intentions.climbGrip = ClimbGrip::Hold;
     intentions.direction.x = 1.0F;
 
     simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.4F);

@@ -11,6 +11,7 @@
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
+#include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
@@ -135,7 +136,8 @@ TEST_CASE("A scripted route follows a climbing path", "[npc][lua][climb]")
     {
         simple_platformer::updateWorldSimulation(
             map, world, tests::FixedStepSeconds, nullptr, &scripts);
-        requestedClimb = requestedClimb || actor(world, npcId).intentions.climbRequested;
+        requestedClimb = requestedClimb || actor(world, npcId).intentions.climbGrip ==
+                                               simple_platformer::ClimbGrip::Hold;
         reachedCeiling =
             tests::surfaceClimb(world, npcId).surface == simple_platformer::ClimbSurface::Ceiling;
     }

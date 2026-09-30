@@ -20,7 +20,10 @@ namespace simple_platformer
             const CollisionContacts& contacts,
             const InputIntentions& intentions)
         {
-            if (!intentions.climbRequested)
+            const bool holding =
+                intentions.climbGrip == ClimbGrip::Hold ||
+                (intentions.climbGrip == ClimbGrip::Keep && current != ClimbSurface::None);
+            if (!holding)
             {
                 return ClimbSurface::None;
             }

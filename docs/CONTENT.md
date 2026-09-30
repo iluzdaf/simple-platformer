@@ -270,7 +270,7 @@ and can coexist with either; all require a non-neutral team. There is no
 inheritance or arbitrary per-placement override mechanism.
 
 Platformer fields match `PlatformerMovementConfig`; flying and `surfaceClimb` each
-expose `speed`. Climbing requires a `climbRequested` intention from policy. Sensing
+expose `speed`. Climbing requires a `climbGrip` of `Hold` from policy. Sensing
 exposes `noticeDistance`, `standoffDistance`, `targetMemoryDuration`, and
 `searchDuration`. Bite exposes `damage`, `hitboxSize`, `reach`,
 `windupDuration`, `activeDuration`, and `recoveryDuration`. `contactDamage` exposes
@@ -311,7 +311,9 @@ patrol's `firstFeet` and `secondFeet`, are `vec2` values: the engine's `glm::vec
 multiply and divide by a number, compare with `==`, and print with `tostring`. Their
 methods are `length()`, `distance(other)`, `distanceSquared(other)`, and `dot(other)`,
 as in `snapshot.feet:distanceSquared(snapshot.targetFeet)`. A command's vectors, such
-as `direction`, `aimAt`, and `routeTo`, take a `vec2` or an `{x, y}` table.
+as `direction`, `aimAt`, and `routeTo`, take a `vec2` or an `{x, y}` table. A command's
+`climbGrip` is `"hold"`, `"release"` or `"keep"`; leaving it out keeps the grip, so a
+climber that stops stays on its wall or ceiling.
 
 The engine supplies these boolean facts to machine `when` conditions:
 

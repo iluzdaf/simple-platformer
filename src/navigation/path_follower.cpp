@@ -90,14 +90,6 @@ namespace simple_platformer
             return intentions;
         }
 
-        // A climber with nothing to replay keeps its grip; releasing would drop it.
-        InputIntentions holdOn(const SurfaceClimb* climb)
-        {
-            InputIntentions intentions;
-            intentions.climbRequested = climb != nullptr && climb->surface != ClimbSurface::None;
-            return intentions;
-        }
-
         // Travels the held surface to the start of a climb: along a ceiling sideways,
         // along a wall up or down. Nothing once there.
         std::optional<InputIntentions> climbTowards(
@@ -115,7 +107,7 @@ namespace simple_platformer
                 return std::nullopt;
             }
             InputIntentions approach;
-            approach.climbRequested = true;
+            approach.climbGrip = ClimbGrip::Hold;
             const float direction = std::clamp(remaining / maximumStep, -1.0F, 1.0F);
             (alongCeiling ? approach.direction.x : approach.direction.y) = direction;
             return approach;
@@ -212,7 +204,7 @@ namespace simple_platformer
                 else if (!movement.grounded)
                 {
                     InputIntentions grab;
-                    grab.climbRequested = true;
+                    grab.climbGrip = ClimbGrip::Hold;
                     return {false, grab};
                 }
                 else if (!stoppedAt(body, movement, start))
@@ -234,9 +226,10 @@ namespace simple_platformer
                 follower.programElapsed = 0.0F;
                 return {true, {}};
             }
-            // The climb ended somewhere else; the NPC plans again.
+            // The climb ended somewhere else; the NPC plans again. A climber still on a
+            // surface keeps its grip, since the intentions leave it as it is.
             clearPath(follower);
-            return {false, holdOn(&climb)};
+            return {};
         }
 
         // Where the step at this index starts: the previous waypoint, or the path's start.
@@ -321,7 +314,7 @@ namespace simple_platformer
         requireSeconds(deltaTime, "Platformer path following time step");
         if (!follower.path.has_value())
         {
-            return holdOn(climb);
+            return {};
         }
 
         while (follower.nextStep < follower.path->waypoints.size())
@@ -355,6 +348,6 @@ namespace simple_platformer
             }
             ++follower.nextStep;
         }
-        return holdOn(climb);
+        return {};
     }
 }

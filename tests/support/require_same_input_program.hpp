@@ -25,7 +25,7 @@ namespace tests
             REQUIRE(
                 leftStep.intentions.primaryAttackPressed ==
                 rightStep.intentions.primaryAttackPressed);
-            REQUIRE(leftStep.intentions.climbRequested == rightStep.intentions.climbRequested);
+            REQUIRE(leftStep.intentions.climbGrip == rightStep.intentions.climbGrip);
             REQUIRE(leftStep.intentions.avoidLedges == rightStep.intentions.avoidLedges);
             REQUIRE(leftStep.intentions.contactDamage == rightStep.intentions.contactDamage);
         }

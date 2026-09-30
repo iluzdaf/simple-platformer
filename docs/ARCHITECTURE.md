@@ -319,11 +319,11 @@ too, and the platformer config only overrides them. This direction keeps platfor
 rules separate from tile collision and avoids a general ability framework.
 
 An optional [`SurfaceClimb`](../include/simple_platformer/movement/surface_climb.hpp)
-replaces gravity and walking while `climbRequested` is held and the body touches a
-climbable tile's wall or underside. Vertical intentions travel along walls; horizontal
-intentions travel along ceilings. Releasing the request, or losing contact, resumes
-ordinary platformer movement. Navigation routes a climber with the same update; see
-[traversals](#traversals).
+lets an actor cling to a climbable tile's wall or underside, moving up and down walls
+and sideways along ceilings. `climbGrip` grabs (`Hold`), lets go (`Release`), or leaves
+the grip alone (`Keep`, the default), so code that ignores climbing never knocks a
+climber off. Letting go or losing contact returns to normal platformer movement.
+Navigation routes a climber with the same update; see [traversals](#traversals).
 
 ### Flying movement
 
@@ -694,9 +694,9 @@ tile.
 Path following never teleports an actor or writes its velocity. It emits intentions,
 and the ordinary actor movement system performs the motion. A flyer steers at each
 waypoint; a platformer follows each waypoint as its [traversal](#traversals) says.
-The follower owns the climb intention. It requests a climb because the step is a
-climb, reads its own actor's climb state to decide how to reach the climb's start,
-and holds on between climbs. It judges arrival by the feet reaching the waypoint;
+The follower holds a surface while a climb step needs it: it reads its own actor's
+climb state to decide how to reach the climb's start, then replays the climb. Between
+steps it leaves `climbGrip` at `Keep`, so a climber stays on what it holds. It judges arrival by the feet reaching the waypoint;
 a jump or fall is done once the body lands and stops on the waypoint's row, and the
 next step walks it the rest of the way. A step that ends away from its waypoint drops
 the path, and the NPC plans again. The follower works only in feet positions. It

@@ -46,7 +46,7 @@ TEST_CASE("An actor's optional climb component uses its climb request", "[actor]
             .where('c', tests::Tile{}.blocksMovement().climbable());
     simple_platformer::Actor climber =
         tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet({54.0F, 48.0F}).walking().climbing();
-    climber.intentions.climbRequested = true;
+    climber.intentions.climbGrip = simple_platformer::ClimbGrip::Hold;
     climber.intentions.direction.y = -1.0F;
     simple_platformer::World world;
     const auto id = world.addActor(climber);

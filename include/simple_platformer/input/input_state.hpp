@@ -18,6 +18,18 @@ namespace simple_platformer
         Count
     };
 
+    // What an actor with a climb component does with its grip this tick. Keep, the
+    // default, leaves it as it is: an actor holding a wall or ceiling stays on, and one
+    // that is not holding does not grab. Code with nothing to say about climbing, such as
+    // a path follower between steps, leaves it at Keep.
+    enum class ClimbGrip
+    {
+        Keep,
+        // Grab a touched wall or ceiling, or stay on the one held.
+        Hold,
+        Release
+    };
+
     struct InputIntentions
     {
         glm::vec2 direction = {0.0F, 0.0F};
@@ -25,8 +37,7 @@ namespace simple_platformer
         bool jumpPressed = false;
         bool jumpHeld = false;
         bool primaryAttackPressed = false;
-        // Hold an adjacent wall or ceiling when the actor has a climb component.
-        bool climbRequested = false;
+        ClimbGrip climbGrip = ClimbGrip::Keep;
         // Keep grounded walking on its current floor; deliberate jumps still work.
         bool avoidLedges = false;
         // Request body-overlap damage, if the actor has that component.

@@ -392,7 +392,7 @@ namespace simple_platformer
             float distancePerTick)
         {
             InputIntentions intentions;
-            intentions.climbRequested = true;
+            intentions.climbGrip = ClimbGrip::Hold;
             const glm::vec2 offset = target.topLeft - body.bounds.topLeft;
             if (from.surface == ClimbSurface::None)
             {
@@ -466,15 +466,24 @@ namespace simple_platformer
                     }
                     return result;
                 }
-                const InputIntentions intentions =
-                    toFloor ? followPlatformerPath(body, movement, walkToFloor, profile.stepSeconds)
-                            : climbToward(
-                                  map,
-                                  body,
-                                  from,
-                                  destination,
-                                  target,
-                                  climbConfig.speed * profile.stepSeconds);
+                InputIntentions intentions;
+                if (toFloor)
+                {
+                    // Getting down lets go of the wall and walks onto the floor.
+                    intentions =
+                        followPlatformerPath(body, movement, walkToFloor, profile.stepSeconds);
+                    intentions.climbGrip = ClimbGrip::Release;
+                }
+                else
+                {
+                    intentions = climbToward(
+                        map,
+                        body,
+                        from,
+                        destination,
+                        target,
+                        climbConfig.speed * profile.stepSeconds);
+                }
                 // One step a tick. A climb ends at an exact position, and the summed
                 // duration of merged ticks can round to a tick more on replay.
                 inputs.push_back({profile.stepSeconds, intentions});

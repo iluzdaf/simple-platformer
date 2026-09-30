@@ -10,6 +10,7 @@
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
 
@@ -45,6 +46,29 @@ namespace simple_platformer
                 throw std::invalid_argument(std::string(field) + " must be true or false");
             }
             return object.as<bool>();
+        }
+
+        // Leaving the field out keeps the grip, so only a change needs naming.
+        ClimbGrip climbGrip(const sol::object& object, std::string_view field)
+        {
+            if (object.get_type() == sol::type::string)
+            {
+                const std::string name = object.as<std::string>();
+                if (name == "keep")
+                {
+                    return ClimbGrip::Keep;
+                }
+                if (name == "hold")
+                {
+                    return ClimbGrip::Hold;
+                }
+                if (name == "release")
+                {
+                    return ClimbGrip::Release;
+                }
+            }
+            throw std::invalid_argument(
+                std::string(field) + " must be \"keep\", \"hold\" or \"release\"");
         }
 
         glm::vec2 vector(const sol::object& object, std::string_view field)
@@ -167,7 +191,7 @@ namespace simple_platformer
              "jumpPressed",
              "jumpHeld",
              "primaryAttackPressed",
-             "climbRequested",
+             "climbGrip",
              "avoidLedges",
              "contactDamage",
              "routeTo",
@@ -192,6 +216,14 @@ namespace simple_platformer
                 destination = vector(value, std::string("command.") + std::string(name));
             }
         };
+        const auto readClimbGrip = [&](std::string_view name, ClimbGrip& destination)
+        {
+            const sol::object value = table.get<sol::object>(name);
+            if (value.valid() && value.get_type() != sol::type::lua_nil)
+            {
+                destination = climbGrip(value, std::string("command.") + std::string(name));
+            }
+        };
         const auto readBoolean = [&](std::string_view name, bool& destination)
         {
             const sol::object value = table.get<sol::object>(name);
@@ -206,7 +238,7 @@ namespace simple_platformer
         readBoolean("jumpPressed", command.intentions.jumpPressed);
         readBoolean("jumpHeld", command.intentions.jumpHeld);
         readBoolean("primaryAttackPressed", command.intentions.primaryAttackPressed);
-        readBoolean("climbRequested", command.intentions.climbRequested);
+        readClimbGrip("climbGrip", command.intentions.climbGrip);
         readBoolean("avoidLedges", command.intentions.avoidLedges);
         readBoolean("contactDamage", command.intentions.contactDamage);
         readOptionalVector("routeTo", command.routeTo);

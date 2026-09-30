@@ -4,6 +4,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
 #include "lua_npc_scripts.hpp"
@@ -90,6 +91,43 @@ TEST_CASE("Lua movement and contact requests require booleans", "[lua][npc]")
     REQUIRE_FALSE(command.intentions.contactDamage);
     REQUIRE_FALSE(command.intentions.avoidLedges);
     REQUIRE_THAT(scripts.diagnostics().back().message, Catch::Matchers::ContainsSubstring(field));
+}
+
+TEST_CASE("A Lua climb grip is named, and keeps the grip when left out", "[lua][npc]")
+{
+    std::string value;
+    SECTION("A name it does not know")
+    {
+        value = "\"grab\"";
+    }
+    SECTION("A boolean")
+    {
+        value = "true";
+    }
+    simple_platformer::LuaNpcScripts scripts;
+    scripts.loadScriptText(
+        "example",
+        "return {activities={decide={update=function() return {climbGrip=" + value + "} end}}}");
+    const simple_platformer::NpcActivitySnapshot snapshot;
+    scripts.enter(FirstActor, Activity, snapshot);
+    const auto command = scripts.update(FirstActor, Activity, snapshot, 0.1F);
+    REQUIRE(command.intentions.climbGrip == simple_platformer::ClimbGrip::Keep);
+    REQUIRE_THAT(
+        scripts.diagnostics().back().message,
+        Catch::Matchers::ContainsSubstring(
+            "command.climbGrip must be \"keep\", \"hold\" or \"release\""));
+}
+
+TEST_CASE("A Lua command that leaves out the climb grip keeps it", "[lua][npc]")
+{
+    simple_platformer::LuaNpcScripts scripts;
+    scripts.loadScriptText(
+        "example", "return {activities={decide={update=function() return {} end}}}");
+    const simple_platformer::NpcActivitySnapshot snapshot;
+    scripts.enter(FirstActor, Activity, snapshot);
+    const auto command = scripts.update(FirstActor, Activity, snapshot, 0.1F);
+    REQUIRE(command.intentions.climbGrip == simple_platformer::ClimbGrip::Keep);
+    REQUIRE(scripts.diagnostics().empty());
 }
 
 TEST_CASE("Lua activities cannot use filesystem or system libraries", "[lua][npc]")

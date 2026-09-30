@@ -29,8 +29,8 @@ namespace simple_platformer
         float speed = 60.0F;
     };
 
-    // Optional capability for a platformer actor. The surface is runtime state;
-    // climbRequested in the current intentions decides whether it stays attached.
+    // Optional capability for a platformer actor. The surface is runtime state; the
+    // intentions' climbGrip decides whether it grabs, stays attached or lets go.
     struct SurfaceClimb
     {
         SurfaceClimbConfig config;

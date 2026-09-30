@@ -4,6 +4,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor_id.hpp"
+#include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
@@ -55,7 +56,7 @@ TEST_CASE("A Lua activity reads a copied snapshot and returns a command", "[lua]
                                 aimAt = snapshot.targetFeet,
                                 routeTo = snapshot.patrol.secondFeet,
                                 primaryAttackPressed = snapshot.facts.targetKnown,
-                                climbRequested = snapshot.facts.targetKnown,
+                                climbGrip = snapshot.facts.targetKnown and "hold" or "release",
                                 jumpHeld = snapshot.facts.heardLanding and snapshot.facts.targetOnSameRun,
                                 jumpPressed = snapshot.facts.movementBlocked,
                                 avoidLedges = snapshot.facts.targetWithinStandoffDistance,
@@ -77,7 +78,7 @@ TEST_CASE("A Lua activity reads a copied snapshot and returns a command", "[lua]
     REQUIRE(command.intentions.direction.x == 1.5F);
     REQUIRE(command.intentions.direction.y == 0.0F);
     REQUIRE(command.intentions.primaryAttackPressed);
-    REQUIRE(command.intentions.climbRequested);
+    REQUIRE(command.intentions.climbGrip == simple_platformer::ClimbGrip::Hold);
     REQUIRE(command.intentions.jumpHeld);
     REQUIRE(command.intentions.jumpPressed);
     REQUIRE(command.intentions.avoidLedges);

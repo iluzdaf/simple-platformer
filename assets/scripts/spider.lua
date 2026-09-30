@@ -1,9 +1,5 @@
 -- Lua chooses patrolling, pursuit, and biting; the engine follows routes, including climbs.
-
--- Holding still keeps the spider's grip if it stopped on a wall or ceiling.
-local function holdStill()
-    return { clearRoute = true, climbRequested = true }
-end
+-- Commands leave out climbGrip, so a spider that stops on a wall or ceiling stays on it.
 
 return {
     activities = {
@@ -20,14 +16,14 @@ return {
             update = function(self, snapshot)
                 local patrol = snapshot.patrol
                 if patrol == nil then
-                    return holdStill()
+                    return { clearRoute = true }
                 end
 
                 -- Entering the state cleared the route, so a finished route is this patrol's.
                 -- A route that ends short of an unreachable end also turns it round.
                 if snapshot.pathComplete then
                     self.headingToSecond = not self.headingToSecond
-                    return holdStill()
+                    return { clearRoute = true }
                 end
 
                 local destination = self.headingToSecond and patrol.secondFeet or patrol.firstFeet
@@ -40,11 +36,11 @@ return {
 
                 -- Finish the current bite before moving, even if the target leaves.
                 if not snapshot.facts.biteReady then
-                    return { clearRoute = true, aimAt = target, climbRequested = true }
+                    return { clearRoute = true, aimAt = target }
                 end
 
                 if target == nil then
-                    return { clearRoute = true, climbRequested = true }
+                    return { clearRoute = true }
                 end
 
                 if snapshot.facts.targetInBiteRange then
@@ -52,7 +48,6 @@ return {
                         clearRoute = true,
                         aimAt = target,
                         primaryAttackPressed = true,
-                        climbRequested = true,
                     }
                 end
 

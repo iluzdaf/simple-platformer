@@ -42,18 +42,22 @@ namespace simple_platformer
     // Whether every waypoint has been reached. Never true without a path.
     bool pathComplete(const PathFollower& follower);
 
-    // The intentions that carry the actor towards its next waypoint this tick. A flyer
-    // steers straight at each waypoint. A platformer walks to a walk's waypoint and
-    // brakes there; for a jump or fall it stops at the takeoff before replaying the
-    // recorded inputs, and is done once it lands and stops on the waypoint's row. For
-    // a climb it reaches the climb's start, holding a surface if it is on one, then
-    // replays the inputs. A climber holds on between climbs. A step that ends away
-    // from its waypoint drops the path.
+    // The intentions that carry a flyer towards its next waypoint this tick. It steers
+    // straight at each waypoint and slows on the last tick so it stops on it.
     InputIntentions followFlyingPath(
         const Aabb& bounds,
         const FlyingMovement& movement,
         PathFollower& follower,
         float deltaTime);
+
+    // The intentions that carry a platformer towards its next waypoint this tick.
+    // - Walk: walks to the waypoint and brakes to a stop there.
+    // - Jump or fall: stops at the takeoff, replays the recorded inputs, and is done once
+    //   it lands and stops on the waypoint's row.
+    // - Climb: reaches the climb's start, along the surface if it is holding one, then
+    //   replays the inputs. Needs the actor's climb; without it a climb step throws.
+    // A step that ends away from its waypoint drops the path. Between steps the grip is
+    // left alone, so a climber stays on what it holds.
     InputIntentions followPlatformerPath(
         const Body& body,
         const PlatformerMovement& movement,

@@ -426,7 +426,7 @@ namespace simple_platformer
                 actor.intentions.direction = movement.direction;
                 actor.intentions.jumpPressed = movement.jumpPressed;
                 actor.intentions.jumpHeld = movement.jumpHeld;
-                actor.intentions.climbRequested = movement.climbRequested;
+                actor.intentions.climbGrip = movement.climbGrip;
             }
             if (command.aimAt.has_value())
             {

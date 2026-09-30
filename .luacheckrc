@@ -26,6 +26,8 @@ std = {
         "type",
         "warn",
         "xpcall",
+        -- Engine helpers, defined read-only before any script loads.
+        vector = { fields = { "distanceSquared" } },
     },
 }
 

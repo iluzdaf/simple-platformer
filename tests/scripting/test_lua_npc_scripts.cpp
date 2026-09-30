@@ -1,4 +1,5 @@
 #include <initializer_list>
+#include <string>
 
 #include <catch2/catch_test_macros.hpp>
 #include <glm/vec2.hpp>
@@ -147,4 +148,52 @@ TEST_CASE("Each actor and each visit has its own Lua activity memory", "[lua][np
     scripts.forget(SecondActor);
     REQUIRE(scripts.update(SecondActor, Activity, snapshot, 0.1F).intentions.direction.x == 0.0F);
     REQUIRE(scripts.diagnostics().back().message == "activity was not entered");
+}
+
+TEST_CASE("Every Lua script can measure squared distance with the vector helper", "[lua][npc]")
+{
+    LuaNpcScripts scripts;
+    scripts.loadScriptText("example", R"(
+        return {activities={decide={update=function(self, snapshot)
+            return {direction={x=vector.distanceSquared(snapshot.feet, snapshot.targetFeet), y=0}}
+        end}}}
+    )");
+    NpcActivitySnapshot snapshot;
+    snapshot.feet = {1.0F, 2.0F};
+    snapshot.targetFeet = {{4.0F, 6.0F}};
+    scripts.enter(FirstActor, Activity, snapshot);
+
+    REQUIRE(scripts.update(FirstActor, Activity, snapshot, 0.1F).intentions.direction.x == 25.0F);
+    REQUIRE(scripts.diagnostics().empty());
+}
+
+TEST_CASE("A Lua script cannot change the vector helper for others", "[lua][npc]")
+{
+    LuaNpcScripts scripts;
+    // One script tries to replace a helper; another shadows the whole table in its own
+    // environment.
+    scripts.loadScriptText("breaker", R"(
+        return {activities={decide={update=function()
+            vector.distanceSquared = function() return 0 end
+            return {}
+        end}}}
+    )");
+    scripts.loadScriptText("shadower", R"(
+        vector = {distanceSquared = function() return 0 end}
+        return {activities={decide={update=function() return {} end}}}
+    )");
+    scripts.loadScriptText("example", R"(
+        return {activities={decide={update=function()
+            return {direction={x=vector.distanceSquared({x=0, y=0}, {x=3, y=4}), y=0}}
+        end}}}
+    )");
+    const NpcActivitySnapshot snapshot;
+    const LuaNpcActivity breaker{"breaker", "decide"};
+    scripts.enter(FirstActor, breaker, snapshot);
+    scripts.update(FirstActor, breaker, snapshot, 0.1F);
+    REQUIRE(scripts.diagnostics().size() == 1);
+    REQUIRE(scripts.diagnostics().front().message.find("read-only") != std::string::npos);
+
+    scripts.enter(SecondActor, Activity, snapshot);
+    REQUIRE(scripts.update(SecondActor, Activity, snapshot, 0.1F).intentions.direction.x == 25.0F);
 }

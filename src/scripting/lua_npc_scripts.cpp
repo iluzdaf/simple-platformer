@@ -321,6 +321,28 @@ namespace simple_platformer
         }
     }
 
+    namespace
+    {
+        // Helpers every script can use, shared in one table that scripts cannot change,
+        // so one script cannot break another's.
+        constexpr std::string_view VectorHelpers = R"(
+            local helpers = {
+                distanceSquared = function(from, to)
+                    local x = to.x - from.x
+                    local y = to.y - from.y
+                    return x * x + y * y
+                end,
+            }
+            vector = setmetatable({}, {
+                __index = helpers,
+                __newindex = function()
+                    error("vector is read-only", 2)
+                end,
+                __metatable = false,
+            })
+        )";
+    }
+
     struct LuaNpcScripts::Implementation
     {
         sol::state lua;
@@ -335,6 +357,7 @@ namespace simple_platformer
             lua["load"] = sol::lua_nil;
             lua["loadfile"] = sol::lua_nil;
             lua["require"] = sol::lua_nil;
+            lua.safe_script(VectorHelpers, "vector helpers");
         }
 
         LoadedScript* scriptNamed(std::string_view name)

@@ -527,7 +527,8 @@ Applying those requests, including pathfinding, remains engine work.
 `LuaNpcScripts` loads each script into its own environment and requires it to return named
 activities with an `update` function; `enter` and `exit` are optional. Only the base, math,
 string, and table libraries are available, with dynamic loading and filesystem functions
-removed. Snapshots become fresh Lua tables, and returned command tables reject unknown
+removed. Because scripts cannot load one another, helpers they share are defined by the
+engine in a read-only `vector` table before any script loads; `.luacheckrc` lists them. Snapshots become fresh Lua tables, and returned command tables reject unknown
 fields, wrong types, and non-finite vectors.
 
 Every visit has a `self` table keyed by stable `ActorId`, script, and activity. Calls are

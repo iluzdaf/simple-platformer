@@ -302,7 +302,9 @@ A Lua reference named `"script": "rat"` loads `assets/scripts/rat.lua`. The scri
 returns an `activities` table; each referenced activity needs an `update` function,
 while `enter` and `exit` are optional. Loading rejects missing scripts or activities.
 An update returns intentions or narrow requests such as an aim or route; the engine
-performs movement, pathfinding, and damage. See the [Lua boundary](ARCHITECTURE.md#lua-activity-boundary)
+performs movement, pathfinding, and damage. Scripts cannot load one another, so shared
+helpers come from the engine in a read-only `vector` table: `vector.distanceSquared(from,
+to)` takes two `{x, y}` tables, such as `snapshot.feet`. See the [Lua boundary](ARCHITECTURE.md#lua-activity-boundary)
 for the runtime details.
 
 The engine supplies these boolean facts to machine `when` conditions:

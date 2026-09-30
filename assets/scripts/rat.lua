@@ -1,9 +1,3 @@
-local function distanceSquared(from, to)
-    local x = to.x - from.x
-    local y = to.y - from.y
-    return x * x + y * y
-end
-
 local function refugeFrom(snapshot)
     if snapshot.targetFeet == nil or snapshot.patrol == nil then
         return nil
@@ -34,7 +28,7 @@ return {
 
                 -- At the far end, hold the corner and face the threat. Facing it lets the
                 -- machine's directional bite-range fact become true
-                if distanceSquared(snapshot.feet, refuge) <= 1 then
+                if vector.distanceSquared(snapshot.feet, refuge) <= 1 then
                     return { clearRoute = true, aimAt = snapshot.targetFeet }
                 end
 

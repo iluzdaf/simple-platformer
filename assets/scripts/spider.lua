@@ -1,11 +1,5 @@
 -- Lua chooses patrolling, pursuit, and biting; the engine follows routes, including climbs.
 
-local function distanceSquared(from, to)
-    local x = to.x - from.x
-    local y = to.y - from.y
-    return x * x + y * y
-end
-
 -- Holding still keeps the spider's grip if it stopped on a wall or ceiling.
 local function holdStill()
     return { clearRoute = true, climbRequested = true }
@@ -20,8 +14,8 @@ return {
                     return
                 end
                 -- Resume from the nearer end; arriving there turns the spider round.
-                self.headingToSecond = distanceSquared(snapshot.feet, patrol.secondFeet)
-                    < distanceSquared(snapshot.feet, patrol.firstFeet)
+                self.headingToSecond = vector.distanceSquared(snapshot.feet, patrol.secondFeet)
+                    < vector.distanceSquared(snapshot.feet, patrol.firstFeet)
             end,
             update = function(self, snapshot)
                 local patrol = snapshot.patrol

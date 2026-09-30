@@ -108,7 +108,6 @@ senses and memory
 - **Add** an enemy with the [enemy recipe](ARCHITECTURE.md#creating-a-new-enemy), which
   starts from the smallest route that works, or a reusable built-in state with the
   [NPC-state recipe](ARCHITECTURE.md#adding-an-npc-state).
-  [CONTENT.md](CONTENT.md#state-machines) explains machines and the facts they can test.
 
 ## Recommended reading route
 
@@ -131,8 +130,7 @@ level and maps IDs to files. Follow its first entry into
 [`level_1.json`](../assets/levels/level_1.json), then read
 [`level_data.cpp`](../app/content/level_data.cpp) for parsing and
 [`level_composition.cpp`](../app/game/level_composition.cpp) for building a `GameLevel`.
-Use [CONTENT.md](CONTENT.md) when you need the JSON fields, shared catalogs, or Lua
-script references.
+Use [CONTENT.md](CONTENT.md) when you need the JSON fields or shared catalogs.
 
 ### 3. Learn the core data model
 
@@ -172,15 +170,13 @@ isolates collision rules.
 Read these after the movement loop:
 
 1. [`render_scene.cpp`](../src/render/render_scene.cpp) converts world state into plain
-   sprite draw commands;
+   sprite draw commands, including pickup bobbing and timed feedback such as hit flashes;
 2. [`camera.cpp`](../src/render/camera.cpp) follows the player and converts world space to
    screen space;
 3. [`presentation.cpp`](../src/render/presentation.cpp) runs the presentation systems
-   after the simulation: [`animation_system.cpp`](../src/render/animation_system.cpp)
-   selects and advances actor animation clips, and
-   [`cover_fade.cpp`](../src/render/cover_fade.cpp) eases what the player can see of
-   NPCs and pickups in grass; pickup bobbing and timed feedback are calculated from world
-   state in `render_scene.cpp`;
+   after the simulation, such as
+   [`animation_system.cpp`](../src/render/animation_system.cpp), which selects and
+   advances actor animation clips;
 4. [`sprite_renderer.cpp`](../app/graphics/sprite_renderer.cpp) submits the finished draw
    commands to OpenGL.
 
@@ -195,48 +191,35 @@ intentions instead of reading a keyboard. Follow this route:
 2. [`npc_facts.cpp`](../src/npc/npc_facts.cpp)
 3. [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp)
 4. [`npc_built_in_activity.cpp`](../src/npc/npc_built_in_activity.cpp)
-5. [`npc_system.cpp`](../src/npc/npc_system.cpp), which runs each NPC's tactic or machine
+5. [`npc_system.cpp`](../src/npc/npc_system.cpp), which runs each NPC's decisions
 6. [`attack_system.cpp`](../src/combat/attack_system.cpp)
 7. [`projectile_system.cpp`](../src/combat/projectile_system.cpp)
 8. [`lifecycle.cpp`](../src/actor/lifecycle.cpp)
 
-The enum-and-switch path teaches the built-in decision flow. For a machine-controlled
-NPC, follow [`machines.json`](../assets/catalogs/machines.json) into
-[`npc_state_machine.cpp`](../src/npc/npc_state_machine.cpp). A Lua state then calls an
-activity under [`assets/scripts`](../assets/scripts) through
-[`npc_scripted_activity.cpp`](../src/npc/npc_scripted_activity.cpp) and
-[`lua_npc_scripts.cpp`](../scripting/lua_npc_scripts.cpp). In every path, combat
-still applies the requested attacks and contact damage.
+The enum-and-switch code teaches the built-in decision flow. Combat then applies the
+requested attacks and contact damage.
 
 ### 7. Read navigation last
 
-Navigation is the most advanced part of the repository. First understand the NPC state
-machine and ordinary movement. Then read:
+Navigation is the most advanced part of the repository. First understand NPC decisions
+and ordinary movement. Then read:
 
-1. [`route_search.cpp`](../src/navigation/route_search.cpp) for the generic lowest-cost
-   search;
+1. [`route_search.cpp`](../src/navigation/route_search.cpp) for the A* search that
+   finds the cheapest route;
 2. [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp) for `findActorPath`,
-   the one entry point NPCs call, and the flying search behind it, the simplest
-   outgoing-connection policy;
+   the one entry point NPCs call. Read the flying search first, the simplest source of
+   connections, then the platformer search, which also leads as close as possible to a
+   goal out of reach;
 3. [`path_follower.cpp`](../src/navigation/path_follower.cpp) for turning a path into
    intentions;
 4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for where a body
    can stand or hold a surface;
 5. [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp) for
-   simulated traversals;
-6. [`platformer_connection_cache.cpp`](../src/navigation/platformer_connection_cache.cpp)
-   for the traversal-profile cache and its invalidation rules;
-7. [`navigation_fill.cpp`](../src/navigation/navigation_fill.cpp) for queuing and
-   progressively caching connections;
-8. the platformer search in [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp)
-   for searching with the cache, deferring while connections are pending, and leading
-   as close as possible to a target out of reach.
+   simulated traversals.
 
-The platformer navigation code reuses the real movement and collision functions, but
-it is not the best first example of the engine's general style. The
-[debug overlay](../README.md#debug-overlay) lets you observe the cache and its response
-to tile breaks in the game. [Navigation](ARCHITECTURE.md#navigation) explains how these
-pieces fit together.
+Platformer connections are found by running the real movement and collision code, so a
+planned move and the real one behave the same. [Navigation](ARCHITECTURE.md#navigation)
+explains how these pieces fit together.
 
 ### 8. Complete the level loop
 
@@ -256,7 +239,13 @@ It is safe to return later to:
 
 - OpenGL setup and shader details in `app/graphics`;
 - ImGui layout code in `app/ui` and `app/debug`;
-- simulated platformer navigation;
+- data-driven NPC machines and the Lua activities their states can run
+  ([Data-driven state machine](ARCHITECTURE.md#data-driven-state-machine) and
+  [Lua activity boundary](ARCHITECTURE.md#lua-activity-boundary));
+- cover fading, which fades NPCs and pickups standing in grass on the player's screen
+  ([Tile map, collision, and validation](ARCHITECTURE.md#tile-map-collision-and-validation));
+- the connection cache, which keeps platformer connections between searches and fills
+  in the background ([The connection cache](ARCHITECTURE.md#the-connection-cache));
 - atlas coordinates and clip timings in `assets/catalogs/animations.json`;
 - CI, formatting, and static-analysis targets.
 

@@ -1,5 +1,5 @@
--- Keep this allowlist aligned with the supported authoring surface in
--- LuaNpcScripts::Implementation. The global table and chunk loaders are not authoring APIs.
+-- Keep this allowlist aligned with what openSandbox in scripting/lua_sandbox.cpp opens.
+-- The global table and chunk loaders are not authoring APIs.
 std = {
     read_globals = {
         "_VERSION",

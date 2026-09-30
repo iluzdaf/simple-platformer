@@ -48,8 +48,10 @@ cd build/mac-debug
 ./simple_platformer
 ```
 
-For performance numbers, build and run the release preset instead. The debug build has
-no optimisation, so its timings say little about the game players run:
+Press F1 in the game to open the [debug overlay](#debug-overlay), which shows frame
+timings among other things. For performance numbers, build and run the release preset
+instead. The debug build has no optimisation, so its timings may not be an accurate
+representation of what players will experience.
 
 ```sh
 cmake --preset mac-release
@@ -57,10 +59,9 @@ cmake --build --preset mac-release
 build/mac-release/simple_platformer
 ```
 
-In the game, F1 opens the debug overlay, whose frame panel plots the last two seconds of
-frame times against the 60 Hz budget and stacks the simulation's cost by category; see
-[Debug overlay](#debug-overlay) for its controls. On Windows the matching presets are
-`windows-release` for building and testing.
+On Windows, choose the **Release** configuration in Visual Studio, or run
+`cmake --build --preset windows-release` after `setup-windows.bat` has generated the
+solution. The game is then at `build\windows-vs\Release\simple_platformer.exe`.
 
 ## Windows: create and use the Visual Studio solution
 
@@ -75,13 +76,9 @@ The script finds CMake, generates `build/windows-vs/SimplePlatformer.sln`, and o
 the solution. The `simple_platformer` project is already selected as the startup
 project, so build the solution and press **F5** to run the game.
 
-To run all automated tests from Visual Studio, find the `run_tests` project in
-Solution Explorer, right-click it, and choose **Build**. This first builds the test
-executable and then displays the CTest results in Visual Studio's Output window.
-
-To debug the tests, right-click `simple_platformer_tests` in Solution Explorer, choose
-**Set as Startup Project**, and press **F5**. Set `simple_platformer` as the startup
-project again to run the game.
+To run the tests, build the `run_tests` project; the results appear in the Output
+window. To debug them, set `simple_platformer_tests` as the startup project and press
+**F5**, then set `simple_platformer` back to run the game.
 
 The solution is generated from `CMakeLists.txt` and `CMakePresets.json`. It belongs in
 the ignored `build/` directory and should not be committed. Run `setup-windows.bat`
@@ -95,7 +92,7 @@ build\windows-vs\Debug\simple_platformer.exe
 
 `CMakePresets.json` contains the shared macOS and Windows configurations.
 `CMakeUserPresets.json` is ignored and is available for personal configuration that
-should not be shared.
+should not be shared with version control.
 
 ## Running focused tests
 
@@ -104,11 +101,12 @@ list test names or run only tests whose names contain `Pickup` with:
 
 ```sh
 ctest --preset mac-debug -N
+# Omit -R "Pickup" to run the complete suite.
 ctest --preset mac-debug -R "Pickup" --output-on-failure
 ```
 
 On Windows, use the `windows-debug` test preset. Use your personal preset name if
-configured. Omit `-R "Pickup"` to run the complete suite.
+configured.
 
 ## Playing the example game
 
@@ -135,10 +133,7 @@ one key; the third exit completes the example campaign.
 ## Debug overlay
 
 F1 opens the debug tools with only the frame plot visible. It shows the last two seconds
-against the 60 Hz budget, with simulation costs stacked by category. Number keys add
-independent plot details, world and camera drawing, text, and state-machine layers.
-Pausing holds the plot history; a single step records one more frame. Clicking the plot
-pauses the game. Click the selected frame again or press P to resume live frames.
+against the 60 Hz budget, with simulation costs stacked by category.
 
 | Action                                            | Controls                              |
 | ------------------------------------------------- | ------------------------------------- |
@@ -161,17 +156,19 @@ Timings are only meaningful from a release build.
 
 ## Continuous integration
 
-GitHub Actions runs three jobs. The names below are the ones shown on a pull request.
+GitHub Actions runs the jobs below. The names are the ones shown on a pull request.
 
-| Job                            | Runner         | What it does                                                                                                             | Runs on                            |
-| ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
-| macOS / Apple Clang            | `macos-latest` | Configures, builds, and runs the whole test suite.                                                                       | pushes to `main` and pull requests |
-| Windows / Visual Studio 2022   | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds the `.sln` with MSBuild, then builds its `run_tests` project. | pushes to `main` and pull requests |
-| Formatting and static analysis | `ubuntu-24.04` | Checks first-party formatting and lint, runs clang-tidy, and verifies that every public header compiles on its own.      | pull requests only                 |
+| Job                          | Runner         | What it does                                                                                                                                                        | Runs on                            |
+| ---------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| macOS / Apple Clang          | `macos-latest` | Configures, builds, and runs the whole test suite.                                                                                                                  | pushes to `main` and pull requests |
+| Windows / Visual Studio 2022 | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds it with MSBuild, and runs the tests through `run_tests`, then again from where the debugger starts them. | pushes to `main` and pull requests |
+| Formatting                   | `ubuntu-24.04` | Checks the formatting of C++, JSON, YAML, Markdown, Python, and Lua, lints the Python and Lua, and runs the tests for the repository's tools.                       | pull requests only                 |
+| Headers stand alone          | `ubuntu-24.04` | Compiles every public header on its own.                                                                                                                            | pull requests only                 |
+| Static analysis (1/3 to 3/3) | `ubuntu-24.04` | Runs clang-tidy, with warnings as errors, on the files the pull request affects (see [Static analysis](#static-analysis)), split across three shards.               | pull requests only                 |
+| Static analysis              | `ubuntu-24.04` | Passes only if every static analysis shard passed. This is the check branch protection requires.                                                                    | pull requests only                 |
 
-The quality job is skipped on pushes because branch protection already ran it on the
-pull request. Its checks add no tools to the macOS or Visual Studio build, and Linux is
-not a supported platform for local work. No job launches the graphical game.
+The Linux jobs are skipped on pushes because branch protection already ran them on the
+pull request.
 
 The macOS and Windows jobs use a pinned `sccache` release backed by GitHub Actions'
 cache service. Only compiler outputs are cached; generated build directories are not.
@@ -247,10 +244,10 @@ cmake --build --preset mac-debug --target format-lua
 cmake --build --preset mac-debug --target format-lua-check lint-lua
 ```
 
-Luacheck models the intended script authoring surface: the base functions and the
-`math`, `string`, and `table` libraries. It rejects unavailable libraries such as
-`io`, `os`, `package`, `debug`, `coroutine`, and `utf8`, as well as disabled loaders
-such as `dofile`, `load`, `loadfile`, and `require`.
+Luacheck only allows what scripts can use in the game. [`.luacheckrc`](.luacheckrc)
+lists the allowed globals, and `openSandbox` in
+[`scripting/lua_sandbox.cpp`](scripting/lua_sandbox.cpp) opens the same libraries at run
+time. Keep the two in step.
 
 The C++ targets skip `external/`; the JSON targets cover `assets/` and
 `tests/fixtures/`; the YAML targets cover `.github/`; the Markdown targets cover the
@@ -278,16 +275,14 @@ builds. Developers with clang-tidy installed can run it with:
 cmake --build --preset mac-debug --target tidy
 ```
 
-Pull-request CI checks each changed C++ file and every first-party file which
-transitively includes a changed header. Target source membership lives in the
-source-only manifests under `cmake/sources/`; adding a source there alongside its new
-`.cpp` file does not widen analysis beyond the changed code. CMake configuration fails
-with a focused error if an `app/`, `src/`, or enabled `tests/` source is missing from a
-target. A manifest-only edit remains a conservative full-tree fallback.
-
-Changes to the analysis rules, CI workflow, global build configuration, or
-target-selection script check the complete tree. Local `tidy` builds also continue to
-check the complete tree.
+Pull-request CI checks each changed C++ file, and every first-party file that includes
+a changed header, directly or through other headers. Adding a new `.cpp` file and
+listing it in its manifest under `cmake/sources/` checks only the new code, but
+changing only a manifest checks the whole tree. So do changes to the analysis rules,
+the CI workflow, the global build configuration, or `tools/tidy_targets.py`, which
+picks the files. Local `tidy` builds always check the whole tree. CMake configuration
+fails with a focused error if an `app/`, `src/`, or enabled `tests/` source is missing
+from its target's manifest.
 
 For matching local quality tools, set `CLANG_FORMAT_EXECUTABLE` and
 `CLANG_TIDY_EXECUTABLE` to LLVM 18 executables in a personal `CMakeUserPresets.json`

@@ -1,6 +1,5 @@
 #include "simple_platformer/npc/npc_state_machine.hpp"
 
-#include <cmath>
 #include <cstddef>
 #include <map>
 #include <optional>
@@ -90,7 +89,7 @@ namespace simple_platformer
                         "\", and there is no such fact");
                 }
             }
-            if (!std::isfinite(transition.after) || transition.after < 0.0F)
+            if (!isFiniteNonNegative(transition.after))
             {
                 throw std::invalid_argument(
                     describe(transition) + " must hold for a finite, non-negative time");

@@ -1,6 +1,5 @@
 #include "simple_platformer/movement/flying_movement.hpp"
 
-#include <cmath>
 #include <stdexcept>
 
 #include <glm/geometric.hpp>
@@ -23,8 +22,7 @@ namespace simple_platformer
         float deltaTime)
     {
         requireSeconds(deltaTime, "Flying movement time step");
-        if (!std::isfinite(movement.speed) || movement.speed < 0.0F ||
-            !isFinite(intentions.direction))
+        if (!isFiniteNonNegative(movement.speed) || !isFinite(intentions.direction))
         {
             throw std::invalid_argument(
                 "Flying movement requires a finite, non-negative speed and finite intentions");

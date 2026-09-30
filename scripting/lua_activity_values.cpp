@@ -52,10 +52,7 @@ namespace simple_platformer
             if (object.get_type() == sol::type::userdata && object.is<glm::vec2>())
             {
                 const glm::vec2 value = object.as<glm::vec2>();
-                if (!isFinite(value))
-                {
-                    throw std::invalid_argument(std::string(field) + " must be finite");
-                }
+                requireFinite(value, std::string(field).c_str());
                 return value;
             }
             if (!object.is<sol::table>())

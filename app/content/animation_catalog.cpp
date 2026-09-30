@@ -3,7 +3,6 @@
 #include "content_json.hpp"
 #include "content_validation.hpp"
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <filesystem>
 #include <set>
@@ -12,6 +11,7 @@
 #include <string_view>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 
@@ -71,7 +71,7 @@ namespace simple_platformer
             {
                 failJson({}, fieldPath(name, "frames"), "expected at least one frame");
             }
-            if (!std::isfinite(clip.frameDuration) || clip.frameDuration <= 0)
+            if (!isFinitePositive(clip.frameDuration))
             {
                 failJson({}, fieldPath(name, "frameDuration"), "expected a positive finite number");
             }

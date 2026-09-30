@@ -2,7 +2,6 @@
 
 #include "simple_platformer/npc/npc_state_machine.hpp"
 
-#include <cmath>
 #include <stdexcept>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -40,7 +39,7 @@ namespace simple_platformer
                 throw std::invalid_argument("Actors require exactly one movement component");
             }
             if (actor.flyingMovement.has_value() &&
-                (!std::isfinite(actor.flyingMovement->speed) || actor.flyingMovement->speed < 0.0F))
+                (!isFiniteNonNegative(actor.flyingMovement->speed)))
             {
                 throw std::invalid_argument(
                     "Flying movement speed must be finite and non-negative");
@@ -77,15 +76,12 @@ namespace simple_platformer
             {
                 const RangedWeapon& weapon = *actor.rangedWeapon;
                 requireSeconds(weapon.phaseTimeRemaining, "Ranged weapon phase time remaining");
-                if (weapon.damage <= 0 || !isFinite(weapon.projectileSize) ||
-                    weapon.projectileSize.x <= 0.0F || weapon.projectileSize.y <= 0.0F ||
+                if (weapon.damage <= 0 || !isFinitePositive(weapon.projectileSize) ||
                     !isFinitePositive(weapon.projectileSpeed) ||
                     !isFinitePositive(weapon.projectileLifetime) ||
                     !isFinitePositive(weapon.shootDuration) ||
                     !isFinitePositive(weapon.recoveryDuration) ||
-                    !isFinite(weapon.projectileSprite.size) ||
-                    weapon.projectileSprite.size.x <= 0.0F ||
-                    weapon.projectileSprite.size.y <= 0.0F)
+                    !isFinitePositive(weapon.projectileSprite.size))
                 {
                     throw std::invalid_argument("Actor ranged weapon data is invalid");
                 }
@@ -94,9 +90,8 @@ namespace simple_platformer
             {
                 const BiteAttack& bite = *actor.bite;
                 requireSeconds(bite.phaseTimeRemaining, "Bite phase time remaining");
-                if (bite.damage <= 0 || !isFinite(bite.hitboxSize) || bite.hitboxSize.x <= 0.0F ||
-                    bite.hitboxSize.y <= 0.0F || !std::isfinite(bite.reach) || bite.reach < 0.0F ||
-                    !isFinitePositive(bite.windupDuration) ||
+                if (bite.damage <= 0 || !isFinitePositive(bite.hitboxSize) ||
+                    !isFiniteNonNegative(bite.reach) || !isFinitePositive(bite.windupDuration) ||
                     !isFinitePositive(bite.activeDuration) ||
                     !isFinitePositive(bite.recoveryDuration))
                 {
@@ -166,10 +161,8 @@ namespace simple_platformer
             {
                 requireSeconds(actor.senses->targetMemoryDuration, "NPC target memory duration");
                 requireSeconds(actor.senses->searchDuration, "NPC search duration");
-                if (!std::isfinite(actor.senses->noticeDistance) ||
-                    actor.senses->noticeDistance < 0.0F ||
-                    !std::isfinite(actor.senses->standoffDistance) ||
-                    actor.senses->standoffDistance < 0.0F)
+                if (!isFiniteNonNegative(actor.senses->noticeDistance) ||
+                    !isFiniteNonNegative(actor.senses->standoffDistance))
                 {
                     throw std::invalid_argument("NPC senses data is invalid");
                 }

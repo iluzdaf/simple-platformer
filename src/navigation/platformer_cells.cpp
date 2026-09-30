@@ -41,7 +41,7 @@ namespace simple_platformer
 
         void requireBodySize(glm::vec2 bodySize)
         {
-            if (!isFinite(bodySize) || bodySize.x <= 0.0F || bodySize.y <= 0.0F)
+            if (!isFinitePositive(bodySize))
             {
                 throw std::invalid_argument("Navigation body size must be finite and positive");
             }

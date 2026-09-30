@@ -1,7 +1,6 @@
 #include "simple_platformer/npc/npc_senses.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <optional>
 #include <stdexcept>
 #include <vector>
@@ -35,7 +34,7 @@ namespace simple_platformer
 
         bool withinNoticeDistance(const Aabb& observer, const Aabb& target, const NpcSenses& senses)
         {
-            if (!std::isfinite(senses.noticeDistance) || senses.noticeDistance < 0.0F)
+            if (!isFiniteNonNegative(senses.noticeDistance))
             {
                 throw std::invalid_argument("NPC notice distance must be finite and non-negative");
             }

@@ -1,9 +1,9 @@
 #include "simple_platformer/input/input_program.hpp"
 
-#include <cmath>
 #include <stdexcept>
 
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/math/validation.hpp"
 
 namespace simple_platformer
 {
@@ -12,7 +12,7 @@ namespace simple_platformer
         float duration = 0.0F;
         for (const InputStep& step : program)
         {
-            if (!std::isfinite(step.duration) || step.duration <= 0.0F)
+            if (!isFinitePositive(step.duration))
             {
                 throw std::invalid_argument("Input program durations must be finite and positive");
             }
@@ -23,7 +23,7 @@ namespace simple_platformer
 
     InputIntentions replayInput(const InputProgram& program, float elapsed)
     {
-        if (!std::isfinite(elapsed) || elapsed < 0.0F)
+        if (!isFiniteNonNegative(elapsed))
         {
             throw std::invalid_argument(
                 "Input program elapsed time must be finite and non-negative");
@@ -32,7 +32,7 @@ namespace simple_platformer
         float endsAt = 0.0F;
         for (const InputStep& step : program)
         {
-            if (!std::isfinite(step.duration) || step.duration <= 0.0F)
+            if (!isFinitePositive(step.duration))
             {
                 throw std::invalid_argument("Input program durations must be finite and positive");
             }

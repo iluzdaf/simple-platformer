@@ -273,7 +273,7 @@ namespace simple_platformer
         float deltaTime)
     {
         requireSeconds(deltaTime, "Flying path following time step");
-        if (!std::isfinite(movement.speed) || movement.speed < 0.0F)
+        if (!isFiniteNonNegative(movement.speed))
         {
             throw std::invalid_argument(
                 "Flying path following requires a finite, non-negative speed");

@@ -1,7 +1,6 @@
 #include "simple_platformer/actor/lifecycle.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <stdexcept>
 #include <vector>
 
@@ -20,7 +19,7 @@ namespace simple_platformer
         float deathDuration)
     {
         requireSeconds(deltaTime, "Life states time step");
-        if (!std::isfinite(deathDuration) || deathDuration <= 0.0F)
+        if (!isFinitePositive(deathDuration))
         {
             throw std::invalid_argument("Life states require a finite, positive death duration");
         }

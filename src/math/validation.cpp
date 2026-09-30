@@ -18,9 +18,27 @@ namespace simple_platformer
         return std::isfinite(value) && value > 0.0F;
     }
 
+    bool isFinitePositive(glm::vec2 value)
+    {
+        return isFinitePositive(value.x) && isFinitePositive(value.y);
+    }
+
+    bool isFiniteNonNegative(float value)
+    {
+        return std::isfinite(value) && value >= 0.0F;
+    }
+
+    void requireFinite(glm::vec2 value, const char* what)
+    {
+        if (!isFinite(value))
+        {
+            throw std::invalid_argument(std::string(what) + " must be finite");
+        }
+    }
+
     void requireSeconds(float seconds, const char* what)
     {
-        if (!std::isfinite(seconds) || seconds < 0.0F)
+        if (!isFiniteNonNegative(seconds))
         {
             throw std::invalid_argument(
                 std::string(what) + " must be a finite, non-negative number of seconds");

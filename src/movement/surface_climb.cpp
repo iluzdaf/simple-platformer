@@ -76,7 +76,7 @@ namespace simple_platformer
 
     void validateSurfaceClimbConfig(const SurfaceClimbConfig& config)
     {
-        if (!std::isfinite(config.speed) || config.speed <= 0.0F)
+        if (!isFinitePositive(config.speed))
         {
             throw std::invalid_argument("Surface climb speed must be finite and positive");
         }
@@ -109,10 +109,7 @@ namespace simple_platformer
         requireSeconds(deltaTime, "Surface climb time step");
         validateSurfaceClimbConfig(climb.config);
         validatePlatformerMovementConfig(movement.config);
-        if (!isFinite(intentions.direction))
-        {
-            throw std::invalid_argument("Input intentions must be finite");
-        }
+        requireFinite(intentions.direction, "Input intentions");
 
         const ClimbSurface previous = climb.surface;
         climb.surface =

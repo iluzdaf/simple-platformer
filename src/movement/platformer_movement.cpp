@@ -1,7 +1,6 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <stdexcept>
 
 #include <glm/vec2.hpp>
@@ -36,10 +35,7 @@ namespace simple_platformer
             requireSeconds(deltaTime, "Platformer movement time step");
             validatePlatformerMovementConfig(config);
 
-            if (!isFinite(intentions.direction))
-            {
-                throw std::invalid_argument("Input intentions must be finite");
-            }
+            requireFinite(intentions.direction, "Input intentions");
         }
 
         void updateTimers(
@@ -177,17 +173,16 @@ namespace simple_platformer
 
     void validatePlatformerMovementConfig(const PlatformerMovementConfig& config)
     {
-        const bool invalidConfig =
-            !std::isfinite(config.maximumSpeed) || config.maximumSpeed < 0.0F ||
-            !std::isfinite(config.groundAcceleration) || config.groundAcceleration < 0.0F ||
-            !std::isfinite(config.airAcceleration) || config.airAcceleration < 0.0F ||
-            !std::isfinite(config.groundDeceleration) || config.groundDeceleration < 0.0F ||
-            !std::isfinite(config.jumpSpeed) || config.jumpSpeed < 0.0F ||
-            !std::isfinite(config.gravity) || config.gravity < 0.0F ||
-            !std::isfinite(config.jumpReleaseGravity) || config.jumpReleaseGravity < 0.0F ||
-            !std::isfinite(config.maximumFallSpeed) || config.maximumFallSpeed < 0.0F ||
-            !std::isfinite(config.coyoteDuration) || config.coyoteDuration < 0.0F ||
-            !std::isfinite(config.jumpBufferDuration) || config.jumpBufferDuration < 0.0F;
+        const bool invalidConfig = !isFiniteNonNegative(config.maximumSpeed) ||
+                                   !isFiniteNonNegative(config.groundAcceleration) ||
+                                   !isFiniteNonNegative(config.airAcceleration) ||
+                                   !isFiniteNonNegative(config.groundDeceleration) ||
+                                   !isFiniteNonNegative(config.jumpSpeed) ||
+                                   !isFiniteNonNegative(config.gravity) ||
+                                   !isFiniteNonNegative(config.jumpReleaseGravity) ||
+                                   !isFiniteNonNegative(config.maximumFallSpeed) ||
+                                   !isFiniteNonNegative(config.coyoteDuration) ||
+                                   !isFiniteNonNegative(config.jumpBufferDuration);
         if (invalidConfig)
         {
             throw std::invalid_argument("Platformer movement configuration cannot be negative");

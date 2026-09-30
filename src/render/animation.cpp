@@ -1,7 +1,6 @@
 #include "simple_platformer/render/animation.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <stdexcept>
 
@@ -45,8 +44,7 @@ namespace simple_platformer
         {
             throw std::invalid_argument("Animation clips require at least one frame");
         }
-        if (!std::isfinite(clip.frameDuration) || clip.frameDuration <= 0.0F ||
-            !std::isfinite(elapsedSeconds) || elapsedSeconds < 0.0F)
+        if (!isFinitePositive(clip.frameDuration) || !isFiniteNonNegative(elapsedSeconds))
         {
             throw std::invalid_argument("Animation timing must be positive and finite");
         }

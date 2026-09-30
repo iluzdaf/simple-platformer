@@ -2,7 +2,6 @@
 
 #include "navigation_debug.hpp"
 
-#include <cmath>
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
@@ -247,7 +246,7 @@ namespace simple_platformer
             throw std::invalid_argument(
                 "Debug overlay simulation step must be finite and positive");
         }
-        if (!std::isfinite(atlasWidth) || atlasWidth <= 0.0F)
+        if (!isFinitePositive(atlasWidth))
         {
             throw std::invalid_argument("Debug overlay atlas width must be positive and finite");
         }

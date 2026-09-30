@@ -59,7 +59,7 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("A resting body must have a finite position");
             }
-            if (!isFinite(bounds.size) || bounds.size.x <= 0.0F || bounds.size.y <= 0.0F)
+            if (!isFinitePositive(bounds.size))
             {
                 throw std::invalid_argument("Navigation body size must be finite and positive");
             }
@@ -163,12 +163,8 @@ namespace simple_platformer
             glm::vec2 target,
             FrameProfile* profile)
         {
-            if (!isFinite(target))
-            {
-                throw std::invalid_argument("A navigation target must be finite");
-            }
-            if (!isFinite(body.topLeft) || !isFinite(body.size) || body.size.x <= 0.0F ||
-                body.size.y <= 0.0F)
+            requireFinite(target, "A navigation target");
+            if (!isFinite(body.topLeft) || !isFinitePositive(body.size))
             {
                 throw std::invalid_argument("A flying body must be finite and positive-sized");
             }
@@ -213,8 +209,7 @@ namespace simple_platformer
             const PlatformerTraversalProfile& profile)
         {
             requirePositiveSeconds(profile.stepSeconds, "Navigation simulation step");
-            if (!std::isfinite(profile.movement.maximumSpeed) ||
-                profile.movement.maximumSpeed < 0.0F)
+            if (!isFiniteNonNegative(profile.movement.maximumSpeed))
             {
                 throw std::invalid_argument(
                     "Platformer navigation maximum speed must be finite and non-negative");
@@ -255,10 +250,7 @@ namespace simple_platformer
         void requireValid(glm::vec2 target, const PlatformerTraversalProfile& profile)
         {
             requirePositiveSeconds(profile.stepSeconds, "Navigation simulation step");
-            if (!isFinite(target))
-            {
-                throw std::invalid_argument("A navigation target must be finite");
-            }
+            requireFinite(target, "A navigation target");
             if (profile.climb.has_value())
             {
                 validateSurfaceClimbConfig(*profile.climb);

@@ -43,6 +43,34 @@ TEST_CASE("A finite positive number is above zero and not infinite", "[math][val
     REQUIRE_FALSE(simple_platformer::isFinitePositive(std::numeric_limits<float>::quiet_NaN()));
 }
 
+TEST_CASE("A finite non-negative number may be zero but not below it", "[math][validation]")
+{
+    REQUIRE(simple_platformer::isFiniteNonNegative(0.0F));
+    REQUIRE(simple_platformer::isFiniteNonNegative(0.5F));
+    REQUIRE_FALSE(simple_platformer::isFiniteNonNegative(-0.5F));
+    REQUIRE_FALSE(simple_platformer::isFiniteNonNegative(std::numeric_limits<float>::infinity()));
+    REQUIRE_FALSE(simple_platformer::isFiniteNonNegative(std::numeric_limits<float>::quiet_NaN()));
+}
+
+TEST_CASE("A finite positive vector has both components above zero", "[math][validation]")
+{
+    const float infinity = std::numeric_limits<float>::infinity();
+
+    REQUIRE(simple_platformer::isFinitePositive(glm::vec2{12.0F, 20.0F}));
+    REQUIRE_FALSE(simple_platformer::isFinitePositive(glm::vec2{0.0F, 20.0F}));
+    REQUIRE_FALSE(simple_platformer::isFinitePositive(glm::vec2{12.0F, -1.0F}));
+    REQUIRE_FALSE(simple_platformer::isFinitePositive(glm::vec2{infinity, 20.0F}));
+}
+
+TEST_CASE("Requiring a finite vector names what it is", "[math][validation]")
+{
+    REQUIRE_NOTHROW(simple_platformer::requireFinite({1.0F, -2.0F}, "Camera position"));
+    REQUIRE_THROWS_WITH(
+        simple_platformer::requireFinite(
+            {std::numeric_limits<float>::quiet_NaN(), 0.0F}, "Camera position"),
+        "Camera position must be finite");
+}
+
 TEST_CASE("A positive time step rejects zero and non-finite values", "[math][validation]")
 {
     REQUIRE_NOTHROW(simple_platformer::requirePositiveSeconds(0.25F, "Navigation simulation step"));

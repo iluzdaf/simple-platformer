@@ -29,12 +29,10 @@ namespace simple_platformer
     {
         void validateProjectile(const simple_platformer::Projectile& projectile)
         {
-            if (!isFinite(projectile.bounds.topLeft) || !isFinite(projectile.bounds.size) ||
-                projectile.bounds.size.x <= 0.0F || projectile.bounds.size.y <= 0.0F ||
+            if (!isFinite(projectile.bounds.topLeft) || !isFinitePositive(projectile.bounds.size) ||
                 !isFinite(projectile.velocity) || projectile.damage <= 0 ||
                 !isFinitePositive(projectile.lifetimeRemaining) ||
-                !isFinite(projectile.sprite.size) || projectile.sprite.size.x <= 0.0F ||
-                projectile.sprite.size.y <= 0.0F ||
+                !isFinitePositive(projectile.sprite.size) ||
                 (projectile.owner.has_value() && !simple_platformer::isValid(*projectile.owner)))
             {
                 throw std::invalid_argument("Projectile data is invalid");
@@ -48,8 +46,7 @@ namespace simple_platformer
                 burst.cause == simple_platformer::ProjectileBurstCause::LifetimeExpired;
             if (!hasValidCause || !isFinite(burst.center) || !isFinite(burst.direction) ||
                 (burst.direction.x == 0.0F && burst.direction.y == 0.0F) ||
-                !isFinite(burst.sprite.size) || burst.sprite.size.x <= 0.0F ||
-                burst.sprite.size.y <= 0.0F || !isFinitePositive(burst.duration) ||
+                !isFinitePositive(burst.sprite.size) || !isFinitePositive(burst.duration) ||
                 !isFinitePositive(burst.lifetimeRemaining) ||
                 burst.lifetimeRemaining > burst.duration)
             {

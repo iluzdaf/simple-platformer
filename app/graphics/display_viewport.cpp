@@ -1,12 +1,12 @@
 #include "graphics/display_viewport.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <optional>
 
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/math/validation.hpp"
 
 namespace simple_platformer
 {
@@ -58,8 +58,7 @@ namespace simple_platformer
         glm::ivec2 windowSize,
         glm::ivec2 framebufferSize)
     {
-        if (!std::isfinite(windowPosition.x) || !std::isfinite(windowPosition.y) ||
-            windowSize.x <= 0 || windowSize.y <= 0)
+        if (!isFinite(windowPosition) || windowSize.x <= 0 || windowSize.y <= 0)
         {
             return std::nullopt;
         }

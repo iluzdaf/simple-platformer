@@ -22,8 +22,7 @@ namespace simple_platformer
 {
     void PlatformerConnectionCache::requireValid(const PlatformerTraversalProfile& profile) const
     {
-        if (!isFinite(profile.size) || profile.size.x <= 0.0F || profile.size.y <= 0.0F ||
-            !isFinitePositive(profile.stepSeconds))
+        if (!isFinitePositive(profile.size) || !isFinitePositive(profile.stepSeconds))
         {
             throw std::invalid_argument(
                 "Connections require a finite, positive profile size and step");

@@ -16,7 +16,7 @@ namespace simple_platformer
     {
         void validateViewport(glm::vec2 viewportSize)
         {
-            if (!isFinite(viewportSize) || viewportSize.x <= 0.0F || viewportSize.y <= 0.0F)
+            if (!isFinitePositive(viewportSize))
             {
                 throw std::invalid_argument("Camera viewport must be positive and finite");
             }
@@ -24,8 +24,8 @@ namespace simple_platformer
 
         void validateDeadZone(glm::vec2 deadZoneSize, glm::vec2 viewportSize)
         {
-            if (!isFinite(deadZoneSize) || deadZoneSize.x <= 0.0F || deadZoneSize.y <= 0.0F ||
-                deadZoneSize.x > viewportSize.x || deadZoneSize.y > viewportSize.y)
+            if (!isFinitePositive(deadZoneSize) || deadZoneSize.x > viewportSize.x ||
+                deadZoneSize.y > viewportSize.y)
             {
                 throw std::invalid_argument(
                     "Camera dead zone must be positive, finite, and no larger than the viewport");
@@ -35,10 +35,7 @@ namespace simple_platformer
         void validateCamera(const Camera& camera)
         {
             validateViewport(camera.viewportSize);
-            if (!isFinite(camera.position))
-            {
-                throw std::invalid_argument("Camera position must be finite");
-            }
+            requireFinite(camera.position, "Camera position");
         }
 
         // Where the camera's edge settles on one axis: a map smaller than the viewport sits

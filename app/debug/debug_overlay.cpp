@@ -97,7 +97,7 @@ namespace simple_platformer
             float stepSeconds)
         {
             PathFollowerDebugInfo info;
-            info.destinationFeet = follower.target;
+            info.goalFeet = follower.goal;
             if (!follower.path.has_value())
             {
                 return info;

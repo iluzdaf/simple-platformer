@@ -514,7 +514,7 @@ TEST_CASE(
     REQUIRE(passes({{2, 3}, ClimbSurface::LeftWall}));
     REQUIRE(passes({{6, 2}, ClimbSurface::Ceiling}));
     REQUIRE(passes({{11, 3}, ClimbSurface::RightWall}));
-    // Holding the wall at the foot of the far side is already in the target's cell.
+    // Holding the wall at the foot of the far side is already in the goal's cell.
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, endOf(result)) ==
         simple_platformer::Cell{11, 5});

@@ -37,7 +37,7 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
          {{{4, 1}}, simple_platformer::Traversal::Jump, {}},
          {{{4, 3}}, simple_platformer::Traversal::Fall, {}}});
     follower.nextStep = 1;
-    follower.target = simple_platformer::feetInCell(tests::TileSize, {4, 3});
+    follower.goal = simple_platformer::feetInCell(tests::TileSize, {4, 3});
 
     simple_platformer::Actor npc =
         tests::ActorBuilder::sized({12.0F, 12.0F}).at({16.0F, 32.0F}).walking().thinking({});
@@ -59,7 +59,7 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
     REQUIRE(path.hasPath);
     REQUIRE(path.nextStep == 1);
     REQUIRE(path.stepCount == 3);
-    REQUIRE(path.destinationFeet == simple_platformer::feetInCell(tests::TileSize, {4, 3}));
+    REQUIRE(path.goalFeet == simple_platformer::feetInCell(tests::TileSize, {4, 3}));
     REQUIRE(path.connections.size() == 3);
 
     REQUIRE(path.connections[0].fromFeet == simple_platformer::feetInCell(tests::TileSize, {1, 2}));

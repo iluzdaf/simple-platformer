@@ -40,7 +40,7 @@ namespace simple_platformer
         Deferred
     };
 
-    // Found carries a path that ends in the cell holding the target. Unreachable
+    // Found carries a path that ends in the cell holding the goal. Unreachable
     // carries a path to the reachable cell nearest it, without waypoints when the
     // actor is already there. Deferred carries no path: the caller should retry after
     // pending navigation work completes. Flying paths never defer.
@@ -48,7 +48,7 @@ namespace simple_platformer
     {
         NavigationPathStatus status = NavigationPathStatus::Unreachable;
         std::optional<NavigationPath> path;
-        // How far the path's last waypoint is from the target, when there is a path.
+        // How far the path's last waypoint is from the goal, when there is a path.
         float remainingDistance = 0.0F;
     };
 }

@@ -114,16 +114,16 @@ namespace simple_platformer
 
         // What a search's route gives its caller: Found when it ends in the goal cell,
         // Unreachable otherwise, with its waypoints and how far their end lies from the
-        // target point.
+        // goal.
         NavigationPathResult pathResultOf(
             int tileSize,
             const Route& route,
             glm::vec2 bodySize,
             Cell goal,
-            glm::vec2 target)
+            glm::vec2 goalFeet)
         {
             NavigationPath path = waypointsOf(tileSize, route, bodySize);
-            const float remaining = glm::distance(endOf(path), target);
+            const float remaining = glm::distance(endOf(path), goalFeet);
             const NavigationPathStatus status = endOf(route).cell == goal
                                                     ? NavigationPathStatus::Found
                                                     : NavigationPathStatus::Unreachable;
@@ -160,10 +160,10 @@ namespace simple_platformer
         std::optional<NavigationPathResult> findFlyingPath(
             const TileMap& map,
             const Aabb& body,
-            glm::vec2 target,
+            glm::vec2 goalFeet,
             FrameProfile* profile)
         {
-            requireFinite(target, "A navigation target");
+            requireFinite(goalFeet, "A navigation goal");
             if (!isFinite(body.topLeft) || !isFinitePositive(body.size))
             {
                 throw std::invalid_argument("A flying body must be finite and positive-sized");
@@ -175,7 +175,7 @@ namespace simple_platformer
             {
                 return std::nullopt;
             }
-            const Cell goal = cellAtFeet(tileSize, target);
+            const Cell goal = cellAtFeet(tileSize, goalFeet);
             int cellsExpanded = 0;
             const ConnectionFunction connections =
                 [&map, profile, &cellsExpanded](RouteLocation location)
@@ -195,7 +195,7 @@ namespace simple_platformer
             {
                 throw std::logic_error("A completed path search returned no path");
             }
-            return pathResultOf(tileSize, *result.route, body.size, goal, target);
+            return pathResultOf(tileSize, *result.route, body.size, goal, goalFeet);
         }
 
         // Optimistic remaining travel time in ticks from a cell to the goal cell, at the
@@ -247,10 +247,10 @@ namespace simple_platformer
             }
         }
 
-        void requireValid(glm::vec2 target, const PlatformerTraversalProfile& profile)
+        void requireValid(glm::vec2 goalFeet, const PlatformerTraversalProfile& profile)
         {
             requirePositiveSeconds(profile.stepSeconds, "Navigation simulation step");
-            requireFinite(target, "A navigation target");
+            requireFinite(goalFeet, "A navigation goal");
             if (profile.climb.has_value())
             {
                 validateSurfaceClimbConfig(*profile.climb);
@@ -265,12 +265,12 @@ namespace simple_platformer
         std::optional<NavigationPathResult> findPlatformerPath(
             const TileMap& map,
             const Aabb& body,
-            glm::vec2 target,
+            glm::vec2 goalFeet,
             const PlatformerTraversalProfile& profile,
             PlatformerConnectionCache& cache,
             FrameProfile* frameProfile)
         {
-            requireValid(target, profile);
+            requireValid(goalFeet, profile);
             addFrameStatistic(frameProfile, "Navigation", "Path searches");
             const std::optional<RouteLocation> resting = restingLocationOf(map, body, profile);
             if (!resting.has_value())
@@ -279,7 +279,7 @@ namespace simple_platformer
             }
             const RouteLocation start = *resting;
             const int tileSize = map.tileSize();
-            const Cell goal = cellAtFeet(tileSize, target);
+            const Cell goal = cellAtFeet(tileSize, goalFeet);
             {
                 const PhaseScope cachePhase(frameProfile, "Navigation", "Path cache");
                 cache.applyRecordedTileBreaks(map, frameProfile);
@@ -346,7 +346,7 @@ namespace simple_platformer
             {
                 throw std::logic_error("A completed path search returned no path");
             }
-            return pathResultOf(tileSize, *result.route, profile.size, goal, target);
+            return pathResultOf(tileSize, *result.route, profile.size, goal, goalFeet);
         }
     }
 
@@ -369,14 +369,14 @@ namespace simple_platformer
     std::optional<NavigationPathResult> findActorPath(
         const TileMap& map,
         const Actor& actor,
-        glm::vec2 target,
+        glm::vec2 goalFeet,
         float stepSeconds,
         PlatformerConnectionCache& cache,
         FrameProfile* frameProfile)
     {
         if (actor.flyingMovement.has_value())
         {
-            return findFlyingPath(map, actor.body.bounds, target, frameProfile);
+            return findFlyingPath(map, actor.body.bounds, goalFeet, frameProfile);
         }
         if (!actor.platformerMovement.has_value())
         {
@@ -385,7 +385,7 @@ namespace simple_platformer
         return findPlatformerPath(
             map,
             actor.body.bounds,
-            target,
+            goalFeet,
             platformerTraversalProfileFor(actor, stepSeconds),
             cache,
             frameProfile);

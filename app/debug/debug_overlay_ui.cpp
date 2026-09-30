@@ -183,18 +183,17 @@ namespace simple_platformer
                 }
             }
 
-            if (follower.destinationFeet.has_value())
+            if (follower.goalFeet.has_value())
             {
-                constexpr float DestinationRadius = 6.0F;
-                const ImVec2 destination =
-                    screenPosition(follower.destinationFeet.value(), scene.cameraBounds, viewport);
-                drawList.AddCircle(destination, DestinationRadius, PathDestinationColour, 16, 2.0F);
+                constexpr float GoalRadius = 6.0F;
+                const ImVec2 goal =
+                    screenPosition(follower.goalFeet.value(), scene.cameraBounds, viewport);
+                drawList.AddCircle(goal, GoalRadius, PathGoalColour, 16, 2.0F);
                 drawShadowedText(
                     drawList,
-                    {destination.x + DestinationRadius + 2.0F,
-                     destination.y - ImGui::GetTextLineHeight() * 0.5F},
-                    PathDestinationColour,
-                    "Dest");
+                    {goal.x + GoalRadius + 2.0F, goal.y - ImGui::GetTextLineHeight() * 0.5F},
+                    PathGoalColour,
+                    "Goal");
             }
         }
 

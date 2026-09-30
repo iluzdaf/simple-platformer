@@ -43,17 +43,17 @@ namespace simple_platformer
         }
 
         // Within the arrival distance on each axis separately, a square rather than a circle.
-        bool arrivedAt(glm::vec2 feet, glm::vec2 target)
+        bool arrivedAt(glm::vec2 feet, glm::vec2 point)
         {
-            return std::abs(target.x - feet.x) <= ArrivalDistance &&
-                   std::abs(target.y - feet.y) <= ArrivalDistance;
+            return std::abs(point.x - feet.x) <= ArrivalDistance &&
+                   std::abs(point.y - feet.y) <= ArrivalDistance;
         }
 
-        // Standing still on the ground at the target. A walk ends this way, and a jump or
+        // Standing still on the ground at the point. A walk ends this way, and a jump or
         // fall must start this way, because its inputs were recorded from a standing start.
-        bool stoppedAt(const Body& body, const PlatformerMovement& movement, glm::vec2 target)
+        bool stoppedAt(const Body& body, const PlatformerMovement& movement, glm::vec2 point)
         {
-            return movement.grounded && arrivedAt(feetOf(body.bounds), target) &&
+            return movement.grounded && arrivedAt(feetOf(body.bounds), point) &&
                    std::abs(body.velocity.x) <= StoppedSpeed;
         }
 
@@ -270,7 +270,7 @@ namespace simple_platformer
         follower.path.reset();
         follower.nextStep = 0;
         follower.programElapsed = 0.0F;
-        follower.target.reset();
+        follower.goal.reset();
     }
 
     bool pathComplete(const PathFollower& follower)

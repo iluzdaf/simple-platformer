@@ -294,7 +294,7 @@ TEST_CASE(
     simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
 
     REQUIRE(actor(world, npcId).intentions.direction.x < 0.0F);
-    REQUIRE(pathFollower(world, npcId).target == lastKnownFeet);
+    REQUIRE(pathFollower(world, npcId).goal == lastKnownFeet);
     REQUIRE(brain(world, npcId).lastKnownTargetFeet == lastKnownFeet);
 }
 
@@ -383,7 +383,7 @@ TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][f
     REQUIRE(actor(world, npcId).body.bounds.topLeft.x > previousX);
 }
 
-TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]")
+TEST_CASE("A patrol swaps endpoints after reaching its goal", "[npc][fsm]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
@@ -415,10 +415,10 @@ TEST_CASE("An unreachable patrol heads as close as it can without retrying", "[n
     REQUIRE(
         simple_platformer::endOf(follower.path.value_or(simple_platformer::NavigationPath{})) ==
         closest);
-    REQUIRE(follower.target == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
+    REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
     REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
 
-    // The path still serves the same target, so the NPC keeps following it.
+    // The path still serves the same goal, so the NPC keeps following it.
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(follower.path.has_value());
     REQUIRE(follower.nextStep == 0);
@@ -427,7 +427,7 @@ TEST_CASE("An unreachable patrol heads as close as it can without retrying", "[n
         closest);
 }
 
-TEST_CASE("A patrol target that moves is planned for at once", "[npc][fsm]")
+TEST_CASE("A patrol goal that moves is planned for at once", "[npc][fsm]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({".........", ".........", "#########"});
@@ -438,14 +438,14 @@ TEST_CASE("A patrol target that moves is planned for at once", "[npc][fsm]")
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     const simple_platformer::PathFollower& follower = pathFollower(world, npcId);
-    REQUIRE(follower.target == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
+    REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
 
-    // A few pixels is not worth a new search; half a tile is.
+    // A few pixels is not worth planning again; half a tile is.
     patrol(world, npcId).secondFeet = {124.0F, 32.0F};
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE(follower.target == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
+    REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
 
     patrol(world, npcId).secondFeet = {88.0F, 32.0F};
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE(follower.target == simple_platformer::feetInCell(tests::TileSize, {5, 1}));
+    REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {5, 1}));
 }

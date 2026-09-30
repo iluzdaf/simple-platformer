@@ -27,10 +27,9 @@ namespace simple_platformer
         // How far into the current step's input program the follower is. Zero means the
         // program has not started, so the follower is still getting to its takeoff.
         float programElapsed = 0.0F;
-        // The point the path was requested for, so a request for much the same point
-        // again does not search again. The path ends short of it when it cannot be
-        // reached.
-        std::optional<glm::vec2> target;
+        // The goal the path was planned for, so asking for much the same goal again
+        // does not plan again. The path ends short of it when it cannot be reached.
+        std::optional<glm::vec2> goal;
         // How many tiles the map had broken when the path was planned, so a break after
         // that, which the path may run through, has it planned again.
         std::size_t breaksWhenPlanned = 0;

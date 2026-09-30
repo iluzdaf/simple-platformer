@@ -16,9 +16,9 @@ namespace simple_platformer
 
     // The one way into navigation. Searches from where the actor's body rests, with
     // the connections its movement and capabilities give it, for the cheapest path to
-    // the cell holding the target point. A target it cannot reach gives the path that
-    // ends in the reachable cell nearest it; the result says how far that end is from
-    // the target. No result means the actor has nowhere to start from yet, as when
+    // the cell holding the goal. A goal it cannot reach gives the path that ends in the
+    // reachable cell nearest it; the result says how far that end is from the goal. No
+    // result means the actor has nowhere to start from yet, as when
     // it is in the air, or has no movement to navigate with.
     //
     // A platformer's connections are simulated tick by tick at stepSeconds, the fixed
@@ -30,7 +30,7 @@ namespace simple_platformer
     std::optional<NavigationPathResult> findActorPath(
         const TileMap& map,
         const Actor& actor,
-        glm::vec2 target,
+        glm::vec2 goalFeet,
         float stepSeconds,
         PlatformerConnectionCache& cache,
         FrameProfile* frameProfile = nullptr);

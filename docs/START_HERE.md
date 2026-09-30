@@ -125,7 +125,7 @@ A practical route through the implementation is:
 2. Change `noticeDistance`, `standoffDistance`, `targetMemoryDuration` and
    `searchDuration` in an actor definition's `senses` settings in [`actors.json`](../assets/catalogs/actors.json), using the
    debug overlay to observe visible targets, remembered positions, patrol points,
-   destinations, and paths.
+   goals, and paths.
 3. Compare the built-in decision path with a machine in
    [`machines.json`](../assets/catalogs/machines.json), then choose an option above.
    Test any new engine rule separately from movement.

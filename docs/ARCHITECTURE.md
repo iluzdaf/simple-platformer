@@ -135,7 +135,7 @@ breakpoint or stall does not cause an excessive catch-up.
 1. Advance the World's shared simulation clock.
 2. Hold the player still if they have entered the exit and it is still opening.
 3. Update NPC sensing and target memory.
-4. Update NPC decisions, destinations, paths, and intentions.
+4. Update NPC decisions, goals, paths, and intentions.
 5. Move every actor and resolve tile collision.
 6. Let pickups fall and resolve their tile collision.
 7. Advance attacks and evaluate active bite hitboxes.
@@ -451,7 +451,7 @@ Built-in states are declared in [`npc.hpp`](../include/simple_platformer/npc/npc
    most one transition an update. A known target is pursued from whichever state
    notices it, and a lost one leaves the NPC where the brain's [tactic](#tactics)
    answers.
-3. Entering a state resets its time and route. The activity then requests a destination,
+3. Entering a state resets its time and route. The activity then requests a goal,
    aim, or attack through `InputIntentions`. For example, Chase follows a path to the
    last known target position, while Retreat moves away from it and requests an attack.
    Movement and combat execute those requests later in the same simulation step.
@@ -530,7 +530,7 @@ and restart discard that state for every actor before replacing the world.
 Machine JSON keeps the short string form for built-in activities. A Lua activity uses
 `{"kind":"lua","script":"rat","activity":"flee"}`. The application loads referenced
 files from `assets/scripts` at startup and rejects missing scripts or activities.
-The rat uses Lua to choose a flee destination while C++ follows the path and handles
+The rat uses Lua to choose a flee goal while C++ follows the path and handles
 biting. The spider's Lua patrol and pursuit route it over walls and ceilings the same
 way. The boar's Lua charge activity requests ordinary walking, ledge avoidance,
 and contact damage; its machine uses facts to choose wake and recovery transitions.
@@ -700,9 +700,8 @@ steps it leaves `climbGrip` at `Keep`, so a climber stays on what it holds. It j
 a jump or fall is done once the body lands and stops on the waypoint's row, and the
 next step walks it the rest of the way. A step that ends away from its waypoint drops
 the path, and the NPC plans again. The follower works only in feet positions. It
-remembers the point its path was requested for, and the NPC searches again once its
-goal moves more than 8 pixels from that point; the path itself may end short of
-it. End-to-end tests replay generated
+remembers the goal its path was planned for, and the NPC plans again once the goal
+moves more than 8 pixels; the path itself may end short of it. End-to-end tests replay generated
 input programs through the real simulation so navigation cannot quietly drift away
 from runtime movement.
 
@@ -965,7 +964,7 @@ NPCs can use, extend the C++ state path:
    system.
 3. Give its entry and exit conditions branches in `nextNpcState`. Entering resets the
    state's timing and clears the path for every state.
-4. Let the state's function choose a destination, facing, or attack intention.
+4. Let the state's function choose a goal, facing, or attack intention.
 5. Continue to move and attack through `InputIntentions`; NPC decision code should not
    write body position or bypass combat systems.
 6. Test its transitions with facts alone, then its sustained behaviour and the most

@@ -243,7 +243,7 @@ TEST_CASE("An NPC plans its path again after a break", "[npc][navigation]")
     const simple_platformer::FrameProfile settled = profiledNpcUpdate(map, world);
     REQUIRE(simple_platformer::frameStatisticCount(settled, "Path searches") == 0);
 
-    // A break may have cut the path, so it is planned again though the target is the same.
+    // A break may have cut the path, so it is planned again though the goal is the same.
     REQUIRE(map.breakTile({7, 2}));
     const simple_platformer::FrameProfile broken = profiledNpcUpdate(map, world);
     REQUIRE(simple_platformer::frameStatisticCount(broken, "Path searches") == 1);

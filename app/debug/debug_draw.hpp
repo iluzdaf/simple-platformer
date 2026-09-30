@@ -17,7 +17,7 @@ namespace simple_platformer
     constexpr ImU32 FallingPathColour = IM_COL32(255, 160, 64, 255);
     constexpr ImU32 JumpingPathColour = IM_COL32(224, 80, 255, 255);
     constexpr ImU32 UnknownPathColour = IM_COL32(255, 255, 255, 255);
-    constexpr ImU32 PathDestinationColour = IM_COL32(255, 255, 255, 230);
+    constexpr ImU32 PathGoalColour = IM_COL32(255, 255, 255, 230);
     constexpr ImU32 NextPathGuideColour = IM_COL32(255, 255, 255, 220);
     constexpr ImU32 SensorRangeColour = IM_COL32(160, 96, 255, 110);
     constexpr ImU32 VisibleTargetColour = IM_COL32(80, 255, 96, 230);

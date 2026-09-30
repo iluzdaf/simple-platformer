@@ -22,10 +22,8 @@ namespace simple_platformer
 {
     void validateContentSprite(const Sprite& sprite)
     {
-        if (!isFinite(sprite.region.position) || sprite.region.position.x < 0 ||
-            sprite.region.position.y < 0 || !isFinite(sprite.region.size) ||
-            sprite.region.size.x <= 0 || sprite.region.size.y <= 0 || !isFinite(sprite.size) ||
-            sprite.size.x <= 0 || sprite.size.y <= 0)
+        if (!isFiniteNonNegative(sprite.region.position) || !isFinitePositive(sprite.region.size) ||
+            !isFinitePositive(sprite.size))
         {
             throw std::invalid_argument(
                 "sprite requires finite non-negative atlas position and positive sizes");
@@ -139,8 +137,7 @@ namespace simple_platformer
                     "climbable tile '" + entry.first + "' must block movement");
             }
             const auto& sprite = definition.sprite;
-            if (!isFinite(sprite.position) || sprite.position.x < 0 || sprite.position.y < 0 ||
-                !isFinitePositive(sprite.size))
+            if (!isFiniteNonNegative(sprite.position) || !isFinitePositive(sprite.size))
             {
                 throw std::invalid_argument("invalid sprite region for tile '" + entry.first + "'");
             }

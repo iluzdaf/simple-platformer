@@ -10,6 +10,8 @@ namespace simple_platformer
     // Whether x and y are both finite and above zero, as a size's must be.
     bool isFinitePositive(glm::vec2 value);
     bool isFiniteNonNegative(float value);
+    // Whether x and y are both finite and not below zero, as an atlas position's must be.
+    bool isFiniteNonNegative(glm::vec2 value);
 
     // Throws unless x and y are both finite. The message starts with what the value is, as
     // in "Input intentions must be finite".

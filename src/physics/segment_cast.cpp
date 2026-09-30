@@ -76,8 +76,7 @@ namespace simple_platformer
             const TileBlockingQuery& blocks,
             const BlockingTileVisitor& visit)
         {
-            if (!isFinite(start) || !isFinite(end) || !isFinite(movingSize) ||
-                movingSize.x < 0.0F || movingSize.y < 0.0F)
+            if (!isFinite(start) || !isFinite(end) || !isFiniteNonNegative(movingSize))
             {
                 throw std::invalid_argument(
                     "Tile segment casts require finite, non-negative-sized data");

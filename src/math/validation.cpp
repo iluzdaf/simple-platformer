@@ -28,6 +28,11 @@ namespace simple_platformer
         return std::isfinite(value) && value >= 0.0F;
     }
 
+    bool isFiniteNonNegative(glm::vec2 value)
+    {
+        return isFiniteNonNegative(value.x) && isFiniteNonNegative(value.y);
+    }
+
     void requireFinite(glm::vec2 value, const char* what)
     {
         if (!isFinite(value))

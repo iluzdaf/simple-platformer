@@ -52,6 +52,15 @@ TEST_CASE("A finite non-negative number may be zero but not below it", "[math][v
     REQUIRE_FALSE(simple_platformer::isFiniteNonNegative(std::numeric_limits<float>::quiet_NaN()));
 }
 
+TEST_CASE("A finite non-negative vector may have zero components", "[math][validation]")
+{
+    REQUIRE(simple_platformer::isFiniteNonNegative(glm::vec2{0.0F, 0.0F}));
+    REQUIRE(simple_platformer::isFiniteNonNegative(glm::vec2{32.0F, 0.0F}));
+    REQUIRE_FALSE(simple_platformer::isFiniteNonNegative(glm::vec2{-1.0F, 0.0F}));
+    REQUIRE_FALSE(simple_platformer::isFiniteNonNegative(
+        glm::vec2{0.0F, std::numeric_limits<float>::infinity()}));
+}
+
 TEST_CASE("A finite positive vector has both components above zero", "[math][validation]")
 {
     const float infinity = std::numeric_limits<float>::infinity();

@@ -14,6 +14,8 @@ namespace simple_platformer
     };
 
     glm::vec2 centerOf(const Aabb& box);
+    // A box of this size whose centre is the point.
+    Aabb boxCenteredOn(glm::vec2 center, glm::vec2 size);
     glm::vec2 feetOf(const Aabb& box);
     void placeFeetAt(Aabb& box, glm::vec2 feet);
     // A box of this size standing in the cell, its feet at the middle of the cell's bottom edge.

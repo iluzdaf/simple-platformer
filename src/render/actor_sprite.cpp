@@ -15,11 +15,6 @@ namespace simple_platformer
 {
     namespace
     {
-        Aabb centredOn(glm::vec2 centre, glm::vec2 size)
-        {
-            return {centre - size * 0.5F, size};
-        }
-
         ActorSpritePlacement turned(
             glm::vec2 visibleCentre,
             glm::vec2 size,
@@ -29,10 +24,10 @@ namespace simple_platformer
         {
             const glm::vec2 visibleSize = quarterTurn ? glm::vec2{size.y, size.x} : size;
             return {
-                centredOn(visibleCentre, size),
+                boxCenteredOn(visibleCentre, size),
                 rotationRadians,
                 flipHorizontal,
-                centredOn(visibleCentre, visibleSize)};
+                boxCenteredOn(visibleCentre, visibleSize)};
         }
     }
 

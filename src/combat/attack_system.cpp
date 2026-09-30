@@ -38,8 +38,7 @@ namespace simple_platformer
                 actorCenter + direction * (actorRadius + projectileRadius);
 
             Projectile projectile;
-            projectile.bounds = {
-                projectileCenter - weapon.projectileSize * 0.5F, weapon.projectileSize};
+            projectile.bounds = boxCenteredOn(projectileCenter, weapon.projectileSize);
             projectile.velocity = direction * weapon.projectileSpeed;
             projectile.damage = weapon.damage;
             projectile.lifetimeRemaining = weapon.projectileLifetime;

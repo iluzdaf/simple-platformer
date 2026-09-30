@@ -11,6 +11,11 @@ namespace simple_platformer
         return box.position + box.size * 0.5F;
     }
 
+    Aabb boxCenteredOn(glm::vec2 center, glm::vec2 size)
+    {
+        return {center - size * 0.5F, size};
+    }
+
     glm::vec2 feetOf(const Aabb& box)
     {
         return {box.position.x + box.size.x * 0.5F, box.position.y + box.size.y};

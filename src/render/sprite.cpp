@@ -15,7 +15,7 @@ namespace simple_platformer
             return {{bodyFeet.x - sprite.size.x * 0.5F, bodyFeet.y - sprite.size.y}, sprite.size};
         }
         case SpriteAnchor::BodyCenter:
-            return {centerOf(bodyBounds) - sprite.size * 0.5F, sprite.size};
+            return boxCenteredOn(centerOf(bodyBounds), sprite.size);
         }
 
         throw std::invalid_argument("Sprite anchor is invalid");

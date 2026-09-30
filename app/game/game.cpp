@@ -6,6 +6,7 @@
 #include "level_composition.hpp"
 #include "content/level_catalog.hpp"
 #include "content/game_catalogs.hpp"
+#include "content/hud_catalog.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -89,7 +90,7 @@ namespace simple_platformer
             throw std::logic_error("The game could not initialise its camera");
         }
         cameraController =
-            makeCameraController(level.map, playerActor->body.bounds, {80.0F, 45.0F});
+            makeCameraController(level.map, playerActor->body.bounds, levelCatalog.cameraDeadZone);
         queueNavigationFill(level.map, level.world, simulationStepSeconds);
     }
 
@@ -229,6 +230,11 @@ namespace simple_platformer
     Camera Game::currentCamera() const
     {
         return cameraControllerValue().camera;
+    }
+
+    const HudIcons& Game::hudIcons() const
+    {
+        return gameCatalogs.hudIcons;
     }
 
     const Inventory& Game::playerInventory() const

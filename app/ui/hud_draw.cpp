@@ -27,6 +27,13 @@ namespace simple_platformer
         drawShadowedText(drawList, {left, y}, HudTextColour, text);
     }
 
+    bool atlasContains(const TextureView& atlas, const SpriteRegion& region)
+    {
+        return region.position.x >= 0.0F && region.position.y >= 0.0F &&
+               region.position.x + region.size.x <= static_cast<float>(atlas.width) &&
+               region.position.y + region.size.y <= static_cast<float>(atlas.height);
+    }
+
     void drawAtlasRegion(
         ImDrawList& drawList,
         const TextureView& atlas,

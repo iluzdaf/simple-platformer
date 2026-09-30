@@ -20,6 +20,7 @@ TEST_CASE("A catalog entry must reference an existing level file", "[app][conten
     const auto levelCatalog = simple_platformer::parseLevelCatalog(
         R"({
             "startLevel": 1,
+            "cameraDeadZone": [80, 45],
             "levels": [{"number": 1, "file": "missing.json"}]
         })",
         "test catalog",
@@ -57,7 +58,7 @@ TEST_CASE("A level's cells become the feet of those cells on its map", "[app][co
 TEST_CASE("A level composes an actor from its catalog definition", "[app][actors]")
 {
     const auto levelCatalog = simple_platformer::parseLevelCatalog(
-        R"({"startLevel":1,"levels":[{"number":1,"file":"actor_placement.json"}]})",
+        R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"actor_placement.json"}]})",
         "fixture",
         "tests/fixtures/levels");
     const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
@@ -71,7 +72,7 @@ TEST_CASE("A level composes an actor from its catalog definition", "[app][actors
 TEST_CASE("Level composition reports unknown actor definitions", "[app][actors]")
 {
     const auto invalidLevelCatalog = simple_platformer::parseLevelCatalog(
-        R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_actor.json"}]})",
+        R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"unknown_actor.json"}]})",
         "fixture",
         "tests/fixtures/levels");
     const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");

@@ -7,6 +7,7 @@
 #include "item_catalog.hpp"
 #include "pickup_catalog.hpp"
 #include "exit_catalog.hpp"
+#include "hud_catalog.hpp"
 #include "machine_catalog.hpp"
 
 namespace simple_platformer
@@ -21,6 +22,7 @@ namespace simple_platformer
         ItemCatalog items;
         PickupCatalog pickups;
         ExitCatalog exits;
+        HudIcons hudIcons;
     };
 
     GameCatalogs loadGameCatalogs(const std::filesystem::path& catalogDirectory);

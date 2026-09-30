@@ -13,6 +13,10 @@
 #include <vector>
 
 #include <nlohmann/json.hpp>
+#include <glm/vec2.hpp>
+
+#include "simple_platformer/math/coordinates.hpp"
+#include "simple_platformer/math/validation.hpp"
 
 namespace simple_platformer
 {
@@ -58,12 +62,23 @@ namespace simple_platformer
             std::string_view sourceName,
             const std::filesystem::path& levelDirectory)
         {
-            checkJsonFields(root, {"startLevel", "levels"}, sourceName, "root");
+            checkJsonFields(root, {"startLevel", "cameraDeadZone", "levels"}, sourceName, "root");
             LevelCatalog result;
             result.startLevel = jsonPositiveInteger(
                 requiredJsonMember(root, "startLevel", sourceName, "root"),
                 sourceName,
                 "startLevel");
+            result.cameraDeadZone = readVector(root, "cameraDeadZone", sourceName, "root");
+            if (!isFinitePositive(result.cameraDeadZone) ||
+                result.cameraDeadZone.x > InternalViewportSize.x ||
+                result.cameraDeadZone.y > InternalViewportSize.y)
+            {
+                failJson(
+                    sourceName,
+                    "cameraDeadZone",
+                    "expected a positive size that fits in the " + std::to_string(InternalWidth) +
+                        " by " + std::to_string(InternalHeight) + " view");
+            }
             result.levelDirectory = levelDirectory;
 
             const Json& levels = requiredJsonMember(root, "levels", sourceName, "root");

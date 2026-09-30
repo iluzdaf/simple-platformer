@@ -882,7 +882,7 @@ independent of animation frame dimensions.
 ### Camera and display viewport
 
 `CameraController` stores the previous view position. It begins centred on the player,
-then moves only enough to return the player's centre to a configurable dead zone. The
+then moves only enough to return the player's centre to a dead zone, sized by `levels.json`. The
 camera is clamped to the map and rounded to internal pixels for stable pixel art.
 
 `DisplayViewport` describes where the integer-scaled internal image appears in the

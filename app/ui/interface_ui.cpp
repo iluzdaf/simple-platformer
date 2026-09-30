@@ -24,10 +24,10 @@ namespace simple_platformer
         {
             return requests;
         }
-        drawHealthHud(game.playerHealth(), atlas, *viewport);
+        drawHealthHud(game.playerHealth(), game.hudIcons(), atlas, *viewport);
         if (!game.complete())
         {
-            requests.toggleInventory = drawInventoryButton(atlas, *viewport);
+            requests.toggleInventory = drawInventoryButton(atlas, game.hudIcons().bag, *viewport);
             drawLockedExitHint(game, atlas, *viewport);
         }
         drawLevelCompletion(game, *viewport);

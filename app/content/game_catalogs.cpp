@@ -6,6 +6,7 @@
 #include "item_catalog.hpp"
 #include "pickup_catalog.hpp"
 #include "exit_catalog.hpp"
+#include "hud_catalog.hpp"
 #include "machine_catalog.hpp"
 
 namespace simple_platformer
@@ -23,6 +24,7 @@ namespace simple_platformer
         // Pickup stacks refer to the item definitions loaded above.
         catalogs.pickups = loadPickupCatalog(catalogDirectory / "pickups.json", catalogs.items);
         catalogs.exits = loadExitCatalog(catalogDirectory / "exits.json");
+        catalogs.hudIcons = loadHudIcons(catalogDirectory / "hud.json");
         return catalogs;
     }
 }

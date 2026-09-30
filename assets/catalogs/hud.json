@@ -1,0 +1,5 @@
+{
+  "fullHeart": { "position": [96, 192], "size": [16, 16] },
+  "emptyHeart": { "position": [112, 192], "size": [16, 16] },
+  "bag": { "position": [64, 216], "size": [16, 16] }
+}

@@ -4,12 +4,13 @@
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <glm/vec2.hpp>
 #include "content/level_catalog.hpp"
 
 TEST_CASE("Level catalog numbers reject narrowing and fields reject typos", "[app][content][json]")
 {
-    auto levelCatalogJson =
-        nlohmann::json::parse(R"({"startLevel":1,"levels":[{"number":1,"file":"one.json"}]})");
+    auto levelCatalogJson = nlohmann::json::parse(
+        R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"one.json"}]})");
     SECTION("Above int range")
     {
         levelCatalogJson["startLevel"] = 4294967297LL;
@@ -36,6 +37,7 @@ TEST_CASE("A level catalog maps stable IDs to arbitrary file names", "[app][cont
     const auto catalog = simple_platformer::parseLevelCatalog(
         R"({
             "startLevel": 10,
+            "cameraDeadZone": [80, 45],
             "levels": [
                 {"number": 10, "file": "opening.json"},
                 {"number": 25, "file": "areas/final_room.json"}
@@ -45,6 +47,7 @@ TEST_CASE("A level catalog maps stable IDs to arbitrary file names", "[app][cont
         "levels");
 
     REQUIRE(catalog.startLevel == 10);
+    REQUIRE(catalog.cameraDeadZone == glm::vec2{80.0F, 45.0F});
     REQUIRE(catalog.levels.size() == 2);
     REQUIRE(
         simple_platformer::levelPath(catalog, 25) ==
@@ -58,7 +61,7 @@ TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content]
     {
         REQUIRE_THROWS_AS(
             simple_platformer::parseLevelCatalog(
-                R"({"startLevel": 2, "levels": [{"number": 1, "file": "one.json"}]})",
+                R"({"startLevel": 2, "cameraDeadZone": [80, 45], "levels": [{"number": 1, "file": "one.json"}]})",
                 "test catalog"),
             std::invalid_argument);
     }
@@ -69,6 +72,7 @@ TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content]
             simple_platformer::parseLevelCatalog(
                 R"({
                     "startLevel": 1,
+                    "cameraDeadZone": [80, 45],
                     "levels": [
                         {"number": 1, "file": "one.json"},
                         {"number": 1, "file": "another.json"}
@@ -82,7 +86,7 @@ TEST_CASE("A level catalog rejects ambiguous or unsafe entries", "[app][content]
     {
         REQUIRE_THROWS_AS(
             simple_platformer::parseLevelCatalog(
-                R"({"startLevel": 1, "levels": [{"number": 1, "file": "../one.json"}]})",
+                R"({"startLevel": 1, "cameraDeadZone": [80, 45], "levels": [{"number": 1, "file": "../one.json"}]})",
                 "test catalog"),
             std::invalid_argument);
     }
@@ -93,4 +97,31 @@ TEST_CASE("A missing level catalog is rejected at the file boundary", "[app][con
     REQUIRE_THROWS_AS(
         simple_platformer::loadLevelCatalog("tests/fixtures/levels/does_not_exist.json"),
         std::invalid_argument);
+}
+
+TEST_CASE(
+    "A level catalog's camera dead zone is positive and fits in the view",
+    "[app][content][json]")
+{
+    auto levelCatalogJson = nlohmann::json::parse(
+        R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"one.json"}]})");
+    SECTION("Missing")
+    {
+        levelCatalogJson.erase("cameraDeadZone");
+    }
+    SECTION("Empty")
+    {
+        levelCatalogJson["cameraDeadZone"] = {0, 45};
+    }
+    SECTION("Wider than the view")
+    {
+        levelCatalogJson["cameraDeadZone"] = {321, 45};
+    }
+    SECTION("Taller than the view")
+    {
+        levelCatalogJson["cameraDeadZone"] = {80, 181};
+    }
+    REQUIRE_THROWS_WITH(
+        simple_platformer::parseLevelCatalog(levelCatalogJson.dump(), "levels.json"),
+        Catch::Matchers::ContainsSubstring("cameraDeadZone"));
 }

@@ -20,12 +20,13 @@ does with the loaded data. [README.md](../README.md) covers building and running
 The [content-file guide](#content-files-at-a-glance) below lists the shared definitions
 used alongside this catalog.
 
-`assets/levels/levels.json` selects the starting level and assigns stable numeric level
-IDs to files:
+`assets/levels/levels.json` selects the starting level, sets the camera's dead zone,
+and assigns stable numeric level IDs to files:
 
 ```json
 {
   "startLevel": 1,
+  "cameraDeadZone": [80, 45],
   "levels": [
     { "number": 1, "file": "level_1.json" },
     { "number": 2, "file": "level_2.json" },
@@ -37,6 +38,8 @@ IDs to files:
 - `number` is a positive, unique level ID.
 - `file` is a path relative to the catalog's directory.
 - `startLevel` names one of the catalog entries.
+- `cameraDeadZone` is the part of the view, in internal pixels, the player can move in
+  before the camera follows. It must be positive and fit in the 320 by 180 view.
 - An exit's `nextLevel` refers to a level ID in the catalog.
 
 Each catalog entry assigns a level ID to a level file. The referenced file contains that
@@ -51,7 +54,7 @@ Level files and `levels.json` live in `assets/levels/`; shared definitions live 
 
 | File                                                                  | What to change here                                                  | Loader or composition code                                                                                                   |
 | --------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| [`levels.json`](../assets/levels/levels.json)                         | Starting level and level ID-to-file mapping                          | [`level_catalog.cpp`](../app/content/level_catalog.cpp)                                                                      |
+| [`levels.json`](../assets/levels/levels.json)                         | Starting level, camera dead zone, and level ID-to-file mapping       | [`level_catalog.cpp`](../app/content/level_catalog.cpp)                                                                      |
 | A level file, such as [`level_1.json`](../assets/levels/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings       | [`level_data.cpp`](../app/content/level_data.cpp)                                                                            |
 | [`tiles.json`](../assets/catalogs/tiles.json)                         | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp)                                                                        |
 | [`actors.json`](../assets/catalogs/actors.json)                       | Player definition, actor capabilities, and tuning                    | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp)       |
@@ -61,6 +64,7 @@ Level files and `levels.json` live in `assets/levels/`; shared definitions live 
 | [`items.json`](../assets/catalogs/items.json)                         | Inventory names, icons, stacking, and effect settings                | [`item_catalog.cpp`](../app/content/item_catalog.cpp)                                                                        |
 | [`pickups.json`](../assets/catalogs/pickups.json)                     | World pickup quantities, bounds, and optional sprites                | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp)                                                                    |
 | [`exits.json`](../assets/catalogs/exits.json)                         | Exit bounds and sprites                                              | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp)                                                                        |
+| [`hud.json`](../assets/catalogs/hud.json)                             | Atlas regions of the HUD's heart and bag icons                       | [`hud_catalog.cpp`](../app/content/hud_catalog.cpp)                                                                          |
 
 [`level_composition.cpp`](../app/game/level_composition.cpp) combines definitions and placements
 into runtime objects. Catalogs and JSON conventions belong to the application;
@@ -483,6 +487,22 @@ field. Requirements, consumption, and destinations belong to the placement, not 
 shared definition: two doors can look the same but lead to different levels.
 `composeExit` creates bounds and a sprite; `level_composition.cpp` adds the resolved
 item requirement and destination before passing the exit to the World.
+
+## HUD icons
+
+`hud.json` names where the HUD's icons sit in the atlas:
+
+```json
+{
+  "fullHeart": { "position": [96, 192], "size": [16, 16] },
+  "emptyHeart": { "position": [112, 192], "size": [16, 16] },
+  "bag": { "position": [64, 216], "size": [16, 16] }
+}
+```
+
+All three are required, each with a non-negative `position` and a positive `size`.
+The HUD draws every icon at the same on-screen size, so a region of another size is
+stretched to fit. Where the icons go on screen is HUD layout, which stays in `app/ui`.
 
 ## Loading and composition
 

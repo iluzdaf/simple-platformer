@@ -12,7 +12,7 @@
 TEST_CASE("Named pickups and exit requirements resolve through level composition", "[app][pickups]")
 {
     const auto levelCatalog = simple_platformer::parseLevelCatalog(
-        R"({"startLevel":1,"levels":[{"number":1,"file":"pickup_placement.json"}]})",
+        R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"pickup_placement.json"}]})",
         "fixture",
         "tests/fixtures/levels");
     const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
@@ -37,7 +37,7 @@ TEST_CASE("Named pickups and exit requirements resolve through level composition
 TEST_CASE("Exit item references resolve through the item catalog", "[app][pickups]")
 {
     const auto levelCatalog = simple_platformer::parseLevelCatalog(
-        R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_item.json"}]})",
+        R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"unknown_item.json"}]})",
         "fixture",
         "tests/fixtures/levels");
     const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
@@ -52,7 +52,7 @@ TEST_CASE("Exit item references resolve through the item catalog", "[app][pickup
 TEST_CASE("Unknown unused pickup legend references identify their source", "[app][pickups]")
 {
     const auto levelCatalog = simple_platformer::parseLevelCatalog(
-        R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_pickup.json"}]})",
+        R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"unknown_pickup.json"}]})",
         "fixture",
         "tests/fixtures/levels");
     const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
@@ -104,7 +104,7 @@ TEST_CASE("Level exit placement combines a definition with completion settings",
 TEST_CASE("Unknown unused exit definitions retain the legend path", "[app][exits]")
 {
     const auto levelCatalog = simple_platformer::parseLevelCatalog(
-        R"({"startLevel":1,"levels":[{"number":1,"file":"unknown_exit.json"}]})",
+        R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"unknown_exit.json"}]})",
         "fixture",
         "tests/fixtures/levels");
     const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");

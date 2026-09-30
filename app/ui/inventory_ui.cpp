@@ -22,10 +22,6 @@ namespace simple_platformer
 {
     namespace
     {
-        // Where the bag icon sits in the atlas, in pixels.
-        constexpr float BagLeft = 64.0F;
-        constexpr float BagTop = 216.0F;
-
         // Inventory grid layout, in internal pixels before the viewport scales them.
         constexpr float SlotSize = 20.0F;
         constexpr float IconPadding = 2.0F;
@@ -37,10 +33,12 @@ namespace simple_platformer
         constexpr ImU32 SlotBorderColour = IM_COL32(150, 156, 168, 220);
     }
 
-    bool drawInventoryButton(const TextureView& atlas, const WindowViewport& viewport)
+    bool drawInventoryButton(
+        const TextureView& atlas,
+        const SpriteRegion& bagIcon,
+        const WindowViewport& viewport)
     {
-        if (atlas.width < static_cast<int>(BagLeft + HudIconSize) ||
-            atlas.height < static_cast<int>(BagTop + HudIconSize))
+        if (!atlasContains(atlas, bagIcon))
         {
             throw std::invalid_argument("The HUD atlas is missing its bag region");
         }
@@ -68,7 +66,7 @@ namespace simple_platformer
             drawAtlasRegion(
                 *ImGui::GetWindowDrawList(),
                 atlas,
-                {{BagLeft, BagTop}, {HudIconSize, HudIconSize}},
+                bagIcon,
                 position,
                 {position.x + size.x, position.y + size.y});
         }

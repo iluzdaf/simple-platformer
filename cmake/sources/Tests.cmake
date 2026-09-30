@@ -14,6 +14,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/content/content_validation.cpp
     ${PROJECT_SOURCE_DIR}/app/content/exit_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/game_catalogs.cpp
+    ${PROJECT_SOURCE_DIR}/app/content/hud_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/item_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/level_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/level_data.cpp
@@ -38,6 +39,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_json.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_validation.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_exit_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_hud_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_item_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data.cpp

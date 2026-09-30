@@ -67,7 +67,7 @@ TEST_CASE("Debug overlay data supports actors without presentation components", 
 TEST_CASE("Game debug data retains actor definition names", "[app][debug]")
 {
     const auto levels = simple_platformer::parseLevelCatalog(
-        R"({"startLevel":1,"levels":[{"number":1,"file":"actor_placement.json"}]})",
+        R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"actor_placement.json"}]})",
         "test catalog",
         "tests/fixtures/levels");
     simple_platformer::Game game(

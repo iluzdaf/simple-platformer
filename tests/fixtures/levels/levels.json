@@ -1,5 +1,6 @@
 {
   "startLevel": 10,
+  "cameraDeadZone": [80, 45],
   "levels": [
     {
       "number": 10,

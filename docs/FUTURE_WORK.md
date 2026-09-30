@@ -20,20 +20,6 @@ validated JSON consumed by the example game. The loader should still produce
 Simulation must not depend on the editor or JSON, so handwritten and tool-generated
 levels remain equivalent.
 
-## Surface movement and a scripted spider
-
-The rat and boar already use Lua activities over C++ sensing, movement, navigation,
-and combat. See [NPC behaviour](ARCHITECTURE.md#npc-behaviour) for the current boundary.
-The engine has opt-in wall and ceiling climbing on explicitly marked tiles, routes one
-path across floors, walls, and ceilings, and turns a climber's sprite onto the surface
-it holds. The spider uses all of this: its Lua activities patrol and pursue over walls
-and ceilings, and C++ follows the routes and bites.
-
-Two pieces remain. A climber turns only inside corners, so it cannot go over the top of
-a free-standing wall or round a ledge; outside corners need both the climbing movement
-and navigation. A pounce would need an engine-owned movement request, which Lua could
-then choose when to use; C++ executes the move.
-
 ## Optional movement abilities
 
 `PlatformerMovement` is the shared baseline for ground actors. Add abilities such as

@@ -22,6 +22,7 @@ file(
     CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/app/*.hpp
     ${PROJECT_SOURCE_DIR}/include/*.hpp
+    ${PROJECT_SOURCE_DIR}/src/*.hpp
     ${PROJECT_SOURCE_DIR}/tests/*.hpp
 )
 

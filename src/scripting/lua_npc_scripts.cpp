@@ -1,12 +1,11 @@
 #include "simple_platformer/scripting/lua_npc_scripts.hpp"
 
-#include <array>
-#include <cmath>
-#include <cstddef>
+#include "lua_activity_values.hpp"
+#include "lua_sandbox.hpp"
+
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -19,13 +18,9 @@
 #include <utility>
 #include <vector>
 
-#include <glm/geometric.hpp>
-#include <glm/vec2.hpp>
-
 // sol2 supports its public API through this umbrella header. Listing its internal headers
 // would couple the adapter to implementation details without improving include hygiene.
 // NOLINTBEGIN(misc-include-cleaner)
-#include <lua.hpp>
 #include <sol/sol.hpp>
 
 #include "simple_platformer/math/validation.hpp"
@@ -34,34 +29,6 @@ namespace simple_platformer
 {
     namespace
     {
-        constexpr int InstructionsPerCall = 100'000;
-
-        void instructionBudgetExceeded(lua_State* state, lua_Debug*)
-        {
-            luaL_error(state, "instruction budget exceeded");
-        }
-
-        class InstructionBudget
-        {
-        public:
-            explicit InstructionBudget(lua_State* state)
-                : state(state)
-            {
-                lua_sethook(state, instructionBudgetExceeded, LUA_MASKCOUNT, InstructionsPerCall);
-            }
-
-            ~InstructionBudget()
-            {
-                lua_sethook(state, nullptr, 0, 0);
-            }
-
-            InstructionBudget(const InstructionBudget&) = delete;
-            InstructionBudget& operator=(const InstructionBudget&) = delete;
-
-        private:
-            lua_State* state;
-        };
-
         struct ActivityOwner
         {
             std::uint32_t actor = 0;
@@ -82,90 +49,6 @@ namespace simple_platformer
             sol::table activities;
         };
 
-        template <std::size_t Size>
-        bool contains(const std::array<std::string_view, Size>& values, std::string_view wanted)
-        {
-            for (std::string_view value : values)
-            {
-                if (value == wanted)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        template <std::size_t Size>
-        void rejectUnknownFields(
-            const sol::table& table,
-            const std::array<std::string_view, Size>& allowed,
-            std::string_view subject)
-        {
-            for (const auto& [keyObject, value] : table)
-            {
-                (void)value;
-                if (!keyObject.is<std::string>())
-                {
-                    throw std::invalid_argument(
-                        std::string(subject) + " has a field whose name is not text");
-                }
-                const std::string key = keyObject.as<std::string>();
-                if (!contains(allowed, key))
-                {
-                    throw std::invalid_argument(
-                        std::string(subject) + " has unknown field '" + key + "'");
-                }
-            }
-        }
-
-        float number(const sol::object& object, std::string_view field)
-        {
-            if (object.get_type() != sol::type::number)
-            {
-                throw std::invalid_argument(std::string(field) + " must be a number");
-            }
-            const double value = object.as<double>();
-            if (!std::isfinite(value) ||
-                value < -static_cast<double>(std::numeric_limits<float>::max()) ||
-                value > static_cast<double>(std::numeric_limits<float>::max()))
-            {
-                throw std::invalid_argument(std::string(field) + " must be finite");
-            }
-            return static_cast<float>(value);
-        }
-
-        bool boolean(const sol::object& object, std::string_view field)
-        {
-            if (object.get_type() != sol::type::boolean)
-            {
-                throw std::invalid_argument(std::string(field) + " must be true or false");
-            }
-            return object.as<bool>();
-        }
-
-        glm::vec2 vector(const sol::object& object, std::string_view field)
-        {
-            if (object.get_type() == sol::type::userdata && object.is<glm::vec2>())
-            {
-                const glm::vec2 value = object.as<glm::vec2>();
-                if (!isFinite(value))
-                {
-                    throw std::invalid_argument(std::string(field) + " must be finite");
-                }
-                return value;
-            }
-            if (!object.is<sol::table>())
-            {
-                throw std::invalid_argument(
-                    std::string(field) + " must be a vec2 or an {x, y} table");
-            }
-            const sol::table table = object.as<sol::table>();
-            rejectUnknownFields(table, std::array<std::string_view, 2>{"x", "y"}, field);
-            return {
-                number(table.get<sol::object>("x"), std::string(field) + ".x"),
-                number(table.get<sol::object>("y"), std::string(field) + ".y")};
-        }
-
         void requireValidCall(ActorId actor, const LuaNpcActivity& activity)
         {
             if (actor.value == 0)
@@ -176,126 +59,6 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("NPC script calls require a script and activity name");
             }
-        }
-
-        sol::object luaVector(sol::state& lua, glm::vec2 value)
-        {
-            return sol::make_object(lua, value);
-        }
-
-        sol::table luaSnapshot(sol::state& lua, const NpcActivitySnapshot& snapshot)
-        {
-            sol::table result = lua.create_table();
-            result["feet"] = luaVector(lua, snapshot.feet);
-            result["targetFeet"] = snapshot.targetFeet.has_value()
-                                       ? sol::make_object(lua, luaVector(lua, *snapshot.targetFeet))
-                                       : sol::make_object(lua, sol::lua_nil);
-            if (snapshot.patrol.has_value())
-            {
-                result["patrol"] = lua.create_table_with(
-                    "firstFeet",
-                    luaVector(lua, snapshot.patrol->firstFeet),
-                    "secondFeet",
-                    luaVector(lua, snapshot.patrol->secondFeet));
-            }
-            else
-            {
-                result["patrol"] = sol::lua_nil;
-            }
-            result["stateElapsed"] = snapshot.facts.stateElapsed;
-            result["pathComplete"] = snapshot.pathComplete;
-
-            sol::table facts = lua.create_table();
-            facts["targetKnown"] = snapshot.facts.targetKnown;
-            facts["targetVisible"] = snapshot.facts.targetVisible;
-            facts["targetInBiteRange"] = snapshot.facts.targetInBiteRange;
-            facts["biteReady"] = snapshot.facts.biteReady;
-            facts["targetInSights"] = snapshot.facts.targetInSights;
-            facts["targetWithinStandoffDistance"] = snapshot.facts.targetWithinStandoffDistance;
-            facts["heardLanding"] = snapshot.facts.heardLanding;
-            facts["targetOnSameRun"] = snapshot.facts.targetOnSameRun;
-            facts["targetWithinNoticeDistance"] = snapshot.facts.targetWithinNoticeDistance;
-            facts["movementBlocked"] = snapshot.facts.movementBlocked;
-            facts["hasPatrol"] = snapshot.facts.hasPatrol;
-            facts["searches"] = snapshot.facts.searches;
-            facts["searchTimeUp"] = snapshot.facts.searchTimeUp;
-            result["facts"] = facts;
-
-            sol::table tuning = lua.create_table();
-            for (const auto& [name, value] : snapshot.tuning)
-            {
-                tuning[name] = value;
-            }
-            result["tuning"] = tuning;
-            return result;
-        }
-
-        NpcActivityCommand commandFrom(const sol::object& object)
-        {
-            NpcActivityCommand command;
-            if (!object.valid() || object.get_type() == sol::type::lua_nil)
-            {
-                return command;
-            }
-            if (!object.is<sol::table>())
-            {
-                throw std::invalid_argument(
-                    "an activity update must return a command table or nil");
-            }
-
-            const sol::table table = object.as<sol::table>();
-            constexpr std::array<std::string_view, 11> Fields{
-                "direction",
-                "aimDirection",
-                "jumpPressed",
-                "jumpHeld",
-                "primaryAttackPressed",
-                "climbRequested",
-                "avoidLedges",
-                "contactDamage",
-                "routeTo",
-                "aimAt",
-                "clearRoute"};
-            rejectUnknownFields(table, Fields, "an activity command");
-
-            const auto readVector = [&](std::string_view name, glm::vec2& destination)
-            {
-                const sol::object value = table.get<sol::object>(name);
-                if (value.valid() && value.get_type() != sol::type::lua_nil)
-                {
-                    destination = vector(value, std::string("command.") + std::string(name));
-                }
-            };
-            const auto readOptionalVector =
-                [&](std::string_view name, std::optional<glm::vec2>& destination)
-            {
-                const sol::object value = table.get<sol::object>(name);
-                if (value.valid() && value.get_type() != sol::type::lua_nil)
-                {
-                    destination = vector(value, std::string("command.") + std::string(name));
-                }
-            };
-            const auto readBoolean = [&](std::string_view name, bool& destination)
-            {
-                const sol::object value = table.get<sol::object>(name);
-                if (value.valid() && value.get_type() != sol::type::lua_nil)
-                {
-                    destination = boolean(value, std::string("command.") + std::string(name));
-                }
-            };
-
-            readVector("direction", command.intentions.direction);
-            readVector("aimDirection", command.intentions.aimDirection);
-            readBoolean("jumpPressed", command.intentions.jumpPressed);
-            readBoolean("jumpHeld", command.intentions.jumpHeld);
-            readBoolean("primaryAttackPressed", command.intentions.primaryAttackPressed);
-            readBoolean("climbRequested", command.intentions.climbRequested);
-            readBoolean("avoidLedges", command.intentions.avoidLedges);
-            readBoolean("contactDamage", command.intentions.contactDamage);
-            readOptionalVector("routeTo", command.routeTo);
-            readOptionalVector("aimAt", command.aimAt);
-            readBoolean("clearRoute", command.clearRoute);
-            return command;
         }
 
         std::string resultError(sol::protected_function_result& result)
@@ -334,73 +97,6 @@ namespace simple_platformer
         }
     }
 
-    namespace
-    {
-        // Scripts reach vec2 through this read-only constructor, so one script cannot change
-        // the type for another.
-        constexpr std::string_view Vec2Constructor = R"(
-            local Vec2 = vec2
-            vec2 = setmetatable({}, {
-                __call = function(_, x, y)
-                    return Vec2.new(x, y)
-                end,
-                __newindex = function()
-                    error("vec2 is read-only", 2)
-                end,
-                __metatable = false,
-            })
-        )";
-
-        std::string vec2Text(glm::vec2 value)
-        {
-            std::ostringstream text;
-            text << "vec2(" << value.x << ", " << value.y << ")";
-            return text.str();
-        }
-
-        // glm::vec2 as a Lua value type. It is copied in and out, so a script changing one
-        // never changes the engine's.
-        void bindVec2(sol::state& lua)
-        {
-            lua.new_usertype<glm::vec2>(
-                "vec2",
-                sol::constructors<glm::vec2(float, float)>(),
-                "x",
-                sol::property(
-                    [](const glm::vec2& value) { return value.x; },
-                    [](glm::vec2& value, float x) { value.x = x; }),
-                "y",
-                sol::property(
-                    [](const glm::vec2& value) { return value.y; },
-                    [](glm::vec2& value, float y) { value.y = y; }),
-                sol::meta_function::addition,
-                [](glm::vec2 left, glm::vec2 right) { return left + right; },
-                sol::meta_function::subtraction,
-                [](glm::vec2 left, glm::vec2 right) { return left - right; },
-                sol::meta_function::unary_minus,
-                [](glm::vec2 value) { return -value; },
-                sol::meta_function::multiplication,
-                sol::overload(
-                    [](glm::vec2 value, float scale) { return value * scale; },
-                    [](float scale, glm::vec2 value) { return value * scale; }),
-                sol::meta_function::division,
-                [](glm::vec2 value, float scale) { return value / scale; },
-                sol::meta_function::equal_to,
-                [](glm::vec2 left, glm::vec2 right) { return left == right; },
-                sol::meta_function::to_string,
-                vec2Text,
-                "length",
-                [](glm::vec2 value) { return glm::length(value); },
-                "distance",
-                [](glm::vec2 from, glm::vec2 to) { return glm::distance(from, to); },
-                "distanceSquared",
-                [](glm::vec2 from, glm::vec2 to) { return glm::dot(to - from, to - from); },
-                "dot",
-                [](glm::vec2 left, glm::vec2 right) { return glm::dot(left, right); });
-            lua.safe_script(Vec2Constructor, "vec2 constructor");
-        }
-    }
-
     struct LuaNpcScripts::Implementation
     {
         sol::state lua;
@@ -410,12 +106,7 @@ namespace simple_platformer
 
         Implementation()
         {
-            lua.open_libraries(sol::lib::base, sol::lib::math, sol::lib::string, sol::lib::table);
-            lua["dofile"] = sol::lua_nil;
-            lua["load"] = sol::lua_nil;
-            lua["loadfile"] = sol::lua_nil;
-            lua["require"] = sol::lua_nil;
-            bindVec2(lua);
+            openSandbox(lua);
         }
 
         LoadedScript* scriptNamed(std::string_view name)
@@ -534,7 +225,7 @@ namespace simple_platformer
             fail(scriptDescription(script, sourceName), " must return a table");
         }
         const sol::table root = returned.as<sol::table>();
-        rejectUnknownFields(root, std::array<std::string_view, 1>{"activities"}, "a Lua script");
+        rejectUnknownFields(root, {"activities"}, "a Lua script");
         const sol::object activitiesObject = root.get<sol::object>("activities");
         if (!activitiesObject.is<sol::table>())
         {
@@ -559,9 +250,7 @@ namespace simple_platformer
             names.insert(name);
             const sol::table activity = activityObject.as<sol::table>();
             rejectUnknownFields(
-                activity,
-                std::array<std::string_view, 3>{"enter", "update", "exit"},
-                "Lua activity '" + name + "'");
+                activity, {"enter", "update", "exit"}, "Lua activity '" + name + "'");
             if (!activity.get<sol::object>("update").is<sol::function>())
             {
                 fail(activityDescription(script, name, sourceName), " needs an update function");

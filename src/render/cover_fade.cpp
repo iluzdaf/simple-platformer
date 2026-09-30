@@ -3,15 +3,18 @@
 #include <algorithm>
 #include <optional>
 
+#include <glm/common.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/sight.hpp"
+#include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
@@ -48,6 +51,56 @@ namespace simple_platformer
             const float mostChange = deltaTime / CoverFadeSeconds;
             *shown += std::clamp(target - *shown, -mostChange, mostChange);
         }
+    }
+
+    float fractionInCover(const TileMap& map, const Aabb& bounds)
+    {
+        const float area = bounds.size.x * bounds.size.y;
+        if (area <= 0.0F)
+        {
+            return 0.0F;
+        }
+
+        const glm::vec2 boundsEnd = bounds.topLeft + bounds.size;
+        const Cell first = cellAt(map.tileSize(), bounds.topLeft);
+        const Cell last = cellAt(map.tileSize(), boundsEnd);
+        float coveredArea = 0.0F;
+        for (int row = first.y; row <= last.y; ++row)
+        {
+            for (int column = first.x; column <= last.x; ++column)
+            {
+                if (!map.blocksSight({column, row}))
+                {
+                    continue;
+                }
+                const glm::vec2 cellStart = cellCorner(map.tileSize(), {column, row});
+                const glm::vec2 cellEnd = cellStart + static_cast<float>(map.tileSize());
+                const glm::vec2 overlap = glm::max(
+                    glm::min(boundsEnd, cellEnd) - glm::max(bounds.topLeft, cellStart),
+                    glm::vec2{0.0F, 0.0F});
+                coveredArea += overlap.x * overlap.y;
+            }
+        }
+        return std::min(coveredArea / area, 1.0F);
+    }
+
+    float visibility(
+        const TileMap& map,
+        std::optional<glm::vec2> viewer,
+        const Aabb& target,
+        CoverFade fade)
+    {
+        const float covered = fractionInCover(map, target);
+        if (covered <= fade.concealsAbove)
+        {
+            return 1.0F;
+        }
+        if (viewer.has_value() && lineOfSight(map, *viewer, centerOf(target)))
+        {
+            return 1.0F;
+        }
+        return std::clamp(
+            (fade.hidesAbove - covered) / (fade.hidesAbove - fade.concealsAbove), 0.0F, 1.0F);
     }
 
     void updateCoverFades(const TileMap& map, World& world, float deltaTime)

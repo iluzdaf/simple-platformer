@@ -958,10 +958,10 @@ For a focused ability:
 6. Select animation and effects from the resulting state rather than using animation
    frames to drive the mechanic.
 
-A first small feature can extend the existing platformer subject directly. If a game
-adds several optional abilities, use the component-and-modifier direction described
-under [Optional movement abilities](FUTURE_WORK.md#optional-movement-abilities)
-instead of filling
+A first small feature can extend the existing platformer subject directly. Wall and
+ceiling climbing shows the optional form: `SurfaceClimb` is an actor component with its
+own configuration and state, and its update falls back to ordinary platformer movement
+when the actor holds no surface. Follow it for further abilities instead of filling
 `PlatformerMovement` with unrelated flags.
 
 ### Adding an NPC state

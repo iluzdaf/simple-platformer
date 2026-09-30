@@ -92,11 +92,11 @@ A practical route through the implementation is:
 5. Turn the mechanics into a game by composing actors, authoring JSON levels, adding
    pickups or combat rules, and providing animation and HUD feedback.
 
-The engine currently provides the ordinary platformer baseline. It does not already
-contain a generic movement-ability framework. The
-[movement extension recipe](ARCHITECTURE.md#adding-a-movement-ability) explains where
-a movement feature belongs; the more scalable optional-component design remains a
-clearly labelled [future direction](FUTURE_WORK.md#optional-movement-abilities).
+The engine provides the ordinary platformer baseline and one optional movement
+component, wall and ceiling climbing. It does not contain a generic movement-ability
+framework. The [movement extension recipe](ARCHITECTURE.md#adding-a-movement-ability)
+explains where a movement feature belongs, with climbing as the example of an optional
+one.
 
 ### Enemy behaviour requirements
 

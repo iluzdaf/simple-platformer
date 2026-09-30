@@ -19,19 +19,3 @@ validated JSON consumed by the example game. The loader should still produce
 `LevelData`, and composition should still create the core's map and world.
 Simulation must not depend on the editor or JSON, so handwritten and tool-generated
 levels remain equivalent.
-
-## Optional movement abilities
-
-`PlatformerMovement` is the shared baseline for ground actors. Add abilities such as
-double jump, dash, wall slide, or wall jump as optional actor components when a feature
-needs them. Keep their configuration and runtime state separate from ordinary walking.
-
-If several abilities coexist, use an explicit update order:
-
-1. Select an ability and produce movement modifiers.
-2. Apply ordinary movement and collision with those modifiers.
-3. Update ability state from collision contacts, such as landing or hitting a wall.
-
-Resolve competing abilities in visible policy code, with a documented priority. Test
-each ability on its own and cover interactions that change the result. Introduce this
-phase with a real ability rather than a general callback framework in advance.

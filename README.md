@@ -316,6 +316,7 @@ assets/        runtime game content
   textures/    runtime sprite atlas
 cmake/         dependencies, quality rules, and explicit target source manifests
 include/       public core headers
+scripting/     Lua scripting target: the NPC activity runtime and its sol2 bindings
 src/           core implementations
 tests/         Catch2 tests for core systems and testable application code
   app/         application tests grouped like app/ (content, debug, game, graphics, UI)

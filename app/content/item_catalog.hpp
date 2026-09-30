@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <glm/vec2.hpp>
 #include <vector>
 #include "simple_platformer/inventory/item.hpp"
 
@@ -24,6 +25,11 @@ namespace simple_platformer
     void validateItemCatalog(const ItemCatalog& catalog);
     ItemCatalog parseItemCatalog(std::string_view text, std::string_view sourceName);
     ItemCatalog loadItemCatalog(const std::filesystem::path& path);
+    // Rejects the first item icon that runs past an atlas of this size, naming its field.
+    void validateItemAtlasRegions(
+        const ItemCatalog& catalog,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName);
     const ItemDefinition& itemDefinition(const ItemCatalog& catalog, const std::string& name);
     ItemStack composeItemStack(const ItemCatalog& catalog, const NamedItemStack& stack);
     std::vector<ItemDefinition> composeItems(const ItemCatalog& catalog, int textureId);

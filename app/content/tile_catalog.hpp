@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <glm/vec2.hpp>
 #include <vector>
 
 #include "simple_platformer/world/tile_map.hpp"
@@ -22,6 +23,11 @@ namespace simple_platformer
 
     TileCatalog parseTileCatalog(std::string_view text, std::string_view sourceName);
     TileCatalog loadTileCatalog(const std::filesystem::path& path);
+    // Rejects the first tile sprite that runs past an atlas of this size, naming its field.
+    void validateTileAtlasRegions(
+        const TileCatalog& catalog,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName);
     // Resolves each map symbol through its catalog name to a runtime tile ID.
     TileMap composeTileMap(
         const std::vector<std::string>& rows,

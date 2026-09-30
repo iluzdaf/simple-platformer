@@ -2,6 +2,7 @@
 #include "machine_catalog.hpp"
 #include "content_diagnostics.hpp"
 #include "content_json.hpp"
+#include "content_validation.hpp"
 #include "animation_catalog.hpp"
 #include "content/actor_definition.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -480,5 +481,23 @@ namespace simple_platformer
             throw std::invalid_argument("unknown actor definition '" + name + "'");
         }
         return found->second;
+    }
+
+    void validateActorAtlasRegions(
+        const ActorCatalog& catalog,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName)
+    {
+        for (const auto& [name, definition] : catalog.definitions)
+        {
+            if (definition.ranged.has_value())
+            {
+                requireInAtlas(
+                    definition.ranged->projectileSprite.region,
+                    atlasSize,
+                    sourceName,
+                    fieldPath(fieldPath(fieldPath("actors", name), "ranged"), "sprite"));
+            }
+        }
     }
 }

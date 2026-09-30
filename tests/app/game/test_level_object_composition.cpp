@@ -8,6 +8,7 @@
 #include "content/level_catalog.hpp"
 #include "game/level_composition.hpp"
 #include "simple_platformer/math/aabb.hpp"
+#include "support/atlas_size.hpp"
 
 TEST_CASE("Named pickups and exit requirements resolve through level composition", "[app][pickups]")
 {
@@ -15,7 +16,8 @@ TEST_CASE("Named pickups and exit requirements resolve through level composition
         R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"pickup_placement.json"}]})",
         "fixture",
         "tests/fixtures/levels");
-    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
     const auto gameLevel = simple_platformer::composeGameLevel(levelCatalog, 1, 7, gameCatalogs);
     const auto& itemCatalog = gameCatalogs.items;
     REQUIRE(gameLevel.world.pickups().size() == 2);
@@ -40,7 +42,8 @@ TEST_CASE("Exit item references resolve through the item catalog", "[app][pickup
         R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"unknown_item.json"}]})",
         "fixture",
         "tests/fixtures/levels");
-    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
     REQUIRE_THROWS_WITH(
         simple_platformer::composeGameLevel(levelCatalog, 1, 0, gameCatalogs),
         Catch::Matchers::ContainsSubstring("unknown_item.json:"));
@@ -55,7 +58,8 @@ TEST_CASE("Unknown unused pickup legend references identify their source", "[app
         R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"unknown_pickup.json"}]})",
         "fixture",
         "tests/fixtures/levels");
-    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
     REQUIRE_THROWS_WITH(
         simple_platformer::composeGameLevel(levelCatalog, 1, 0, gameCatalogs),
         Catch::Matchers::ContainsSubstring(
@@ -74,7 +78,8 @@ TEST_CASE("Level composition reuses the supplied session item catalog", "[app][p
         "medicine":{"name":"Medicine","icon":{"position":[16,0],"size":[8,8]},"maximumStack":3}
     }})",
         "session items");
-    auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
     gameCatalogs.items = itemCatalog;
     const auto keyId = simple_platformer::itemDefinition(itemCatalog, "key").id;
     const auto firstLevel = simple_platformer::composeGameLevel(levelCatalog, 10, 0, gameCatalogs);
@@ -88,7 +93,8 @@ TEST_CASE("Level exit placement combines a definition with completion settings",
 {
     const auto levelCatalog =
         simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json");
-    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
     const auto gameLevel = simple_platformer::composeGameLevel(levelCatalog, 10, 7, gameCatalogs);
     const auto& exit = gameLevel.world.exit();
     if (!exit || !exit->sprite)
@@ -107,7 +113,8 @@ TEST_CASE("Unknown unused exit definitions retain the legend path", "[app][exits
         R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"unknown_exit.json"}]})",
         "fixture",
         "tests/fixtures/levels");
-    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
     REQUIRE_THROWS_WITH(
         simple_platformer::composeGameLevel(levelCatalog, 1, 0, gameCatalogs),
         Catch::Matchers::ContainsSubstring(

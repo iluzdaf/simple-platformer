@@ -35,6 +35,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_actor_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_actor_definition.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_animation_catalog.cpp
+    ${PROJECT_SOURCE_DIR}/tests/app/content/test_atlas_regions.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_integrity.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_json.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_validation.cpp

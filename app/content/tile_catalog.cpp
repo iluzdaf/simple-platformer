@@ -116,4 +116,23 @@ namespace simple_platformer
         }
         return TileMap::fromAscii(catalog.tileSize, rows, catalog.definitions, ids);
     }
+
+    void validateTileAtlasRegions(
+        const TileCatalog& catalog,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName)
+    {
+        for (const auto& [name, id] : catalog.ids)
+        {
+            // Empty tiles are not drawn.
+            if (id != 0)
+            {
+                requireInAtlas(
+                    catalog.definitions[static_cast<std::size_t>(id)].sprite,
+                    atlasSize,
+                    sourceName,
+                    fieldPath(fieldPath("tiles", name), "sprite"));
+            }
+        }
+    }
 }

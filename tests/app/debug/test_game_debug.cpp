@@ -3,6 +3,7 @@
 #include "content/game_catalogs.hpp"
 #include "content/level_catalog.hpp"
 #include "game/game.hpp"
+#include "support/atlas_size.hpp"
 #include "support/fixed_step.hpp"
 
 TEST_CASE("Breaking a tile under a position breaks nothing that cannot break", "[app][debug]")
@@ -10,7 +11,7 @@ TEST_CASE("Breaking a tile under a position breaks nothing that cannot break", "
     simple_platformer::Game game(
         0,
         simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json"),
-        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs"),
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize),
         simple_platformer::LuaNpcScripts{},
         tests::FixedStepSeconds);
     // Off the map, and on the fixture's tiles, none of which breaks.

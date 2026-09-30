@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include <string_view>
+#include <glm/vec2.hpp>
 #include "simple_platformer/render/sprite.hpp"
 
 namespace simple_platformer
@@ -16,4 +17,9 @@ namespace simple_platformer
     void validateHudIcons(const HudIcons& icons);
     HudIcons parseHudIcons(std::string_view text, std::string_view sourceName);
     HudIcons loadHudIcons(const std::filesystem::path& path);
+    // Rejects the first HUD icon that runs past an atlas of this size, naming its field.
+    void validateHudAtlasRegions(
+        const HudIcons& icons,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName);
 }

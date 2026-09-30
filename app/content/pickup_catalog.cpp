@@ -105,4 +105,22 @@ namespace simple_platformer
         validatePickup(result);
         return result;
     }
+
+    void validatePickupAtlasRegions(
+        const PickupCatalog& catalog,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName)
+    {
+        for (const auto& [name, definition] : catalog)
+        {
+            if (definition.sprite.has_value())
+            {
+                requireInAtlas(
+                    definition.sprite->region,
+                    atlasSize,
+                    sourceName,
+                    fieldPath(fieldPath("pickups", name), "sprite"));
+            }
+        }
+    }
 }

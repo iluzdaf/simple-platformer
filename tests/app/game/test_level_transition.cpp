@@ -12,6 +12,7 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/inventory/inventory.hpp"
 #include "simple_platformer/render/sprite.hpp"
+#include "support/atlas_size.hpp"
 #include "support/fixed_step.hpp"
 
 namespace
@@ -60,7 +61,7 @@ TEST_CASE(
     simple_platformer::Game game(
         0,
         simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json"),
-        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs"),
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize),
         simple_platformer::LuaNpcScripts{},
         tests::FixedStepSeconds);
     const auto initialHealth = game.playerHealth();
@@ -106,7 +107,7 @@ TEST_CASE(
     simple_platformer::Game game(
         0,
         simple_platformer::loadLevelCatalog("tests/fixtures/levels/locked_levels.json"),
-        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs"),
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize),
         simple_platformer::LuaNpcScripts{},
         tests::FixedStepSeconds);
     REQUIRE_FALSE(game.lockedExitHintIcon().has_value());

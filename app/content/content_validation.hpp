@@ -6,6 +6,8 @@
 #include <string_view>
 #include <vector>
 
+#include <glm/vec2.hpp>
+
 #include "tile_catalog.hpp"
 #include "level_data.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -13,6 +15,13 @@
 namespace simple_platformer
 {
     void validateContentSprite(const Sprite& sprite);
+    // Rejects a region that runs past an atlas of this size, naming the file and field.
+    // Loading checks a region's own shape; only this knows the atlas it is drawn from.
+    void requireInAtlas(
+        const SpriteRegion& region,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName,
+        std::string_view path);
 
     // An authoring location for diagnostics, not a position in the game world.
     struct PlacementOrigin

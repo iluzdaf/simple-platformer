@@ -1,5 +1,6 @@
 #include "game_catalogs.hpp"
 #include <filesystem>
+#include <glm/vec2.hpp>
 #include "actor_catalog.hpp"
 #include "animation_catalog.hpp"
 #include "tile_catalog.hpp"
@@ -11,7 +12,9 @@
 
 namespace simple_platformer
 {
-    GameCatalogs loadGameCatalogs(const std::filesystem::path& catalogDirectory)
+    GameCatalogs loadGameCatalogs(
+        const std::filesystem::path& catalogDirectory,
+        glm::ivec2 atlasSize)
     {
         GameCatalogs catalogs;
         catalogs.tiles = loadTileCatalog(catalogDirectory / "tiles.json");
@@ -25,6 +28,28 @@ namespace simple_platformer
         catalogs.pickups = loadPickupCatalog(catalogDirectory / "pickups.json", catalogs.items);
         catalogs.exits = loadExitCatalog(catalogDirectory / "exits.json");
         catalogs.hudIcons = loadHudIcons(catalogDirectory / "hud.json");
+        validateAtlasRegions(catalogs, atlasSize, catalogDirectory);
         return catalogs;
+    }
+
+    void validateAtlasRegions(
+        const GameCatalogs& catalogs,
+        glm::ivec2 atlasSize,
+        const std::filesystem::path& catalogDirectory)
+    {
+        validateTileAtlasRegions(
+            catalogs.tiles, atlasSize, (catalogDirectory / "tiles.json").string());
+        validateAnimationAtlasRegions(
+            catalogs.animations, atlasSize, (catalogDirectory / "animations.json").string());
+        validateActorAtlasRegions(
+            catalogs.actors, atlasSize, (catalogDirectory / "actors.json").string());
+        validateItemAtlasRegions(
+            catalogs.items, atlasSize, (catalogDirectory / "items.json").string());
+        validatePickupAtlasRegions(
+            catalogs.pickups, atlasSize, (catalogDirectory / "pickups.json").string());
+        validateExitAtlasRegions(
+            catalogs.exits, atlasSize, (catalogDirectory / "exits.json").string());
+        validateHudAtlasRegions(
+            catalogs.hudIcons, atlasSize, (catalogDirectory / "hud.json").string());
     }
 }

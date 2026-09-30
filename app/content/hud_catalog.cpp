@@ -1,6 +1,7 @@
 #include "hud_catalog.hpp"
 #include "content_diagnostics.hpp"
 #include "content_json.hpp"
+#include "content_validation.hpp"
 #include <nlohmann/json.hpp>
 #include <filesystem>
 #include <string_view>
@@ -53,5 +54,15 @@ namespace simple_platformer
     HudIcons loadHudIcons(const std::filesystem::path& path)
     {
         return parseHudIcons(loadContentText(path), path.string());
+    }
+
+    void validateHudAtlasRegions(
+        const HudIcons& icons,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName)
+    {
+        requireInAtlas(icons.fullHeart, atlasSize, sourceName, "fullHeart");
+        requireInAtlas(icons.emptyHeart, atlasSize, sourceName, "emptyHeart");
+        requireInAtlas(icons.bag, atlasSize, sourceName, "bag");
     }
 }

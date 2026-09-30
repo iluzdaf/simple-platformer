@@ -125,4 +125,19 @@ namespace simple_platformer
         }
         return result;
     }
+
+    void validateItemAtlasRegions(
+        const ItemCatalog& catalog,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName)
+    {
+        for (const auto& [name, definition] : catalog.definitions)
+        {
+            requireInAtlas(
+                definition.icon.region,
+                atlasSize,
+                sourceName,
+                fieldPath(fieldPath("items", name), "icon"));
+        }
+    }
 }

@@ -30,6 +30,23 @@ namespace simple_platformer
         }
     }
 
+    void requireInAtlas(
+        const SpriteRegion& region,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName,
+        std::string_view path)
+    {
+        const glm::vec2 far = region.position + region.size;
+        if (far.x > static_cast<float>(atlasSize.x) || far.y > static_cast<float>(atlasSize.y))
+        {
+            failJson(
+                sourceName,
+                path,
+                "region runs past the " + std::to_string(atlasSize.x) + " by " +
+                    std::to_string(atlasSize.y) + " atlas");
+        }
+    }
+
     void validatePickupSettings(
         const PickupPlacement& placement,
         const std::string& path,

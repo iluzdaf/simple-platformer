@@ -28,6 +28,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
+#include "support/atlas_size.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 #include "support/add_player.hpp"
@@ -73,7 +74,7 @@ TEST_CASE("Game debug data retains actor definition names", "[app][debug]")
     simple_platformer::Game game(
         0,
         levels,
-        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs"),
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize),
         simple_platformer::LuaNpcScripts{},
         tests::FixedStepSeconds);
 

@@ -73,9 +73,11 @@ are required even when a level uses no pickups or NPCs; item and pickup catalogs
 can contain empty definitions objects. Lua files are loaded only when a machine
 references them.
 
-The application loads shared definitions with
-[`loadGameCatalogs`](../app/content/game_catalogs.cpp), then loads referenced Lua
-activities and passes both to `Game`.
+The application loads the atlas, then shared definitions with
+[`loadGameCatalogs`](../app/content/game_catalogs.cpp), then referenced Lua activities,
+and passes the definitions and activities to `Game`. `loadGameCatalogs` takes the
+atlas's size and checks that every sprite region, frame, and icon lies inside it, naming
+the file and field of the first that runs past its edge.
 Tile, animation, actor, item, pickup, and exit definitions are reused across
 transitions and restarts. Each level file is loaded
 when entering that level; the game does not construct every world at startup.

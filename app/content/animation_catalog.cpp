@@ -33,6 +33,19 @@ namespace simple_platformer
              {"attack", AnimationName::Attack},
              {"death", AnimationName::Death}}};
 
+        // The clip's field name in animations.json, as in "idle".
+        std::string_view clipName(AnimationName name)
+        {
+            for (const ClipEntry& entry : Clips)
+            {
+                if (entry.type == name)
+                {
+                    return entry.name;
+                }
+            }
+            throw std::logic_error("An animation clip has no catalog name");
+        }
+
         std::vector<std::string_view> clipNames()
         {
             std::vector<std::string_view> names;
@@ -179,5 +192,25 @@ namespace simple_platformer
             throw std::invalid_argument("unknown animation set '" + name + "'");
         }
         return found->second;
+    }
+
+    void validateAnimationAtlasRegions(
+        const AnimationCatalog& catalog,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName)
+    {
+        for (const auto& [name, set] : catalog)
+        {
+            for (const AnimationClip& clip : set.clips)
+            {
+                const std::string frames = fieldPath(
+                    fieldPath(fieldPath("animations", name), clipName(clip.name)), "frames");
+                for (std::size_t index = 0; index < clip.frames.size(); ++index)
+                {
+                    requireInAtlas(
+                        clip.frames[index], atlasSize, sourceName, indexPath(frames, index));
+                }
+            }
+        }
     }
 }

@@ -14,6 +14,7 @@
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_components.hpp"
+#include "support/atlas_size.hpp"
 
 TEST_CASE("A catalog entry must reference an existing level file", "[app][content]")
 {
@@ -25,7 +26,8 @@ TEST_CASE("A catalog entry must reference an existing level file", "[app][conten
         })",
         "test catalog",
         "tests/fixtures/levels");
-    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
 
     REQUIRE_THROWS_AS(
         simple_platformer::composeGameLevel(levelCatalog, 1, 0, gameCatalogs),
@@ -36,7 +38,8 @@ TEST_CASE("A level's cells become the feet of those cells on its map", "[app][co
 {
     const auto levelCatalog = simple_platformer::loadLevelCatalog(
         std::filesystem::path("tests/fixtures/levels/levels.json"));
-    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
     const auto gameLevel = simple_platformer::composeGameLevel(levelCatalog, 10, 0, gameCatalogs);
     const int tileSize = gameLevel.map.tileSize();
 
@@ -61,7 +64,8 @@ TEST_CASE("A level composes an actor from its catalog definition", "[app][actors
         R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"actor_placement.json"}]})",
         "fixture",
         "tests/fixtures/levels");
-    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
     auto gameLevel = simple_platformer::composeGameLevel(levelCatalog, 1, 0, gameCatalogs);
     REQUIRE(gameLevel.world.actors().size() == 1);
     auto& actor = gameLevel.world.actors().front();
@@ -75,7 +79,8 @@ TEST_CASE("Level composition reports unknown actor definitions", "[app][actors]"
         R"({"startLevel":1,"cameraDeadZone":[80,45],"levels":[{"number":1,"file":"unknown_actor.json"}]})",
         "fixture",
         "tests/fixtures/levels");
-    const auto gameCatalogs = simple_platformer::loadGameCatalogs("tests/fixtures/catalogs");
+    const auto gameCatalogs =
+        simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize);
     REQUIRE_THROWS_WITH(
         simple_platformer::composeGameLevel(invalidLevelCatalog, 1, 0, gameCatalogs),
         Catch::Matchers::ContainsSubstring(

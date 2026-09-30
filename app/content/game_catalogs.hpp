@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <glm/vec2.hpp>
 #include "actor_catalog.hpp"
 #include "animation_catalog.hpp"
 #include "tile_catalog.hpp"
@@ -25,5 +26,16 @@ namespace simple_platformer
         HudIcons hudIcons;
     };
 
-    GameCatalogs loadGameCatalogs(const std::filesystem::path& catalogDirectory);
+    // Loads every catalog in the directory, then checks their regions fit in an atlas of
+    // this size, in pixels.
+    GameCatalogs loadGameCatalogs(
+        const std::filesystem::path& catalogDirectory,
+        glm::ivec2 atlasSize);
+
+    // Rejects the first region in any catalog that runs past the atlas, naming its file in
+    // the directory and its field.
+    void validateAtlasRegions(
+        const GameCatalogs& catalogs,
+        glm::ivec2 atlasSize,
+        const std::filesystem::path& catalogDirectory);
 }

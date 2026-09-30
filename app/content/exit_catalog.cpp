@@ -90,4 +90,19 @@ namespace simple_platformer
         validateLevelExit(exit);
         return exit;
     }
+
+    void validateExitAtlasRegions(
+        const ExitCatalog& catalog,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName)
+    {
+        for (const auto& [name, definition] : catalog)
+        {
+            requireInAtlas(
+                definition.sprite.region,
+                atlasSize,
+                sourceName,
+                fieldPath(fieldPath("exits", name), "sprite"));
+        }
+    }
 }

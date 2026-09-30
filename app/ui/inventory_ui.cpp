@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <optional>
-#include <stdexcept>
 
 #include <imgui.h>
 
@@ -38,10 +37,6 @@ namespace simple_platformer
         const SpriteRegion& bagIcon,
         const WindowViewport& viewport)
     {
-        if (!atlasContains(atlas, bagIcon))
-        {
-            throw std::invalid_argument("The HUD atlas is missing its bag region");
-        }
         const ImVec2 size{HudIconSize * viewport.scale.x, HudIconSize * viewport.scale.y};
         const ImVec2 position{
             viewport.topLeft.x + HudMargin * viewport.scale.x,

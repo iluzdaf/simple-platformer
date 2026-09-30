@@ -28,6 +28,11 @@ namespace simple_platformer
         std::string_view sourceName,
         const ItemCatalog& items);
     PickupCatalog loadPickupCatalog(const std::filesystem::path& path, const ItemCatalog& items);
+    // Rejects the first pickup sprite that runs past an atlas of this size, naming its field.
+    void validatePickupAtlasRegions(
+        const PickupCatalog& catalog,
+        glm::ivec2 atlasSize,
+        std::string_view sourceName);
     const PickupDefinition& pickupDefinition(const PickupCatalog& catalog, const std::string& name);
     Pickup composePickup(
         const PickupDefinition& definition,

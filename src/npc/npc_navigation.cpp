@@ -1,6 +1,5 @@
 #include "simple_platformer/npc/npc_navigation.hpp"
 
-#include <cstddef>
 #include <optional>
 #include <utility>
 

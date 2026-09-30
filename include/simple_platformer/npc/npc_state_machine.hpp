@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "simple_platformer/npc/npc_activity.hpp"
-#include "simple_platformer/npc/npc_transitions.hpp"
+#include "simple_platformer/npc/npc_facts.hpp"
 
 namespace simple_platformer
 {

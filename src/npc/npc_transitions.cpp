@@ -1,4 +1,5 @@
 #include "simple_platformer/npc/npc_transitions.hpp"
+#include "simple_platformer/npc/npc_facts.hpp"
 
 #include <optional>
 

@@ -8,7 +8,7 @@
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_fact_rows.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
-#include "simple_platformer/npc/npc_transitions.hpp"
+#include "simple_platformer/npc/npc_facts.hpp"
 #include "support/npc_facts_builder.hpp"
 #include "support/npc_machine_builder.hpp"
 

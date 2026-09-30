@@ -3,7 +3,7 @@
 #include <string_view>
 #include <vector>
 
-#include "simple_platformer/npc/npc_transitions.hpp"
+#include "simple_platformer/npc/npc_facts.hpp"
 
 namespace simple_platformer
 {

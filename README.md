@@ -237,6 +237,12 @@ cmake --build --preset mac-debug --target format-python
 cmake --build --preset mac-debug --target format-python-check lint-python
 ```
 
+Run the tests for the scripts in `tools/`, as CI does:
+
+```sh
+python3 -m unittest discover -s tools -p 'test_*.py'
+```
+
 Format first-party Lua, or check its formatting and lint findings:
 
 ```sh
@@ -283,6 +289,12 @@ the CI workflow, the global build configuration, or `tools/tidy_targets.py`, whi
 picks the files. Local `tidy` builds always check the whole tree. CMake configuration
 fails with a focused error if an `app/`, `src/`, or enabled `tests/` source is missing
 from its target's manifest.
+
+To see which files CI will check for your branch, run the same script:
+
+```sh
+python3 tools/tidy_targets.py --since origin/main
+```
 
 For matching local quality tools, set `CLANG_FORMAT_EXECUTABLE` and
 `CLANG_TIDY_EXECUTABLE` to LLVM 18 executables in a personal `CMakeUserPresets.json`

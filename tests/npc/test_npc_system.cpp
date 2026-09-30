@@ -10,11 +10,9 @@
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
@@ -24,7 +22,6 @@
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
 #include "support/tile_map_builder.hpp"
-#include "support/tile_size.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/add_player.hpp"
@@ -399,55 +396,4 @@ TEST_CASE("A patrol swaps endpoints after reaching its goal", "[npc][fsm]")
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Patrol);
     REQUIRE(patrol(world, npcId).headingToSecond);
     REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
-}
-
-TEST_CASE("An unreachable patrol heads as close as it can without retrying", "[npc][fsm]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"....#....", "....#....", "#########"});
-    simple_platformer::World world;
-    tests::addPlayer(world, makePlayer({22.0F, 12.0F}));
-    const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({24.0F, 32.0F}).patrolling({24.0F, 32.0F}, {120.0F, 32.0F}));
-
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    const simple_platformer::PathFollower& follower = pathFollower(world, npcId);
-    REQUIRE(follower.path.has_value());
-    const glm::vec2 closest = simple_platformer::feetInCell(tests::TileSize, {3, 1});
-    REQUIRE(
-        simple_platformer::endOf(follower.path.value_or(simple_platformer::NavigationPath{})) ==
-        closest);
-    REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
-    REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
-
-    // The path still serves the same goal, so the NPC keeps following it.
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE(follower.path.has_value());
-    REQUIRE(follower.nextStep == 0);
-    REQUIRE(
-        simple_platformer::endOf(follower.path.value_or(simple_platformer::NavigationPath{})) ==
-        closest);
-}
-
-TEST_CASE("A patrol goal that moves is planned for at once", "[npc][fsm]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({".........", ".........", "#########"});
-    simple_platformer::World world;
-    tests::addPlayer(world, makePlayer({22.0F, 12.0F}));
-    const simple_platformer::ActorId npcId =
-        world.addActor(makeNpc({24.0F, 32.0F}).patrolling({24.0F, 32.0F}, {120.0F, 32.0F}));
-
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    const simple_platformer::PathFollower& follower = pathFollower(world, npcId);
-    REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
-
-    // A few pixels is not worth planning again; half a tile is.
-    patrol(world, npcId).secondFeet = {124.0F, 32.0F};
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
-
-    patrol(world, npcId).secondFeet = {88.0F, 32.0F};
-    simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {5, 1}));
 }

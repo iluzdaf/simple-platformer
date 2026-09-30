@@ -16,7 +16,6 @@
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/render/cover_fade.hpp"
 #include "simple_platformer/world/pickup.hpp"
-#include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
@@ -30,14 +29,6 @@
 namespace
 {
     constexpr float QuarterFade = simple_platformer::CoverFadeSeconds / 4.0F;
-
-    simple_platformer::Aabb boxIn(simple_platformer::Cell cell)
-    {
-        return simple_platformer::boxInCell(tests::TileSize, cell, {12.0F, 12.0F});
-    }
-
-    // Fully visible up to half in cover, hidden from three quarters.
-    constexpr simple_platformer::CoverFade Fade{0.5F, 0.75F};
 
     simple_platformer::TileMap patchMap()
     {
@@ -71,6 +62,31 @@ namespace
         const std::optional<float>& visibility = tests::actor(world, id).screenVisibility;
         REQUIRE(visibility.has_value());
         return visibility.value_or(-1.0F);
+    }
+
+    // What the screen first shows of an NPC with these bounds, to a player standing in the
+    // cell or, without one, by cover alone. A first update adopts its target at once.
+    float firstShown(
+        const simple_platformer::TileMap& map,
+        const simple_platformer::Aabb& npcBounds,
+        std::optional<simple_platformer::Cell> playerCell)
+    {
+        simple_platformer::World world;
+        if (playerCell.has_value())
+        {
+            addPlayerIn(world, *playerCell);
+        }
+        const simple_platformer::ActorId npcId =
+            world.addActor(tests::ActorBuilder::sized(npcBounds.size)
+                               .atFeet(simple_platformer::feetOf(npcBounds))
+                               .flying(0.0F));
+        simple_platformer::updateCoverFades(map, world, QuarterFade);
+        return shown(world, npcId);
+    }
+
+    simple_platformer::Aabb boxIn(simple_platformer::Cell cell)
+    {
+        return simple_platformer::boxInCell(tests::TileSize, cell, {12.0F, 12.0F});
     }
 }
 
@@ -229,88 +245,53 @@ TEST_CASE("Cover fades reject a negative step", "[render][cover]")
         simple_platformer::updateCoverFades(map, world, -0.1F), std::invalid_argument);
 }
 
-TEST_CASE("The fraction in cover is the share of a body over cover", "[render][cover-fade]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"....", ".cc.", "...."}).where('c', tests::Tile().blocksSight());
-
-    REQUIRE_NEAR(simple_platformer::fractionInCover(map, {{0.0F, 16.0F}, {16.0F, 16.0F}}), 0.0F);
-    REQUIRE_NEAR(simple_platformer::fractionInCover(map, {{8.0F, 16.0F}, {16.0F, 16.0F}}), 0.5F);
-    REQUIRE_NEAR(simple_platformer::fractionInCover(map, {{12.0F, 16.0F}, {16.0F, 16.0F}}), 0.75F);
-    REQUIRE_NEAR(simple_platformer::fractionInCover(map, {{20.0F, 16.0F}, {16.0F, 16.0F}}), 1.0F);
-    // Only the top half overlaps the cover row.
-    REQUIRE_NEAR(simple_platformer::fractionInCover(map, {{12.0F, 24.0F}, {16.0F, 16.0F}}), 0.375F);
-}
-
-TEST_CASE("A body up to the conceal threshold stays fully visible", "[render][cover-fade]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"....", ".cc.", "...."}).where('c', tests::Tile().blocksSight());
-    const glm::vec2 viewer = simple_platformer::centerOf(boxIn({3, 2}));
-
-    REQUIRE(
-        simple_platformer::visibility(map, viewer, {{8.0F, 16.0F}, {16.0F, 16.0F}}, Fade) == 1.0F);
-}
-
 TEST_CASE(
-    "Between the thresholds a body fades, and from the hide threshold it is hidden",
+    "Without a viewer, the share of a body in cover decides what is shown",
     "[render][cover-fade]")
 {
+    // One row of cover, two tiles wide.
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"....", ".cc.", "...."}).where('c', tests::Tile().blocksSight());
-    const glm::vec2 viewer = simple_platformer::centerOf(boxIn({3, 2}));
+    const auto shownAt = [&map](glm::vec2 topLeft)
+    { return firstShown(map, {topLeft, {16.0F, 16.0F}}, std::nullopt); };
 
+    // Out of cover, and up to half in it, a body is shown fully.
+    REQUIRE(shownAt({0.0F, 16.0F}) == 1.0F);
+    REQUIRE(shownAt({8.0F, 16.0F}) == 1.0F);
     // Five eighths in cover is halfway between the thresholds.
-    REQUIRE_NEAR(
-        simple_platformer::visibility(map, viewer, {{10.0F, 16.0F}, {16.0F, 16.0F}}, Fade), 0.5F);
-    REQUIRE(
-        simple_platformer::visibility(map, viewer, {{12.0F, 16.0F}, {16.0F, 16.0F}}, Fade) == 0.0F);
-    REQUIRE(
-        simple_platformer::visibility(map, viewer, {{20.0F, 16.0F}, {16.0F, 16.0F}}, Fade) == 0.0F);
+    REQUIRE_NEAR(shownAt({10.0F, 16.0F}), 0.5F);
+    // From three quarters in cover it is hidden.
+    REQUIRE(shownAt({12.0F, 16.0F}) == 0.0F);
+    REQUIRE(shownAt({20.0F, 16.0F}) == 0.0F);
+    // Over the cover's corner, 12 by 14 of its 16 by 16 pixels are in cover.
+    REQUIRE_NEAR(shownAt({12.0F, 18.0F}), 0.375F);
 }
 
-TEST_CASE("A viewer in cover sees its own patch fully but not another", "[render][cover-fade]")
+TEST_CASE("A player in cover sees its own patch fully but not another", "[render][cover-fade]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "...ccc.c", "........"})
             .where('c', tests::Tile().blocksSight());
-    const glm::vec2 viewer = simple_platformer::centerOf(boxIn({3, 1}));
 
-    REQUIRE(simple_platformer::visibility(map, viewer, boxIn({5, 1}), Fade) == 1.0F);
-    REQUIRE(simple_platformer::visibility(map, viewer, boxIn({7, 1}), Fade) == 0.0F);
+    REQUIRE(firstShown(map, boxIn({5, 1}), simple_platformer::Cell{3, 1}) == 1.0F);
+    REQUIRE(firstShown(map, boxIn({7, 1}), simple_platformer::Cell{3, 1}) == 0.0F);
 }
 
-TEST_CASE("Cover hides nothing standing outside it", "[render][cover-fade]")
+TEST_CASE("Cover between the player and an NPC hides nothing", "[render][cover-fade]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"........", "...cc...", "........"})
             .where('c', tests::Tile().blocksSight());
-    const glm::vec2 viewer = simple_platformer::centerOf(boxIn({0, 1}));
 
-    // The cover between them does not matter: only standing in cover hides.
-    REQUIRE(simple_platformer::visibility(map, viewer, boxIn({7, 1}), Fade) == 1.0F);
+    // Only standing in cover hides.
+    REQUIRE(firstShown(map, boxIn({7, 1}), simple_platformer::Cell{0, 1}) == 1.0F);
 }
 
-TEST_CASE("Without a viewer, cover alone decides visibility", "[render][cover-fade]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"....", ".cc.", "...."}).where('c', tests::Tile().blocksSight());
-
-    REQUIRE(simple_platformer::visibility(map, std::nullopt, boxIn({1, 1}), Fade) == 0.0F);
-    REQUIRE_NEAR(
-        simple_platformer::visibility(map, std::nullopt, {{10.0F, 16.0F}, {16.0F, 16.0F}}, Fade),
-        0.5F);
-    REQUIRE(simple_platformer::visibility(map, std::nullopt, boxIn({3, 1}), Fade) == 1.0F);
-}
-
-TEST_CASE("A wall breaks line of sight but hides nothing in the open", "[render][cover-fade]")
+TEST_CASE("A wall hides nothing standing in the open", "[render][cover-fade]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({".....", "..w..", "....."})
             .where('w', tests::Tile().blocksMovement().blocksSight());
-    const glm::vec2 viewer = simple_platformer::centerOf(boxIn({0, 1}));
-    const simple_platformer::Aabb target = boxIn({4, 1});
 
-    REQUIRE_FALSE(simple_platformer::lineOfSight(map, viewer, simple_platformer::centerOf(target)));
-    REQUIRE(simple_platformer::visibility(map, viewer, target, Fade) == 1.0F);
+    REQUIRE(firstShown(map, boxIn({4, 1}), simple_platformer::Cell{0, 1}) == 1.0F);
 }

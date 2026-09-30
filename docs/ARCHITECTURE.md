@@ -349,8 +349,8 @@ stand in a tile that blocks movement. Anyone inside grass can see out and across
 This applies both to NPCs looking for the player and to the player's screen.
 
 On the player's screen, NPCs and pickups fade by how much of their body is in grass:
-fully visible up to the first `ScreenCoverFade` threshold, not drawn from the second, and
-fading between. Anything the player has a line of sight to is drawn fully. The screen eases
+fully visible while at most half of it is, not drawn from three quarters, and fading
+between. Anything the player has a line of sight to is drawn fully. The screen eases
 towards that target over `CoverFadeSeconds`, so an NPC revealed when the player steps into
 its patch fades in rather than popping. `updateCoverFades` keeps this `screenVisibility`
 and `buildRenderScene` draws it. NPCs still see the player by line of sight alone.

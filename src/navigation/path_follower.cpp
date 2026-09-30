@@ -32,6 +32,7 @@ namespace simple_platformer
         // In pixels per second: residual horizontal speed below this counts as stopped.
         constexpr float StoppedSpeed = 0.001F;
 
+        // -1, 0 or 1: the horizontal input that moves from one position towards the other.
         float directionTowards(float from, float to)
         {
             if (to < from)
@@ -41,12 +42,15 @@ namespace simple_platformer
             return to > from ? 1.0F : 0.0F;
         }
 
+        // Within the arrival distance on each axis separately, a square rather than a circle.
         bool arrivedAt(glm::vec2 feet, glm::vec2 target)
         {
             return std::abs(target.x - feet.x) <= ArrivalDistance &&
                    std::abs(target.y - feet.y) <= ArrivalDistance;
         }
 
+        // Standing still on the ground at the target. A walk ends this way, and a jump or
+        // fall must start this way, because its inputs were recorded from a standing start.
         bool stoppedAt(const Body& body, const PlatformerMovement& movement, glm::vec2 target)
         {
             return movement.grounded && arrivedAt(feetOf(body.bounds), target) &&
@@ -76,6 +80,8 @@ namespace simple_platformer
                 return intentions;
             }
 
+            // With no input, the actor slides v² / 2a before stopping. Hold the direction
+            // only while that slide would still stop short of the takeoff.
             const float direction = directionTowards(feet.x, takeoff.x);
             const float speedTowardTarget = body.velocity.x * direction;
             const float deceleration = movement.config.groundDeceleration;
@@ -108,17 +114,22 @@ namespace simple_platformer
             }
             InputIntentions approach;
             approach.climbGrip = ClimbGrip::Hold;
+            // Full speed until the start is within a tick's travel, then only that fraction
+            // of it, so the last tick stops on the start instead of passing it.
             const float direction = std::clamp(remaining / maximumStep, -1.0F, 1.0F);
             (alongCeiling ? approach.direction.x : approach.direction.y) = direction;
             return approach;
         }
 
+        // What following one step gives this tick: the intentions to move with, or that the
+        // step is done, so the follower can go straight on to the next one.
         struct StepProgress
         {
             bool complete = false;
             InputIntentions intentions;
         };
 
+        // Walks to the waypoint and is done once standing still on it.
         StepProgress followWalkStep(
             const Body& body,
             const PlatformerMovement& movement,
@@ -131,6 +142,9 @@ namespace simple_platformer
             return {false, approachAndBrake(body, movement, waypoint.feet)};
         }
 
+        // A jump or fall runs in three phases: getting to the takeoff and stopping there,
+        // replaying the recorded inputs, then waiting to land. programElapsed says which
+        // phase it is in: zero before the replay starts, the program's duration after it.
         StepProgress followAirborneStep(
             const Body& body,
             const PlatformerMovement& movement,
@@ -149,6 +163,8 @@ namespace simple_platformer
                 return {false, approachAndBrake(body, movement, takeoff)};
             }
 
+            // Play the inputs at the current time, then move the time on, so the first
+            // tick plays the program's start.
             const float programDuration = durationOf(waypoint.inputs);
             if (follower.programElapsed < programDuration)
             {
@@ -171,6 +187,7 @@ namespace simple_platformer
                 clearPath(follower);
                 return {};
             }
+            // Ready for the next step, which starts from its own approach.
             follower.programElapsed = 0.0F;
             return {true, {}};
         }
@@ -191,6 +208,8 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("Climb path steps require an input program");
             }
+            // Zero elapsed means the replay has not started, so the climber is still
+            // getting to the start. Each branch falls through to the replay once there.
             if (follower.programElapsed == 0.0F)
             {
                 if (climb.surface != ClimbSurface::None)
@@ -317,9 +336,14 @@ namespace simple_platformer
             return {};
         }
 
+        // Follow the current step. A step that is already done hands straight on to the
+        // next, so several can finish in one tick; the first unfinished one gives the
+        // intentions. A step that goes wrong clears the path and reports itself unfinished,
+        // so the loop returns before looking at the path again.
         while (follower.nextStep < follower.path->waypoints.size())
         {
             const Waypoint& waypoint = follower.path->waypoints[follower.nextStep];
+            // Where this step's recorded inputs, if any, were recorded from.
             const glm::vec2 start = stepStart(*follower.path, follower.nextStep);
             StepProgress progress;
             switch (waypoint.traversal)

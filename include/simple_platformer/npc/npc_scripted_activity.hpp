@@ -1,7 +1,12 @@
 #pragma once
 
+#include <vector>
+
+#include "simple_platformer/actor/actor_id.hpp"
+
 namespace simple_platformer
 {
+    class NpcActivityScripts;
     struct Actor;
     struct LuaNpcActivity;
     struct NpcBrain;
@@ -38,4 +43,7 @@ namespace simple_platformer
         const PathFollower& follower,
         const LuaNpcActivity& activity,
         const NpcFacts& facts);
+
+    // Discards script-owned state before queued actor removals are applied to World.
+    void forgetScriptedActivities(const std::vector<ActorId>& actors, NpcActivityScripts& scripts);
 }

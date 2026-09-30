@@ -21,6 +21,7 @@
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_activity_script.hpp"
+#include "simple_platformer/npc/npc_scripted_activity.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
@@ -309,7 +310,7 @@ TEST_CASE("Removing an actor forgets its scripted activity state", "[npc][lua][l
     requests.remove(npcId);
     RecordingNpcScripts scripts;
 
-    simple_platformer::forgetNpcActivities(requests.actorsToRemove(), scripts);
+    simple_platformer::forgetScriptedActivities(requests.actorsToRemove(), scripts);
     REQUIRE(world.findActor(npcId) != nullptr);
     simple_platformer::applyWorldRequests(world, requests);
 

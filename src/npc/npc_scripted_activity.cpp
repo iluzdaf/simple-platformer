@@ -1,8 +1,10 @@
 #include "simple_platformer/npc/npc_scripted_activity.hpp"
 
 #include <stdexcept>
+#include <vector>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
@@ -108,5 +110,13 @@ namespace simple_platformer
     {
         requiredScripts(update).exit(
             actor.id, activity, activitySnapshot(actor, brain, follower, facts));
+    }
+
+    void forgetScriptedActivities(const std::vector<ActorId>& actors, NpcActivityScripts& scripts)
+    {
+        for (const ActorId actor : actors)
+        {
+            scripts.forget(actor);
+        }
     }
 }

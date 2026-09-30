@@ -75,6 +75,8 @@ namespace simple_platformer
 
     private:
         void loadLevel(int levelNumber);
+        // Forgets the old world's script state, then composes the level around player.
+        void replaceLevel(int levelNumber, Actor player);
         void startLevel(Actor player);
         CameraController& cameraControllerValue();
         const CameraController& cameraControllerValue() const;

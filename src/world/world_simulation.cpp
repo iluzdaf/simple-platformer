@@ -4,6 +4,7 @@
 #include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/projectile_system.hpp"
+#include "simple_platformer/npc/npc_scripted_activity.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
@@ -63,7 +64,7 @@ namespace simple_platformer
             {
                 if (scripts != nullptr)
                 {
-                    forgetNpcActivities(requests.actorsToRemove(), *scripts);
+                    forgetScriptedActivities(requests.actorsToRemove(), *scripts);
                 }
                 applyWorldRequests(world, requests);
             });

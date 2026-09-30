@@ -3,13 +3,11 @@
 #include <optional>
 #include <stdexcept>
 #include <variant>
-#include <vector>
 
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
-#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/validation.hpp"
@@ -208,14 +206,6 @@ namespace simple_platformer
                     brain.stateElapsed += deltaTime;
                 }
             }
-        }
-    }
-
-    void forgetNpcActivities(const std::vector<ActorId>& actors, NpcActivityScripts& scripts)
-    {
-        for (const ActorId actor : actors)
-        {
-            scripts.forget(actor);
         }
     }
 }

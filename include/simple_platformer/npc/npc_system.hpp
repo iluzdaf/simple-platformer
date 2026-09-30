@@ -1,9 +1,5 @@
 #pragma once
 
-#include <vector>
-
-#include "simple_platformer/actor/actor_id.hpp"
-
 namespace simple_platformer
 {
     class NpcActivityScripts;
@@ -19,7 +15,4 @@ namespace simple_platformer
         float deltaTime,
         NpcActivityScripts* scripts = nullptr,
         FrameProfile* profile = nullptr);
-
-    // Discards script-owned state before queued actor removals are applied to World.
-    void forgetNpcActivities(const std::vector<ActorId>& actors, NpcActivityScripts& scripts);
 }

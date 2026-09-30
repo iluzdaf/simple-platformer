@@ -67,13 +67,18 @@ namespace simple_platformer
             nextPlayer.health = previousPlayer->health;
             nextPlayer.inventory = previousPlayer->inventory;
         }
+        // Only player health and inventory carry over; the new world has fresh runtime state.
+        replaceLevel(levelNumber, std::move(nextPlayer));
+    }
+
+    void Game::replaceLevel(int levelNumber, Actor player)
+    {
         for (const Actor& actor : level.world.actors())
         {
             npcScripts.forget(actor.id);
         }
-        // Only player health and inventory carry over; the new world has fresh runtime state.
         level = composeGameLevel(levelCatalog, levelNumber, atlasTextureId, gameCatalogs);
-        startLevel(std::move(nextPlayer));
+        startLevel(std::move(player));
     }
 
     void Game::startLevel(Actor player)
@@ -278,13 +283,7 @@ namespace simple_platformer
     void Game::restart()
     {
         gameComplete = false;
-        for (const Actor& actor : level.world.actors())
-        {
-            npcScripts.forget(actor.id);
-        }
-        level =
-            composeGameLevel(levelCatalog, levelCatalog.startLevel, atlasTextureId, gameCatalogs);
-        startLevel(composePlayer(gameCatalogs, atlasTextureId));
+        replaceLevel(levelCatalog.startLevel, composePlayer(gameCatalogs, atlasTextureId));
     }
 
     int Game::levelNumber() const

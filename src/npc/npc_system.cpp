@@ -12,7 +12,6 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/input/input_state.hpp"
-#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/navigation/actor_navigation.hpp"
@@ -24,6 +23,7 @@
 #include "simple_platformer/npc/npc_activity_script.hpp"
 #include "simple_platformer/npc/npc_facts.hpp"
 #include "simple_platformer/npc/npc_navigation.hpp"
+#include "simple_platformer/npc/npc_scripted_activity.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
@@ -43,59 +43,6 @@ namespace simple_platformer
             enterBuiltInActivity(actor, follower, state);
         }
 
-        NpcActivitySnapshot activitySnapshot(
-            const Actor& actor,
-            const NpcBrain& brain,
-            const PathFollower& follower,
-            const NpcFacts& facts)
-        {
-            NpcActivitySnapshot snapshot;
-            snapshot.feet = feetOf(actor.body.bounds);
-            snapshot.patrol = actor.patrol;
-            snapshot.facts = facts;
-            snapshot.routeComplete = pathComplete(follower);
-            if (facts.targetKnown)
-            {
-                snapshot.targetFeet = brain.lastKnownTargetFeet;
-            }
-            return snapshot;
-        }
-
-        NpcActivityScripts& requiredScripts(const NpcUpdate& update)
-        {
-            if (update.scripts == nullptr)
-            {
-                throw std::logic_error("A scripted NPC activity needs the scripting runtime");
-            }
-            return *update.scripts;
-        }
-
-        void applyScriptCommand(
-            const NpcUpdate& update,
-            Actor& actor,
-            PathFollower& follower,
-            const NpcActivityCommand& command)
-        {
-            actor.intentions = command.intentions;
-            if (command.clearRoute)
-            {
-                clearPath(follower);
-            }
-            if (command.routeTo.has_value())
-            {
-                const InputIntentions movement =
-                    intentionsToReach(update, actor, follower, *command.routeTo);
-                actor.intentions.direction = movement.direction;
-                actor.intentions.jumpPressed = movement.jumpPressed;
-                actor.intentions.jumpHeld = movement.jumpHeld;
-                actor.intentions.climbGrip = movement.climbGrip;
-            }
-            if (command.aimAt.has_value())
-            {
-                aimToward(actor, *command.aimAt);
-            }
-        }
-
         void enterMachineActivity(
             const NpcUpdate& update,
             Actor& actor,
@@ -111,11 +58,8 @@ namespace simple_platformer
             }
             else
             {
-                clearPath(follower);
-                requiredScripts(update).enter(
-                    actor.id,
-                    std::get<LuaNpcActivity>(activity),
-                    activitySnapshot(actor, brain, follower, facts));
+                enterScriptedActivity(
+                    update, actor, brain, follower, std::get<LuaNpcActivity>(activity), facts);
             }
             machine.activityEntered = true;
         }
@@ -130,8 +74,7 @@ namespace simple_platformer
         {
             if (const auto* scripted = std::get_if<LuaNpcActivity>(&activity))
             {
-                requiredScripts(update).exit(
-                    actor.id, *scripted, activitySnapshot(actor, brain, follower, facts));
+                exitScriptedActivity(update, actor, brain, follower, *scripted, facts);
             }
         }
 
@@ -151,12 +94,8 @@ namespace simple_platformer
                     update, actor, brain, follower, target, builtIn->state, facts.stateElapsed);
                 return;
             }
-            const NpcActivityCommand command = requiredScripts(update).update(
-                actor.id,
-                std::get<LuaNpcActivity>(activity),
-                activitySnapshot(actor, brain, follower, facts),
-                update.deltaTime);
-            applyScriptCommand(update, actor, follower, command);
+            updateScriptedActivity(
+                update, actor, brain, follower, std::get<LuaNpcActivity>(activity), facts);
         }
 
         void updateMachineState(

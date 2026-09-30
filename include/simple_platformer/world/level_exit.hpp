@@ -9,7 +9,7 @@
 namespace simple_platformer
 {
     // How long an exit takes to open once the player enters it with what it needs. The
-    // player holds still while it opens, then the level completes.
+    // game pauses while it opens, then the level completes.
     constexpr float ExitOpenSeconds = 1.0F;
 
     struct LevelExit
@@ -37,7 +37,5 @@ namespace simple_platformer
     bool exitUnlocked(const LevelExit& exit, const Actor& actor);
     // Whether the exit has been entered and the level has yet to complete.
     bool exitOpening(const World& world);
-    // Clears the player's intentions while the exit opens, so they stay in the doorway.
-    void holdPlayerAtOpeningExit(World& world);
     void updateLevelExit(World& world);
 }

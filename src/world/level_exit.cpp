@@ -79,15 +79,6 @@ namespace simple_platformer
                !world.levelComplete();
     }
 
-    void holdPlayerAtOpeningExit(World& world)
-    {
-        Actor* player = world.findActor(world.playerId());
-        if (player != nullptr && exitOpening(world))
-        {
-            player->intentions = {};
-        }
-    }
-
     void updateLevelExit(World& world)
     {
         Actor* player = world.findActor(world.playerId());

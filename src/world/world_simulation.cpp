@@ -29,9 +29,15 @@ namespace simple_platformer
             return;
         }
         world.advanceSimulationTime(deltaTime);
-        holdPlayerAtOpeningExit(world);
         const auto phase = [&](const char* category, const char* name, auto&& run)
         { timePhase(profile, category, name, run); };
+        // While the exit opens the game is paused: only the clock runs, so the door can
+        // finish opening.
+        if (exitOpening(world))
+        {
+            phase("World", "Level exit", [&] { updateLevelExit(world); });
+            return;
+        }
 
         phase(
             "Navigation",

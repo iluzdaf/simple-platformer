@@ -139,7 +139,12 @@ namespace simple_platformer
             throw std::logic_error("The game has no player after lifecycle update");
         }
         followTarget(cameraControllerValue(), level.map, player->body.bounds);
-        updateWorldPresentation(level.map, level.world, deltaTime);
+        // Animations and fades pause with the simulation while the exit opens. The door's
+        // flash and the player's fade into it follow the world clock instead.
+        if (!exitOpening(level.world))
+        {
+            updateWorldPresentation(level.map, level.world, deltaTime);
+        }
     }
 
     glm::vec2 Game::playerAimDirection(glm::vec2 screenPosition) const

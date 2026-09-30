@@ -173,19 +173,24 @@ TEST_CASE(
     REQUIRE(simple_platformer::exitOpening(world));
     REQUIRE_FALSE(world.levelComplete());
 
-    // The player holds still in the doorway while it opens, whatever they intend.
+    // The game pauses while the door opens: the player holds still whatever they intend,
+    // and a shot in flight neither moves nor ages.
+    simple_platformer::Projectile shot;
+    shot.team = simple_platformer::Team::Enemy;
+    shot.bounds = {{60.0F, 4.0F}, {2.0F, 2.0F}};
+    shot.velocity = {100.0F, 0.0F};
+    shot.sprite.size = {2.0F, 2.0F};
+    world.addProjectile(shot);
     const auto position = tests::player(world).body.bounds.topLeft;
-    tests::player(world).intentions.direction.x = 1.0F;
-    simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
-    REQUIRE(tests::player(world).body.bounds.topLeft == position);
-
     for (int tick = 0; tick < 60 && !world.levelComplete(); ++tick)
     {
         tests::player(world).intentions.direction.x = 1.0F;
         simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
+        REQUIRE(tests::player(world).body.bounds.topLeft == position);
+        REQUIRE(world.projectiles().front().bounds.topLeft == shot.bounds.topLeft);
+        REQUIRE(world.projectiles().front().lifetimeRemaining == shot.lifetimeRemaining);
     }
     REQUIRE(world.levelComplete());
-    REQUIRE(tests::player(world).body.bounds.topLeft == position);
 }
 
 TEST_CASE(

@@ -133,7 +133,8 @@ breakpoint or stall does not cause an excessive catch-up.
 `updateWorldSimulation` is the authoritative gameplay order:
 
 1. Advance the World's shared simulation clock.
-2. Hold the player still if they have entered the exit and it is still opening.
+2. If the player has entered the exit and it is still opening, only update the exit.
+   The game is paused until the door opens.
 3. Update NPC sensing and target memory.
 4. Update NPC decisions, goals, paths, and intentions.
 5. Move every actor and resolve tile collision.
@@ -149,8 +150,8 @@ breakpoint or stall does not cause an excessive catch-up.
 
 The player intentions are written before this sequence. The camera and
 `updateWorldPresentation` (actor animation and cover fades) run afterward on ordinary
-gameplay ticks because they present the resulting state.
-Level completion takes the transition or completion path instead. Animation updates
+gameplay ticks because they present the resulting state. They pause with the game while
+the exit opens. Level completion takes the transition or completion path instead. Animation updates
 change state; they do not issue draw calls.
 
 Systems do not add or erase objects while another system may be traversing their
@@ -784,9 +785,9 @@ An exit can require an item and optionally consume it. Exit completion is latche
 requirement cannot be consumed twice. When the living player stands in an exit without
 its requirement, the exit records the time on the World clock, and the HUD draws the
 required item's icon above the door for a moment after. Entering the exit with the
-requirement consumes it and stamps when the door started opening; the player holds still
-for `ExitOpenSeconds` while the screen fades them into the flashing door, and then the
-level completes. The simulation reports completion;
+requirement consumes it and stamps when the door started opening. The game then pauses
+for `ExitOpenSeconds`. Only the World clock runs, and the screen fades the player into the
+flashing door. Then the level completes. The simulation reports completion;
 `GameLevel` groups a level's data so callers cannot accidentally combine parts of
 different levels. `Game` replaces that value at a transition, carries over the player's current health and inventory,
 and resets the camera.

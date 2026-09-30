@@ -25,6 +25,8 @@ namespace simple_platformer
     Aabb boxCenteredOn(glm::vec2 center, glm::vec2 size);
     // A box of this size whose feet are the point.
     Aabb boxStandingOn(glm::vec2 feet, glm::vec2 size);
+    // Moves the box, keeping its size, so its feet are the point.
+    void moveFeetTo(Aabb& box, glm::vec2 feet);
     // A box of this size standing in the cell, its feet at the middle of the cell's bottom edge.
     Aabb boxInCell(int tileSize, Cell cell, glm::vec2 size);
 

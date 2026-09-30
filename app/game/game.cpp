@@ -77,7 +77,7 @@ namespace simple_platformer
 
     void Game::startLevel(Actor player)
     {
-        player.body.bounds = boxStandingOn(level.playerSpawnFeet, player.body.bounds.size);
+        moveFeetTo(player.body.bounds, level.playerSpawnFeet);
         const ActorId playerId = level.world.addActor(std::move(player));
         level.actorDefinitionNames.emplace(playerId.value, gameCatalogs.actors.player);
         level.world.setPlayer(playerId, level.playerSpawnFeet);

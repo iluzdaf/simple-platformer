@@ -36,6 +36,11 @@ namespace simple_platformer
         return {{feet.x - size.x * 0.5F, feet.y - size.y}, size};
     }
 
+    void moveFeetTo(Aabb& box, glm::vec2 feet)
+    {
+        box = boxStandingOn(feet, box.size);
+    }
+
     Aabb boxInCell(int tileSize, Cell cell, glm::vec2 size)
     {
         return boxStandingOn(feetInCell(tileSize, cell), size);

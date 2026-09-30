@@ -129,8 +129,7 @@ TEST_CASE(
     REQUIRE(actor(world, npcId).intentions.primaryAttackPressed);
 
     // A body width from the ledge, the next cell along cannot be stood on.
-    simple_platformer::Aabb& npcBounds = actor(world, npcId).body.bounds;
-    npcBounds = simple_platformer::boxStandingOn({88.0F, 32.0F}, npcBounds.size);
+    simple_platformer::moveFeetTo(actor(world, npcId).body.bounds, {88.0F, 32.0F});
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Retreat);
     REQUIRE(actor(world, npcId).intentions.direction.x == 0.0F);

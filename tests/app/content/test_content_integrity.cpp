@@ -54,8 +54,7 @@ TEST_CASE("Every catalog level has valid actor placement", "[app][content]")
     {
         auto content = simple_platformer::composeGameLevel(catalog, entry.number, 0, catalogs);
         simple_platformer::Actor player = simple_platformer::composePlayer(catalogs, 0);
-        player.body.bounds =
-            simple_platformer::boxStandingOn(content.playerSpawnFeet, player.body.bounds.size);
+        simple_platformer::moveFeetTo(player.body.bounds, content.playerSpawnFeet);
         tests::addPlayer(content.world, player);
 
         REQUIRE_NOTHROW(

@@ -51,12 +51,15 @@ namespace simple_platformer
         std::vector<CachedConnectionDebugInfo> connections;
     };
 
-    // One standable cell as the connection cache sees it: its connection count when
-    // cached, or no count when absent, such as after a break drops it.
+    // One cell the body can rest in, as the connection cache sees it: its connection count
+    // when cached, or no count when absent, such as after a break drops it. The count covers
+    // every place in the cell: its floor, and its walls and ceiling for a climber.
     struct NavigationCellDebugInfo
     {
         Aabb bounds;
         std::optional<std::size_t> connections;
+        // False for a cell a climber can only hold a wall or the ceiling in.
+        bool standable = true;
     };
 
     struct NamedNavigationProfile
@@ -75,7 +78,8 @@ namespace simple_platformer
         std::vector<NamedNavigationProfile> namedProfiles;
     };
 
-    // Standable cells in the requested view, per-profile totals, and cache-wide counts.
+    // Cells the body can rest in within the requested view, per-profile totals, and
+    // cache-wide counts.
     // Absent when no platformer NPC profile is known.
     struct NavigationCacheDebugInfo
     {

@@ -212,3 +212,59 @@ TEST_CASE(
     REQUIRE(sawWalk);
     REQUIRE(sawArc);
 }
+
+TEST_CASE(
+    "Navigation debug data lists the cells a climber can only hold a wall or ceiling in",
+    "[app][debug][navigation][climb]")
+{
+    // A room walled and roofed with climbable tiles.
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"cccccc", "c.....", "c.....", "c.....", "######"})
+            .where('c', tests::Tile{}.blocksMovement().climbable());
+    const auto infoFor = [&map](simple_platformer::World& world)
+    {
+        return simple_platformer::makeNavigationCacheDebugInfo(world, map, tests::FixedStepSeconds)
+            .value_or(simple_platformer::NavigationCacheDebugInfo{});
+    };
+    const auto isListed =
+        [](const simple_platformer::NavigationCacheDebugInfo& info, glm::vec2 position)
+    {
+        return std::any_of(
+            info.cells.begin(),
+            info.cells.end(),
+            [position](const simple_platformer::NavigationCellDebugInfo& cell)
+            { return cell.bounds.topLeft == position; });
+    };
+
+    // A walker is shown only the floor.
+    simple_platformer::World walkers;
+    walkers.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                         .inCell({3, 3})
+                         .walking()
+                         .thinking({64.0F, 1.0F}));
+    const simple_platformer::NavigationCacheDebugInfo walking = infoFor(walkers);
+    REQUIRE(walking.cells.size() == 5);
+    REQUIRE_FALSE(isListed(walking, {16.0F, 16.0F}));
+
+    // A climber is also shown the cells along the wall and under the ceiling, marked as
+    // ones it cannot stand in, and they are counted once cached.
+    simple_platformer::World climbers;
+    climbers.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                          .inCell({3, 3})
+                          .walking()
+                          .climbing({60.0F})
+                          .thinking({64.0F, 1.0F}));
+    tests::prepareNavigationCache(map, climbers);
+    const simple_platformer::NavigationCacheDebugInfo climbing = infoFor(climbers);
+    REQUIRE(climbing.cells.size() > walking.cells.size());
+    for (const simple_platformer::NavigationCellDebugInfo& cell : climbing.cells)
+    {
+        // The floor row stands; the rows above are held on the wall or ceiling.
+        REQUIRE(cell.standable == (cell.bounds.topLeft.y == 48.0F));
+        REQUIRE(cell.connections.has_value());
+        REQUIRE(cell.connections.value_or(0) > 0);
+    }
+    REQUIRE(isListed(climbing, {16.0F, 16.0F}));
+    REQUIRE(isListed(climbing, {16.0F, 32.0F}));
+    REQUIRE(isListed(climbing, {48.0F, 16.0F}));
+}

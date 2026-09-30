@@ -21,6 +21,8 @@ namespace simple_platformer
     namespace
     {
         constexpr ImU32 NavigationCachedColour = IM_COL32(64, 160, 255, 90);
+        // A cell with connections that a climber can only hold a wall or the ceiling in.
+        constexpr ImU32 NavigationClimbCachedColour = IM_COL32(176, 96, 255, 90);
         constexpr ImU32 NavigationEmptyColour = IM_COL32(128, 128, 128, 70);
         constexpr ImU32 NavigationMissingColour = IM_COL32(255, 96, 32, 220);
         constexpr ImU32 NavigationFootprintColour = IM_COL32(255, 224, 64, 200);
@@ -58,8 +60,9 @@ namespace simple_platformer
                 drawList.AddRect(minimum, maximum, NavigationMissingColour, 0.0F, 0, 2.0F);
                 return;
             }
-            const ImU32 colour =
-                *cell.connections == 0 ? NavigationEmptyColour : NavigationCachedColour;
+            const ImU32 cachedColour =
+                cell.standable ? NavigationCachedColour : NavigationClimbCachedColour;
+            const ImU32 colour = *cell.connections == 0 ? NavigationEmptyColour : cachedColour;
             drawList.AddRectFilled(minimum, maximum, colour);
         }
 

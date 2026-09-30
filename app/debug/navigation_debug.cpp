@@ -37,6 +37,20 @@ namespace simple_platformer
                 {size, size}};
         }
 
+        // Whether a climber can hold a wall or the ceiling somewhere in the cell.
+        bool canHoldIn(const TileMap& map, Cell cell, glm::vec2 bodySize)
+        {
+            for (const ClimbSurface surface :
+                 {ClimbSurface::LeftWall, ClimbSurface::RightWall, ClimbSurface::Ceiling})
+            {
+                if (canOccupy(map, {cell, surface}, bodySize))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         CursorCellDebugInfo cursorCellDebugInfo(
             const TileMap& map,
             const PlatformerConnectionCache& cache,
@@ -59,16 +73,17 @@ namespace simple_platformer
             {
                 for (const RouteConnection& connection : *cached)
                 {
+                    const glm::vec2 fromFeet = feetOf(
+                        boundsAtSurface(tileSize, {cell, connection.sourceSurface}, profile.size));
                     info.connections.push_back(
-                        {feetOf(boundsAtSurface(
-                             tileSize, {cell, connection.sourceSurface}, profile.size)),
+                        {fromFeet,
                          feetOf(
                              boundsAtSurface(tileSize, connection.step.destination, profile.size)),
                          connection.step.traversal,
                          connection.cost,
                          sampleAirborneProgram(
                              map,
-                             feetInCell(tileSize, cell),
+                             fromFeet,
                              profile.size,
                              profile.movement,
                              connection.step.traversal,
@@ -164,7 +179,9 @@ namespace simple_platformer
             for (int column = 0; column < map.width(); ++column)
             {
                 const Cell cell{column, row};
-                if (!canStandAt(map, cell, profile.size))
+                const bool standable = canStandAt(map, cell, profile.size);
+                if (!standable &&
+                    !(profile.climb.has_value() && canHoldIn(map, cell, profile.size)))
                 {
                     continue;
                 }
@@ -176,8 +193,8 @@ namespace simple_platformer
                 const std::vector<RouteConnection>* cached = cache.cachedConnections(cell, profile);
                 info.cells.push_back(
                     {bounds,
-                     cached == nullptr ? std::nullopt
-                                       : std::optional<std::size_t>(cached->size())});
+                     cached == nullptr ? std::nullopt : std::optional<std::size_t>(cached->size()),
+                     standable});
             }
         }
         if (view.cursorWorld.has_value())

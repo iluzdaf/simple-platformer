@@ -35,6 +35,25 @@ namespace simple_platformer
             }
             return false;
         }
+
+        // Whether every condition holds for these facts. A fact no row answers is an error.
+        bool conditionsHold(const std::map<std::string, bool>& when, const NpcFacts& facts)
+        {
+            for (const auto& [fact, asked] : when)
+            {
+                const NpcFactRow* row = npcFactRow(fact);
+                if (row == nullptr)
+                {
+                    throw std::logic_error(
+                        "A condition asks about \"" + fact + "\", and there is no such fact");
+                }
+                if (row->holds(facts) != asked)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     void validateNpcStateMachine(const NpcStateMachine& machine)
@@ -109,24 +128,6 @@ namespace simple_platformer
         throw std::invalid_argument("The machine has no state \"" + std::string(name) + "\"");
     }
 
-    bool npcConditionsHold(const std::map<std::string, bool>& when, const NpcFacts& facts)
-    {
-        for (const auto& [fact, asked] : when)
-        {
-            const NpcFactRow* row = npcFactRow(fact);
-            if (row == nullptr)
-            {
-                throw std::logic_error(
-                    "A condition asks about \"" + fact + "\", and there is no such fact");
-            }
-            if (row->holds(facts) != asked)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
     NpcMachine startNpcMachine(NpcStateMachine definition)
     {
         validateNpcStateMachine(definition);
@@ -156,7 +157,7 @@ namespace simple_platformer
             {
                 continue;
             }
-            if (!npcConditionsHold(transition.when, facts))
+            if (!conditionsHold(transition.when, facts))
             {
                 machine.heldFor[index] = 0.0F;
                 continue;

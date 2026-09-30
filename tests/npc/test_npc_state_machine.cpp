@@ -1,8 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <map>
 #include <optional>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
@@ -34,6 +37,18 @@ namespace
             .when("targetKnown", false)
             .after(0.5F);
     }
+
+    // Whether a lone rest-to-hunt transition asking `when` fires on these facts.
+    bool fires(const std::map<std::string, bool>& when, const simple_platformer::NpcFacts& facts)
+    {
+        NpcStateMachine definition = NpcMachineBuilder::named("test")
+                                         .state("rest", NpcState::Idle)
+                                         .state("hunt", NpcState::Chase)
+                                         .transition("rest", "hunt");
+        definition.transitions.front().when = when;
+        NpcMachine machine = simple_platformer::startNpcMachine(std::move(definition));
+        return simple_platformer::advanceNpcMachine(machine, facts, 0.1F).has_value();
+    }
 }
 
 TEST_CASE("Machine conditions compose run and range facts independently", "[npc][fsm]")
@@ -55,15 +70,11 @@ TEST_CASE("Machine conditions compose run and range facts independently", "[npc]
         facts.targetOnSameRun = true;
         facts.targetWithinNoticeDistance = true;
     }
+    REQUIRE(fires({{"targetOnSameRun", true}}, facts) == facts.targetOnSameRun);
     REQUIRE(
-        simple_platformer::npcConditionsHold({{"targetOnSameRun", true}}, facts) ==
-        facts.targetOnSameRun);
+        fires({{"targetWithinNoticeDistance", true}}, facts) == facts.targetWithinNoticeDistance);
     REQUIRE(
-        simple_platformer::npcConditionsHold({{"targetWithinNoticeDistance", true}}, facts) ==
-        facts.targetWithinNoticeDistance);
-    REQUIRE(
-        simple_platformer::npcConditionsHold(
-            {{"targetOnSameRun", true}, {"targetWithinNoticeDistance", true}}, facts) ==
+        fires({{"targetOnSameRun", true}, {"targetWithinNoticeDistance", true}}, facts) ==
         (facts.targetOnSameRun && facts.targetWithinNoticeDistance));
 }
 
@@ -80,14 +91,12 @@ TEST_CASE("Every fact row answers from the facts and an unknown name has no row"
     REQUIRE(simple_platformer::npcFactRow("cornered") == nullptr);
 }
 
-TEST_CASE("Conditions hold when every fact answers as asked", "[npc][fsm]")
+TEST_CASE("A transition fires when every fact answers as asked", "[npc][fsm]")
 {
     const simple_platformer::NpcFacts facts = NpcFactsBuilder::facts().targetInSights();
-    REQUIRE(simple_platformer::npcConditionsHold(
-        {{"targetKnown", true}, {"targetInSights", true}}, facts));
-    REQUIRE_FALSE(
-        simple_platformer::npcConditionsHold({{"targetKnown", true}, {"hasPatrol", true}}, facts));
-    REQUIRE(simple_platformer::npcConditionsHold({}, facts));
+    REQUIRE(fires({{"targetKnown", true}, {"targetInSights", true}}, facts));
+    REQUIRE_FALSE(fires({{"targetKnown", true}, {"hasPatrol", true}}, facts));
+    REQUIRE(fires({}, facts));
 }
 
 TEST_CASE("A state machine rejects states and transitions it cannot run", "[npc][fsm][validation]")

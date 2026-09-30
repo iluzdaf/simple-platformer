@@ -45,9 +45,6 @@ namespace simple_platformer
     void validateNpcStateMachine(const NpcStateMachine& machine);
     std::size_t npcMachineStateNamed(const NpcStateMachine& machine, std::string_view name);
 
-    // Whether every condition holds for these facts. A fact no row answers is an error.
-    bool npcConditionsHold(const std::map<std::string, bool>& when, const NpcFacts& facts);
-
     // A running machine: an NPC component beside its brain. The brain keeps sensed-world
     // memory; the machine owns its active activity's lifecycle and elapsed time, along
     // with how long each transition's conditions have held.

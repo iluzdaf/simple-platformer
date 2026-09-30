@@ -11,7 +11,8 @@ namespace simple_platformer
     bool isFinitePositive(glm::vec2 value);
     bool isFiniteNonNegative(float value);
 
-    // Throws that the value "must be finite", after what it is, as in "Input intentions".
+    // Throws unless x and y are both finite. The message starts with what the value is, as
+    // in "Input intentions must be finite".
     void requireFinite(glm::vec2 value, const char* what);
 
     // A length of time is finite and not negative; zero is allowed, and for an update's

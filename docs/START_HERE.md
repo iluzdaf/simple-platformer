@@ -121,7 +121,7 @@ A practical route through the implementation is:
 
 1. Trace the explicit `NpcState` enum, its transitions in
    [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp), and the state branches in
-   [`npc_system.cpp`](../src/npc/npc_system.cpp).
+   [`npc_activities.cpp`](../src/npc/npc_activities.cpp).
 2. Change `noticeDistance`, `standoffDistance`, `targetMemoryDuration` and
    `searchDuration` in an actor definition's `senses` settings in [`actors.json`](../assets/catalogs/actors.json), using the
    debug overlay to observe visible targets, remembered positions, patrol points,
@@ -224,16 +224,19 @@ NPCs use the same actor movement and attack systems as the player. Their brain p
 intentions instead of reading a keyboard. Follow this route:
 
 1. [`npc_senses.cpp`](../src/npc/npc_senses.cpp)
-2. [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp)
-3. [`npc_system.cpp`](../src/npc/npc_system.cpp)
-4. [`attack_system.cpp`](../src/combat/attack_system.cpp)
-5. [`projectile_system.cpp`](../src/combat/projectile_system.cpp)
-6. [`lifecycle.cpp`](../src/actor/lifecycle.cpp)
+2. [`npc_facts.cpp`](../src/npc/npc_facts.cpp)
+3. [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp)
+4. [`npc_activities.cpp`](../src/npc/npc_activities.cpp)
+5. [`npc_system.cpp`](../src/npc/npc_system.cpp), which runs each NPC's tactic or machine
+6. [`attack_system.cpp`](../src/combat/attack_system.cpp)
+7. [`projectile_system.cpp`](../src/combat/projectile_system.cpp)
+8. [`lifecycle.cpp`](../src/actor/lifecycle.cpp)
 
 The enum-and-switch path teaches the built-in decision flow. For a machine-controlled
 NPC, follow [`machines.json`](../assets/catalogs/machines.json) into
 [`npc_state_machine.cpp`](../src/npc/npc_state_machine.cpp). A Lua state then calls an
 activity under [`assets/scripts`](../assets/scripts) through
+[`npc_scripted_activity.cpp`](../src/npc/npc_scripted_activity.cpp) and
 [`lua_npc_scripts.cpp`](../scripting/lua_npc_scripts.cpp). In every path, combat
 still applies the requested attacks and contact damage.
 

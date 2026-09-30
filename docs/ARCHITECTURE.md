@@ -442,8 +442,8 @@ or shoot. This keeps perception and decisions separately testable.
 Built-in states are declared in [`npc.hpp`](../include/simple_platformer/npc/npc.hpp).
 `NpcTactic` selects Pursuer or KeepDistance policy. An update has three steps:
 
-1. `gatherNpcFacts` collects sensing, target memory, movement, attacks, and state time
-   into `NpcFacts`. [CONTENT.md](CONTENT.md#state-machines) defines the machine-visible
+1. `gatherNpcFacts` in `npc_facts.cpp` collects sensing, target memory, movement,
+   attacks, and state time into `NpcFacts`. [CONTENT.md](CONTENT.md#state-machines) defines the machine-visible
    facts and their timing.
 2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
    current state that returns the state to enter, or nothing to stay. It reads only the
@@ -451,8 +451,8 @@ Built-in states are declared in [`npc.hpp`](../include/simple_platformer/npc/npc
    most one transition an update. A known target is pursued from whichever state
    notices it, and a lost one leaves the NPC where the brain's [tactic](#tactics)
    answers.
-3. Entering a state resets its time and route. The activity then requests a goal,
-   aim, or attack through `InputIntentions`. For example, Chase follows a path to the
+3. Entering a state resets its time and route. The activity, in `npc_activities.cpp`,
+   then requests a goal, aim, or attack through `InputIntentions`. For example, Chase follows a path to the
    last known target position, while Retreat moves away from it and requests an attack.
    Movement and combat execute those requests later in the same simulation step.
 
@@ -960,11 +960,12 @@ machine; this needs no new C++ enum value. For a new built-in activity that mult
 NPCs can use, extend the C++ state path:
 
 1. Add the state to the enum.
-2. Add any fact its transitions decide on to `NpcFacts`, and gather it in the NPC
-   system.
+2. Add any fact its transitions decide on to `NpcFacts`, and gather it in
+   `gatherNpcFacts`.
 3. Give its entry and exit conditions branches in `nextNpcState`. Entering resets the
    state's timing and clears the path for every state.
-4. Let the state's function choose a goal, facing, or attack intention.
+4. Let the state's function in `npc_activities.cpp` choose a goal, facing, or attack
+   intention.
 5. Continue to move and attack through `InputIntentions`; NPC decision code should not
    write body position or bypass combat systems.
 6. Test its transitions with facts alone, then its sustained behaviour and the most

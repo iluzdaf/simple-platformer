@@ -234,7 +234,7 @@ The enum-and-switch path teaches the built-in decision flow. For a machine-contr
 NPC, follow [`machines.json`](../assets/catalogs/machines.json) into
 [`npc_state_machine.cpp`](../src/npc/npc_state_machine.cpp). A Lua state then calls an
 activity under [`assets/scripts`](../assets/scripts) through
-[`lua_npc_scripts.cpp`](../src/scripting/lua_npc_scripts.cpp). In every path, combat
+[`lua_npc_scripts.cpp`](../scripting/lua_npc_scripts.cpp). In every path, combat
 still applies the requested attacks and contact damage.
 
 ### 7. Read navigation last

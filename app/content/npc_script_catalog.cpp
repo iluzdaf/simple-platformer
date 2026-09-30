@@ -10,7 +10,7 @@
 
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
-#include "simple_platformer/scripting/lua_npc_scripts.hpp"
+#include "lua_npc_scripts.hpp"
 
 namespace simple_platformer
 {

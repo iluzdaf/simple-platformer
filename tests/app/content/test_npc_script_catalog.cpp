@@ -7,7 +7,7 @@
 #include "content/npc_script_catalog.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
-#include "simple_platformer/scripting/lua_npc_scripts.hpp"
+#include "lua_npc_scripts.hpp"
 
 using Catch::Matchers::ContainsSubstring;
 

@@ -12,7 +12,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
-#include "simple_platformer/scripting/lua_npc_scripts.hpp"
+#include "lua_npc_scripts.hpp"
 
 namespace simple_platformer
 {

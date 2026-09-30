@@ -26,7 +26,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/render/render_scene.hpp"
-#include "simple_platformer/scripting/lua_npc_scripts.hpp"
+#include "lua_npc_scripts.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/timing/stopwatch.hpp"

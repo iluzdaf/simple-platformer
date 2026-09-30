@@ -26,7 +26,7 @@
 #include "simple_platformer/render/presentation.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/render/sprite.hpp"
-#include "simple_platformer/scripting/lua_npc_scripts.hpp"
+#include "lua_npc_scripts.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/level_validation.hpp"
 #include "simple_platformer/world/world_requests.hpp"

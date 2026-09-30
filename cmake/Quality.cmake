@@ -13,6 +13,7 @@ file(
     GLOB_RECURSE PROJECT_CPP_FILES
     CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/app/*.cpp
+    ${PROJECT_SOURCE_DIR}/scripting/*.cpp
     ${PROJECT_SOURCE_DIR}/src/*.cpp
     ${PROJECT_SOURCE_DIR}/tests/*.cpp
 )
@@ -22,7 +23,7 @@ file(
     CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/app/*.hpp
     ${PROJECT_SOURCE_DIR}/include/*.hpp
-    ${PROJECT_SOURCE_DIR}/src/*.hpp
+    ${PROJECT_SOURCE_DIR}/scripting/*.hpp
     ${PROJECT_SOURCE_DIR}/tests/*.hpp
 )
 
@@ -31,6 +32,8 @@ file(
     CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/include/*.hpp
 )
+# The scripting target's interface. Its other headers use sol2, which is private to it.
+list(APPEND PROJECT_PUBLIC_HEADERS ${PROJECT_SOURCE_DIR}/scripting/lua_npc_scripts.hpp)
 
 file(
     GLOB_RECURSE PROJECT_JSON_FILES

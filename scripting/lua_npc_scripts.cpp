@@ -1,4 +1,4 @@
-#include "simple_platformer/scripting/lua_npc_scripts.hpp"
+#include "lua_npc_scripts.hpp"
 
 #include "lua_activity_values.hpp"
 #include "lua_sandbox.hpp"

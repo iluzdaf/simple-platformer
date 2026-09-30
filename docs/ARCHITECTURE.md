@@ -68,7 +68,9 @@ The project has four main CMake targets:
 - `simple_platformer_core` contains simulation and render-scene construction. It has
   no dependency on GLFW, OpenGL, ImGui, or JSON parsing.
 - `simple_platformer_scripting` owns the Lua VM and implements the NPC activity scripting
-  boundary without exposing Lua types to the core.
+  boundary without exposing Lua types to the core. It lives on its own in `scripting/`,
+  as the application does in `app/`. `lua_npc_scripts.hpp` is its interface; its other
+  headers use sol2 and are private to it.
 - `simple_platformer` contains the executable, window, input adapter, OpenGL renderer,
   and ImGui presentation.
 - `simple_platformer_tests` contains Catch2 tests for the core and for the application

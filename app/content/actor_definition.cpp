@@ -28,8 +28,7 @@ namespace simple_platformer
         const MachineCatalog& machines)
     {
         Actor actor;
-        actor.body.bounds.size = definition.bodySize;
-        placeFeetAt(actor.body.bounds, spawnFeet);
+        actor.body.bounds = boxStandingOn(spawnFeet, definition.bodySize);
         actor.team = definition.team;
         actor.facing = definition.facing;
         if (definition.platformer)

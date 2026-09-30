@@ -20,8 +20,8 @@ namespace simple_platformer
         // bottom. The map is open above its top edge, as it is for collision.
         bool bodyFits(const TileMap& map, const Aabb& bounds)
         {
-            if (bounds.position.x < 0.0F || bounds.position.x + bounds.size.x > map.pixelWidth() ||
-                bounds.position.y + bounds.size.y > map.pixelHeight())
+            if (bounds.position.x < 0.0F || rightOf(bounds) > map.pixelWidth() ||
+                bottomOf(bounds) > map.pixelHeight())
             {
                 return false;
             }

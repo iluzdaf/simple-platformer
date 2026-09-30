@@ -39,10 +39,7 @@ namespace simple_platformer
         {
             const CellRange cells = cellsCovered(map.tileSize(), bounds);
             const int rowBelow =
-                cellAt(
-                    map.tileSize(),
-                    {bounds.position.x, bounds.position.y + bounds.size.y + EdgeTolerance})
-                    .y;
+                cellAt(map.tileSize(), {bounds.position.x, bottomOf(bounds) + EdgeTolerance}).y;
 
             for (int column = cells.first.x; column <= cells.last.x; ++column)
             {
@@ -87,8 +84,7 @@ namespace simple_platformer
             std::string_view place,
             bool needsGround)
         {
-            Aabb bounds{{0.0F, 0.0F}, actor.body.bounds.size};
-            placeFeetAt(bounds, feet);
+            const Aabb bounds = boxStandingOn(feet, actor.body.bounds.size);
             validatePlacement(map, actor, bounds, level, place, needsGround);
         }
 

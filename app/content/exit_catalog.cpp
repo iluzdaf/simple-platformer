@@ -83,8 +83,7 @@ namespace simple_platformer
     {
         validateExitDefinition(definition);
         LevelExit exit;
-        exit.bounds.size = definition.bodySize;
-        placeFeetAt(exit.bounds, spawnFeet);
+        exit.bounds = boxStandingOn(spawnFeet, definition.bodySize);
         Sprite sprite = definition.sprite;
         sprite.textureId = textureId;
         exit.sprite = sprite;

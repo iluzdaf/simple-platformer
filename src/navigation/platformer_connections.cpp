@@ -120,8 +120,7 @@ namespace simple_platformer
         bool touchesHorizontalMapEdge(const TileMap& map, const Aabb& bounds, float direction)
         {
             return (direction < 0.0F && bounds.position.x <= EdgeTolerance) ||
-                   (direction > 0.0F &&
-                    bounds.position.x + bounds.size.x >= map.pixelWidth() - EdgeTolerance);
+                   (direction > 0.0F && rightOf(bounds) >= map.pixelWidth() - EdgeTolerance);
         }
 
         // A walk, fall, or jump to simulate from a floor.

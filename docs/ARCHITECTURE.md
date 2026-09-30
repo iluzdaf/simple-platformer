@@ -182,11 +182,12 @@ struct Aabb
 };
 
 glm::vec2 feetOf(const Aabb& box);
-void placeFeetAt(Aabb& box, glm::vec2 feet);
+Aabb boxStandingOn(glm::vec2 feet, glm::vec2 size);
 ```
 
 Physics code works with `body.bounds.position`. Content and ground navigation use
-`feetOf` and `placeFeetAt`. There is no ambiguous general `setPosition` function.
+`feetOf`, and place a body by its feet with `boxStandingOn`, which builds a new box
+rather than moving one in place. There is no ambiguous general `setPosition` function.
 
 ## Time
 

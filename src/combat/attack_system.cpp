@@ -266,7 +266,7 @@ namespace simple_platformer
     Aabb biteHitbox(const Aabb& actorBounds, const BiteAttack& bite, Facing facing)
     {
         const float left = facing == Facing::Right
-                               ? actorBounds.position.x + actorBounds.size.x + bite.reach
+                               ? rightOf(actorBounds) + bite.reach
                                : actorBounds.position.x - bite.reach - bite.hitboxSize.x;
         return {{left, centerOf(actorBounds).y - bite.hitboxSize.y * 0.5F}, bite.hitboxSize};
     }

@@ -189,7 +189,7 @@ TEST_CASE(
     REQUIRE(cached.footprint.has_value());
     const simple_platformer::Aabb footprint = cached.footprint.value_or(simple_platformer::Aabb{});
     REQUIRE(footprint.position.x <= 32.0F);
-    REQUIRE(footprint.position.x + footprint.size.x >= 48.0F);
+    REQUIRE(simple_platformer::rightOf(footprint) >= 48.0F);
     REQUIRE_FALSE(cached.connections.empty());
     bool sawWalk = false;
     bool sawArc = false;

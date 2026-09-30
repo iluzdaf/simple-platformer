@@ -84,8 +84,8 @@ namespace
         }
         REQUIRE(near(placement.visible.position.x, lowest.x));
         REQUIRE(near(placement.visible.position.y, lowest.y));
-        REQUIRE(near(placement.visible.position.x + placement.visible.size.x, highest.x));
-        REQUIRE(near(placement.visible.position.y + placement.visible.size.y, highest.y));
+        REQUIRE(near(simple_platformer::rightOf(placement.visible), highest.x));
+        REQUIRE(near(simple_platformer::bottomOf(placement.visible), highest.y));
     }
 }
 
@@ -133,8 +133,7 @@ TEST_CASE("A climber's sprite stands its feet on the surface it holds", "[render
             break;
         case ClimbSurface::RightWall:
             REQUIRE(near(
-                placement.visible.position.x + placement.visible.size.x,
-                body.position.x + body.size.x));
+                simple_platformer::rightOf(placement.visible), simple_platformer::rightOf(body)));
             REQUIRE(near(visibleCentre.y, bodyCentre.y));
             break;
         case ClimbSurface::Ceiling:

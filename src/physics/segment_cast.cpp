@@ -55,15 +55,8 @@ namespace simple_platformer
             const glm::vec2 movement = end - start;
             float first = 0.0F;
             float last = 1.0F;
-            if (!castAxis(
-                    start.x,
-                    movement.x,
-                    box.position.x,
-                    box.position.x + box.size.x,
-                    first,
-                    last) ||
-                !castAxis(
-                    start.y, movement.y, box.position.y, box.position.y + box.size.y, first, last))
+            if (!castAxis(start.x, movement.x, box.position.x, rightOf(box), first, last) ||
+                !castAxis(start.y, movement.y, box.position.y, bottomOf(box), first, last))
             {
                 return std::nullopt;
             }

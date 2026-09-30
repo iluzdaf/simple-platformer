@@ -293,8 +293,8 @@ TEST_CASE("A walker starts from the standable cell that supports it", "[navigati
 
     // At the ledge the feet hang past the platform, so the cell under them cannot be
     // stood on; the body starts from the supporting cell.
-    simple_platformer::Aabb atTheLedge{{0.0F, 0.0F}, TallBody};
-    simple_platformer::placeFeetAt(atTheLedge, {80.5F, 32.0F});
+    const simple_platformer::Aabb atTheLedge =
+        simple_platformer::boxStandingOn({80.5F, 32.0F}, TallBody);
     REQUIRE(cellOf(simple_platformer::feetOf(atTheLedge)) == Cell{5, 1});
     REQUIRE(startFrom(atTheLedge) == feetIn({4, 1}));
 

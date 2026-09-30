@@ -175,9 +175,7 @@ namespace tests
         // By the middle of its bottom edge, where the game places actors.
         Placed atFeet(glm::vec2 feet) &&
         {
-            simple_platformer::Aabb bounds{{0.0F, 0.0F}, size};
-            simple_platformer::placeFeetAt(bounds, feet);
-            return Placed(bounds);
+            return Placed(simple_platformer::boxStandingOn(feet, size));
         }
 
         // Standing in the cell, its feet on the middle of the cell's bottom edge. Every test

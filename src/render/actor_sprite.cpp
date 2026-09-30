@@ -75,8 +75,7 @@ namespace simple_platformer
                 true);
         case ClimbSurface::RightWall:
             return turned(
-                fromFeet ? glm::vec2{body.position.x + body.size.x - feetToCentre, centre.y}
-                         : centre,
+                fromFeet ? glm::vec2{rightOf(body) - feetToCentre, centre.y} : centre,
                 sprite.size,
                 -glm::half_pi<float>(),
                 !headingUp,

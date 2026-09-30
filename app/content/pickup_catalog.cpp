@@ -95,8 +95,7 @@ namespace simple_platformer
     {
         validatePickupDefinition(definition, items);
         Pickup result;
-        result.body.bounds.size = definition.bodySize;
-        placeFeetAt(result.body.bounds, spawnFeet);
+        result.body.bounds = boxStandingOn(spawnFeet, definition.bodySize);
         result.stack = composeItemStack(items, definition.stack);
         result.sprite = definition.sprite;
         if (result.sprite)

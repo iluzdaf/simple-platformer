@@ -21,6 +21,14 @@ TEST_CASE("An AABB position is its top-left corner", "[math][coordinates]")
     REQUIRE_NEAR(simple_platformer::feetOf(box).y, 44.0F);
 }
 
+TEST_CASE("An AABB's far edges are its position plus its size", "[math][aabb]")
+{
+    const Aabb box{{10.0F, 20.0F}, {12.0F, 24.0F}};
+
+    REQUIRE_NEAR(simple_platformer::rightOf(box), 22.0F);
+    REQUIRE_NEAR(simple_platformer::bottomOf(box), 44.0F);
+}
+
 TEST_CASE("An AABB can be built around its centre", "[math][aabb]")
 {
     const Aabb box = simple_platformer::boxCenteredOn({16.0F, 32.0F}, {12.0F, 24.0F});
@@ -32,15 +40,13 @@ TEST_CASE("An AABB can be built around its centre", "[math][aabb]")
     REQUIRE_NEAR(simple_platformer::centerOf(box).y, 32.0F);
 }
 
-TEST_CASE("An arbitrary-sized AABB can be placed by its feet", "[math][coordinates]")
+TEST_CASE("An arbitrary-sized AABB can be built standing on its feet", "[math][coordinates]")
 {
-    Aabb box{{0.0F, 0.0F}, {12.0F, 24.0F}};
-
-    simple_platformer::placeFeetAt(box, {40.0F, 128.0F});
+    const Aabb box = simple_platformer::boxStandingOn({40.0F, 128.0F}, {12.0F, 24.0F});
 
     REQUIRE_NEAR(box.position.x, 34.0F);
-
     REQUIRE_NEAR(box.position.y, 104.0F);
+    REQUIRE(box.size == glm::vec2{12.0F, 24.0F});
     REQUIRE_NEAR(simple_platformer::feetOf(box).x, 40.0F);
     REQUIRE_NEAR(simple_platformer::feetOf(box).y, 128.0F);
 }

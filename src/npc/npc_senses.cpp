@@ -64,8 +64,7 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                Aabb noiseBounds = target.body.bounds;
-                placeFeetAt(noiseBounds, noise.feet);
+                const Aabb noiseBounds = boxStandingOn(noise.feet, target.body.bounds.size);
                 if (!withinNoticeDistance(npc.actor.body.bounds, noiseBounds, npc.senses))
                 {
                     continue;

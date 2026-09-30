@@ -94,8 +94,7 @@ namespace simple_platformer
             return {};
         }
         Body body;
-        body.bounds.size = bodySize;
-        placeFeetAt(body.bounds, startFeet);
+        body.bounds = boxStandingOn(startFeet, bodySize);
         PlatformerMovement flight{movement, true, 0.0F, 0.0F};
         std::vector<glm::vec2> sampledFeet;
         sampledFeet.push_back(feetOf(body.bounds));

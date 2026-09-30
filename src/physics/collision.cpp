@@ -33,9 +33,8 @@ namespace simple_platformer
                 throw std::invalid_argument("Collision requires finite, positive-sized bounds");
             }
 
-            const float right = bounds.position.x + bounds.size.x;
-            const float bottom = bounds.position.y + bounds.size.y;
-            if (bounds.position.x < 0.0F || right > map.pixelWidth() || bottom > map.pixelHeight())
+            if (bounds.position.x < 0.0F || rightOf(bounds) > map.pixelWidth() ||
+                bottomOf(bounds) > map.pixelHeight())
             {
                 throw std::invalid_argument("Collision bounds must begin inside the map walls");
             }

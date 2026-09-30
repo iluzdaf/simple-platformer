@@ -35,6 +35,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/src/physics/body.cpp
     ${PROJECT_SOURCE_DIR}/src/physics/collision.cpp
     ${PROJECT_SOURCE_DIR}/src/physics/segment_cast.cpp
+    ${PROJECT_SOURCE_DIR}/src/render/actor_sprite.cpp
     ${PROJECT_SOURCE_DIR}/src/render/animation.cpp
     ${PROJECT_SOURCE_DIR}/src/render/animation_system.cpp
     ${PROJECT_SOURCE_DIR}/src/render/cover_fade.cpp

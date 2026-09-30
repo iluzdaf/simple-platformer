@@ -13,6 +13,7 @@
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/render/actor_sprite.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -208,14 +209,14 @@ namespace simple_platformer
                     continue;
                 }
 
-                const Aabb bounds = spriteBounds(actor.body.bounds, *actor.sprite);
+                const ActorSpritePlacement placement = placeActorSprite(actor);
                 scene.sprites.push_back(
                     {actor.sprite->textureId,
-                     worldToScreen(camera, bounds.position),
-                     bounds.size,
+                     worldToScreen(camera, placement.drawn.position),
+                     placement.drawn.size,
                      actor.sprite->region,
-                     actor.facing == Facing::Left,
-                     0.0F,
+                     placement.flipHorizontal,
+                     placement.rotationRadians,
                      actorOpacity(actor) * (isPlayer ? playerOpacity : actorVisibility),
                      actorWhiteFlashAmount(world, actor),
                      isPlayer ? (1.0F - actorVisibility) * PlayerConcealedShade : 0.0F});

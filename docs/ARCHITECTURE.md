@@ -850,6 +850,13 @@ are equal. Actor sprites are normally positioned from the body's feet, which let
 tall image use a smaller collider. The bat additionally uses a centred sprite anchor so
 its smaller collider matches the creature in the middle of its frame.
 
+A climber's art is drawn once, standing on a floor and facing right. `placeActorSprite`
+turns it so its feet rest on the surface it holds: a quarter turn onto a wall and a half
+turn onto a ceiling, with the sprite centred along the body's edge against that surface.
+The collider does not turn, so a climber whose body is square fits every surface the
+same way. The head leads the way the climber faces on a ceiling, and on a wall the way
+its `Animator` last saw it climb, so it does not turn round when it stops.
+
 ### Animation
 
 Clips are authored in `animations.json`; [CONTENT.md](CONTENT.md#animation-sets) covers
@@ -858,7 +865,8 @@ composition creates a fresh animator for each actor. JSON defines clips, not sel
 rules.
 
 There is no animation state machine. A priority function selects a clip from life,
-attack, grounded, and velocity state; death has highest priority, then attack.
+attack, grounded, and velocity state; death has highest priority, then attack. A climber
+holding a surface counts as grounded, so it idles or moves there instead of falling.
 
 Each animated actor has an `Animator` with its current animation, elapsed time, and an
 `AnimationSet`. Each character therefore owns its clip definitions and can use different

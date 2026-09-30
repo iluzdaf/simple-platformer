@@ -84,6 +84,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/physics/test_body.cpp
     ${PROJECT_SOURCE_DIR}/tests/physics/test_collision.cpp
     ${PROJECT_SOURCE_DIR}/tests/physics/test_segment_cast.cpp
+    ${PROJECT_SOURCE_DIR}/tests/render/test_actor_sprite.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_animation.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_animation_system.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_camera.cpp

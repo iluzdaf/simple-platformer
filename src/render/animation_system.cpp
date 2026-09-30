@@ -2,9 +2,12 @@
 
 #include <stdexcept>
 
+#include <glm/vec2.hpp>
+
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -12,6 +15,18 @@ namespace simple_platformer
 {
     namespace
     {
+        void updateWallHeading(Animator& animator, ClimbSurface surface, glm::vec2 velocity)
+        {
+            if (surface != ClimbSurface::LeftWall && surface != ClimbSurface::RightWall)
+            {
+                animator.wallHeadingUp = true;
+            }
+            else if (velocity.y != 0.0F)
+            {
+                animator.wallHeadingUp = velocity.y < 0.0F;
+            }
+        }
+
         void updateActorAnimations(World& world, float deltaTime)
         {
             for (Actor& actor : world.actors())
@@ -30,9 +45,14 @@ namespace simple_platformer
                 const bool shooting = actor.rangedWeapon.has_value() &&
                                       actor.rangedWeapon->phase == RangedPhase::Shoot;
                 const bool attacking = biting || shooting;
-                const bool grounded = actor.platformerMovement.has_value()
-                                          ? actor.platformerMovement->grounded
-                                          : true;
+                const ClimbSurface surface = actor.surfaceClimb.has_value()
+                                                 ? actor.surfaceClimb->surface
+                                                 : ClimbSurface::None;
+                updateWallHeading(*actor.animator, surface, actor.body.velocity);
+                // A climber holding a surface stands on it: it idles or moves there.
+                const bool grounded = surface != ClimbSurface::None ||
+                                      !actor.platformerMovement.has_value() ||
+                                      actor.platformerMovement->grounded;
                 const AnimationName selected = selectActorAnimation(
                     actor.life == LifeState::Dying, attacking, grounded, actor.body.velocity);
                 updateAnimation(*actor.animator, *actor.sprite, selected, deltaTime);

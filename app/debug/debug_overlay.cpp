@@ -23,6 +23,7 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
+#include "simple_platformer/render/actor_sprite.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -61,7 +62,7 @@ namespace simple_platformer
                 throw std::logic_error("Debug overlay requires a valid sprite region");
             }
 
-            const Aabb bounds = spriteBounds(actor.body.bounds, sprite);
+            const Aabb bounds = placeActorSprite(actor).visible;
             const std::size_t atlasColumns =
                 static_cast<std::size_t>(atlasWidth / sprite.region.size.x);
             const std::size_t atlasColumn =

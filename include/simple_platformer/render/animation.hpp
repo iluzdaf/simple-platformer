@@ -36,6 +36,9 @@ namespace simple_platformer
         AnimationName current = AnimationName::Idle;
         float elapsed = 0.0F;
         AnimationSet animationSet;
+        // Which way a climber's head points on a wall. It keeps the way the climber last
+        // moved, so stopping does not turn it round, and points up again off the wall.
+        bool wallHeadingUp = true;
     };
 
     const AnimationClip& clipFor(const AnimationSet& animationSet, AnimationName name);

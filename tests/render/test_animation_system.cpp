@@ -6,6 +6,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
+#include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/animation_system.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -85,6 +86,47 @@ TEST_CASE("Death animation has priority over a shot", "[render][animation][syste
     simple_platformer::updateWorldAnimations(world, 0.0F);
 
     REQUIRE(tests::animator(world, id).current == simple_platformer::AnimationName::Death);
+}
+
+TEST_CASE(
+    "A climber moves or idles on its surface and keeps the way it last climbed a wall",
+    "[render][animation][system][climb]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor climbingActor = makeAnimatedActor();
+    climbingActor.surfaceClimb = simple_platformer::SurfaceClimb{};
+    const simple_platformer::ActorId id = world.addActor(climbingActor);
+    tests::platformerMovement(world, id).grounded = false;
+    simple_platformer::Actor& actor = tests::actor(world, id);
+    const auto animate = [&world, &id]()
+    {
+        simple_platformer::updateWorldAnimations(world, 0.0F);
+        return tests::animator(world, id);
+    };
+
+    // Holding a wall is not falling, whichever way the climber goes.
+    tests::surfaceClimb(actor).surface = simple_platformer::ClimbSurface::LeftWall;
+    actor.body.velocity = {0.0F, 60.0F};
+    REQUIRE(animate().current == simple_platformer::AnimationName::Move);
+    REQUIRE_FALSE(tests::animator(world, id).wallHeadingUp);
+    actor.body.velocity = {0.0F, 0.0F};
+    REQUIRE(animate().current == simple_platformer::AnimationName::Idle);
+    REQUIRE_FALSE(tests::animator(world, id).wallHeadingUp);
+    actor.body.velocity = {0.0F, -60.0F};
+    REQUIRE(animate().wallHeadingUp);
+
+    // Along a ceiling it moves too, and its head is up again for the next wall.
+    actor.body.velocity = {0.0F, 60.0F};
+    animate();
+    tests::surfaceClimb(actor).surface = simple_platformer::ClimbSurface::Ceiling;
+    actor.body.velocity = {60.0F, 0.0F};
+    REQUIRE(animate().current == simple_platformer::AnimationName::Move);
+    REQUIRE(tests::animator(world, id).wallHeadingUp);
+
+    // Letting go, it falls.
+    tests::surfaceClimb(actor).surface = simple_platformer::ClimbSurface::None;
+    actor.body.velocity = {0.0F, 60.0F};
+    REQUIRE(animate().current == simple_platformer::AnimationName::Fall);
 }
 
 TEST_CASE("World animation rejects a negative delta time", "[render][animation][system]")

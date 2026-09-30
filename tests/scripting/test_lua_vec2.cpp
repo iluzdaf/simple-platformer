@@ -5,7 +5,7 @@
 
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
-#include "simple_platformer/npc/npc_activity_script.hpp"
+#include "simple_platformer/npc/npc_activity_scripts.hpp"
 #include "lua_npc_scripts.hpp"
 
 namespace

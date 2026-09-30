@@ -1,4 +1,4 @@
-#include "simple_platformer/npc/npc_activities.hpp"
+#include "simple_platformer/npc/npc_built_in_activity.hpp"
 
 #include <stdexcept>
 

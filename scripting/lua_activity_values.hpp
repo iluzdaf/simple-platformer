@@ -3,7 +3,7 @@
 #include <initializer_list>
 #include <string_view>
 
-#include "simple_platformer/npc/npc_activity_script.hpp"
+#include "simple_platformer/npc/npc_activity_scripts.hpp"
 
 // sol2 supports its public API through this umbrella header. Listing its internal headers
 // would couple the adapter to implementation details without improving include hygiene.

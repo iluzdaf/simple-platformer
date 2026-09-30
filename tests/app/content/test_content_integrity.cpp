@@ -20,7 +20,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
-#include "simple_platformer/npc/npc_activity_script.hpp"
+#include "simple_platformer/npc/npc_activity_scripts.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "lua_npc_scripts.hpp"
 #include "simple_platformer/world/level_exit.hpp"

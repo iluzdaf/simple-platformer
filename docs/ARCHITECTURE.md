@@ -451,7 +451,7 @@ Built-in states are declared in [`npc.hpp`](../include/simple_platformer/npc/npc
    most one transition an update. A known target is pursued from whichever state
    notices it, and a lost one leaves the NPC where the brain's [tactic](#tactics)
    answers.
-3. Entering a state resets its time and route. The activity, in `npc_activities.cpp`,
+3. Entering a state resets its time and route. The activity, in `npc_built_in_activity.cpp`,
    then requests a goal, aim, or attack through `InputIntentions`. For example, Chase follows a path to the
    last known target position, while Retreat moves away from it and requests an attack.
    Movement and combat execute those requests later in the same simulation step.
@@ -964,7 +964,7 @@ NPCs can use, extend the C++ state path:
    `gatherNpcFacts`.
 3. Give its entry and exit conditions branches in `nextNpcState`. Entering resets the
    state's timing and clears the path for every state.
-4. Let the state's function in `npc_activities.cpp` choose a goal, facing, or attack
+4. Let the state's function in `npc_built_in_activity.cpp` choose a goal, facing, or attack
    intention.
 5. Continue to move and attack through `InputIntentions`; NPC decision code should not
    write body position or bypass combat systems.

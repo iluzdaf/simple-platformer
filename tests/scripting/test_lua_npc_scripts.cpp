@@ -7,7 +7,7 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_activity.hpp"
-#include "simple_platformer/npc/npc_activity_script.hpp"
+#include "simple_platformer/npc/npc_activity_scripts.hpp"
 #include "lua_npc_scripts.hpp"
 
 namespace

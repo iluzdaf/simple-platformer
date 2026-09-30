@@ -194,7 +194,7 @@ intentions instead of reading a keyboard. Follow this route:
 1. [`npc_senses.cpp`](../src/npc/npc_senses.cpp)
 2. [`npc_facts.cpp`](../src/npc/npc_facts.cpp)
 3. [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp)
-4. [`npc_activities.cpp`](../src/npc/npc_activities.cpp)
+4. [`npc_built_in_activity.cpp`](../src/npc/npc_built_in_activity.cpp)
 5. [`npc_system.cpp`](../src/npc/npc_system.cpp), which runs each NPC's tactic or machine
 6. [`attack_system.cpp`](../src/combat/attack_system.cpp)
 7. [`projectile_system.cpp`](../src/combat/projectile_system.cpp)

@@ -7,7 +7,7 @@ namespace simple_platformer
     // Predicates for validators that combine conditions or word their own message.
     bool isFinite(glm::vec2 value);
     bool isFinitePositive(float value);
-    // Both parts, as a size's must be.
+    // Whether x and y are both finite and above zero, as a size's must be.
     bool isFinitePositive(glm::vec2 value);
     bool isFiniteNonNegative(float value);
 

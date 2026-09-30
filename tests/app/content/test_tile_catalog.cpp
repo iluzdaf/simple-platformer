@@ -8,9 +8,8 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "content/tile_catalog.hpp"
-#include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/physics/segment_cast.hpp"
+#include "simple_platformer/world/sight.hpp"
 
 TEST_CASE("Tile catalogs reject unknown fields and identify their definitions", "[app][tiles]")
 {
@@ -56,10 +55,8 @@ TEST_CASE("Tile legends resolve distinct movement and sight properties", "[app][
     REQUIRE(grass.blocksSight({1, 0}));
     REQUIRE(glass.definitionAt({1, 0}).sprite.position.x == 16);
     REQUIRE(grass.definitionAt({1, 0}).sprite.position.x == 32);
-    const simple_platformer::NpcSenses senses;
-    REQUIRE(simple_platformer::canSeeTarget(glass, {{2, 2}, {4, 4}}, {{36, 2}, {4, 4}}, senses));
-    REQUIRE_FALSE(
-        simple_platformer::canSeeTarget(grass, {{2, 2}, {4, 4}}, {{36, 2}, {4, 4}}, senses));
+    REQUIRE(simple_platformer::lineOfSight(glass, {4.0F, 4.0F}, {38.0F, 4.0F}));
+    REQUIRE_FALSE(simple_platformer::lineOfSight(grass, {4.0F, 4.0F}, {38.0F, 4.0F}));
     REQUIRE(
         simple_platformer::segmentCastMovementBlockingTiles(glass, {4, 4}, {38, 4}).has_value());
     REQUIRE_FALSE(

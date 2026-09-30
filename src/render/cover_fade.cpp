@@ -11,7 +11,7 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/math/validation.hpp"
-#include "simple_platformer/npc/npc_senses.hpp"
+#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/sight.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -86,6 +86,20 @@ namespace simple_platformer
             const std::optional<float> sinceShot =
                 world.secondsSince(player.rangedWeapon->lastFiredTimeSeconds);
             return sinceShot.has_value() && *sinceShot < ShotRevealSeconds;
+        }
+
+        // What the latest senses update decided: whether any NPC sees the player now.
+        bool playerSeenByAnyNpc(const World& world)
+        {
+            for (const Actor& actor : world.actors())
+            {
+                if (actor.brain.has_value() && actor.perception.has_value() &&
+                    actor.perception->targetVisible && actor.brain->target == world.playerId())
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         float playerTarget(const TileMap& map, const World& world, const Actor& player)

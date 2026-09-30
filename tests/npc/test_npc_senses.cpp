@@ -39,6 +39,31 @@ namespace
             .onTeam(simple_platformer::Team::Enemy)
             .thinking({64.0F, 1.0F});
     }
+
+    // Whether an NPC with these bounds and senses sees a player with those bounds, after
+    // one senses update.
+    bool sees(
+        const simple_platformer::TileMap& map,
+        const simple_platformer::Aabb& observer,
+        const simple_platformer::Aabb& target,
+        simple_platformer::NpcSenses senses = {64.0F, 1.0F})
+    {
+        simple_platformer::World world;
+        tests::addPlayer(
+            world,
+            tests::ActorBuilder::sized(target.size)
+                .atFeet(simple_platformer::feetOf(target))
+                .walking()
+                .onTeam(simple_platformer::Team::Player));
+        const simple_platformer::ActorId npcId =
+            world.addActor(tests::ActorBuilder::sized(observer.size)
+                               .atFeet(simple_platformer::feetOf(observer))
+                               .flying(20.0F)
+                               .onTeam(simple_platformer::Team::Enemy)
+                               .thinking(senses));
+        simple_platformer::updateNpcSenses(map, world, tests::FixedStepSeconds);
+        return tests::perception(world, npcId).targetVisible;
+    }
 }
 
 TEST_CASE("NPC sight observes distance and solid tiles", "[npc][senses]")
@@ -51,9 +76,9 @@ TEST_CASE("NPC sight observes distance and solid tiles", "[npc][senses]")
     const simple_platformer::Aabb observer{{8.0F, 16.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb target{{56.0F, 16.0F}, {12.0F, 12.0F}};
 
-    REQUIRE(simple_platformer::canSeeTarget(clear, observer, target, {64.0F, 1.0F}));
-    REQUIRE_FALSE(simple_platformer::canSeeTarget(blocked, observer, target, {64.0F, 1.0F}));
-    REQUIRE_FALSE(simple_platformer::canSeeTarget(clear, observer, target, {32.0F, 1.0F}));
+    REQUIRE(sees(clear, observer, target));
+    REQUIRE_FALSE(sees(blocked, observer, target));
+    REQUIRE_FALSE(sees(clear, observer, target, {32.0F, 1.0F}));
 }
 
 TEST_CASE("A landing is heard once by a ground NPC on the same run", "[npc][senses][noise]")
@@ -137,8 +162,8 @@ TEST_CASE("Sight-blocking cover hides whoever stands in it", "[npc][senses]")
     const simple_platformer::Aabb inCover{{2.0F, 18.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb inOpen{{50.0F, 18.0F}, {12.0F, 12.0F}};
 
-    REQUIRE_FALSE(simple_platformer::canSeeTarget(map, inOpen, inCover, {64.0F, 1.0F}));
-    REQUIRE(simple_platformer::canSeeTarget(map, inCover, inOpen, {64.0F, 1.0F}));
+    REQUIRE_FALSE(sees(map, inOpen, inCover));
+    REQUIRE(sees(map, inCover, inOpen));
 }
 
 TEST_CASE("Actors in one patch of sight-blocking cover see each other", "[npc][senses]")
@@ -148,8 +173,8 @@ TEST_CASE("Actors in one patch of sight-blocking cover see each other", "[npc][s
     const simple_platformer::Aabb first{{2.0F, 18.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb second{{34.0F, 18.0F}, {12.0F, 12.0F}};
 
-    REQUIRE(simple_platformer::canSeeTarget(map, first, second, {64.0F, 1.0F}));
-    REQUIRE(simple_platformer::canSeeTarget(map, second, first, {64.0F, 1.0F}));
+    REQUIRE(sees(map, first, second));
+    REQUIRE(sees(map, second, first));
 }
 
 TEST_CASE("Actors at the same position in sight-blocking cover see each other", "[npc][senses]")
@@ -158,7 +183,7 @@ TEST_CASE("Actors at the same position in sight-blocking cover see each other", 
         tests::TileMapBuilder({".....", "c....", "....."}).where('c', tests::Tile().blocksSight());
     const simple_platformer::Aabb inCover{{2.0F, 18.0F}, {12.0F, 12.0F}};
 
-    REQUIRE(simple_platformer::canSeeTarget(map, inCover, inCover, {64.0F, 1.0F}));
+    REQUIRE(sees(map, inCover, inCover));
 }
 
 TEST_CASE("Actors in separate patches of sight-blocking cover are hidden", "[npc][senses]")
@@ -168,8 +193,8 @@ TEST_CASE("Actors in separate patches of sight-blocking cover are hidden", "[npc
     const simple_platformer::Aabb first{{2.0F, 18.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb second{{34.0F, 18.0F}, {12.0F, 12.0F}};
 
-    REQUIRE_FALSE(simple_platformer::canSeeTarget(map, first, second, {64.0F, 1.0F}));
-    REQUIRE_FALSE(simple_platformer::canSeeTarget(map, second, first, {64.0F, 1.0F}));
+    REQUIRE_FALSE(sees(map, first, second));
+    REQUIRE_FALSE(sees(map, second, first));
 }
 
 TEST_CASE("Only sight-blocking tiles block sight between actors in the open", "[npc][senses]")
@@ -181,10 +206,10 @@ TEST_CASE("Only sight-blocking tiles block sight between actors in the open", "[
     const simple_platformer::Aabb left{{2.0F, 18.0F}, {12.0F, 12.0F}};
     const simple_platformer::Aabb right{{34.0F, 18.0F}, {12.0F, 12.0F}};
 
-    REQUIRE_FALSE(simple_platformer::canSeeTarget(covered, left, right, {64.0F, 1.0F}));
-    REQUIRE_FALSE(simple_platformer::canSeeTarget(covered, right, left, {64.0F, 1.0F}));
-    REQUIRE(simple_platformer::canSeeTarget(windowed, left, right, {64.0F, 1.0F}));
-    REQUIRE(simple_platformer::canSeeTarget(windowed, right, left, {64.0F, 1.0F}));
+    REQUIRE_FALSE(sees(covered, left, right));
+    REQUIRE_FALSE(sees(covered, right, left));
+    REQUIRE(sees(windowed, left, right));
+    REQUIRE(sees(windowed, right, left));
 }
 
 TEST_CASE("NPC target memory expires and rejects a dead player", "[npc][senses]")
@@ -341,36 +366,31 @@ TEST_CASE(
     REQUIRE_FALSE(brain(world, npcId).target.has_value());
 }
 
-TEST_CASE("Whether any NPC sees the player is what the senses update decided", "[npc][senses]")
+TEST_CASE("An NPC sees into cover only from within its patch and notice distance", "[npc][senses]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"............", "...ccccccc..", "............"})
             .where('c', tests::Tile().blocksSight());
     simple_platformer::World world;
     tests::addPlayer(world, makePlayer({56.0F, 30.0F}));
-    const auto sensed = [&]
-    {
-        simple_platformer::updateNpcSenses(map, world, tests::FixedStepSeconds);
-        return simple_platformer::playerSeenByAnyNpc(world);
-    };
-
-    REQUIRE_FALSE(sensed());
-
     // An NPC outside the patch cannot see in.
-    world.addActor(makeNpc({8.0F, 30.0F}));
-    REQUIRE_FALSE(sensed());
-
+    const simple_platformer::ActorId outside = world.addActor(makeNpc({8.0F, 30.0F}));
     // One in the same patch but beyond its notice distance does not notice.
-    world.addActor(makeNpc({152.0F, 30.0F}));
-    REQUIRE_FALSE(sensed());
-
+    const simple_platformer::ActorId distant = world.addActor(makeNpc({152.0F, 30.0F}));
     // One in the same patch within notice distance sees the player.
     const simple_platformer::ActorId nearby = world.addActor(makeNpc({88.0F, 30.0F}));
-    REQUIRE(sensed());
+    const auto sensed = [&](simple_platformer::ActorId npc)
+    { return tests::perception(world, npc).targetVisible; };
 
-    // A dying NPC no longer looks, and the flag it set is cleared on the next update.
+    simple_platformer::updateNpcSenses(map, world, tests::FixedStepSeconds);
+    REQUIRE_FALSE(sensed(outside));
+    REQUIRE_FALSE(sensed(distant));
+    REQUIRE(sensed(nearby));
+
+    // A dying NPC no longer looks, and the sighting it recorded is cleared.
     actor(world, nearby).life = simple_platformer::LifeState::Dying;
-    REQUIRE_FALSE(sensed());
+    simple_platformer::updateNpcSenses(map, world, tests::FixedStepSeconds);
+    REQUIRE_FALSE(sensed(nearby));
 }
 
 TEST_CASE("NPC senses reject invalid timing and sensing ranges", "[npc][validation]")
@@ -379,8 +399,7 @@ TEST_CASE("NPC senses reject invalid timing and sensing ranges", "[npc][validati
     const simple_platformer::Aabb bounds{{16.0F, 16.0F}, {8.0F, 8.0F}};
     simple_platformer::World world;
 
-    REQUIRE_THROWS_AS(
-        simple_platformer::canSeeTarget(map, bounds, bounds, {-1.0F, 1.0F}), std::invalid_argument);
+    REQUIRE_THROWS_AS(sees(map, bounds, bounds, {-1.0F, 1.0F}), std::invalid_argument);
     REQUIRE_THROWS_AS(simple_platformer::updateNpcSenses(map, world, -0.1F), std::invalid_argument);
 }
 

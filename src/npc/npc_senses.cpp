@@ -43,6 +43,21 @@ namespace simple_platformer
             return glm::dot(offset, offset) <= senses.noticeDistance * senses.noticeDistance;
         }
 
+        // Within notice distance, with a line of sight between the two centres.
+        bool canSeeTarget(
+            const TileMap& map,
+            const Aabb& observer,
+            const Aabb& target,
+            const NpcSenses& senses)
+        {
+            if (!withinNoticeDistance(observer, target, senses))
+            {
+                return false;
+            }
+
+            return lineOfSight(map, centerOf(observer), centerOf(target));
+        }
+
         void rememberTarget(NpcBrain& brain, const Actor& target, const NpcSenses& senses)
         {
             brain.target = target.id;
@@ -115,20 +130,6 @@ namespace simple_platformer
         }
     }
 
-    bool canSeeTarget(
-        const TileMap& map,
-        const Aabb& observer,
-        const Aabb& target,
-        const NpcSenses& senses)
-    {
-        if (!withinNoticeDistance(observer, target, senses))
-        {
-            return false;
-        }
-
-        return lineOfSight(map, centerOf(observer), centerOf(target));
-    }
-
     bool onSameGroundRun(const TileMap& map, const Aabb& observer, const Aabb& target)
     {
         const Cell first = cellAtFeet(map.tileSize(), feetOf(observer));
@@ -155,19 +156,6 @@ namespace simple_platformer
         }
         const Actor* target = world.findActor(*brain.target);
         return target != nullptr && target->life == LifeState::Alive ? target : nullptr;
-    }
-
-    bool playerSeenByAnyNpc(const World& world)
-    {
-        for (const Actor& actor : world.actors())
-        {
-            if (actor.brain.has_value() && actor.perception.has_value() &&
-                actor.perception->targetVisible && actor.brain->target == world.playerId())
-            {
-                return true;
-            }
-        }
-        return false;
     }
 
     void updateNpcSenses(const TileMap& map, World& world, float deltaTime)

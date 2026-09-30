@@ -302,10 +302,16 @@ A Lua reference named `"script": "rat"` loads `assets/scripts/rat.lua`. The scri
 returns an `activities` table; each referenced activity needs an `update` function,
 while `enter` and `exit` are optional. Loading rejects missing scripts or activities.
 An update returns intentions or narrow requests such as an aim or route; the engine
-performs movement, pathfinding, and damage. Scripts cannot load one another, so shared
-helpers come from the engine in a read-only `vector` table: `vector.distanceSquared(from,
-to)` takes two `{x, y}` tables, such as `snapshot.feet`. See the [Lua boundary](ARCHITECTURE.md#lua-activity-boundary)
+performs movement, pathfinding, and damage. See the [Lua boundary](ARCHITECTURE.md#lua-activity-boundary)
 for the runtime details.
+
+Positions in the snapshot, such as `snapshot.feet`, `snapshot.targetFeet`, and the
+patrol's `firstFeet` and `secondFeet`, are `vec2` values: the engine's `glm::vec2`.
+`vec2(x, y)` makes one. They have `x` and `y` fields, add and subtract, negate,
+multiply and divide by a number, compare with `==`, and print with `tostring`. Their
+methods are `length()`, `distance(other)`, `distanceSquared(other)`, and `dot(other)`,
+as in `snapshot.feet:distanceSquared(snapshot.targetFeet)`. A command's vectors, such
+as `direction`, `aimAt`, and `routeTo`, take a `vec2` or an `{x, y}` table.
 
 The engine supplies these boolean facts to machine `when` conditions:
 

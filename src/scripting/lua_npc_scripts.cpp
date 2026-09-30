@@ -19,6 +19,9 @@
 #include <utility>
 #include <vector>
 
+#include <glm/geometric.hpp>
+#include <glm/vec2.hpp>
+
 // sol2 supports its public API through this umbrella header. Listing its internal headers
 // would couple the adapter to implementation details without improving include hygiene.
 // NOLINTBEGIN(misc-include-cleaner)
@@ -142,9 +145,19 @@ namespace simple_platformer
 
         glm::vec2 vector(const sol::object& object, std::string_view field)
         {
+            if (object.get_type() == sol::type::userdata && object.is<glm::vec2>())
+            {
+                const glm::vec2 value = object.as<glm::vec2>();
+                if (!isFinite(value))
+                {
+                    throw std::invalid_argument(std::string(field) + " must be finite");
+                }
+                return value;
+            }
             if (!object.is<sol::table>())
             {
-                throw std::invalid_argument(std::string(field) + " must be an {x, y} table");
+                throw std::invalid_argument(
+                    std::string(field) + " must be a vec2 or an {x, y} table");
             }
             const sol::table table = object.as<sol::table>();
             rejectUnknownFields(table, std::array<std::string_view, 2>{"x", "y"}, field);
@@ -165,9 +178,9 @@ namespace simple_platformer
             }
         }
 
-        sol::table luaVector(sol::state& lua, glm::vec2 value)
+        sol::object luaVector(sol::state& lua, glm::vec2 value)
         {
-            return lua.create_table_with("x", value.x, "y", value.y);
+            return sol::make_object(lua, value);
         }
 
         sol::table luaSnapshot(sol::state& lua, const NpcActivitySnapshot& snapshot)
@@ -323,24 +336,69 @@ namespace simple_platformer
 
     namespace
     {
-        // Helpers every script can use, shared in one table that scripts cannot change,
-        // so one script cannot break another's.
-        constexpr std::string_view VectorHelpers = R"(
-            local helpers = {
-                distanceSquared = function(from, to)
-                    local x = to.x - from.x
-                    local y = to.y - from.y
-                    return x * x + y * y
+        // Scripts reach vec2 through this read-only constructor, so one script cannot change
+        // the type for another.
+        constexpr std::string_view Vec2Constructor = R"(
+            local Vec2 = vec2
+            vec2 = setmetatable({}, {
+                __call = function(_, x, y)
+                    return Vec2.new(x, y)
                 end,
-            }
-            vector = setmetatable({}, {
-                __index = helpers,
                 __newindex = function()
-                    error("vector is read-only", 2)
+                    error("vec2 is read-only", 2)
                 end,
                 __metatable = false,
             })
         )";
+
+        std::string vec2Text(glm::vec2 value)
+        {
+            std::ostringstream text;
+            text << "vec2(" << value.x << ", " << value.y << ")";
+            return text.str();
+        }
+
+        // glm::vec2 as a Lua value type. It is copied in and out, so a script changing one
+        // never changes the engine's.
+        void bindVec2(sol::state& lua)
+        {
+            lua.new_usertype<glm::vec2>(
+                "vec2",
+                sol::constructors<glm::vec2(float, float)>(),
+                "x",
+                sol::property(
+                    [](const glm::vec2& value) { return value.x; },
+                    [](glm::vec2& value, float x) { value.x = x; }),
+                "y",
+                sol::property(
+                    [](const glm::vec2& value) { return value.y; },
+                    [](glm::vec2& value, float y) { value.y = y; }),
+                sol::meta_function::addition,
+                [](glm::vec2 left, glm::vec2 right) { return left + right; },
+                sol::meta_function::subtraction,
+                [](glm::vec2 left, glm::vec2 right) { return left - right; },
+                sol::meta_function::unary_minus,
+                [](glm::vec2 value) { return -value; },
+                sol::meta_function::multiplication,
+                sol::overload(
+                    [](glm::vec2 value, float scale) { return value * scale; },
+                    [](float scale, glm::vec2 value) { return value * scale; }),
+                sol::meta_function::division,
+                [](glm::vec2 value, float scale) { return value / scale; },
+                sol::meta_function::equal_to,
+                [](glm::vec2 left, glm::vec2 right) { return left == right; },
+                sol::meta_function::to_string,
+                vec2Text,
+                "length",
+                [](glm::vec2 value) { return glm::length(value); },
+                "distance",
+                [](glm::vec2 from, glm::vec2 to) { return glm::distance(from, to); },
+                "distanceSquared",
+                [](glm::vec2 from, glm::vec2 to) { return glm::dot(to - from, to - from); },
+                "dot",
+                [](glm::vec2 left, glm::vec2 right) { return glm::dot(left, right); });
+            lua.safe_script(Vec2Constructor, "vec2 constructor");
+        }
     }
 
     struct LuaNpcScripts::Implementation
@@ -357,7 +415,7 @@ namespace simple_platformer
             lua["load"] = sol::lua_nil;
             lua["loadfile"] = sol::lua_nil;
             lua["require"] = sol::lua_nil;
-            lua.safe_script(VectorHelpers, "vector helpers");
+            bindVec2(lua);
         }
 
         LoadedScript* scriptNamed(std::string_view name)

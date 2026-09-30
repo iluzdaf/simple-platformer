@@ -14,8 +14,8 @@ return {
                     return
                 end
                 -- Resume from the nearer end; arriving there turns the spider round.
-                self.headingToSecond = vector.distanceSquared(snapshot.feet, patrol.secondFeet)
-                    < vector.distanceSquared(snapshot.feet, patrol.firstFeet)
+                self.headingToSecond = snapshot.feet:distanceSquared(patrol.secondFeet)
+                    < snapshot.feet:distanceSquared(patrol.firstFeet)
             end,
             update = function(self, snapshot)
                 local patrol = snapshot.patrol

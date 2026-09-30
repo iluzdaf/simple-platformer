@@ -26,8 +26,8 @@ std = {
         "type",
         "warn",
         "xpcall",
-        -- Engine helpers, defined read-only before any script loads.
-        vector = { fields = { "distanceSquared" } },
+        -- glm::vec2 as a Lua value type; the constructor is read-only.
+        "vec2",
     },
 }
 

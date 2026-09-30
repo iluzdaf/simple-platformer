@@ -28,7 +28,7 @@ return {
 
                 -- At the far end, hold the corner and face the threat. Facing it lets the
                 -- machine's directional bite-range fact become true
-                if vector.distanceSquared(snapshot.feet, refuge) <= 1 then
+                if snapshot.feet:distanceSquared(refuge) <= 1 then
                     return { clearRoute = true, aimAt = snapshot.targetFeet }
                 end
 

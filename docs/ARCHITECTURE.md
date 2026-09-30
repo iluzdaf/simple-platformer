@@ -580,19 +580,28 @@ from the wall stays on it.
 
 ### The search
 
-`route_search` is one A* over locations, a cell and a surface. Flying and ground
-policies use only the floor of each cell; climbing policies also use its walls and
-ceiling. For each expanded
-location it asks the movement policy for outgoing connections, each with a cost and
-optional replay inputs. Every cost must be positive, and the heuristic must never
-overestimate; a zero heuristic gives Dijkstra's search. The caller supplies a goal
-cell and a heuristic from a cell to it. The search stops at the cheapest location in
-the goal cell. When it cannot reach it, it returns a path to the reached location
-whose cell is nearest. The goal may lie off the grid. A finished search returns that path; the caller
-tells whether it reached the goal cell from where it ends. A separate readiness check
-can pause the search at a pending location before asking for its connections. A
-paused search returns no path, only that location, so the caller can prioritise its
-fill.
+`route_search` finds the cheapest route with A*. It searches over locations: a cell and
+a surface, so a cell's floor, walls and ceiling are separate places. Flying and walking
+searches only use floors; climbing searches also use walls and ceilings.
+
+The caller supplies three things:
+
+- The connections leaving a location. Each is one step to a place nearby, with a
+  positive cost and any inputs that make the step.
+- A goal cell, which may be off the grid.
+- A heuristic that guesses the cost from a cell to the goal cell. The guess must never
+  be more than the real cost. A heuristic that always guesses zero turns A* into
+  Dijkstra's search.
+
+The search ends in one of three ways:
+
+- It reaches the goal cell, and returns a route to the cheapest location there.
+- It runs out of places to try, and returns a route to a cell as close to the goal as
+  possible, the first reached of any equally close. The caller tells which of these
+  two happened from where the route ends.
+- The caller's readiness check refuses a location, before the search asks for its
+  connections. The search pauses and returns no route, only that location, so the
+  caller can build its connections first.
 
 ### Flying paths
 
@@ -620,6 +629,13 @@ physics. A connection records the surface it leaves and the surface it reaches, 
 the search expands a location with the connections leaving its surface. Costs are
 the movement ticks the simulation took.
 
+The platformer heuristic guesses the ticks it takes to cross the whole columns between
+a cell and the goal cell at the profile's fastest speed. A body's feet in the one cell
+and in the other are at least that far apart, whatever surface it holds, so the guess
+is never too high. Walkers and climbers share it; a new capability only adds its
+speed. Platformer searches also add a fixed jump-start penalty, in ticks, so a small
+shortcut does not make a grounded NPC hop.
+
 ### Traversals
 
 A traversal that needs an optional capability is tried only for a profile with it.
@@ -635,12 +651,6 @@ its config to the traversal profile. The search itself does not change.
 
 A climber whose feet end a climb off its waypoint drops the path, and the NPC plans
 again.
-
-The platformer heuristic estimates ticks at the profile's fastest
-speed across the whole columns between a cell and the goal cell, since a body's feet
-in the one and in the other lie at least that far apart, whatever surface it holds.
-Walkers and climbers share it; a new capability only adds its speed. The search adds a fixed jump-start penalty,
-also in ticks, so a marginal shortcut does not make a grounded NPC hop.
 
 ### The connection cache
 

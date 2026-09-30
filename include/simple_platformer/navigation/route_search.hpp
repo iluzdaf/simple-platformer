@@ -9,32 +9,32 @@
 
 namespace simple_platformer
 {
-    // A policy returns the connections leaving a location. Each destination is a
-    // reachable neighbor; the connection supplies its cost and traversal inputs.
+    // Returns the connections leaving a location. Each is one step to a place nearby,
+    // with its cost and the inputs that make the step.
     using ConnectionFunction = std::function<std::vector<RouteConnection>(RouteLocation location)>;
-    // A non-negative lower bound on the cost from a cell to the goal cell.
+    // Guesses the cost from a cell to the goal cell. The guess must never be more than
+    // the real cost, and never below zero.
     using HeuristicFunction = std::function<int(Cell cell, Cell goal)>;
-    // False pauses expansion of a non-goal location before its connections are
-    // requested. An empty function allows every location; a cache may wait for
-    // pending work.
+    // Says whether the search may expand a location now. False pauses the search there,
+    // before it asks for that location's connections, so a cache can finish its work
+    // first. An empty function allows every location.
     using ExpansionReady = std::function<bool(RouteLocation location)>;
 
-    // A finished search has a route: to the cheapest location in the goal cell, or when
-    // it cannot reach that cell, to the reached location whose cell is nearest it. A
-    // paused one has no route and names the location whose expansion was refused.
+    // What a search ends with. A finished search has a route to the cheapest location in
+    // the goal cell. If it could not reach that cell, the route leads to a cell as close
+    // to it as possible, the first reached of any equally close. A paused search has no
+    // route, and names the location it stopped at.
     struct RouteSearchResult
     {
         std::optional<Route> route;
         std::optional<RouteLocation> unexpandedLocation;
     };
 
-    // A* over outgoing connections to any location in the goal cell. The heuristic
-    // must not overestimate; zero gives Dijkstra's search. A location is a cell and a
-    // surface, so the floor, walls, and ceiling of one cell are distinct nodes; a
-    // policy without climbing uses only the floor. The start and connection
-    // destinations must lie within the grid; the goal need not. Of equally near
-    // cells, a failed search keeps the first it reached. If canExpand rejects a
-    // location, the search pauses there.
+    // Finds the cheapest route from start to any location in the goal cell, using A*.
+    // A location is a cell and a surface, so a cell's floor, walls and ceiling are
+    // separate places. A search without climbing only uses floors. The start and every
+    // connection's destination must be on the grid, but the goal need not be. A
+    // heuristic that always guesses zero turns A* into Dijkstra's search.
     RouteSearchResult findLowestCostRoute(
         RouteLocation start,
         Cell goal,

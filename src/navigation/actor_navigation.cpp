@@ -193,7 +193,7 @@ namespace simple_platformer
             addFrameStatistic(profile, "Navigation", "Cells expanded", cellsExpanded);
             if (!result.route.has_value())
             {
-                throw std::logic_error("A completed path search returned no path");
+                throw std::logic_error("A completed route search returned no route");
             }
             return pathResultOf(tileSize, *result.route, body.size, goal, goalFeet);
         }
@@ -344,7 +344,7 @@ namespace simple_platformer
             }
             if (!result.route.has_value())
             {
-                throw std::logic_error("A completed path search returned no path");
+                throw std::logic_error("A completed route search returned no route");
             }
             return pathResultOf(tileSize, *result.route, profile.size, goal, goalFeet);
         }

@@ -11,15 +11,19 @@ namespace simple_platformer
 {
     class TileMap;
 
-    // Whether the body can stand in the cell: the cell blocks nothing, nor does any cell
-    // the body covers standing there, and the cell below blocks movement.
+    // canOccupy for the cell's floor.
     bool canStandAt(const TileMap& map, Cell cell, glm::vec2 bodySize);
+
+    // canOccupy for any of the cell's walls or its ceiling.
+    bool canClimbAt(const TileMap& map, Cell cell, glm::vec2 bodySize);
 
     // The body's resting bounds at a location: standing in the cell, flush against
     // the cell's wall side, or hanging from the cell's top edge.
     Aabb boundsAtSurface(int tileSize, RouteLocation location, glm::vec2 bodySize);
 
-    // Whether the body can rest at the location. The floor must be standable; a wall
-    // or ceiling must be climbable where the resting bounds touch it.
+    // Whether the body can rest at the location: the cell is on the map, the body fits
+    // at its resting bounds there, and something holds it up. For the floor that is a
+    // movement-blocking cell below; for a wall or the ceiling, a climbable tile the
+    // resting bounds touch.
     bool canOccupy(const TileMap& map, RouteLocation location, glm::vec2 bodySize);
 }

@@ -15,6 +15,23 @@ namespace simple_platformer
 {
     namespace
     {
+        // Whether the contacts include the wall or ceiling.
+        bool touchesSurface(ClimbSurface surface, const CollisionContacts& contacts)
+        {
+            switch (surface)
+            {
+            case ClimbSurface::LeftWall:
+                return contacts.left;
+            case ClimbSurface::RightWall:
+                return contacts.right;
+            case ClimbSurface::Ceiling:
+                return contacts.ceiling;
+            case ClimbSurface::None:
+                return false;
+            }
+            return false;
+        }
+
         ClimbSurface requestedSurface(
             ClimbSurface current,
             const CollisionContacts& contacts,
@@ -61,20 +78,9 @@ namespace simple_platformer
         }
     }
 
-    bool touchesSurface(ClimbSurface surface, const CollisionContacts& contacts)
+    bool touchesClimbable(const TileMap& map, const Aabb& bounds, ClimbSurface surface)
     {
-        switch (surface)
-        {
-        case ClimbSurface::LeftWall:
-            return contacts.left;
-        case ClimbSurface::RightWall:
-            return contacts.right;
-        case ClimbSurface::Ceiling:
-            return contacts.ceiling;
-        case ClimbSurface::None:
-            return false;
-        }
-        return false;
+        return touchesSurface(surface, touchingClimbableSurfaces(map, bounds));
     }
 
     void validateSurfaceClimbConfig(const SurfaceClimbConfig& config)
@@ -142,7 +148,7 @@ namespace simple_platformer
         const CollisionContacts surfaces = touchingSurfaces(map, body.bounds);
         movement.grounded = surfaces.ground;
         movement.blocked = contacts.left || contacts.right || contacts.ground || contacts.ceiling;
-        if (!touchesSurface(climb.surface, touchingClimbableSurfaces(map, body.bounds)))
+        if (!touchesClimbable(map, body.bounds, climb.surface))
         {
             climb.surface = ClimbSurface::None;
             climb.wallHeading = WallHeading::Up;

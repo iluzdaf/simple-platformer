@@ -46,20 +46,24 @@ namespace simple_platformer
                 throw std::invalid_argument("Navigation body size must be finite and positive");
             }
         }
-
-        // canStandAt without the size check, for callers that have made it.
-        bool standsAt(const TileMap& map, Cell cell, glm::vec2 bodySize)
-        {
-            return map.contains(cell) && !map.blocksMovement(cell) &&
-                   map.blocksMovement({cell.x, cell.y + 1}) &&
-                   bodyFits(map, boxInCell(map.tileSize(), cell, bodySize));
-        }
     }
 
     bool canStandAt(const TileMap& map, Cell cell, glm::vec2 bodySize)
     {
-        requireBodySize(bodySize);
-        return standsAt(map, cell, bodySize);
+        return canOccupy(map, {cell, ClimbSurface::None}, bodySize);
+    }
+
+    bool canClimbAt(const TileMap& map, Cell cell, glm::vec2 bodySize)
+    {
+        for (const ClimbSurface surface :
+             {ClimbSurface::LeftWall, ClimbSurface::RightWall, ClimbSurface::Ceiling})
+        {
+            if (canOccupy(map, {cell, surface}, bodySize))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     Aabb boundsAtSurface(int tileSize, RouteLocation location, glm::vec2 bodySize)
@@ -87,16 +91,21 @@ namespace simple_platformer
     bool canOccupy(const TileMap& map, RouteLocation location, glm::vec2 bodySize)
     {
         requireBodySize(bodySize);
-        if (location.surface == ClimbSurface::None)
-        {
-            return standsAt(map, location.cell, bodySize);
-        }
         if (!map.contains(location.cell))
         {
             return false;
         }
         const Aabb bounds = boundsAtSurface(map.tileSize(), location, bodySize);
-        return bodyFits(map, bounds) &&
-               touchesSurface(location.surface, touchingClimbableSurfaces(map, bounds));
+        if (!bodyFits(map, bounds))
+        {
+            return false;
+        }
+        // What holds the body up: the cell below for the floor, or a climbable tile
+        // beside or above it.
+        if (location.surface == ClimbSurface::None)
+        {
+            return map.blocksMovement({location.cell.x, location.cell.y + 1});
+        }
+        return touchesClimbable(map, bounds, location.surface);
     }
 }

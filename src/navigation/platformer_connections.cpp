@@ -396,8 +396,7 @@ namespace simple_platformer
             const glm::vec2 offset = target.topLeft - body.bounds.topLeft;
             if (from.surface == ClimbSurface::None)
             {
-                if (!touchesSurface(
-                        destination.surface, touchingClimbableSurfaces(map, body.bounds)))
+                if (!touchesClimbable(map, body.bounds, destination.surface))
                 {
                     intentions.direction.x = offset.x / distancePerTick;
                 }

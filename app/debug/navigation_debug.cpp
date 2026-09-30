@@ -37,20 +37,6 @@ namespace simple_platformer
                 {size, size}};
         }
 
-        // Whether a climber can hold a wall or the ceiling somewhere in the cell.
-        bool canHoldIn(const TileMap& map, Cell cell, glm::vec2 bodySize)
-        {
-            for (const ClimbSurface surface :
-                 {ClimbSurface::LeftWall, ClimbSurface::RightWall, ClimbSurface::Ceiling})
-            {
-                if (canOccupy(map, {cell, surface}, bodySize))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         CursorCellDebugInfo cursorCellDebugInfo(
             const TileMap& map,
             const PlatformerConnectionCache& cache,
@@ -181,7 +167,7 @@ namespace simple_platformer
                 const Cell cell{column, row};
                 const bool standable = canStandAt(map, cell, profile.size);
                 if (!standable &&
-                    !(profile.climb.has_value() && canHoldIn(map, cell, profile.size)))
+                    !(profile.climb.has_value() && canClimbAt(map, cell, profile.size)))
                 {
                     continue;
                 }

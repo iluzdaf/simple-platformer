@@ -52,3 +52,22 @@ TEST_CASE("A wall location may extend above the open map top", "[navigation][pla
     REQUIRE(simple_platformer::boundsAtSurface(tests::TileSize, onWall, tall).topLeft.y < 0.0F);
     REQUIRE(simple_platformer::canOccupy(map, onWall, tall));
 }
+
+TEST_CASE(
+    "A climbable cell has a climbable wall or ceiling the body can rest on",
+    "[navigation][platformer][climb]")
+{
+    // A climbable roof and left wall, and a plain wall on the right.
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"ccccc", "c...#", "c...#", "#####"})
+            .where('c', tests::Tile{}.blocksMovement().climbable());
+
+    // Beside the climbable wall, and under the roof.
+    REQUIRE(simple_platformer::canClimbAt(map, {1, 2}, SmallBody));
+    REQUIRE(simple_platformer::canClimbAt(map, {2, 1}, SmallBody));
+    // In the open, and beside a wall that cannot be climbed.
+    REQUIRE_FALSE(simple_platformer::canClimbAt(map, {2, 2}, SmallBody));
+    REQUIRE_FALSE(simple_platformer::canClimbAt(map, {3, 2}, SmallBody));
+    // Inside the wall itself.
+    REQUIRE_FALSE(simple_platformer::canClimbAt(map, {0, 2}, SmallBody));
+}

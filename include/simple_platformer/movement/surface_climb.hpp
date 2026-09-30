@@ -5,6 +5,7 @@
 namespace simple_platformer
 {
     class TileMap;
+    struct Aabb;
     struct Body;
     struct InputIntentions;
     struct PlatformerMovement;
@@ -48,8 +49,9 @@ namespace simple_platformer
         const InputIntentions& intentions,
         WallHeading current);
 
-    // Whether the contacts include the wall or ceiling. The floor is not a climb surface.
-    bool touchesSurface(ClimbSurface surface, const CollisionContacts& contacts);
+    // Whether a body with these bounds is against a climbable tile on the surface's side.
+    // The floor is not a climb surface.
+    bool touchesClimbable(const TileMap& map, const Aabb& bounds, ClimbSurface surface);
 
     CollisionContacts updateSurfaceClimbMovement(
         const TileMap& map,

@@ -164,20 +164,21 @@ iterators and pointers during a system update.
 - Positive Y points down.
 - AABBs and tiles are placed by their top-left corner in world coordinates.
 - Actor spawns, pickup placement, exits, patrol points, and navigation destinations use
-  world coordinates; actor and navigation placement helpers commonly use feet, the
-  bottom centre of an actor body.
+  world coordinates, usually as feet, described below.
 - The internal resolution is 320 by 180 pixels.
 - Tiles are square. `tiles.json` declares `tileSize` in world pixels, each `TileMap`
   carries it, and every cell calculation takes that size rather than assuming one. The
   game uses 16.
 - Window output is an integer-scaled internal image with letterboxing when required.
 
-The two actor-position conventions are deliberately named. A body's box is an `Aabb`,
-its top-left corner and its size. Physics works with the corner, while content and
-ground navigation work with the feet, the middle of the bottom edge.
-[`aabb.hpp`](../include/simple_platformer/math/aabb.hpp) names both, with functions to
-read a box's feet and to build or move a box by them. There is no ambiguous general
-`setPosition` function.
+A body has two points that code places it by, so the code never uses a general
+`setPosition`, which would leave the reader guessing which point it moves. Physics works
+with the top-left corner of the body's `Aabb`, where collision measures from. Content and
+ground navigation work with its feet, the middle of the bottom edge, where a standing
+body meets the ground and where a level author thinks of it standing. Each place names
+its point: `topLeft` for the corner, and the feet functions in
+[`aabb.hpp`](../include/simple_platformer/math/aabb.hpp) to read a box's feet or to
+build or move a box by them.
 
 ## Time
 

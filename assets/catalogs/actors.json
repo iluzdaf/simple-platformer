@@ -56,6 +56,24 @@
       },
       "machine": "rat"
     },
+    "spider": {
+      "bodySize": [12, 12],
+      "team": "enemy",
+      "facing": "left",
+      "animations": "spider",
+      "spriteAnchor": "feet",
+      "health": 1,
+      "platformer": { "maximumSpeed": 60 },
+      "surfaceClimb": { "speed": 60 },
+      "senses": { "noticeDistance": 80, "targetMemoryDuration": 1.5 },
+      "machine": "spider",
+      "bite": {
+        "damage": 1,
+        "windupDuration": 0.12,
+        "activeDuration": 0.12,
+        "recoveryDuration": 0.24
+      }
+    },
     "boar": {
       "bodySize": [16, 12],
       "team": "enemy",

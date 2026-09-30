@@ -1,5 +1,20 @@
 {
   "machines": {
+    "spider": {
+      "states": [
+        { "name": "patrol", "does": { "kind": "lua", "script": "spider", "activity": "patrol" } },
+        { "name": "pursue", "does": { "kind": "lua", "script": "spider", "activity": "pursue" } }
+      ],
+      "transitions": [
+        { "from": "patrol", "to": "pursue", "when": { "targetVisible": true } },
+        {
+          "from": "pursue",
+          "to": "patrol",
+          "when": { "targetKnown": false, "biteReady": true },
+          "after": 1.5
+        }
+      ]
+    },
     "boar": {
       "states": [
         { "name": "sleep", "does": { "kind": "lua", "script": "boar", "activity": "sleep" } },

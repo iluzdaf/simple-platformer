@@ -24,11 +24,15 @@ levels remain equivalent.
 
 The rat and boar already use Lua activities over C++ sensing, movement, navigation,
 and combat. See [NPC behaviour](ARCHITECTURE.md#npc-behaviour) for the current boundary.
-The engine now has opt-in wall and ceiling climbing on explicitly marked tiles.
-The engine can now route and follow one path across floors, walls, and ceilings.
-The spider still needs its actor content, policy, and artwork. A pounce would also
-need an engine-owned movement request. Lua can then choose when to patrol, chase,
-or pounce; C++ executes those moves.
+The engine has opt-in wall and ceiling climbing on explicitly marked tiles, routes one
+path across floors, walls, and ceilings, and turns a climber's sprite onto the surface
+it holds. The spider uses all of this: its Lua activities patrol and pursue over walls
+and ceilings, and C++ follows the routes and bites.
+
+Two pieces remain. A climber turns only inside corners, so it cannot go over the top of
+a free-standing wall or round a ledge; outside corners need both the climbing movement
+and navigation. A pounce would need an engine-owned movement request, which Lua could
+then choose when to use; C++ executes the move.
 
 ## Optional movement abilities
 

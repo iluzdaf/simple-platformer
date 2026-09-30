@@ -160,6 +160,57 @@
         "looping": false
       }
     },
+    "spider": {
+      "idle": {
+        "frames": [{ "position": [160, 144], "size": [32, 30] }],
+        "frameDuration": 0.4,
+        "looping": true
+      },
+      "move": {
+        "frames": [
+          { "position": [192, 144], "size": [32, 30] },
+          { "position": [224, 144], "size": [32, 30] },
+          { "position": [160, 176], "size": [32, 30] },
+          { "position": [192, 176], "size": [32, 30] }
+        ],
+        "frameDuration": 0.1,
+        "looping": true
+      },
+      "jump": {
+        "frames": [
+          { "position": [192, 144], "size": [32, 30] },
+          { "position": [224, 144], "size": [32, 30] },
+          { "position": [160, 176], "size": [32, 30] },
+          { "position": [192, 176], "size": [32, 30] }
+        ],
+        "frameDuration": 0.1,
+        "looping": true
+      },
+      "fall": {
+        "frames": [
+          { "position": [192, 144], "size": [32, 30] },
+          { "position": [224, 144], "size": [32, 30] },
+          { "position": [160, 176], "size": [32, 30] },
+          { "position": [192, 176], "size": [32, 30] }
+        ],
+        "frameDuration": 0.1,
+        "looping": true
+      },
+      "attack": {
+        "frames": [
+          { "position": [224, 176], "size": [32, 30] },
+          { "position": [160, 208], "size": [32, 30] },
+          { "position": [192, 208], "size": [32, 30] }
+        ],
+        "frameDuration": 0.12,
+        "looping": false
+      },
+      "death": {
+        "frames": [{ "position": [224, 208], "size": [32, 30] }],
+        "frameDuration": 0.4,
+        "looping": false
+      }
+    },
     "boar": {
       "idle": {
         "frames": [

@@ -541,7 +541,8 @@ Machine JSON keeps the short string form for built-in activities. A Lua activity
 `{"kind":"lua","script":"rat","activity":"flee"}`. The application loads referenced
 files from `assets/scripts` at startup and rejects missing scripts or activities.
 The rat uses Lua to choose a flee destination while C++ follows the path and handles
-biting. The boar's Lua charge activity requests ordinary walking, ledge avoidance,
+biting. The spider's Lua patrol and pursuit route it over walls and ceilings the same
+way. The boar's Lua charge activity requests ordinary walking, ledge avoidance,
 and contact damage; its machine uses facts to choose wake and recovery transitions.
 Scripts cannot create noise events or apply damage directly.
 

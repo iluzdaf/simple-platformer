@@ -995,6 +995,9 @@ engine only where that policy needs facts or capabilities it does not already ex
 6. focused tests for new engine rules and interactions, while content-integrity tests
    check that shipped references resolve.
 
+Take only the steps the enemy needs. They are alternatives, not stages: a machine can
+run built-in activities without Lua, and a new fact does not need a script.
+
 Species, capabilities, and decisions are separate concerns. Artwork does not determine
 the brain, and a ranged weapon needs no `Shooter` subclass. The decision policy is
 the brain's [tactic](#tactics) or its machine. Add a new tactic only for a policy shared

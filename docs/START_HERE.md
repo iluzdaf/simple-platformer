@@ -57,14 +57,14 @@ This separation lets most game behaviour run in tests without opening a window.
 
 ## Starting project work
 
-Use this section to find the code involved in common project requirements. Platformer
-mechanics and enemy behaviour share the same movement, collision, combat, and input
-systems: an NPC produces the same `InputIntentions` that the application produces for
-the player.
+Platformer mechanics and enemy behaviour share the same movement, collision, combat, and
+input systems: an NPC produces the same `InputIntentions` that the application produces
+for the player. Each requirement below names the steps of the
+[reading route](#recommended-reading-route) it needs, what to change without code, and
+the [ARCHITECTURE.md](ARCHITECTURE.md#extension-recipes-for-project-work) recipe to
+follow when you extend the engine.
 
 ### Platformer gameplay requirements
-
-For movement mechanics and other platformer gameplay, start with this path:
 
 ```text
 keyboard and mouse
@@ -75,25 +75,21 @@ keyboard and mouse
   -> Body
 ```
 
-A practical route through the implementation is:
+- **Read** steps 3 and 4: the core data model and the player movement path. Read the
+  tests for the variable-height jump, coyote time, and jump buffer before changing
+  those rules.
+- **Tune** speed, acceleration, braking, gravity, and jump settings in
+  [`actors.json`](../assets/catalogs/actors.json), and feel the difference in the example
+  game.
+- **Add** one focused ability, such as a double jump, dash, wall slide, or wall jump,
+  with the [movement-ability recipe](ARCHITECTURE.md#adding-a-movement-ability).
+- **Build a game** from the mechanics by composing actors, authoring levels
+  ([CONTENT.md](CONTENT.md)), adding pickups or combat rules, and giving animation and
+  HUD feedback.
 
-1. Trace an ordinary run and jump through
-   [`input_state.cpp`](../src/input/input_state.cpp),
-   [`platformer_movement.cpp`](../src/movement/platformer_movement.cpp), and
-   [`collision.cpp`](../src/physics/collision.cpp).
-2. Tune speed, acceleration, braking, gravity, and jump configuration in
-   [`actors.json`](../assets/catalogs/actors.json), then observe
-   how those values change the feel of the example game.
-3. Read the tests for the existing variable-height jump, coyote-time, and jump-buffer
-   rules before changing them.
-4. Add one focused movement ability, such as a double jump, dash, wall slide, or wall
-   jump, following the [movement-ability recipe](ARCHITECTURE.md#adding-a-movement-ability).
-5. Turn the mechanics into a game by composing actors, authoring JSON levels, adding
-   pickups or combat rules, and providing animation and HUD feedback.
+Movement work does not require reading NPC or navigation code.
 
 ### Enemy behaviour requirements
-
-For finite-state behaviour, sensing, and pathfinding requirements, follow this path:
 
 ```text
 senses and memory
@@ -103,44 +99,16 @@ senses and memory
   -> the same movement and combat systems
 ```
 
-Choose the smallest behaviour route that meets the requirement:
-
-- **Existing behaviour:** Configure an actor in [`actors.json`](../assets/catalogs/actors.json)
-  when available states and tactics already fit.
-- **New transitions or shared behaviour:** Define a machine using existing facts and
-  activities in [`machines.json`](../assets/catalogs/machines.json), or add a reusable C++ state
-  or tactic.
-- **Scripted policy and engine extension:** Run a Lua activity from a machine when
-  existing activities cannot express the policy. Add C++ facts or mechanics only when
-  the policy needs information or capabilities the engine does not yet provide.
-
-These are alternatives, not mandatory stages. A machine can use built-in activities
-without Lua, and a new fact does not require a script.
-
-A practical route through the implementation is:
-
-1. Trace the explicit `NpcState` enum, its transitions in
-   [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp), and the state branches in
-   [`npc_activities.cpp`](../src/npc/npc_activities.cpp).
-2. Change `noticeDistance`, `standoffDistance`, `targetMemoryDuration` and
-   `searchDuration` in an actor definition's `senses` settings in [`actors.json`](../assets/catalogs/actors.json), using the
-   debug overlay to observe visible targets, remembered positions, patrol points,
-   goals, and paths.
-3. Compare the built-in decision path with a machine in
-   [`machines.json`](../assets/catalogs/machines.json), then choose an option above.
-   Test any new engine rule separately from movement.
-4. Read generic lowest-cost search and flying navigation before studying simulated
-   platformer jumps.
-5. Create an enemy with the movement, senses, decisions, attack, and animation it needs.
-
-The [NPC-state recipe](ARCHITECTURE.md#adding-an-npc-state) and
-[enemy-composition recipe](ARCHITECTURE.md#creating-a-new-enemy) list the files and
-boundaries involved. [CONTENT.md](CONTENT.md#state-machines) explains the machine
-format and available facts.
-
-Movement work does not require reading NPC or navigation code. Enemy work builds on
-the ordinary movement and collision path, so those systems are useful context when an
-enemy does not move as intended.
+- **Read** steps 6 and 7: NPC behaviour and combat, then navigation. Enemies move through
+  the step 4 movement path, so return to it when one does not move as intended.
+- **Tune** `noticeDistance`, `standoffDistance`, `targetMemoryDuration`, and
+  `searchDuration` in an actor's `senses` in [`actors.json`](../assets/catalogs/actors.json).
+  The [debug overlay](../README.md#debug-overlay) shows visible targets, remembered
+  positions, patrol points, goals, and paths.
+- **Add** an enemy with the [enemy recipe](ARCHITECTURE.md#creating-a-new-enemy), which
+  starts from the smallest route that works, or a reusable built-in state with the
+  [NPC-state recipe](ARCHITECTURE.md#adding-an-npc-state).
+  [CONTENT.md](CONTENT.md#state-machines) explains machines and the facts they can test.
 
 ## Recommended reading route
 
@@ -218,7 +186,7 @@ Read these after the movement loop:
 
 The first three can be understood and tested without knowing OpenGL.
 
-### 6. Add NPC behaviour and combat
+### 6. Read NPC behaviour and combat
 
 NPCs use the same actor movement and attack systems as the player. Their brain produces
 intentions instead of reading a keyboard. Follow this route:

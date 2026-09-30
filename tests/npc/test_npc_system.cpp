@@ -267,6 +267,8 @@ TEST_CASE("A chasing NPC follows the last known target feet", "[npc][fsm]")
 
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Chase);
     REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
+    // Following the path does not undo the aim at the target.
+    REQUIRE(actor(world, npcId).intentions.aimDirection == glm::vec2{48.0F, 0.0F});
     REQUIRE_FALSE(actor(world, npcId).intentions.primaryAttackPressed);
 }
 

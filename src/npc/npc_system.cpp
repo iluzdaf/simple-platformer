@@ -165,7 +165,9 @@ namespace simple_platformer
             }
         }
 
-        InputIntentions intentionsToFollow(
+        // This tick's intentions towards the goal: plans a path when one is needed, then
+        // follows it. Only movement is set, so a caller that also aims does so afterwards.
+        InputIntentions intentionsToReach(
             const NpcUpdate& update,
             Actor& actor,
             PathFollower& follower,
@@ -187,15 +189,6 @@ namespace simple_platformer
                     actor.surfaceClimb.has_value() ? &*actor.surfaceClimb : nullptr);
             }
             return {};
-        }
-
-        void followPathTo(
-            const NpcUpdate& update,
-            Actor& actor,
-            PathFollower& follower,
-            glm::vec2 goalFeet)
-        {
-            actor.intentions = intentionsToFollow(update, actor, follower, goalFeet);
         }
 
         NpcFacts gatherNpcFacts(
@@ -256,7 +249,7 @@ namespace simple_platformer
                 throw std::logic_error("A patrolling NPC is missing its patrol");
             }
             Patrol& patrol = *actor.patrol;
-            followPathTo(update, actor, follower, patrolGoal(patrol));
+            actor.intentions = intentionsToReach(update, actor, follower, patrolGoal(patrol));
             if (pathComplete(follower))
             {
                 patrol.headingToSecond = !patrol.headingToSecond;
@@ -276,8 +269,9 @@ namespace simple_platformer
                 throw std::logic_error("A chasing NPC has no target");
             }
 
+            actor.intentions =
+                intentionsToReach(update, actor, follower, brain.lastKnownTargetFeet);
             aimToward(actor, brain.lastKnownTargetFeet);
-            followPathTo(update, actor, follower, brain.lastKnownTargetFeet);
         }
 
         // Looking about is an aim that turns every SearchTurnSeconds, first towards where
@@ -303,7 +297,8 @@ namespace simple_platformer
             PathFollower& follower,
             float stateElapsed)
         {
-            followPathTo(update, actor, follower, brain.lastKnownTargetFeet);
+            actor.intentions =
+                intentionsToReach(update, actor, follower, brain.lastKnownTargetFeet);
             if (!follower.path.has_value() || pathComplete(follower))
             {
                 lookAbout(actor, brain, stateElapsed);
@@ -423,7 +418,7 @@ namespace simple_platformer
             if (command.routeTo.has_value())
             {
                 const InputIntentions movement =
-                    intentionsToFollow(update, actor, follower, *command.routeTo);
+                    intentionsToReach(update, actor, follower, *command.routeTo);
                 actor.intentions.direction = movement.direction;
                 actor.intentions.jumpPressed = movement.jumpPressed;
                 actor.intentions.jumpHeld = movement.jumpHeld;

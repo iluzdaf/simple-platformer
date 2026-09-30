@@ -505,7 +505,7 @@ regression tests cover this case.
 
 The scripting target provides the protected Lua runtime used by scripted machine activities.
 The core-facing boundary contains no Lua types. `NpcActivitySnapshot` is a copied,
-read-only-in-effect view of position, target, patrol endpoints, facts, state time, path
+read-only-in-effect view of position, target, patrol endpoints, facts, state time, route
 completion, and tuning.
 `NpcActivityCommand` carries only intentions and requests to aim, route, or clear a route.
 Applying those requests, including pathfinding, remains engine work.

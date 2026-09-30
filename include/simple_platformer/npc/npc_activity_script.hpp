@@ -21,10 +21,11 @@ namespace simple_platformer
         glm::vec2 feet = {0.0F, 0.0F};
         std::optional<glm::vec2> targetFeet;
         // The authored ends of this NPC's run, when it has one. Scripts may choose a
-        // destination between them, but pathfinding and movement remain engine work.
+        // goal between them, but pathfinding and movement remain engine work.
         std::optional<Patrol> patrol;
         NpcFacts facts;
-        bool pathComplete = false;
+        // Whether the route last asked for with routeTo has been followed to its end.
+        bool routeComplete = false;
         std::map<std::string, float> tuning;
     };
 

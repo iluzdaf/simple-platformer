@@ -21,7 +21,7 @@ return {
 
                 -- Entering the state cleared the route, so a finished route is this patrol's.
                 -- A route that ends short of an unreachable end also turns it round.
-                if snapshot.pathComplete then
+                if snapshot.routeComplete then
                     self.headingToSecond = not self.headingToSecond
                     return { clearRoute = true }
                 end

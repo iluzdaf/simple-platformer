@@ -34,7 +34,7 @@ namespace
         snapshot.facts.targetWithinStandoffDistance = true;
         snapshot.facts.movementBlocked = true;
         snapshot.facts.stateElapsed = 0.25F;
-        snapshot.pathComplete = true;
+        snapshot.routeComplete = true;
         snapshot.tuning["speed"] = 3.0F;
         return snapshot;
     }
@@ -61,7 +61,7 @@ TEST_CASE("A Lua activity reads a copied snapshot and returns a command", "[lua]
                                 jumpPressed = snapshot.facts.movementBlocked,
                                 avoidLedges = snapshot.facts.targetWithinStandoffDistance,
                                 contactDamage = snapshot.facts.targetWithinNoticeDistance,
-                                clearRoute = snapshot.pathComplete
+                                clearRoute = snapshot.routeComplete
                             }
                         end
                     }

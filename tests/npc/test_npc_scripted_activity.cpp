@@ -324,7 +324,7 @@ TEST_CASE(
     REQUIRE(scripts.calls[0].snapshot.feet == glm::vec2{24.0F, 32.0F});
     REQUIRE(scripts.calls[0].snapshot.facts.stateElapsed == 0.0F);
     REQUIRE(scripts.calls[1].snapshot.facts.stateElapsed == 0.0F);
-    REQUIRE_FALSE(scripts.calls[0].snapshot.pathComplete);
+    REQUIRE_FALSE(scripts.calls[0].snapshot.routeComplete);
     REQUIRE_FALSE(scripts.calls[0].snapshot.targetFeet.has_value());
     REQUIRE(scripts.calls[0].snapshot.patrol.has_value());
     const simple_platformer::Patrol scriptedPatrol =

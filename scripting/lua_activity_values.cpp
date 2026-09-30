@@ -144,7 +144,7 @@ namespace simple_platformer
             result["patrol"] = sol::lua_nil;
         }
         result["stateElapsed"] = snapshot.facts.stateElapsed;
-        result["pathComplete"] = snapshot.pathComplete;
+        result["routeComplete"] = snapshot.routeComplete;
 
         sol::table facts = lua.create_table();
         facts["targetKnown"] = snapshot.facts.targetKnown;

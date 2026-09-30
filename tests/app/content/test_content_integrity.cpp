@@ -92,7 +92,7 @@ TEST_CASE("Every shipped Lua activity runs without errors", "[app][content][lua]
     situations[0].facts.targetVisible = true;
     situations[0].facts.targetInBiteRange = true;
     situations[1].patrol = situations[0].patrol;
-    situations[2].pathComplete = true;
+    situations[2].routeComplete = true;
     situations[2].patrol = situations[0].patrol;
     situations[3].facts.biteReady = false;
     situations[3].targetFeet = situations[0].targetFeet;

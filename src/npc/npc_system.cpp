@@ -224,7 +224,7 @@ namespace simple_platformer
             return facts;
         }
 
-        // Every activity change drops the old route, and a bite is asked for once as its
+        // Every activity change drops the old path, and a bite is asked for once as its
         // activity is entered.
         void enterBuiltInActivity(Actor& actor, PathFollower& follower, NpcState state)
         {
@@ -387,7 +387,7 @@ namespace simple_platformer
             snapshot.feet = feetOf(actor.body.bounds);
             snapshot.patrol = actor.patrol;
             snapshot.facts = facts;
-            snapshot.pathComplete = pathComplete(follower);
+            snapshot.routeComplete = pathComplete(follower);
             if (facts.targetKnown)
             {
                 snapshot.targetFeet = brain.lastKnownTargetFeet;

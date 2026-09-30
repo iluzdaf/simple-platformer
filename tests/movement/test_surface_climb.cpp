@@ -16,6 +16,7 @@ namespace
     using simple_platformer::InputIntentions;
     using simple_platformer::PlatformerMovement;
     using simple_platformer::SurfaceClimb;
+    using simple_platformer::WallHeading;
 
     const simple_platformer::TileMap Wall =
         tests::TileMapBuilder({"......", "..c...", "..c...", "..c...", "######"})
@@ -37,6 +38,7 @@ TEST_CASE("A climb request holds and moves along a wall", "[movement][climb]")
     REQUIRE_NEAR(body.bounds.position.y, 30.0F);
     REQUIRE_NEAR(body.velocity.y, -60.0F);
     REQUIRE_FALSE(movement.grounded);
+    REQUIRE(climb.wallHeading == WallHeading::Up);
 
     intentions.direction = {};
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
@@ -47,6 +49,36 @@ TEST_CASE("A climb request holds and moves along a wall", "[movement][climb]")
     intentions.direction.y = 1.0F;
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
     REQUIRE_NEAR(body.bounds.position.y, 36.0F);
+    REQUIRE(climb.wallHeading == WallHeading::Down);
+
+    // Holding still keeps the way it last climbed.
+    intentions.direction = {};
+    simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
+    REQUIRE(climb.wallHeading == WallHeading::Down);
+}
+
+TEST_CASE("A wall heading follows the climb and resets off the wall", "[movement][climb]")
+{
+    InputIntentions still;
+    InputIntentions up;
+    up.direction.y = -1.0F;
+    InputIntentions down;
+    down.direction.y = 1.0F;
+
+    for (const ClimbSurface wall : {ClimbSurface::LeftWall, ClimbSurface::RightWall})
+    {
+        REQUIRE(simple_platformer::wallHeadingFor(wall, up, WallHeading::Down) == WallHeading::Up);
+        REQUIRE(
+            simple_platformer::wallHeadingFor(wall, down, WallHeading::Up) == WallHeading::Down);
+        REQUIRE(
+            simple_platformer::wallHeadingFor(wall, still, WallHeading::Down) == WallHeading::Down);
+    }
+    for (const ClimbSurface offTheWall : {ClimbSurface::None, ClimbSurface::Ceiling})
+    {
+        REQUIRE(
+            simple_platformer::wallHeadingFor(offTheWall, down, WallHeading::Down) ==
+            WallHeading::Up);
+    }
 }
 
 TEST_CASE("The opposite side of a wall can also be climbed", "[movement][climb]")

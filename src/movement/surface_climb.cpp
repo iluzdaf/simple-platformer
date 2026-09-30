@@ -82,6 +82,22 @@ namespace simple_platformer
         }
     }
 
+    WallHeading wallHeadingFor(
+        ClimbSurface surface,
+        const InputIntentions& intentions,
+        WallHeading current)
+    {
+        if (surface != ClimbSurface::LeftWall && surface != ClimbSurface::RightWall)
+        {
+            return WallHeading::Up;
+        }
+        if (intentions.direction.y < 0.0F)
+        {
+            return WallHeading::Up;
+        }
+        return intentions.direction.y > 0.0F ? WallHeading::Down : current;
+    }
+
     CollisionContacts updateSurfaceClimbMovement(
         const TileMap& map,
         Body& body,
@@ -101,6 +117,7 @@ namespace simple_platformer
         const ClimbSurface previous = climb.surface;
         climb.surface =
             requestedSurface(previous, touchingClimbableSurfaces(map, body.bounds), intentions);
+        climb.wallHeading = wallHeadingFor(climb.surface, intentions, climb.wallHeading);
         if (climb.surface == ClimbSurface::None)
         {
             if (previous != ClimbSurface::None)
@@ -128,6 +145,7 @@ namespace simple_platformer
         if (!touchesSurface(climb.surface, touchingClimbableSurfaces(map, body.bounds)))
         {
             climb.surface = ClimbSurface::None;
+            climb.wallHeading = WallHeading::Up;
             body.velocity = {0.0F, 0.0F};
         }
         return contacts;

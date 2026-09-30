@@ -89,7 +89,7 @@ TEST_CASE("Death animation has priority over a shot", "[render][animation][syste
 }
 
 TEST_CASE(
-    "A climber moves or idles on its surface and keeps the way it last climbed a wall",
+    "A climber moves or idles on its surface instead of falling",
     "[render][animation][system][climb]")
 {
     simple_platformer::World world;
@@ -101,32 +101,23 @@ TEST_CASE(
     const auto animate = [&world, &id]()
     {
         simple_platformer::updateWorldAnimations(world, 0.0F);
-        return tests::animator(world, id);
+        return tests::animator(world, id).current;
     };
 
-    // Holding a wall is not falling, whichever way the climber goes.
     tests::surfaceClimb(actor).surface = simple_platformer::ClimbSurface::LeftWall;
     actor.body.velocity = {0.0F, 60.0F};
-    REQUIRE(animate().current == simple_platformer::AnimationName::Move);
-    REQUIRE_FALSE(tests::animator(world, id).wallHeadingUp);
+    REQUIRE(animate() == simple_platformer::AnimationName::Move);
     actor.body.velocity = {0.0F, 0.0F};
-    REQUIRE(animate().current == simple_platformer::AnimationName::Idle);
-    REQUIRE_FALSE(tests::animator(world, id).wallHeadingUp);
-    actor.body.velocity = {0.0F, -60.0F};
-    REQUIRE(animate().wallHeadingUp);
+    REQUIRE(animate() == simple_platformer::AnimationName::Idle);
 
-    // Along a ceiling it moves too, and its head is up again for the next wall.
-    actor.body.velocity = {0.0F, 60.0F};
-    animate();
     tests::surfaceClimb(actor).surface = simple_platformer::ClimbSurface::Ceiling;
     actor.body.velocity = {60.0F, 0.0F};
-    REQUIRE(animate().current == simple_platformer::AnimationName::Move);
-    REQUIRE(tests::animator(world, id).wallHeadingUp);
+    REQUIRE(animate() == simple_platformer::AnimationName::Move);
 
     // Letting go, it falls.
     tests::surfaceClimb(actor).surface = simple_platformer::ClimbSurface::None;
     actor.body.velocity = {0.0F, 60.0F};
-    REQUIRE(animate().current == simple_platformer::AnimationName::Fall);
+    REQUIRE(animate() == simple_platformer::AnimationName::Fall);
 }
 
 TEST_CASE("World animation rejects a negative delta time", "[render][animation][system]")

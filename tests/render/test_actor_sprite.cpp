@@ -10,11 +10,9 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/render/actor_sprite.hpp"
-#include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
-#include "support/animator.hpp"
 
 namespace
 {
@@ -161,20 +159,16 @@ TEST_CASE("A climber's head leads the way it goes", "[render][sprite][climb]")
             simple_platformer::placeActorSprite(climber(ClimbSurface::Ceiling, Facing::Left))),
         {-1.0F, 0.0F}));
 
-    // On a wall it points the way the animator last saw it climb, up without one.
+    // On a wall it points the climb's wall heading.
     for (const ClimbSurface wall : {ClimbSurface::LeftWall, ClimbSurface::RightWall})
     {
         simple_platformer::Actor actor = climber(wall, Facing::Right);
         REQUIRE(
             pointsAlong(headDirection(simple_platformer::placeActorSprite(actor)), {0.0F, -1.0F}));
 
-        actor.animator = tests::fullAnimator();
-        tests::animator(actor).wallHeadingUp = false;
+        tests::surfaceClimb(actor).wallHeading = simple_platformer::WallHeading::Down;
         REQUIRE(
             pointsAlong(headDirection(simple_platformer::placeActorSprite(actor)), {0.0F, 1.0F}));
-        tests::animator(actor).wallHeadingUp = true;
-        REQUIRE(
-            pointsAlong(headDirection(simple_platformer::placeActorSprite(actor)), {0.0F, -1.0F}));
     }
 }
 

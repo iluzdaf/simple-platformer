@@ -23,8 +23,7 @@ namespace simple_platformer
     // On the floor the feet anchor stands the sprite on the body's feet. On a wall or
     // ceiling the sprite's feet edge lies along the body's edge against that surface,
     // centred on the body; a centre-anchored sprite turns about the body's centre. On a
-    // ceiling the head points the way the actor faces; on a wall it points the way the
-    // animator last saw it climb, up when there is no animator. The actor must have a
-    // sprite.
+    // ceiling the head points the way the actor faces; on a wall it points the climb's
+    // wall heading. The actor must have a sprite.
     ActorSpritePlacement placeActorSprite(const Actor& actor);
 }

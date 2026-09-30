@@ -9,7 +9,6 @@
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
-#include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 
 namespace simple_platformer
@@ -47,6 +46,8 @@ namespace simple_platformer
         const Aabb& body = actor.body.bounds;
         const ClimbSurface surface =
             actor.surfaceClimb.has_value() ? actor.surfaceClimb->surface : ClimbSurface::None;
+        const WallHeading wallHeading =
+            actor.surfaceClimb.has_value() ? actor.surfaceClimb->wallHeading : WallHeading::Up;
         const bool facingLeft = actor.facing == Facing::Left;
         if (surface == ClimbSurface::None)
         {
@@ -54,7 +55,7 @@ namespace simple_platformer
             return {bounds, 0.0F, facingLeft, bounds};
         }
 
-        const bool headingUp = !actor.animator.has_value() || actor.animator->wallHeadingUp;
+        const bool headingUp = wallHeading == WallHeading::Up;
         const bool fromFeet = sprite.anchor == SpriteAnchor::BodyFeet;
         const glm::vec2 centre = centerOf(body);
         // Half the sprite's height: how far its centre sits from the edge its feet are on.

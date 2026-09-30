@@ -19,6 +19,8 @@ TEST_CASE("An AABB position is its top-left corner", "[math][coordinates]")
     REQUIRE_NEAR(simple_platformer::centerOf(box).y, 32.0F);
     REQUIRE_NEAR(simple_platformer::feetOf(box).x, 16.0F);
     REQUIRE_NEAR(simple_platformer::feetOf(box).y, 44.0F);
+    REQUIRE_NEAR(simple_platformer::topCenterOf(box).x, 16.0F);
+    REQUIRE_NEAR(simple_platformer::topCenterOf(box).y, 20.0F);
 }
 
 TEST_CASE("An AABB's far edges are its position plus its size", "[math][aabb]")

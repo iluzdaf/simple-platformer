@@ -298,9 +298,7 @@ namespace simple_platformer
         {
             return std::nullopt;
         }
-        const Aabb& bounds = levelExit.value().bounds;
-        const glm::vec2 topCenter = {bounds.topLeft.x + bounds.size.x * 0.5F, bounds.topLeft.y};
-        return worldToScreen(currentCamera(), topCenter);
+        return worldToScreen(currentCamera(), topCenterOf(levelExit.value().bounds));
     }
 
     std::optional<Sprite> Game::lockedExitHintIcon() const

@@ -21,6 +21,11 @@ namespace simple_platformer
         return box.topLeft + box.size * 0.5F;
     }
 
+    glm::vec2 topCenterOf(const Aabb& box)
+    {
+        return {centerOf(box).x, box.topLeft.y};
+    }
+
     glm::vec2 feetOf(const Aabb& box)
     {
         return {centerOf(box).x, bottomOf(box)};

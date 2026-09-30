@@ -18,6 +18,8 @@ namespace simple_platformer
     float bottomOf(const Aabb& box);
 
     glm::vec2 centerOf(const Aabb& box);
+    // The middle of its top edge.
+    glm::vec2 topCenterOf(const Aabb& box);
     // Its feet: the middle of its bottom edge, where a standing body meets the ground.
     glm::vec2 feetOf(const Aabb& box);
 

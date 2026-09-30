@@ -98,7 +98,7 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
     const simple_platformer::Sprite player{9, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {10.0F, 14.0F}};
     const simple_platformer::Aabb playerBounds{{20.0F, 2.0F}, {8.0F, 12.0F}};
     simple_platformer::Actor actor = tests::ActorBuilder::sized(playerBounds.size)
-                                         .at(playerBounds.position)
+                                         .at(playerBounds.topLeft)
                                          .walking()
                                          .withSprite(player);
     actor.facing = simple_platformer::Facing::Left;

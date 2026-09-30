@@ -20,7 +20,7 @@ namespace simple_platformer
         // bottom. The map is open above its top edge, as it is for collision.
         bool bodyFits(const TileMap& map, const Aabb& bounds)
         {
-            if (bounds.position.x < 0.0F || rightOf(bounds) > map.pixelWidth() ||
+            if (bounds.topLeft.x < 0.0F || rightOf(bounds) > map.pixelWidth() ||
                 bottomOf(bounds) > map.pixelHeight())
             {
                 return false;
@@ -72,13 +72,13 @@ namespace simple_platformer
         case ClimbSurface::None:
             break;
         case ClimbSurface::LeftWall:
-            bounds.position.x = left;
+            bounds.topLeft.x = left;
             break;
         case ClimbSurface::RightWall:
-            bounds.position.x = left + static_cast<float>(tileSize) - bodySize.x;
+            bounds.topLeft.x = left + static_cast<float>(tileSize) - bodySize.x;
             break;
         case ClimbSurface::Ceiling:
-            bounds.position.y = top;
+            bounds.topLeft.y = top;
             break;
         }
         return bounds;

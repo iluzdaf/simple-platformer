@@ -73,7 +73,7 @@ TEST_CASE("A ready bite is harmless and never lunges", "[combat][bite]")
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(tests::health(world, target).current == 3);
-    REQUIRE(tests::actor(world, attackerId).body.bounds.position.x == 10.0F);
+    REQUIRE(tests::actor(world, attackerId).body.bounds.topLeft.x == 10.0F);
 }
 
 TEST_CASE("A committed bite completes but can miss", "[combat][bite]")
@@ -90,7 +90,7 @@ TEST_CASE("A committed bite completes but can miss", "[combat][bite]")
 
     simple_platformer::updateAttacks(world, requests, 0.0F);
     simple_platformer::Actor& movedTarget = tests::actor(world, target);
-    movedTarget.body.bounds.position.x = 100.0F;
+    movedTarget.body.bounds.topLeft.x = 100.0F;
     simple_platformer::updateAttacks(world, requests, 0.51F);
     simple_platformer::applyWorldRequests(world, requests);
 
@@ -110,8 +110,8 @@ TEST_CASE("Bite hitboxes are placed in the retained facing direction", "[combat]
     const simple_platformer::Aabb left =
         simple_platformer::biteHitbox(actor, bite, simple_platformer::Facing::Left);
 
-    REQUIRE(right.position.x == 36.0F);
-    REQUIRE(left.position.x == 6.0F);
-    REQUIRE(right.position.y == 32.0F);
-    REQUIRE(left.position.y == 32.0F);
+    REQUIRE(right.topLeft.x == 36.0F);
+    REQUIRE(left.topLeft.x == 6.0F);
+    REQUIRE(right.topLeft.y == 32.0F);
+    REQUIRE(left.topLeft.y == 32.0F);
 }

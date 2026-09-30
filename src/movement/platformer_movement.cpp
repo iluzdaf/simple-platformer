@@ -110,7 +110,7 @@ namespace simple_platformer
                 return false;
             }
             const int side = body.velocity.x < 0.0F ? -1 : 1;
-            const float front = body.bounds.position.x + (side > 0 ? body.bounds.size.x : 0.0F);
+            const float front = body.bounds.topLeft.x + (side > 0 ? body.bounds.size.x : 0.0F);
             const float probeX = front + static_cast<float>(side);
             const float belowFeet = feetOf(body.bounds).y + 1.0F;
             const Cell first = cellAt(map.tileSize(), {probeX, belowFeet});

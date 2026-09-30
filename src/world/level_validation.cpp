@@ -39,7 +39,7 @@ namespace simple_platformer
         {
             const CellRange cells = cellsCovered(map.tileSize(), bounds);
             const int rowBelow =
-                cellAt(map.tileSize(), {bounds.position.x, bottomOf(bounds) + EdgeTolerance}).y;
+                cellAt(map.tileSize(), {bounds.topLeft.x, bottomOf(bounds) + EdgeTolerance}).y;
 
             for (int column = cells.first.x; column <= cells.last.x; ++column)
             {

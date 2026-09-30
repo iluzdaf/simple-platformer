@@ -60,14 +60,14 @@ TEST_CASE("World simulation spawns a projectile after projectile movement", "[wo
     simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     REQUIRE(world.projectiles().size() == 1);
-    const float spawnPosition = world.projectiles().front().bounds.position.x;
+    const float spawnPosition = world.projectiles().front().bounds.topLeft.x;
 
     simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
     storedPlayer.intentions.primaryAttackPressed = false;
     simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
 
     REQUIRE(world.projectiles().size() == 1);
-    REQUIRE(world.projectiles().front().bounds.position.x > spawnPosition);
+    REQUIRE(world.projectiles().front().bounds.topLeft.x > spawnPosition);
 }
 
 TEST_CASE("World simulation lets a pickup fall onto the tile below", "[world][simulation]")
@@ -84,7 +84,7 @@ TEST_CASE("World simulation lets a pickup fall onto the tile below", "[world][si
         simple_platformer::updateWorldSimulation(map, world, 0.1F);
     }
 
-    REQUIRE(world.pickups().front().body.bounds.position.y == 24.0F);
+    REQUIRE(world.pickups().front().body.bounds.topLeft.y == 24.0F);
 }
 
 TEST_CASE(
@@ -126,8 +126,7 @@ TEST_CASE(
     for (std::size_t index = 0; index < timed.actors().size(); ++index)
     {
         REQUIRE(
-            timed.actors()[index].body.bounds.position ==
-            plain.actors()[index].body.bounds.position);
+            timed.actors()[index].body.bounds.topLeft == plain.actors()[index].body.bounds.topLeft);
     }
     // The chasing NPC searched for a path at least once.
     REQUIRE(simple_platformer::frameStatisticCount(profile, "Path searches") >= 1);

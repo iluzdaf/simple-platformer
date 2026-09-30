@@ -49,7 +49,7 @@ namespace simple_platformer
             const Aabb& cameraBounds,
             const WindowViewport& viewport)
         {
-            const ImVec2 minimum = screenPosition(cell.bounds.position, cameraBounds, viewport);
+            const ImVec2 minimum = screenPosition(cell.bounds.topLeft, cameraBounds, viewport);
             const ImVec2 maximum = {
                 minimum.x + cell.bounds.size.x * viewport.scale.x,
                 minimum.y + cell.bounds.size.y * viewport.scale.y};
@@ -75,7 +75,7 @@ namespace simple_platformer
             }
             char count[8];
             std::snprintf(count, sizeof(count), "%zu", *cell.connections);
-            const ImVec2 minimum = screenPosition(cell.bounds.position, cameraBounds, viewport);
+            const ImVec2 minimum = screenPosition(cell.bounds.topLeft, cameraBounds, viewport);
             drawShadowedText(drawList, {minimum.x + 1.0F, minimum.y}, WorldLabelColour, count);
         }
 
@@ -130,7 +130,7 @@ namespace simple_platformer
         for (const NavigationCellDebugInfo& cell : cache.cells)
         {
             drawNavigationCell(drawList, cell, cameraBounds, viewport);
-            if (cache.cursorCell.has_value() && cell.bounds.position == cursor.bounds.position)
+            if (cache.cursorCell.has_value() && cell.bounds.topLeft == cursor.bounds.topLeft)
             {
                 cellUnderCursor = &cell;
             }

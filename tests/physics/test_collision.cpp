@@ -33,8 +33,8 @@ TEST_CASE("An AABB moves freely through empty tiles", "[physics][collision]")
     const CollisionContacts contacts =
         simple_platformer::moveAndCollide(map, bounds, {12.0F, 9.0F});
 
-    REQUIRE_NEAR(bounds.position.x, 20.0F);
-    REQUIRE_NEAR(bounds.position.y, 17.0F);
+    REQUIRE_NEAR(bounds.topLeft.x, 20.0F);
+    REQUIRE_NEAR(bounds.topLeft.y, 17.0F);
     requireNoContacts(contacts);
 }
 
@@ -48,8 +48,8 @@ TEST_CASE("Horizontal movement stops on either side of a solid tile", "[physics]
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {30.0F, 0.0F});
 
-        REQUIRE_NEAR(bounds.position.x, 24.0F);
-        REQUIRE_NEAR(bounds.position.y, 4.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 24.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 4.0F);
         REQUIRE(contacts.right);
     }
 
@@ -59,8 +59,8 @@ TEST_CASE("Horizontal movement stops on either side of a solid tile", "[physics]
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {-30.0F, 0.0F});
 
-        REQUIRE_NEAR(bounds.position.x, 48.0F);
-        REQUIRE_NEAR(bounds.position.y, 4.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 48.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 4.0F);
         REQUIRE(contacts.left);
     }
 }
@@ -73,8 +73,8 @@ TEST_CASE("Landing exactly on a floor reports ground contact", "[physics][collis
     const CollisionContacts contacts =
         simple_platformer::moveAndCollide(map, bounds, {0.0F, 16.0F});
 
-    REQUIRE_NEAR(bounds.position.x, 20.0F);
-    REQUIRE_NEAR(bounds.position.y, 20.0F);
+    REQUIRE_NEAR(bounds.topLeft.x, 20.0F);
+    REQUIRE_NEAR(bounds.topLeft.y, 20.0F);
     REQUIRE(contacts.ground);
 }
 
@@ -87,8 +87,8 @@ TEST_CASE("Vertical movement stops on floors and ceilings", "[physics][collision
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {0.0F, 30.0F});
 
-        REQUIRE_NEAR(bounds.position.x, 20.0F);
-        REQUIRE_NEAR(bounds.position.y, 20.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 20.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 20.0F);
         REQUIRE(contacts.ground);
     }
 
@@ -99,8 +99,8 @@ TEST_CASE("Vertical movement stops on floors and ceilings", "[physics][collision
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {0.0F, -20.0F});
 
-        REQUIRE_NEAR(bounds.position.x, 20.0F);
-        REQUIRE_NEAR(bounds.position.y, 16.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 20.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 16.0F);
         REQUIRE(contacts.ceiling);
     }
 }
@@ -113,8 +113,8 @@ TEST_CASE("Collision resolves X before Y at a corner", "[physics][collision]")
     const CollisionContacts contacts =
         simple_platformer::moveAndCollide(map, bounds, {16.0F, 16.0F});
 
-    REQUIRE_NEAR(bounds.position.x, 16.0F);
-    REQUIRE_NEAR(bounds.position.y, 8.0F);
+    REQUIRE_NEAR(bounds.topLeft.x, 16.0F);
+    REQUIRE_NEAR(bounds.topLeft.y, 8.0F);
     REQUIRE(contacts.ground);
     REQUIRE_FALSE(contacts.right);
 }
@@ -127,8 +127,8 @@ TEST_CASE("Collision supports bodies larger than one tile", "[physics][collision
     const CollisionContacts contacts =
         simple_platformer::moveAndCollide(map, bounds, {0.0F, 100.0F});
 
-    REQUIRE_NEAR(bounds.position.x, 18.0F);
-    REQUIRE_NEAR(bounds.position.y, 18.0F);
+    REQUIRE_NEAR(bounds.topLeft.x, 18.0F);
+    REQUIRE_NEAR(bounds.topLeft.y, 18.0F);
     REQUIRE(contacts.ground);
 }
 
@@ -140,8 +140,8 @@ TEST_CASE("Fast movement cannot pass through a solid tile", "[physics][collision
     const CollisionContacts contacts =
         simple_platformer::moveAndCollide(map, bounds, {80.0F, 0.0F});
 
-    REQUIRE_NEAR(bounds.position.x, 40.0F);
-    REQUIRE_NEAR(bounds.position.y, 4.0F);
+    REQUIRE_NEAR(bounds.topLeft.x, 40.0F);
+    REQUIRE_NEAR(bounds.topLeft.y, 4.0F);
     REQUIRE(contacts.right);
 }
 
@@ -157,8 +157,8 @@ TEST_CASE("Very large finite movement respects map boundaries", "[physics][colli
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {largeMovement, largeMovement});
 
-        REQUIRE_NEAR(bounds.position.x, 56.0F);
-        REQUIRE_NEAR(bounds.position.y, 40.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 56.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 40.0F);
         REQUIRE(contacts.right);
         REQUIRE(contacts.ground);
     }
@@ -170,7 +170,7 @@ TEST_CASE("Very large finite movement respects map boundaries", "[physics][colli
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {0.0F, -largeMovement});
 
-        REQUIRE(bounds.position.y == 8.0F - largeMovement);
+        REQUIRE(bounds.topLeft.y == 8.0F - largeMovement);
         requireNoContacts(contacts);
     }
 }
@@ -184,8 +184,8 @@ TEST_CASE("The left right and bottom map edges are solid", "[physics][collision]
         Aabb bounds{{4.0F, 4.0F}, {8.0F, 8.0F}};
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {-20.0F, 0.0F});
-        REQUIRE_NEAR(bounds.position.x, 0.0F);
-        REQUIRE_NEAR(bounds.position.y, 4.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 0.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 4.0F);
         REQUIRE(contacts.left);
     }
 
@@ -194,8 +194,8 @@ TEST_CASE("The left right and bottom map edges are solid", "[physics][collision]
         Aabb bounds{{48.0F, 4.0F}, {8.0F, 8.0F}};
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {20.0F, 0.0F});
-        REQUIRE_NEAR(bounds.position.x, 56.0F);
-        REQUIRE_NEAR(bounds.position.y, 4.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 56.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 4.0F);
         REQUIRE(contacts.right);
     }
 
@@ -204,8 +204,8 @@ TEST_CASE("The left right and bottom map edges are solid", "[physics][collision]
         Aabb bounds{{4.0F, 32.0F}, {8.0F, 8.0F}};
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {0.0F, 20.0F});
-        REQUIRE_NEAR(bounds.position.x, 4.0F);
-        REQUIRE_NEAR(bounds.position.y, 40.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 4.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 40.0F);
         REQUIRE(contacts.ground);
     }
 }
@@ -218,8 +218,8 @@ TEST_CASE("The top map edge stays open", "[physics][collision]")
     const CollisionContacts contacts =
         simple_platformer::moveAndCollide(map, bounds, {0.0F, -40.0F});
 
-    REQUIRE_NEAR(bounds.position.x, 8.0F);
-    REQUIRE_NEAR(bounds.position.y, -40.0F);
+    REQUIRE_NEAR(bounds.topLeft.x, 8.0F);
+    REQUIRE_NEAR(bounds.topLeft.y, -40.0F);
     requireNoContacts(contacts);
 }
 
@@ -247,7 +247,7 @@ TEST_CASE("Arriving exactly at a map edge counts as touching it", "[physics][col
         Aabb bounds{{16.0F, 4.0F}, {8.0F, 8.0F}};
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {-16.0F, 0.0F});
-        REQUIRE_NEAR(bounds.position.x, 0.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 0.0F);
         REQUIRE(contacts.left);
     }
 
@@ -256,7 +256,7 @@ TEST_CASE("Arriving exactly at a map edge counts as touching it", "[physics][col
         Aabb bounds{{40.0F, 4.0F}, {8.0F, 8.0F}};
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {16.0F, 0.0F});
-        REQUIRE_NEAR(bounds.position.x, 56.0F);
+        REQUIRE_NEAR(bounds.topLeft.x, 56.0F);
         REQUIRE(contacts.right);
     }
 
@@ -265,7 +265,7 @@ TEST_CASE("Arriving exactly at a map edge counts as touching it", "[physics][col
         Aabb bounds{{4.0F, 24.0F}, {8.0F, 8.0F}};
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {0.0F, 16.0F});
-        REQUIRE_NEAR(bounds.position.y, 40.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 40.0F);
         REQUIRE(contacts.ground);
     }
 
@@ -274,7 +274,7 @@ TEST_CASE("Arriving exactly at a map edge counts as touching it", "[physics][col
         Aabb bounds{{4.0F, 16.0F}, {8.0F, 8.0F}};
         const CollisionContacts contacts =
             simple_platformer::moveAndCollide(map, bounds, {0.0F, -16.0F});
-        REQUIRE_NEAR(bounds.position.y, 0.0F);
+        REQUIRE_NEAR(bounds.topLeft.y, 0.0F);
         REQUIRE_FALSE(contacts.ceiling);
     }
 }
@@ -290,8 +290,8 @@ TEST_CASE("Stationary bodies report the surfaces they touch", "[physics][collisi
     REQUIRE(contacts.right);
     REQUIRE(contacts.ground);
     REQUIRE(contacts.ceiling);
-    REQUIRE(bounds.position.x == 16.0F);
-    REQUIRE(bounds.position.y == 16.0F);
+    REQUIRE(bounds.topLeft.x == 16.0F);
+    REQUIRE(bounds.topLeft.y == 16.0F);
 }
 
 TEST_CASE("Open space and the top map edge are not touching surfaces", "[physics][collision]")

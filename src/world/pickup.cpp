@@ -17,7 +17,7 @@ namespace simple_platformer
 {
     void validatePickup(const Pickup& pickup)
     {
-        if (!simple_platformer::isFinite(pickup.body.bounds.position) ||
+        if (!simple_platformer::isFinite(pickup.body.bounds.topLeft) ||
             !simple_platformer::isFinite(pickup.body.bounds.size) ||
             !simple_platformer::isFinite(pickup.body.velocity) ||
             pickup.body.bounds.size.x <= 0.0F || pickup.body.bounds.size.y <= 0.0F)

@@ -26,8 +26,8 @@ namespace simple_platformer
             return 0.0F;
         }
 
-        const glm::vec2 boundsEnd = bounds.position + bounds.size;
-        const Cell first = cellAt(map.tileSize(), bounds.position);
+        const glm::vec2 boundsEnd = bounds.topLeft + bounds.size;
+        const Cell first = cellAt(map.tileSize(), bounds.topLeft);
         const Cell last = cellAt(map.tileSize(), boundsEnd);
         float coveredArea = 0.0F;
         for (int row = first.y; row <= last.y; ++row)
@@ -41,7 +41,7 @@ namespace simple_platformer
                 const glm::vec2 cellStart = cellCorner(map.tileSize(), {column, row});
                 const glm::vec2 cellEnd = cellStart + static_cast<float>(map.tileSize());
                 const glm::vec2 overlap = glm::max(
-                    glm::min(boundsEnd, cellEnd) - glm::max(bounds.position, cellStart),
+                    glm::min(boundsEnd, cellEnd) - glm::max(bounds.topLeft, cellStart),
                     glm::vec2{0.0F, 0.0F});
                 coveredArea += overlap.x * overlap.y;
             }

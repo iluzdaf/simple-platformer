@@ -55,8 +55,8 @@ namespace simple_platformer
             const glm::vec2 movement = end - start;
             float first = 0.0F;
             float last = 1.0F;
-            if (!castAxis(start.x, movement.x, box.position.x, rightOf(box), first, last) ||
-                !castAxis(start.y, movement.y, box.position.y, bottomOf(box), first, last))
+            if (!castAxis(start.x, movement.x, box.topLeft.x, rightOf(box), first, last) ||
+                !castAxis(start.y, movement.y, box.topLeft.y, bottomOf(box), first, last))
             {
                 return std::nullopt;
             }
@@ -113,12 +113,12 @@ namespace simple_platformer
     Aabb expandedForMovingBox(const Aabb& target, glm::vec2 movingSize)
     {
         const glm::vec2 halfSize = movingSize * 0.5F;
-        return {target.position - halfSize, target.size + movingSize};
+        return {target.topLeft - halfSize, target.size + movingSize};
     }
 
     std::optional<float> segmentCast(const Aabb& box, glm::vec2 start, glm::vec2 end)
     {
-        if (!isFinite(box.position) || !isFinite(box.size) || !isFinite(start) || !isFinite(end) ||
+        if (!isFinite(box.topLeft) || !isFinite(box.size) || !isFinite(start) || !isFinite(end) ||
             box.size.x <= 0.0F || box.size.y <= 0.0F)
         {
             throw std::invalid_argument("Segment casts require finite, positive-sized data");

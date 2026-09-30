@@ -81,8 +81,8 @@ TEST_CASE(
     REQUIRE_NEAR(initialScene.sprites[1].position.y, 5.0F);
     REQUIRE_NEAR(advancedScene.sprites[0].position.y, 4.0F);
     REQUIRE_NEAR(advancedScene.sprites[1].position.y, 5.0F);
-    REQUIRE(world.pickups()[0].body.bounds.position == glm::vec2{0.0F, 0.0F});
-    REQUIRE(world.pickups()[1].body.bounds.position == glm::vec2{16.0F, 0.0F});
+    REQUIRE(world.pickups()[0].body.bounds.topLeft == glm::vec2{0.0F, 0.0F});
+    REQUIRE(world.pickups()[1].body.bounds.topLeft == glm::vec2{16.0F, 0.0F});
 }
 
 TEST_CASE("Pickup sprite overrides leave inventory icons unchanged", "[world][render][pickups]")

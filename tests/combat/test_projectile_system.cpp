@@ -268,7 +268,7 @@ TEST_CASE("One shot cannot open a hole for another in the same frame", "[combat]
     // travelled past it. Glass spans x 48 to 64 on the row the shots follow.
     for (const simple_platformer::Projectile& projectile : world.projectiles())
     {
-        REQUIRE(projectile.bounds.position.x < 48.0F);
+        REQUIRE(projectile.bounds.topLeft.x < 48.0F);
     }
     REQUIRE(map.tileAt({3, 0}) == 0);
 

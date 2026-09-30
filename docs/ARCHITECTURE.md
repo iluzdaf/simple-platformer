@@ -162,7 +162,7 @@ iterators and pointers during a system update.
 
 - Positive X points right.
 - Positive Y points down.
-- AABBs and tiles use a top-left world position.
+- AABBs and tiles are placed by their top-left corner in world coordinates.
 - Actor spawns, pickup placement, exits, patrol points, and navigation destinations use
   world coordinates; actor and navigation placement helpers commonly use feet, the
   bottom centre of an actor body.
@@ -177,7 +177,7 @@ The two actor-position conventions are deliberately named:
 ```cpp
 struct Aabb
 {
-    glm::vec2 position; // top-left world position
+    glm::vec2 topLeft;
     glm::vec2 size;
 };
 
@@ -186,7 +186,7 @@ Aabb boxStandingOn(glm::vec2 feet, glm::vec2 size);
 void moveFeetTo(Aabb& box, glm::vec2 feet);
 ```
 
-Physics code works with `body.bounds.position`. Content and ground navigation use
+Physics code works with `body.bounds.topLeft`. Content and ground navigation use
 `feetOf`. `boxStandingOn` builds a new box by its feet, and `moveFeetTo` moves an
 existing one, keeping its size. There is no ambiguous general `setPosition` function.
 

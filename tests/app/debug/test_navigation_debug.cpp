@@ -46,7 +46,7 @@ TEST_CASE(
     // Every standable cell is listed; before caching, none has a connection count.
     std::vector<simple_platformer::NavigationCellDebugInfo> cells = cellsOf();
     REQUIRE(cells.size() == 5);
-    REQUIRE(cells.front().bounds.position == glm::vec2{0.0F, 16.0F});
+    REQUIRE(cells.front().bounds.topLeft == glm::vec2{0.0F, 16.0F});
     REQUIRE(cells.front().bounds.size == glm::vec2{16.0F, 16.0F});
     REQUIRE(std::all_of(
         cells.begin(),
@@ -76,7 +76,7 @@ TEST_CASE(
             cells.begin(),
             cells.end(),
             [position](const simple_platformer::NavigationCellDebugInfo& cell)
-            { return cell.bounds.position == position; });
+            { return cell.bounds.topLeft == position; });
     };
     REQUIRE_FALSE(listed({32.0F, 16.0F}));
     REQUIRE(listed({32.0F, 32.0F}));
@@ -177,7 +177,7 @@ TEST_CASE(
     const simple_platformer::CursorCellDebugInfo uncached =
         infoAt(glm::vec2{40.0F, 20.0F})
             .cursorCell.value_or(simple_platformer::CursorCellDebugInfo{});
-    REQUIRE(uncached.bounds.position == glm::vec2{32.0F, 16.0F});
+    REQUIRE(uncached.bounds.topLeft == glm::vec2{32.0F, 16.0F});
     REQUIRE_FALSE(uncached.footprint.has_value());
     REQUIRE(uncached.connections.empty());
 
@@ -188,7 +188,7 @@ TEST_CASE(
             .cursorCell.value_or(simple_platformer::CursorCellDebugInfo{});
     REQUIRE(cached.footprint.has_value());
     const simple_platformer::Aabb footprint = cached.footprint.value_or(simple_platformer::Aabb{});
-    REQUIRE(footprint.position.x <= 32.0F);
+    REQUIRE(footprint.topLeft.x <= 32.0F);
     REQUIRE(simple_platformer::rightOf(footprint) >= 48.0F);
     REQUIRE_FALSE(cached.connections.empty());
     bool sawWalk = false;

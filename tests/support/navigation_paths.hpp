@@ -33,7 +33,7 @@ namespace tests
         const simple_platformer::PlatformerTraversalProfile& profile)
     {
         ActorBuilder walker =
-            ActorBuilder::sized(body.size).at(body.position).walking(profile.movement);
+            ActorBuilder::sized(body.size).at(body.topLeft).walking(profile.movement);
         if (profile.climb.has_value())
         {
             return std::move(walker).climbing(*profile.climb);

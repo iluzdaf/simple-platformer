@@ -267,7 +267,7 @@ namespace simple_platformer
     {
         const float left = facing == Facing::Right
                                ? rightOf(actorBounds) + bite.reach
-                               : actorBounds.position.x - bite.reach - bite.hitboxSize.x;
+                               : actorBounds.topLeft.x - bite.reach - bite.hitboxSize.x;
         return {{left, centerOf(actorBounds).y - bite.hitboxSize.y * 0.5F}, bite.hitboxSize};
     }
 

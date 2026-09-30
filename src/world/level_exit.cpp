@@ -13,7 +13,7 @@ namespace simple_platformer
 {
     void validateLevelExit(const LevelExit& exit)
     {
-        if (!simple_platformer::isFinite(exit.bounds.position) ||
+        if (!simple_platformer::isFinite(exit.bounds.topLeft) ||
             !simple_platformer::isFinite(exit.bounds.size) || exit.bounds.size.x <= 0.0F ||
             exit.bounds.size.y <= 0.0F)
         {

@@ -110,7 +110,7 @@ TEST_CASE("A climber's patrol points need clearance but not ground", "[world][le
 
     SECTION("spawn in the air")
     {
-        climber.body.bounds.position.y -= 16.0F;
+        climber.body.bounds.topLeft.y -= 16.0F;
         simple_platformer::World world;
         world.addActor(climber);
         REQUIRE_THROWS_WITH(

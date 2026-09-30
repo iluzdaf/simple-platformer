@@ -41,7 +41,7 @@ TEST_CASE("Flying movement uses tile collision", "[movement][flying]")
         simple_platformer::updateFlyingMovement(map, body, movement, intentions, 0.2F);
 
     REQUIRE(contacts.right);
-    REQUIRE(body.bounds.position.x == 24.0F);
+    REQUIRE(body.bounds.topLeft.x == 24.0F);
     REQUIRE(body.velocity.x == 0.0F);
 }
 

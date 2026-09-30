@@ -302,7 +302,7 @@ TEST_CASE("A walker starts from the standable cell that supports it", "[navigati
     REQUIRE_FALSE(startFrom(simple_platformer::boxInCell(tests::TileSize, {0, 0}, TallBody)));
     simple_platformer::Aabb hovering =
         simple_platformer::boxInCell(tests::TileSize, {3, 1}, TallBody);
-    hovering.position.y -= 3.0F;
+    hovering.topLeft.y -= 3.0F;
     REQUIRE_FALSE(startFrom(hovering));
 }
 
@@ -315,7 +315,7 @@ TEST_CASE("A climber starts from the surface its body is against", "[navigation]
     // Partway up the wall, from the nearest resting place along it.
     simple_platformer::Aabb onWall = simple_platformer::boundsAtSurface(
         tests::TileSize, {{1, 2}, ClimbSurface::LeftWall}, SmallBody);
-    onWall.position.y -= 5.0F;
+    onWall.topLeft.y -= 5.0F;
     REQUIRE(startFeetFrom(map, onWall, Climber) == feetAt({{1, 2}, ClimbSurface::LeftWall}));
     // A walker cannot hold the wall, so the same body rests nowhere.
     REQUIRE_FALSE(startFeetFrom(map, onWall, Walker));
@@ -481,7 +481,7 @@ TEST_CASE(
 
     simple_platformer::Body body{
         simple_platformer::boundsAtSurface(tests::TileSize, start, SmallBody), {0.0F, 0.0F}};
-    body.bounds.position.y -= 6.0F;
+    body.bounds.topLeft.y -= 6.0F;
     simple_platformer::SurfaceClimb climb{{60.0F}, ClimbSurface::LeftWall};
     REQUIRE(followsToTheEnd(map, pathOf(result), body, climb, 120));
 }

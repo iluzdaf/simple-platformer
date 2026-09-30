@@ -8,12 +8,12 @@ namespace simple_platformer
 {
     struct Aabb
     {
-        // Top-left position and dimensions measured in world pixels.
-        glm::vec2 position = {0.0F, 0.0F};
+        // In world pixels.
+        glm::vec2 topLeft = {0.0F, 0.0F};
         glm::vec2 size = {0.0F, 0.0F};
     };
 
-    // The far edges. The near ones, left and top, are the position.
+    // The far edges. The near ones, left and top, are topLeft.
     float rightOf(const Aabb& box);
     float bottomOf(const Aabb& box);
 

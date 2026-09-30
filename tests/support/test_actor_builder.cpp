@@ -46,7 +46,7 @@ TEST_CASE(
     const simple_platformer::Actor byCell =
         tests::ActorBuilder::sized({12.0F, 20.0F}).inCell({1, 1}).walking();
 
-    REQUIRE(byCorner.body.bounds.position == glm::vec2{8.0F, 4.0F});
+    REQUIRE(byCorner.body.bounds.topLeft == glm::vec2{8.0F, 4.0F});
     REQUIRE(byCorner.body.bounds.size == glm::vec2{12.0F, 20.0F});
     REQUIRE(simple_platformer::feetOf(byFeet.body.bounds) == glm::vec2{24.0F, 32.0F});
     REQUIRE(byFeet.body.bounds.size == glm::vec2{12.0F, 20.0F});

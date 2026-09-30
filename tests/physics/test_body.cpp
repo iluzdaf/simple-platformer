@@ -52,8 +52,8 @@ TEST_CASE("A body moves by its velocity over the step", "[physics][body]")
 
     const CollisionContacts contacts = simple_platformer::moveBody(map, body, 0.1F);
 
-    REQUIRE_NEAR(body.bounds.position.x, 20.0F);
-    REQUIRE_NEAR(body.bounds.position.y, 17.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.x, 20.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 17.0F);
     REQUIRE_NEAR(body.velocity.x, 120.0F);
     REQUIRE_NEAR(body.velocity.y, 90.0F);
     REQUIRE_FALSE(contacts.ground);
@@ -74,7 +74,7 @@ TEST_CASE(
         const CollisionContacts contacts = simple_platformer::moveBody(map, body, 0.1F);
 
         REQUIRE(contacts.ground);
-        REQUIRE_NEAR(body.bounds.position.y, 24.0F);
+        REQUIRE_NEAR(body.bounds.topLeft.y, 24.0F);
         REQUIRE_NEAR(body.velocity.y, 0.0F);
         REQUIRE_NEAR(body.velocity.x, 20.0F);
     }
@@ -88,7 +88,7 @@ TEST_CASE(
         const CollisionContacts contacts = simple_platformer::moveBody(map, body, 0.1F);
 
         REQUIRE(contacts.right);
-        REQUIRE_NEAR(body.bounds.position.x, 40.0F);
+        REQUIRE_NEAR(body.bounds.topLeft.x, 40.0F);
         REQUIRE_NEAR(body.velocity.x, 0.0F);
         REQUIRE_NEAR(body.velocity.y, -20.0F);
     }

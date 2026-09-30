@@ -16,8 +16,8 @@ namespace simple_platformer
         const WindowViewport& viewport)
     {
         return {
-            viewport.topLeft.x + (worldPosition.x - cameraBounds.position.x) * viewport.scale.x,
-            viewport.topLeft.y + (worldPosition.y - cameraBounds.position.y) * viewport.scale.y};
+            viewport.topLeft.x + (worldPosition.x - cameraBounds.topLeft.x) * viewport.scale.x,
+            viewport.topLeft.y + (worldPosition.y - cameraBounds.topLeft.y) * viewport.scale.y};
     }
 
     void drawWorldBounds(
@@ -27,7 +27,7 @@ namespace simple_platformer
         const WindowViewport& viewport,
         ImU32 colour)
     {
-        const ImVec2 minimum = screenPosition(bounds.position, cameraBounds, viewport);
+        const ImVec2 minimum = screenPosition(bounds.topLeft, cameraBounds, viewport);
         const ImVec2 maximum = {
             minimum.x + bounds.size.x * viewport.scale.x,
             minimum.y + bounds.size.y * viewport.scale.y};

@@ -55,7 +55,7 @@ namespace simple_platformer
             const Aabb& bounds,
             const PlatformerTraversalProfile& profile)
         {
-            if (!isFinite(bounds.position))
+            if (!isFinite(bounds.topLeft))
             {
                 throw std::invalid_argument("A resting body must have a finite position");
             }
@@ -80,8 +80,8 @@ namespace simple_platformer
                             continue;
                         }
                         const glm::vec2 offset =
-                            bounds.position -
-                            boundsAtSurface(tileSize, candidate, bounds.size).position;
+                            bounds.topLeft -
+                            boundsAtSurface(tileSize, candidate, bounds.size).topLeft;
                         const bool onWall =
                             surface == ClimbSurface::LeftWall || surface == ClimbSurface::RightWall;
                         const float across = std::abs(onWall ? offset.x : offset.y);
@@ -167,7 +167,7 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("A navigation target must be finite");
             }
-            if (!isFinite(body.position) || !isFinite(body.size) || body.size.x <= 0.0F ||
+            if (!isFinite(body.topLeft) || !isFinite(body.size) || body.size.x <= 0.0F ||
                 body.size.y <= 0.0F)
             {
                 throw std::invalid_argument("A flying body must be finite and positive-sized");

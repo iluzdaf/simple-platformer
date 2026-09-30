@@ -27,13 +27,13 @@ namespace simple_platformer
 
         void validateBounds(const TileMap& map, const Aabb& bounds, glm::vec2 displacement)
         {
-            if (!isFinite(bounds.position) || !isFinite(bounds.size) || !isFinite(displacement) ||
+            if (!isFinite(bounds.topLeft) || !isFinite(bounds.size) || !isFinite(displacement) ||
                 bounds.size.x <= 0.0F || bounds.size.y <= 0.0F)
             {
                 throw std::invalid_argument("Collision requires finite, positive-sized bounds");
             }
 
-            if (bounds.position.x < 0.0F || rightOf(bounds) > map.pixelWidth() ||
+            if (bounds.topLeft.x < 0.0F || rightOf(bounds) > map.pixelWidth() ||
                 bottomOf(bounds) > map.pixelHeight())
             {
                 throw std::invalid_argument("Collision bounds must begin inside the map walls");
@@ -123,12 +123,12 @@ namespace simple_platformer
             const int across = 1 - view.axis;
             const bool forward = requested > 0.0F;
             const float leadingEdge =
-                bounds.position[view.axis] + (forward ? bounds.size[view.axis] : 0.0F);
+                bounds.topLeft[view.axis] + (forward ? bounds.size[view.axis] : 0.0F);
             const int firstAcross =
-                std::max(0, firstOverlappingTile(map.tileSize(), bounds.position[across]));
+                std::max(0, firstOverlappingTile(map.tileSize(), bounds.topLeft[across]));
             const int lastAcross = std::min(
                 view.acrossCount - 1,
-                lastOverlappingTile(map.tileSize(), bounds.position[across] + bounds.size[across]));
+                lastOverlappingTile(map.tileSize(), bounds.topLeft[across] + bounds.size[across]));
             const int firstAlong = forward ? firstOverlappingTile(map.tileSize(), leadingEdge)
                                            : lastOverlappingTile(map.tileSize(), leadingEdge);
             const float finalLeadingEdge = leadingEdge + requested;
@@ -165,7 +165,7 @@ namespace simple_platformer
         CollisionContacts contacts;
         const AllowedMovement horizontal =
             allowedMovement(map, axisView(map, 0), bounds, displacement.x, SurfaceKind::Blocking);
-        bounds.position.x += horizontal.distance;
+        bounds.topLeft.x += horizontal.distance;
         if (horizontal.hitTile)
         {
             (displacement.x > 0.0F ? contacts.right : contacts.left) = true;
@@ -173,7 +173,7 @@ namespace simple_platformer
 
         const AllowedMovement vertical =
             allowedMovement(map, axisView(map, 1), bounds, displacement.y, SurfaceKind::Blocking);
-        bounds.position.y += vertical.distance;
+        bounds.topLeft.y += vertical.distance;
         if (vertical.hitTile)
         {
             (displacement.y > 0.0F ? contacts.ground : contacts.ceiling) = true;

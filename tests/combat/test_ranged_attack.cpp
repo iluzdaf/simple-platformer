@@ -57,7 +57,7 @@ TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][
     REQUIRE(projectile.owner == shooter);
     REQUIRE(projectile.team == simple_platformer::Team::Player);
     REQUIRE(projectile.velocity.x < 0.0F);
-    REQUIRE(projectile.bounds.position.x == 16.0F);
+    REQUIRE(projectile.bounds.topLeft.x == 16.0F);
     REQUIRE(projectile.bounds.size.x == 4.0F);
     REQUIRE(projectile.sprite.size.x == 8.0F);
 }

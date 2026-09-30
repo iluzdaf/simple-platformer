@@ -44,10 +44,10 @@ TEST_CASE("The camera locks to the target centre", "[render][camera]")
     REQUIRE_NEAR(camera.position.x, 100.0F);
 
     REQUIRE_NEAR(camera.position.y, 70.0F);
-    REQUIRE_NEAR(simple_platformer::worldToScreen(camera, target.position).x, 45.0F);
-    REQUIRE_NEAR(simple_platformer::worldToScreen(camera, target.position).y, 25.0F);
-    REQUIRE_NEAR(simple_platformer::screenToWorld(camera, {45.0F, 25.0F}).x, target.position.x);
-    REQUIRE_NEAR(simple_platformer::screenToWorld(camera, {45.0F, 25.0F}).y, target.position.y);
+    REQUIRE_NEAR(simple_platformer::worldToScreen(camera, target.topLeft).x, 45.0F);
+    REQUIRE_NEAR(simple_platformer::worldToScreen(camera, target.topLeft).y, 25.0F);
+    REQUIRE_NEAR(simple_platformer::screenToWorld(camera, {45.0F, 25.0F}).x, target.topLeft.x);
+    REQUIRE_NEAR(simple_platformer::screenToWorld(camera, {45.0F, 25.0F}).y, target.topLeft.y);
 }
 
 TEST_CASE("The camera clamps to every map edge", "[render][camera]")

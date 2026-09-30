@@ -25,7 +25,7 @@ namespace simple_platformer
 
         void validateBody(const Actor& actor)
         {
-            if (!isFinite(actor.body.bounds.position) || !isFinite(actor.body.bounds.size) ||
+            if (!isFinite(actor.body.bounds.topLeft) || !isFinite(actor.body.bounds.size) ||
                 !isFinite(actor.body.velocity) || actor.body.bounds.size.x <= 0.0F ||
                 actor.body.bounds.size.y <= 0.0F)
             {

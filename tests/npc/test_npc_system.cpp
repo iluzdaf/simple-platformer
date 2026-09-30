@@ -378,9 +378,9 @@ TEST_CASE("A patrol path produces intentions that move the flying NPC", "[npc][f
     REQUIRE(brain(world, npcId).state == simple_platformer::NpcState::Patrol);
     REQUIRE(actor(world, npcId).intentions.direction.x > 0.0F);
 
-    const float previousX = actor(world, npcId).body.bounds.position.x;
+    const float previousX = actor(world, npcId).body.bounds.topLeft.x;
     simple_platformer::updateActorMovement(map, world, 0.1F);
-    REQUIRE(actor(world, npcId).body.bounds.position.x > previousX);
+    REQUIRE(actor(world, npcId).body.bounds.topLeft.x > previousX);
 }
 
 TEST_CASE("A patrol swaps endpoints after reaching its destination", "[npc][fsm]")

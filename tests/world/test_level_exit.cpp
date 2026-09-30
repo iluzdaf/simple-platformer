@@ -90,10 +90,10 @@ TEST_CASE("An exit checks overlap and its required quantity", "[world][exit]")
     simple_platformer::updateLevelExit(world);
     REQUIRE_FALSE(world.levelComplete());
     tests::inventory(tests::player(world)).add(world.itemDefinition(1), 1);
-    tests::player(world).body.bounds.position.x = 60.0F;
+    tests::player(world).body.bounds.topLeft.x = 60.0F;
     simple_platformer::updateLevelExit(world);
     REQUIRE_FALSE(world.levelComplete());
-    tests::player(world).body.bounds.position.x = 16.0F;
+    tests::player(world).body.bounds.topLeft.x = 16.0F;
     simple_platformer::updateLevelExit(world);
     REQUIRE(simple_platformer::exitOpening(world));
     REQUIRE_FALSE(world.levelComplete());
@@ -114,7 +114,7 @@ TEST_CASE("An entered exit completes only once it has had time to open", "[world
     REQUIRE(exitOf(world).openedTimeSeconds == 0.5F);
 
     // Leaving the doorway afterwards changes nothing; the door is already opening.
-    tests::player(world).body.bounds.position.x = 80.0F;
+    tests::player(world).body.bounds.topLeft.x = 80.0F;
     world.advanceSimulationTime(simple_platformer::ExitOpenSeconds * 0.5F);
     simple_platformer::updateLevelExit(world);
     REQUIRE_FALSE(world.levelComplete());
@@ -174,10 +174,10 @@ TEST_CASE(
     REQUIRE_FALSE(world.levelComplete());
 
     // The player holds still in the doorway while it opens, whatever they intend.
-    const auto position = tests::player(world).body.bounds.position;
+    const auto position = tests::player(world).body.bounds.topLeft;
     tests::player(world).intentions.direction.x = 1.0F;
     simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
-    REQUIRE(tests::player(world).body.bounds.position == position);
+    REQUIRE(tests::player(world).body.bounds.topLeft == position);
 
     for (int tick = 0; tick < 60 && !world.levelComplete(); ++tick)
     {
@@ -185,7 +185,7 @@ TEST_CASE(
         simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
     }
     REQUIRE(world.levelComplete());
-    REQUIRE(tests::player(world).body.bounds.position == position);
+    REQUIRE(tests::player(world).body.bounds.topLeft == position);
 }
 
 TEST_CASE(
@@ -228,11 +228,11 @@ TEST_CASE("A locked exit records when the living player last stood in it", "[wor
         exitWith({{18.0F, 16.0F}, {16.0F, 16.0F}}, simple_platformer::ItemStack{3, 1}, false, 2));
     world.advanceSimulationTime(0.5F);
 
-    tests::player(world).body.bounds.position.x = 80.0F;
+    tests::player(world).body.bounds.topLeft.x = 80.0F;
     simple_platformer::updateLevelExit(world);
     REQUIRE_FALSE(exitOf(world).lastLockedTouchTimeSeconds.has_value());
 
-    tests::player(world).body.bounds.position.x = 16.0F;
+    tests::player(world).body.bounds.topLeft.x = 16.0F;
     simple_platformer::updateLevelExit(world);
     REQUIRE(exitOf(world).lastLockedTouchTimeSeconds == 0.5F);
     REQUIRE_FALSE(world.levelComplete());

@@ -131,20 +131,20 @@ TEST_CASE(
     simple_platformer::setPath(follower, tests::floorPath({2, 2}, {jump.step}));
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {80.0F, 0.0F}};
-    body.bounds.position.x -= 6.0F;
+    body.bounds.topLeft.x -= 6.0F;
     simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
     bool preparedForJump = false;
 
     for (int tick = 0; tick < 240 && !simple_platformer::pathComplete(follower); ++tick)
     {
-        const glm::vec2 positionBeforeFollowing = body.bounds.position;
+        const glm::vec2 positionBeforeFollowing = body.bounds.topLeft;
         const glm::vec2 velocityBeforeFollowing = body.velocity;
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
                 body, movement, follower, tests::FixedStepSeconds);
         preparedForJump = preparedForJump || follower.programElapsed == 0.0F;
 
-        REQUIRE(body.bounds.position == positionBeforeFollowing);
+        REQUIRE(body.bounds.topLeft == positionBeforeFollowing);
         REQUIRE(body.velocity == velocityBeforeFollowing);
         simple_platformer::updatePlatformerMovement(
             map, body, movement, intentions, tests::FixedStepSeconds);

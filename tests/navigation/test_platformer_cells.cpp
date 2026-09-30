@@ -33,7 +33,7 @@ TEST_CASE("A body may extend above the map but not through its walls", "[navigat
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
     const glm::vec2 tall{12.0F, 40.0F};
-    REQUIRE(simple_platformer::boxInCell(tests::TileSize, {1, 0}, tall).position.y < 0.0F);
+    REQUIRE(simple_platformer::boxInCell(tests::TileSize, {1, 0}, tall).topLeft.y < 0.0F);
     REQUIRE(simple_platformer::canStandAt(map, {1, 0}, tall));
 
     // Wider than a tile in the first column, the body would poke past the map's side.
@@ -49,6 +49,6 @@ TEST_CASE("A wall location may extend above the open map top", "[navigation][pla
     const glm::vec2 tall{12.0F, 40.0F};
     const simple_platformer::RouteLocation onWall{{2, 0}, ClimbSurface::LeftWall};
 
-    REQUIRE(simple_platformer::boundsAtSurface(tests::TileSize, onWall, tall).position.y < 0.0F);
+    REQUIRE(simple_platformer::boundsAtSurface(tests::TileSize, onWall, tall).topLeft.y < 0.0F);
     REQUIRE(simple_platformer::canOccupy(map, onWall, tall));
 }

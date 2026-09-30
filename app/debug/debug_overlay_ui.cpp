@@ -307,7 +307,7 @@ namespace simple_platformer
             const WindowViewport& viewport)
         {
             const glm::vec2 labelWorldPosition =
-                actor.sprite.has_value() ? actor.sprite->bounds.position : actor.collider.position;
+                actor.sprite.has_value() ? actor.sprite->bounds.topLeft : actor.collider.topLeft;
             ImVec2 labelPosition = screenPosition(labelWorldPosition, scene.cameraBounds, viewport);
             const float lineHeight = ImGui::GetTextLineHeight();
             const std::string actorLabel = labelFor(actor);
@@ -343,7 +343,7 @@ namespace simple_platformer
                 drawList, projectile.bounds, scene.cameraBounds, viewport, ProjectileColour);
 
             ImVec2 labelPosition =
-                screenPosition(projectile.bounds.position, scene.cameraBounds, viewport);
+                screenPosition(projectile.bounds.topLeft, scene.cameraBounds, viewport);
             labelPosition.y += projectile.bounds.size.y * viewport.scale.y + 2.0F;
             char label[64]{};
             if (projectile.owner.has_value())
@@ -370,7 +370,7 @@ namespace simple_platformer
             const WindowViewport& viewport)
         {
             drawWorldBounds(drawList, cell, scene.cameraBounds, viewport, WorldLabelColour);
-            const ImVec2 above = screenPosition(cell.position, scene.cameraBounds, viewport);
+            const ImVec2 above = screenPosition(cell.topLeft, scene.cameraBounds, viewport);
             drawShadowedText(
                 drawList,
                 {above.x, above.y - ImGui::GetTextLineHeight()},
@@ -387,7 +387,7 @@ namespace simple_platformer
         {
             constexpr float Gap = 2.0F;
             const Aabb outline{
-                actor.collider.position - glm::vec2{Gap, Gap},
+                actor.collider.topLeft - glm::vec2{Gap, Gap},
                 actor.collider.size + glm::vec2{Gap, Gap} * 2.0F};
             drawWorldBounds(drawList, outline, scene.cameraBounds, viewport, FollowedActorColour);
         }
@@ -404,8 +404,8 @@ namespace simple_platformer
                 text,
                 sizeof(text),
                 "pos:    %.1f, %.1f",
-                actor.collider.position.x,
-                actor.collider.position.y);
+                actor.collider.topLeft.x,
+                actor.collider.topLeft.y);
             drawTextLine(drawList, position, text, TextDetailColour, Indentation);
 
             if (actor.sprite.has_value())
@@ -501,7 +501,7 @@ namespace simple_platformer
                 CameraDeadZoneColour);
             drawShadowedText(
                 *drawList,
-                screenPosition(scene.cameraDeadZone.position, scene.cameraBounds, *viewport),
+                screenPosition(scene.cameraDeadZone.topLeft, scene.cameraBounds, *viewport),
                 CameraDeadZoneColour,
                 "camera dead zone");
         }
@@ -570,7 +570,7 @@ namespace simple_platformer
                     *drawList, pickup.bounds, scene.cameraBounds, *viewport, PickupColour);
                 drawShadowedText(
                     *drawList,
-                    screenPosition(pickup.bounds.position, scene.cameraBounds, *viewport),
+                    screenPosition(pickup.bounds.topLeft, scene.cameraBounds, *viewport),
                     PickupColour,
                     pickup.itemName.c_str());
             }

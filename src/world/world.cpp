@@ -29,7 +29,7 @@ namespace simple_platformer
     {
         void validateProjectile(const simple_platformer::Projectile& projectile)
         {
-            if (!isFinite(projectile.bounds.position) || !isFinite(projectile.bounds.size) ||
+            if (!isFinite(projectile.bounds.topLeft) || !isFinite(projectile.bounds.size) ||
                 projectile.bounds.size.x <= 0.0F || projectile.bounds.size.y <= 0.0F ||
                 !isFinite(projectile.velocity) || projectile.damage <= 0 ||
                 !isFinitePositive(projectile.lifetimeRemaining) ||

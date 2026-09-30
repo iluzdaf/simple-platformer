@@ -82,8 +82,8 @@ namespace
             lowest = glm::min(lowest, point);
             highest = glm::max(highest, point);
         }
-        REQUIRE(near(placement.visible.position.x, lowest.x));
-        REQUIRE(near(placement.visible.position.y, lowest.y));
+        REQUIRE(near(placement.visible.topLeft.x, lowest.x));
+        REQUIRE(near(placement.visible.topLeft.y, lowest.y));
         REQUIRE(near(simple_platformer::rightOf(placement.visible), highest.x));
         REQUIRE(near(simple_platformer::bottomOf(placement.visible), highest.y));
     }
@@ -98,9 +98,9 @@ TEST_CASE("A sprite off every surface stands on the body's feet unturned", "[ren
     REQUIRE(placement.flipHorizontal);
     const simple_platformer::Aabb expected =
         simple_platformer::spriteBounds(actor.body.bounds, tests::sprite(actor));
-    REQUIRE(placement.drawn.position == expected.position);
+    REQUIRE(placement.drawn.topLeft == expected.topLeft);
     REQUIRE(placement.drawn.size == expected.size);
-    REQUIRE(placement.visible.position == expected.position);
+    REQUIRE(placement.visible.topLeft == expected.topLeft);
 }
 
 TEST_CASE("A climber's sprite stands its feet on the surface it holds", "[render][sprite][climb]")
@@ -128,7 +128,7 @@ TEST_CASE("A climber's sprite stands its feet on the surface it holds", "[render
         switch (held.surface)
         {
         case ClimbSurface::LeftWall:
-            REQUIRE(near(placement.visible.position.x, body.position.x));
+            REQUIRE(near(placement.visible.topLeft.x, body.topLeft.x));
             REQUIRE(near(visibleCentre.y, bodyCentre.y));
             break;
         case ClimbSurface::RightWall:
@@ -137,7 +137,7 @@ TEST_CASE("A climber's sprite stands its feet on the surface it holds", "[render
             REQUIRE(near(visibleCentre.y, bodyCentre.y));
             break;
         case ClimbSurface::Ceiling:
-            REQUIRE(near(placement.visible.position.y, body.position.y));
+            REQUIRE(near(placement.visible.topLeft.y, body.topLeft.y));
             REQUIRE(near(visibleCentre.x, bodyCentre.x));
             break;
         case ClimbSurface::None:

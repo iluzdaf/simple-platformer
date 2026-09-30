@@ -76,7 +76,7 @@ TEST_CASE(
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::inventory(tests::player(world)).count(1) == 3);
     REQUIRE(world.pickups().size() == 1);
-    REQUIRE(world.pickups().front().body.bounds.position.x == 80.0F);
+    REQUIRE(world.pickups().front().body.bounds.topLeft.x == 80.0F);
     REQUIRE(requests.empty());
 }
 
@@ -149,7 +149,7 @@ TEST_CASE("A pickup falls until it rests on a tile", "[world][pickups]")
     simple_platformer::updatePickupMovement(map, world, 0.1F);
 
     REQUIRE_NEAR(pickup.body.velocity.y, simple_platformer::DefaultGravity * 0.1F);
-    REQUIRE_NEAR(pickup.body.bounds.position.y, 4.0F + pickup.body.velocity.y * 0.1F);
+    REQUIRE_NEAR(pickup.body.bounds.topLeft.y, 4.0F + pickup.body.velocity.y * 0.1F);
 
     for (int step = 0; step < 10; ++step)
     {
@@ -157,9 +157,9 @@ TEST_CASE("A pickup falls until it rests on a tile", "[world][pickups]")
     }
 
     // Resting on the floor, whose top edge is two tiles down.
-    REQUIRE_NEAR(pickup.body.bounds.position.y, 24.0F);
+    REQUIRE_NEAR(pickup.body.bounds.topLeft.y, 24.0F);
     REQUIRE_NEAR(pickup.body.velocity.y, 0.0F);
-    REQUIRE_NEAR(pickup.body.bounds.position.x, 4.0F);
+    REQUIRE_NEAR(pickup.body.bounds.topLeft.x, 4.0F);
 }
 
 TEST_CASE("A pickup falls through the tile that breaks beneath it", "[world][pickups]")
@@ -172,7 +172,7 @@ TEST_CASE("A pickup falls through the tile that breaks beneath it", "[world][pic
     const simple_platformer::Pickup& pickup = world.pickups().front();
 
     simple_platformer::updatePickupMovement(map, world, 0.1F);
-    REQUIRE_NEAR(pickup.body.bounds.position.y, 8.0F);
+    REQUIRE_NEAR(pickup.body.bounds.topLeft.y, 8.0F);
 
     REQUIRE(map.breakTile({0, 1}));
     for (int step = 0; step < 12; ++step)
@@ -180,7 +180,7 @@ TEST_CASE("A pickup falls through the tile that breaks beneath it", "[world][pic
         simple_platformer::updatePickupMovement(map, world, 0.1F);
     }
 
-    REQUIRE_NEAR(pickup.body.bounds.position.y, 40.0F);
+    REQUIRE_NEAR(pickup.body.bounds.topLeft.y, 40.0F);
     REQUIRE_NEAR(pickup.body.velocity.y, 0.0F);
 }
 

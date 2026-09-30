@@ -52,7 +52,7 @@ namespace simple_platformer
                 const CellRange range = footprint.value_or(CellRange{});
                 const Aabb first = cellBounds(tileSize, range.first);
                 const Aabb last = cellBounds(tileSize, range.last);
-                info.footprint = Aabb{first.position, last.position + last.size - first.position};
+                info.footprint = Aabb{first.topLeft, last.topLeft + last.size - first.topLeft};
             }
             const std::vector<RouteConnection>* cached = cache.cachedConnections(cell, profile);
             if (cached != nullptr)

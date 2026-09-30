@@ -35,8 +35,8 @@ TEST_CASE("Moving an AABB by its feet keeps its size", "[math][aabb]")
 
     simple_platformer::moveFeetTo(box, {40.0F, 128.0F});
 
-    REQUIRE_NEAR(box.position.x, 34.0F);
-    REQUIRE_NEAR(box.position.y, 104.0F);
+    REQUIRE_NEAR(box.topLeft.x, 34.0F);
+    REQUIRE_NEAR(box.topLeft.y, 104.0F);
     REQUIRE(box.size == glm::vec2{12.0F, 24.0F});
 }
 
@@ -44,8 +44,8 @@ TEST_CASE("An AABB can be built around its centre", "[math][aabb]")
 {
     const Aabb box = simple_platformer::boxCenteredOn({16.0F, 32.0F}, {12.0F, 24.0F});
 
-    REQUIRE_NEAR(box.position.x, 10.0F);
-    REQUIRE_NEAR(box.position.y, 20.0F);
+    REQUIRE_NEAR(box.topLeft.x, 10.0F);
+    REQUIRE_NEAR(box.topLeft.y, 20.0F);
     REQUIRE(box.size == glm::vec2{12.0F, 24.0F});
     REQUIRE_NEAR(simple_platformer::centerOf(box).x, 16.0F);
     REQUIRE_NEAR(simple_platformer::centerOf(box).y, 32.0F);
@@ -55,8 +55,8 @@ TEST_CASE("An arbitrary-sized AABB can be built standing on its feet", "[math][c
 {
     const Aabb box = simple_platformer::boxStandingOn({40.0F, 128.0F}, {12.0F, 24.0F});
 
-    REQUIRE_NEAR(box.position.x, 34.0F);
-    REQUIRE_NEAR(box.position.y, 104.0F);
+    REQUIRE_NEAR(box.topLeft.x, 34.0F);
+    REQUIRE_NEAR(box.topLeft.y, 104.0F);
     REQUIRE(box.size == glm::vec2{12.0F, 24.0F});
     REQUIRE_NEAR(simple_platformer::feetOf(box).x, 40.0F);
     REQUIRE_NEAR(simple_platformer::feetOf(box).y, 128.0F);
@@ -119,7 +119,7 @@ TEST_CASE("The tile size scales every cell conversion", "[math][coordinates]")
     REQUIRE(simple_platformer::cellAtFeet(32, {48.0F, 64.0F}) == Cell{1, 1});
     REQUIRE(simple_platformer::feetInCell(32, {1, 1}) == glm::vec2{48.0F, 64.0F});
     REQUIRE(
-        simple_platformer::boxInCell(32, {1, 1}, {12.0F, 20.0F}).position ==
+        simple_platformer::boxInCell(32, {1, 1}, {12.0F, 20.0F}).topLeft ==
         glm::vec2{42.0F, 44.0F});
 }
 

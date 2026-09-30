@@ -117,7 +117,7 @@ namespace simple_platformer
             const glm::vec2 end = start + projectile.velocity * travelTime;
             const ProjectileHit hit = findEarliestHit(map, world, projectile, start, end);
             const glm::vec2 finalCenter = start + (end - start) * hit.segmentTime;
-            projectile.bounds.position = finalCenter - projectile.bounds.size * 0.5F;
+            projectile.bounds.topLeft = finalCenter - projectile.bounds.size * 0.5F;
 
             if (hit.actor.has_value())
             {

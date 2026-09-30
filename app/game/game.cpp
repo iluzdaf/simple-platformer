@@ -299,7 +299,7 @@ namespace simple_platformer
             return std::nullopt;
         }
         const Aabb& bounds = levelExit.value().bounds;
-        const glm::vec2 topCenter = {bounds.position.x + bounds.size.x * 0.5F, bounds.position.y};
+        const glm::vec2 topCenter = {bounds.topLeft.x + bounds.size.x * 0.5F, bounds.topLeft.y};
         return worldToScreen(currentCamera(), topCenter);
     }
 

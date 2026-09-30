@@ -8,17 +8,17 @@ namespace simple_platformer
 {
     float rightOf(const Aabb& box)
     {
-        return box.position.x + box.size.x;
+        return box.topLeft.x + box.size.x;
     }
 
     float bottomOf(const Aabb& box)
     {
-        return box.position.y + box.size.y;
+        return box.topLeft.y + box.size.y;
     }
 
     glm::vec2 centerOf(const Aabb& box)
     {
-        return box.position + box.size * 0.5F;
+        return box.topLeft + box.size * 0.5F;
     }
 
     glm::vec2 feetOf(const Aabb& box)
@@ -49,19 +49,19 @@ namespace simple_platformer
     CellRange cellsCovered(int tileSize, const Aabb& box)
     {
         return {
-            cellAt(tileSize, {box.position.x + EdgeTolerance, box.position.y + EdgeTolerance}),
+            cellAt(tileSize, {box.topLeft.x + EdgeTolerance, box.topLeft.y + EdgeTolerance}),
             cellAt(tileSize, {rightOf(box) - EdgeTolerance, bottomOf(box) - EdgeTolerance})};
     }
 
     bool overlaps(const Aabb& first, const Aabb& second)
     {
-        return first.position.x < rightOf(second) && rightOf(first) > second.position.x &&
-               first.position.y < bottomOf(second) && bottomOf(first) > second.position.y;
+        return first.topLeft.x < rightOf(second) && rightOf(first) > second.topLeft.x &&
+               first.topLeft.y < bottomOf(second) && bottomOf(first) > second.topLeft.y;
     }
 
     bool contains(const Aabb& box, glm::vec2 point)
     {
-        return point.x >= box.position.x && point.y >= box.position.y && point.x < rightOf(box) &&
+        return point.x >= box.topLeft.x && point.y >= box.topLeft.y && point.x < rightOf(box) &&
                point.y < bottomOf(box);
     }
 }

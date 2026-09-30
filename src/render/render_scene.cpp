@@ -78,7 +78,7 @@ namespace simple_platformer
         float pickupPhaseOffset(int tileSize, const Aabb& bounds)
         {
             // Spread level-start pickups across four phases instead of bobbing in lockstep.
-            const Cell cell = cellAt(tileSize, bounds.position);
+            const Cell cell = cellAt(tileSize, bounds.topLeft);
             int phaseIndex = (cell.x + cell.y) % PickupBobPhaseCount;
             if (phaseIndex < 0)
             {
@@ -149,12 +149,12 @@ namespace simple_platformer
                 const Sprite& sprite =
                     pickup.sprite ? *pickup.sprite : world.itemDefinition(pickup.stack.item).icon;
                 Aabb bounds = spriteBounds(pickup.body.bounds, sprite);
-                bounds.position.y += pickupVerticalOffset(
+                bounds.topLeft.y += pickupVerticalOffset(
                     static_cast<float>(world.simulationTimeSeconds()) +
                     pickupPhaseOffset(map.tileSize(), pickup.body.bounds));
                 scene.sprites.push_back(
                     {sprite.textureId,
-                     worldToScreen(camera, bounds.position),
+                     worldToScreen(camera, bounds.topLeft),
                      bounds.size,
                      sprite.region,
                      false,
@@ -184,7 +184,7 @@ namespace simple_platformer
                                     : 0.0F;
             scene.sprites.push_back(
                 {sprite.textureId,
-                 worldToScreen(camera, bounds.position),
+                 worldToScreen(camera, bounds.topLeft),
                  bounds.size,
                  sprite.region,
                  false,
@@ -212,7 +212,7 @@ namespace simple_platformer
                 const ActorSpritePlacement placement = placeActorSprite(actor);
                 scene.sprites.push_back(
                     {actor.sprite->textureId,
-                     worldToScreen(camera, placement.drawn.position),
+                     worldToScreen(camera, placement.drawn.topLeft),
                      placement.drawn.size,
                      actor.sprite->region,
                      placement.flipHorizontal,

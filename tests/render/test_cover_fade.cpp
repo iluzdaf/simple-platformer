@@ -167,7 +167,7 @@ TEST_CASE("An NPC that saw the player this update exposes them", "[render][cover
     REQUIRE_NEAR(shown(world, player), 1.0F);
 
     // Move the NPC out of sight: the next senses update withdraws the exposure.
-    world.actors().back().body.bounds.position.x = 0.0F;
+    world.actors().back().body.bounds.topLeft.x = 0.0F;
     simple_platformer::updateNpcSenses(map, world, tests::FixedStepSeconds);
     simple_platformer::updateCoverFades(map, world, QuarterFade);
     REQUIRE(shown(world, player) < 1.0F);

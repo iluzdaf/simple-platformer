@@ -61,14 +61,14 @@ namespace simple_platformer
         {
         case ClimbSurface::Ceiling:
             return turned(
-                fromFeet ? glm::vec2{centre.x, body.position.y + feetToCentre} : centre,
+                fromFeet ? glm::vec2{centre.x, body.topLeft.y + feetToCentre} : centre,
                 sprite.size,
                 glm::pi<float>(),
                 !facingLeft,
                 false);
         case ClimbSurface::LeftWall:
             return turned(
-                fromFeet ? glm::vec2{body.position.x + feetToCentre, centre.y} : centre,
+                fromFeet ? glm::vec2{body.topLeft.x + feetToCentre, centre.y} : centre,
                 sprite.size,
                 glm::half_pi<float>(),
                 headingUp,

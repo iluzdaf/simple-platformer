@@ -55,7 +55,7 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
     const simple_platformer::NpcBrain& brain = tests::brain(storedNpc);
     REQUIRE(brain.target == playerId);
     REQUIRE(brain.state == simple_platformer::NpcState::Chase);
-    REQUIRE(storedNpc.body.bounds.position.x > 16.0F);
+    REQUIRE(storedNpc.body.bounds.topLeft.x > 16.0F);
 }
 
 TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][simulation]")
@@ -85,7 +85,7 @@ TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][
     REQUIRE(world.projectiles().front().owner == npcId);
     REQUIRE(world.projectiles().front().velocity.x > 0.0F);
     simple_platformer::Actor& storedNpc = tests::actor(world, npcId);
-    REQUIRE(storedNpc.body.bounds.position.x == 16.0F);
+    REQUIRE(storedNpc.body.bounds.topLeft.x == 16.0F);
 }
 
 TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world][simulation]")

@@ -73,7 +73,7 @@ namespace simple_platformer
         void includeCellsAroundBounds(CellRange& accumulatedCells, int tileSize, const Aabb& bounds)
         {
             const glm::vec2 margin{static_cast<float>(tileSize), static_cast<float>(tileSize)};
-            const Aabb around{bounds.position - margin, bounds.size + 2.0F * margin};
+            const Aabb around{bounds.topLeft - margin, bounds.size + 2.0F * margin};
             accumulatedCells = unionOf(accumulatedCells, cellsCovered(tileSize, around));
         }
 
@@ -119,7 +119,7 @@ namespace simple_platformer
 
         bool touchesHorizontalMapEdge(const TileMap& map, const Aabb& bounds, float direction)
         {
-            return (direction < 0.0F && bounds.position.x <= EdgeTolerance) ||
+            return (direction < 0.0F && bounds.topLeft.x <= EdgeTolerance) ||
                    (direction > 0.0F && rightOf(bounds) >= map.pixelWidth() - EdgeTolerance);
         }
 
@@ -373,8 +373,8 @@ namespace simple_platformer
             }
             const bool toFloor = surface == ClimbSurface::None;
             const float tolerance = toFloor ? FloorArrivalDistance : ClimbArrivalDistance;
-            if (std::abs(body.bounds.position.x - target.position.x) > tolerance ||
-                std::abs(body.bounds.position.y - target.position.y) > tolerance)
+            if (std::abs(body.bounds.topLeft.x - target.topLeft.x) > tolerance ||
+                std::abs(body.bounds.topLeft.y - target.topLeft.y) > tolerance)
             {
                 return false;
             }
@@ -393,7 +393,7 @@ namespace simple_platformer
         {
             InputIntentions intentions;
             intentions.climbRequested = true;
-            const glm::vec2 offset = target.position - body.bounds.position;
+            const glm::vec2 offset = target.topLeft - body.bounds.topLeft;
             if (from.surface == ClimbSurface::None)
             {
                 if (!touchesSurface(

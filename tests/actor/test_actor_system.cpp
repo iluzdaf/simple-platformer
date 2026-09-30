@@ -34,7 +34,7 @@ TEST_CASE("Actor movement consumes its intentions", "[actor][movement]")
     simple_platformer::updateActorMovement(map, world, 0.1F);
 
     simple_platformer::Actor& moved = tests::actor(world, id);
-    REQUIRE(moved.body.bounds.position.x > 16.0F);
+    REQUIRE(moved.body.bounds.topLeft.x > 16.0F);
     REQUIRE(moved.body.velocity.x > 0.0F);
     REQUIRE(moved.facing == simple_platformer::Facing::Right);
 }
@@ -57,7 +57,7 @@ TEST_CASE("An actor's optional climb component uses its climb request", "[actor]
     REQUIRE(
         tests::surfaceClimb(tests::actor(world, id)).surface ==
         simple_platformer::ClimbSurface::LeftWall);
-    REQUIRE(moved.body.bounds.position.y < 36.0F);
+    REQUIRE(moved.body.bounds.topLeft.y < 36.0F);
 }
 
 TEST_CASE("Dying actors ignore intentions but continue falling", "[actor][movement][lifecycle]")
@@ -75,9 +75,9 @@ TEST_CASE("Dying actors ignore intentions but continue falling", "[actor][moveme
     simple_platformer::updateActorMovement(map, world, 0.1F);
 
     simple_platformer::Actor& moved = tests::actor(world, id);
-    REQUIRE(moved.body.bounds.position.x == 16.0F);
+    REQUIRE(moved.body.bounds.topLeft.x == 16.0F);
     REQUIRE(moved.body.velocity.x == 0.0F);
-    REQUIRE(moved.body.bounds.position.y > 4.0F);
+    REQUIRE(moved.body.bounds.topLeft.y > 4.0F);
     REQUIRE(moved.body.velocity.y > 0.0F);
 }
 
@@ -122,7 +122,7 @@ TEST_CASE("Fast walking accelerates and stops before a ledge", "[actor][movement
     REQUIRE(tests::platformerMovement(tests::actor(world, id)).blocked);
     REQUIRE(tests::platformerMovement(tests::actor(world, id)).grounded);
     REQUIRE(tests::actor(world, id).body.velocity.x == 0.0F);
-    REQUIRE(tests::actor(world, id).body.bounds.position.x + 12.0F <= 48.0F);
+    REQUIRE(tests::actor(world, id).body.bounds.topLeft.x + 12.0F <= 48.0F);
 
     tests::actor(world, id).intentions.direction.x = -1.0F;
     simple_platformer::updateActorMovement(map, world, 0.05F);
@@ -145,7 +145,7 @@ TEST_CASE("Walking reports a wall independently of combat", "[actor][movement]")
     }
     REQUIRE(tests::platformerMovement(tests::actor(world, id)).blocked);
     REQUIRE(tests::actor(world, id).body.velocity.x == 0.0F);
-    REQUIRE(tests::actor(world, id).body.bounds.position.x <= 52.0F);
+    REQUIRE(tests::actor(world, id).body.bounds.topLeft.x <= 52.0F);
 
     tests::actor(world, id).intentions = {};
     simple_platformer::updateActorMovement(map, world, 0.1F);

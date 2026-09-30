@@ -35,7 +35,7 @@ TEST_CASE("A climb request holds and moves along a wall", "[movement][climb]")
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
 
     REQUIRE(climb.surface == ClimbSurface::LeftWall);
-    REQUIRE_NEAR(body.bounds.position.y, 30.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 30.0F);
     REQUIRE_NEAR(body.velocity.y, -60.0F);
     REQUIRE_FALSE(movement.grounded);
     REQUIRE(climb.wallHeading == WallHeading::Up);
@@ -43,12 +43,12 @@ TEST_CASE("A climb request holds and moves along a wall", "[movement][climb]")
     intentions.direction = {};
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
     REQUIRE(climb.surface == ClimbSurface::LeftWall);
-    REQUIRE_NEAR(body.bounds.position.y, 30.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 30.0F);
     REQUIRE_NEAR(body.velocity.y, 0.0F);
 
     intentions.direction.y = 1.0F;
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
-    REQUIRE_NEAR(body.bounds.position.y, 36.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 36.0F);
     REQUIRE(climb.wallHeading == WallHeading::Down);
 
     // Holding still keeps the way it last climbed.
@@ -93,7 +93,7 @@ TEST_CASE("The opposite side of a wall can also be climbed", "[movement][climb]"
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
 
     REQUIRE(climb.surface == ClimbSurface::RightWall);
-    REQUIRE_NEAR(body.bounds.position.y, 30.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 30.0F);
 }
 
 TEST_CASE("A ceiling climb moves horizontally without gravity", "[movement][climb]")
@@ -111,8 +111,8 @@ TEST_CASE("A ceiling climb moves horizontally without gravity", "[movement][clim
     simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
 
     REQUIRE(climb.surface == ClimbSurface::Ceiling);
-    REQUIRE_NEAR(body.bounds.position.x, 38.0F);
-    REQUIRE_NEAR(body.bounds.position.y, 32.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.x, 38.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 32.0F);
     REQUIRE_NEAR(body.velocity.x, 60.0F);
     REQUIRE_NEAR(body.velocity.y, 0.0F);
 }
@@ -130,14 +130,14 @@ TEST_CASE("A wall climber can turn onto a ceiling", "[movement][climb]")
     intentions.direction.y = -1.0F;
     simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
     REQUIRE(climb.surface == ClimbSurface::LeftWall);
-    REQUIRE_NEAR(body.bounds.position.y, 32.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 32.0F);
 
     intentions.direction = {1.0F, 0.0F};
     simple_platformer::updateSurfaceClimbMovement(map, body, movement, climb, intentions, 0.1F);
 
     REQUIRE(climb.surface == ClimbSurface::Ceiling);
-    REQUIRE_NEAR(body.bounds.position.x, 54.0F);
-    REQUIRE_NEAR(body.bounds.position.y, 32.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.x, 54.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 32.0F);
 }
 
 TEST_CASE("Releasing climb resumes ordinary falling", "[movement][climb]")
@@ -154,7 +154,7 @@ TEST_CASE("Releasing climb resumes ordinary falling", "[movement][climb]")
     simple_platformer::updateSurfaceClimbMovement(Wall, body, movement, climb, intentions, 0.1F);
 
     REQUIRE(climb.surface == ClimbSurface::None);
-    REQUIRE(body.bounds.position.y > 36.0F);
+    REQUIRE(body.bounds.topLeft.y > 36.0F);
     REQUIRE(body.velocity.y > 0.0F);
 }
 

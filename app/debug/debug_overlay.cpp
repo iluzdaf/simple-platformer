@@ -261,7 +261,7 @@ namespace simple_platformer
             cameraController.deadZoneSize};
         const auto margin = static_cast<float>(map.tileSize());
         const Aabb view{
-            scene.cameraBounds.position - glm::vec2{margin, margin},
+            scene.cameraBounds.topLeft - glm::vec2{margin, margin},
             scene.cameraBounds.size + glm::vec2{margin, margin} * 2.0F};
         const std::vector<const Actor*> shown = actorsInView(world, view);
         scene.actors.reserve(shown.size());

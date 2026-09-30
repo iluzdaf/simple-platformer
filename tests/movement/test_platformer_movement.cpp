@@ -79,7 +79,7 @@ TEST_CASE("Ground movement accelerates and decelerates", "[movement][platformer]
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE_NEAR(body.velocity.x, 20.0F);
-    REQUIRE_NEAR(body.bounds.position.x, 82.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.x, 82.0F);
     REQUIRE(movement.grounded);
 
     intentions.direction.x = 0.0F;
@@ -113,7 +113,7 @@ TEST_CASE("Ledge avoidance cannot skip a gap in either direction", "[movement][p
 
     REQUIRE(movement.blocked);
     REQUIRE(movement.grounded);
-    REQUIRE(body.bounds.position.x == start);
+    REQUIRE(body.bounds.topLeft.x == start);
     REQUIRE(body.velocity.x == 0.0F);
 }
 
@@ -139,7 +139,7 @@ TEST_CASE("Ledge avoidance is opt-in and does not prevent jumping", "[movement][
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE_FALSE(movement.blocked);
-    REQUIRE(body.bounds.position.x > 36.0F);
+    REQUIRE(body.bounds.topLeft.x > 36.0F);
     REQUIRE(body.velocity.x > 0.0F);
 }
 
@@ -193,7 +193,7 @@ TEST_CASE("Grounded actors can jump", "[movement][platformer]")
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE_NEAR(body.velocity.y, -190.0F);
-    REQUIRE(body.bounds.position.y < FloorTop - body.bounds.size.y);
+    REQUIRE(body.bounds.topLeft.y < FloorTop - body.bounds.size.y);
     REQUIRE_FALSE(movement.grounded);
     REQUIRE(movement.coyoteRemaining == 0.0F);
     REQUIRE(movement.jumpBufferRemaining == 0.0F);
@@ -287,7 +287,7 @@ TEST_CASE("Releasing jump early produces a shorter jump", "[movement][platformer
 
     REQUIRE_NEAR(heldBody.velocity.y, -90.0F);
     REQUIRE_NEAR(releasedBody.velocity.y, -70.0F);
-    REQUIRE(releasedBody.bounds.position.y > heldBody.bounds.position.y);
+    REQUIRE(releasedBody.bounds.topLeft.y > heldBody.bounds.topLeft.y);
 }
 
 TEST_CASE("Falling speed is limited by terminal velocity", "[movement][platformer]")

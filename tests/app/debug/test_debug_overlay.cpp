@@ -46,14 +46,14 @@ TEST_CASE("Debug overlay data supports actors without presentation components", 
     const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
         world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
-    REQUIRE(debug.cameraBounds.position == camera.position);
+    REQUIRE(debug.cameraBounds.topLeft == camera.position);
     REQUIRE(debug.cameraBounds.size == camera.viewportSize);
-    REQUIRE(debug.cameraDeadZone.position == glm::vec2{124.0F, 75.0F});
+    REQUIRE(debug.cameraDeadZone.topLeft == glm::vec2{124.0F, 75.0F});
     REQUIRE(debug.cameraDeadZone.size == cameraController.deadZoneSize);
     REQUIRE(debug.actors.size() == 1);
     REQUIRE(debug.actors.front().id == id);
     REQUIRE(debug.actors.front().kind == simple_platformer::ActorDebugKind::Actor);
-    REQUIRE(debug.actors.front().collider.position == actor.body.bounds.position);
+    REQUIRE(debug.actors.front().collider.topLeft == actor.body.bounds.topLeft);
     REQUIRE(debug.actors.front().collider.size == actor.body.bounds.size);
     REQUIRE_FALSE(debug.actors.front().sprite.has_value());
     REQUIRE_FALSE(debug.actors.front().animation.has_value());
@@ -117,7 +117,7 @@ TEST_CASE("Debug overlay data marks a breakable tile under the cursor", "[app][d
     const std::optional<simple_platformer::Aabb> glass =
         overlayWithCursor(glm::vec2{20.0F, 20.0F}).breakableCellUnderCursor;
     REQUIRE(glass.has_value());
-    REQUIRE(glass.value_or(simple_platformer::Aabb{}).position == glm::vec2{16.0F, 16.0F});
+    REQUIRE(glass.value_or(simple_platformer::Aabb{}).topLeft == glm::vec2{16.0F, 16.0F});
     REQUIRE(glass.value_or(simple_platformer::Aabb{}).size == glm::vec2{16.0F, 16.0F});
 }
 
@@ -182,7 +182,7 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     REQUIRE(playerDebug.sprite.has_value());
     const simple_platformer::ActorSpriteDebugInfo spriteDebug =
         playerDebug.sprite.value_or(simple_platformer::ActorSpriteDebugInfo{});
-    REQUIRE(spriteDebug.bounds.position == glm::vec2{22.0F, 184.0F});
+    REQUIRE(spriteDebug.bounds.topLeft == glm::vec2{22.0F, 184.0F});
     REQUIRE(spriteDebug.bounds.size == glm::vec2{32.0F, 24.0F});
     REQUIRE(spriteDebug.atlasFrame == 7);
     REQUIRE(spriteDebug.atlasPosition == region.position);
@@ -225,7 +225,7 @@ TEST_CASE("Debug overlay data describes visible and remembered targets", "[app][
     world.addActor(visibleNpc);
 
     simple_platformer::Actor rememberedNpc = visibleNpc;
-    rememberedNpc.body.bounds.position = {80.0F, 20.0F};
+    rememberedNpc.body.bounds.topLeft = {80.0F, 20.0F};
     tests::perception(rememberedNpc).targetVisible = false;
     tests::brain(rememberedNpc).lastKnownTargetFeet = {40.0F, 32.0F};
     tests::brain(rememberedNpc).targetMemoryRemaining = 0.6F;
@@ -264,7 +264,7 @@ TEST_CASE("Debug overlay data describes projectiles", "[app][debug]")
     world.addProjectile(owned);
 
     simple_platformer::Projectile unowned = owned;
-    unowned.bounds.position = {48.0F, 32.0F};
+    unowned.bounds.topLeft = {48.0F, 32.0F};
     unowned.lifetimeRemaining = 0.5F;
     unowned.owner = std::nullopt;
     world.addProjectile(unowned);
@@ -276,7 +276,7 @@ TEST_CASE("Debug overlay data describes projectiles", "[app][debug]")
         world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.projectiles.size() == 2);
-    REQUIRE(debug.projectiles[0].bounds.position == owned.bounds.position);
+    REQUIRE(debug.projectiles[0].bounds.topLeft == owned.bounds.topLeft);
     REQUIRE(debug.projectiles[0].bounds.size == owned.bounds.size);
     REQUIRE(debug.projectiles[0].lifetimeRemaining == 1.25F);
     REQUIRE(debug.projectiles[0].owner == simple_platformer::ActorId{7});
@@ -297,7 +297,7 @@ TEST_CASE("Debug overlay data describes pickup bounds", "[app][debug]")
         world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
     REQUIRE(debug.pickups.size() == 1);
-    REQUIRE(debug.pickups.front().bounds.position == bounds.position);
+    REQUIRE(debug.pickups.front().bounds.topLeft == bounds.topLeft);
     REQUIRE(debug.pickups.front().bounds.size == bounds.size);
     REQUIRE(debug.pickups.front().itemName == "Coin");
 }
@@ -314,7 +314,7 @@ TEST_CASE("Debug overlay data shows only an active bite hitbox", "[app][debug]")
     tests::bite(activeBiter).phaseTimeRemaining = 0.05F;
 
     simple_platformer::Actor recoveringBiter = activeBiter;
-    recoveringBiter.body.bounds.position = {48.0F, 20.0F};
+    recoveringBiter.body.bounds.topLeft = {48.0F, 20.0F};
     tests::bite(recoveringBiter).phase = simple_platformer::BitePhase::Recovery;
 
     simple_platformer::World world;
@@ -330,7 +330,7 @@ TEST_CASE("Debug overlay data shows only an active bite hitbox", "[app][debug]")
     REQUIRE(debug.actors[0].biteHitbox.has_value());
     const simple_platformer::Aabb hitbox =
         debug.actors[0].biteHitbox.value_or(simple_platformer::Aabb{});
-    REQUIRE(hitbox.position == glm::vec2{32.0F, 22.0F});
+    REQUIRE(hitbox.topLeft == glm::vec2{32.0F, 22.0F});
     REQUIRE(hitbox.size == glm::vec2{10.0F, 8.0F});
     REQUIRE_FALSE(debug.actors[1].biteHitbox.has_value());
 }
@@ -363,7 +363,7 @@ TEST_CASE("The overlay shows only what the camera can see", "[app][debug]")
     shown.sprite.size = {4.0F, 2.0F};
     world.addProjectile(shown);
     simple_platformer::Projectile hidden = shown;
-    hidden.bounds.position = {20.0F, edge.y + tile * 2.0F};
+    hidden.bounds.topLeft = {20.0F, edge.y + tile * 2.0F};
     world.addProjectile(hidden);
     world.addPickup({{{{20.0F, 40.0F}, {8.0F, 8.0F}}}, {1, 1}});
     world.addPickup({{{{20.0F, edge.y + tile * 2.0F}, {8.0F, 8.0F}}}, {1, 1}});
@@ -378,7 +378,7 @@ TEST_CASE("The overlay shows only what the camera can see", "[app][debug]")
     REQUIRE(debug.actors.size() == 1);
     REQUIRE(debug.actors.front().id == beyondEdge);
     REQUIRE(debug.projectiles.size() == 1);
-    REQUIRE(debug.projectiles.front().bounds.position == shown.bounds.position);
+    REQUIRE(debug.projectiles.front().bounds.topLeft == shown.bounds.topLeft);
     REQUIRE(debug.pickups.size() == 1);
-    REQUIRE(debug.pickups.front().bounds.position == glm::vec2{20.0F, 40.0F});
+    REQUIRE(debug.pickups.front().bounds.topLeft == glm::vec2{20.0F, 40.0F});
 }

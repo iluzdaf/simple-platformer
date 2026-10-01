@@ -15,7 +15,7 @@ namespace
 {
     tests::ActorBuilder makePlatformer(glm::vec2 feet)
     {
-        return tests::ActorBuilder::sized({12.0F, 20.0F}).atFeet(feet).walking();
+        return tests::ActorBuilder::sized({12.0F, 20.0F}).atFeet(feet).platforming();
     }
 
     tests::ActorBuilder makeFlyer(glm::vec2 feet)

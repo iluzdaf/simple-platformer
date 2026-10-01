@@ -75,7 +75,7 @@ namespace
             world,
             tests::ActorBuilder::sized({12.0F, 12.0F})
                 .inCell(cell)
-                .walking()
+                .platforming()
                 .withSprite(square(PlayerTexture, 12.0F)));
     }
 
@@ -99,7 +99,7 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
     const simple_platformer::Aabb playerBounds{{20.0F, 2.0F}, {8.0F, 12.0F}};
     simple_platformer::Actor actor = tests::ActorBuilder::sized(playerBounds.size)
                                          .at(playerBounds.topLeft)
-                                         .walking()
+                                         .platforming()
                                          .withSprite(player);
     actor.facing = simple_platformer::Facing::Left;
     simple_platformer::World world;
@@ -146,8 +146,10 @@ TEST_CASE("Facing right does not flip the player sprite", "[render][scene]")
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 32.0F}};
     const simple_platformer::Sprite player{1, {{1.0F, 0.0F}, {1.0F, 1.0F}}, {12.0F, 12.0F}};
     simple_platformer::World world;
-    world.addActor(
-        tests::ActorBuilder::sized({12.0F, 12.0F}).at({4.0F, 4.0F}).walking().withSprite(player));
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .at({4.0F, 4.0F})
+                       .platforming()
+                       .withSprite(player));
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, 1, camera, world);
@@ -182,7 +184,7 @@ TEST_CASE("Actors without sprites do not produce draw commands", "[render][scene
     const simple_platformer::TileMap map = tests::TileMapBuilder({".."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 16.0F}};
     simple_platformer::World world;
-    world.addActor(tests::ActorBuilder::sized({8.0F, 8.0F}).at({4.0F, 4.0F}).walking());
+    world.addActor(tests::ActorBuilder::sized({8.0F, 8.0F}).at({4.0F, 4.0F}).platforming());
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, 1, camera, world);
@@ -197,7 +199,7 @@ TEST_CASE("Dying actors fade during the final part of their death", "[render][sc
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({8.0F, 8.0F})
                        .at({4.0F, 4.0F})
-                       .walking()
+                       .platforming()
                        .withSprite({1, {{0.0F, 0.0F}, {8.0F, 8.0F}}, {8.0F, 8.0F}}));
 
     const auto aliveScene = simple_platformer::buildRenderScene(map, 1, camera, world);
@@ -220,7 +222,7 @@ TEST_CASE("Actors with active hit feedback produce a white flash", "[render][sce
     simple_platformer::Actor actor =
         tests::ActorBuilder::sized({8.0F, 8.0F})
             .at({4.0F, 4.0F})
-            .walking()
+            .platforming()
             .withSprite({1, {{0.0F, 0.0F}, {8.0F, 8.0F}}, {8.0F, 8.0F}});
     actor.lastDamageTimeSeconds = 0.0F;
     simple_platformer::World world;

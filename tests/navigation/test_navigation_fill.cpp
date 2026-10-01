@@ -43,12 +43,12 @@ TEST_CASE(
     {
         world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                            .atFeet({x, 32.0F})
-                           .walking()
+                           .platforming()
                            .thinking({64.0F, 1.0F}));
     }
     world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
                        .atFeet({56.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .atFeet({8.0F, 16.0F})
@@ -72,11 +72,11 @@ TEST_CASE("A fill caches queued cells for every known profile", "[navigation][fi
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized(Small.size)
                        .atFeet({24.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     world.addActor(tests::ActorBuilder::sized(Tall.size)
                        .atFeet({56.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     PlatformerConnectionCache& cache = world.platformerConnections();
     const std::size_t cells =
@@ -126,7 +126,7 @@ TEST_CASE("A fill caches queued cells until its budget is spent", "[navigation][
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized(BodySize)
                        .atFeet({24.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     PlatformerConnectionCache& cache = world.platformerConnections();
     const PlatformerTraversalProfile profile{BodySize, {}, tests::FixedStepSeconds};

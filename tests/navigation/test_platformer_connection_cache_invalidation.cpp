@@ -155,13 +155,13 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized(BodySize)
                        .atFeet({24.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     const PlatformerTraversalProfile profile{BodySize, {}, tests::FixedStepSeconds};
     tests::prepareNavigationCache(map, world);
     PlatformerConnectionCache& cache = world.platformerConnections();
     const simple_platformer::Actor platformer =
-        tests::ActorBuilder::sized(BodySize).restingAt({start}).walking();
+        tests::ActorBuilder::sized(BodySize).restingAt({start}).platforming();
     const auto search = [&](FrameProfile& frame)
     {
         return simple_platformer::findActorPath(
@@ -224,7 +224,7 @@ TEST_CASE("A broken floor takes a walk away and gives a fall", "[navigation][cac
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized(BodySize)
                        .atFeet({24.0F, 16.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     const PlatformerTraversalProfile profile{BodySize, {}, tests::FixedStepSeconds};
     tests::prepareNavigationCache(map, world);
@@ -296,7 +296,7 @@ TEST_CASE("A broken climbable tile takes its climbs away", "[navigation][cache][
     PlatformerConnectionCache cache;
     tests::fillConnections(map, cache, climber);
     const simple_platformer::Actor climberActor =
-        tests::ActorBuilder::sized(BodySize).restingAt(start).walking().climbing(climbing);
+        tests::ActorBuilder::sized(BodySize).restingAt(start).platforming().climbing(climbing);
     const auto search = [&]()
     {
         return simple_platformer::findActorPath(

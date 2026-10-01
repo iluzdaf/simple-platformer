@@ -40,7 +40,7 @@ TEST_CASE("Debug overlay data describes path connections and progress", "[app][d
     follower.goal = simple_platformer::feetInCell(tests::TileSize, {4, 3});
 
     simple_platformer::Actor npc =
-        tests::ActorBuilder::sized({12.0F, 12.0F}).at({16.0F, 32.0F}).walking().thinking({});
+        tests::ActorBuilder::sized({12.0F, 12.0F}).at({16.0F, 32.0F}).platforming().thinking({});
     npc.pathFollower = follower;
 
     simple_platformer::World world;
@@ -98,7 +98,7 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .at({0.0F, 0.0F})
-                                       .walking(movementConfig)
+                                       .platforming(movementConfig)
                                        .thinking({});
     npc.pathFollower = simple_platformer::PathFollower{
         tests::floorPath({2, 2}, {jump.step}),
@@ -133,7 +133,7 @@ TEST_CASE("The overlay shows only navigation cells near the camera", "[app][debu
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .atFeet({8.0F, 16.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     const simple_platformer::CameraController cameraController{
         simple_platformer::Camera{}, {80.0F, 40.0F}};

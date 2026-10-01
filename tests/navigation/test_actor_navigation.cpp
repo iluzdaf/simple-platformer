@@ -78,13 +78,13 @@ namespace
     // A small platformer, which walks, jumps and falls, resting at the location.
     Actor platformerAt(RouteLocation location)
     {
-        return tests::ActorBuilder::sized(SmallBody).restingAt(location).walking();
+        return tests::ActorBuilder::sized(SmallBody).restingAt(location).platforming();
     }
 
     // A small climber resting at the location, holding no surface yet.
     Actor climberAt(RouteLocation location)
     {
-        return tests::ActorBuilder::sized(SmallBody).restingAt(location).walking().climbing(
+        return tests::ActorBuilder::sized(SmallBody).restingAt(location).platforming().climbing(
             ClimbConfig);
     }
 
@@ -248,22 +248,23 @@ TEST_CASE("A platformer's path starts from the cell that holds it up", "[navigat
 {
     const TileMap map = tests::TileMapBuilder({"........", "........", "..###..."});
 
-    const Actor standing = tests::ActorBuilder::sized(TallBody).inCell({3, 1}).walking();
+    const Actor standing = tests::ActorBuilder::sized(TallBody).inCell({3, 1}).platforming();
     REQUIRE(startFeetOf(map, standing) == feetIn({3, 1}));
     // A body wider than a tile is still placed by its feet.
-    const Actor wide = tests::ActorBuilder::sized({20.0F, 20.0F}).inCell({3, 1}).walking();
+    const Actor wide = tests::ActorBuilder::sized({20.0F, 20.0F}).inCell({3, 1}).platforming();
     REQUIRE(startFeetOf(map, wide) == feetIn({3, 1}));
 
     // At the ledge the feet hang past the platform, so the cell under them cannot be
     // stood on. The body starts from the cell that holds it up.
-    const Actor atTheLedge = tests::ActorBuilder::sized(TallBody).atFeet({80.5F, 32.0F}).walking();
+    const Actor atTheLedge =
+        tests::ActorBuilder::sized(TallBody).atFeet({80.5F, 32.0F}).platforming();
     REQUIRE(cellOf(feetOf(atTheLedge.body.bounds)) == Cell{5, 1});
     REQUIRE(startFeetOf(map, atTheLedge) == feetIn({4, 1}));
 
     // In the air, or a little above the floor, it rests nowhere and gets no result.
-    const Actor inTheAir = tests::ActorBuilder::sized(TallBody).inCell({0, 0}).walking();
+    const Actor inTheAir = tests::ActorBuilder::sized(TallBody).inCell({0, 0}).platforming();
     REQUIRE_FALSE(startFeetOf(map, inTheAir));
-    Actor hovering = tests::ActorBuilder::sized(TallBody).inCell({3, 1}).walking();
+    Actor hovering = tests::ActorBuilder::sized(TallBody).inCell({3, 1}).platforming();
     hovering.body.bounds.topLeft.y -= 3.0F;
     REQUIRE_FALSE(startFeetOf(map, hovering));
 }
@@ -296,7 +297,7 @@ TEST_CASE("Actors that climb differently get different traversal profiles", "[na
 {
     // The cache keeps connections per profile, so an actor that climbs, or climbs at a
     // different speed, must not share the connections of one that cannot.
-    Actor actor = tests::ActorBuilder::sized(SmallBody).inCell({0, 0}).walking();
+    Actor actor = tests::ActorBuilder::sized(SmallBody).inCell({0, 0}).platforming();
     const auto withoutClimbing = platformerTraversalProfileFor(actor, tests::FixedStepSeconds);
     REQUIRE_FALSE(withoutClimbing.climb.has_value());
 
@@ -349,7 +350,8 @@ TEST_CASE(
         tests::TileMapBuilder({".....###.....", ".............", ".............", "#############"});
     PlatformerMovementConfig slow;
     slow.maximumSpeed = 60.0F;
-    const Actor slowPlatformer = tests::ActorBuilder::sized(TallBody).inCell({12, 2}).walking(slow);
+    const Actor slowPlatformer =
+        tests::ActorBuilder::sized(TallBody).inCell({12, 2}).platforming(slow);
     const NavigationPath preferred = pathOf(findPath(hop, slowPlatformer, feetIn({4, 2})));
     REQUIRE_FALSE(preferred.waypoints.empty());
     REQUIRE_FALSE(hasStep(preferred, Traversal::Jump));

@@ -30,7 +30,7 @@ TEST_CASE("The overlay shows a machine state in place of the built-in state", "[
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .at({16.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({})
                        .running(tests::NpcMachineBuilder::named("test").state(
                            "rest", simple_platformer::NpcState::Idle)));
@@ -54,7 +54,7 @@ namespace
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})
             .at(topLeft)
-            .walking()
+            .platforming()
             .thinking({})
             .running(tests::NpcMachineBuilder::named("test")
                          .state("rest", simple_platformer::NpcState::Idle)
@@ -99,10 +99,10 @@ TEST_CASE("The machine window follows the NPC with a machine nearest the player"
 {
     simple_platformer::World world;
     tests::addPlayer(
-        world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).walking());
+        world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).platforming());
     // The nearest NPC has no machine, so the nearer of the two that do is followed.
     world.addActor(
-        tests::ActorBuilder::sized({12.0F, 12.0F}).at({110.0F, 20.0F}).walking().thinking({}));
+        tests::ActorBuilder::sized({12.0F, 12.0F}).at({110.0F, 20.0F}).platforming().thinking({}));
     world.addActor(machineNpc({200.0F, 20.0F}));
     const simple_platformer::ActorId nearer = world.addActor(machineNpc({60.0F, 20.0F}));
 
@@ -123,7 +123,7 @@ TEST_CASE("The machine window follows the NPC under the cursor instead", "[app][
 {
     simple_platformer::World world;
     tests::addPlayer(
-        world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).walking());
+        world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).platforming());
     world.addActor(machineNpc({60.0F, 20.0F}));
     const simple_platformer::ActorId further = world.addActor(machineNpc({200.0F, 20.0F}));
 
@@ -131,7 +131,7 @@ TEST_CASE("The machine window follows the NPC under the cursor instead", "[app][
     REQUIRE(followedBy(underCursor) == further);
     // The cursor over an NPC without a machine, or over nothing, changes nothing.
     world.addActor(
-        tests::ActorBuilder::sized({12.0F, 12.0F}).at({150.0F, 20.0F}).walking().thinking({}));
+        tests::ActorBuilder::sized({12.0F, 12.0F}).at({150.0F, 20.0F}).platforming().thinking({}));
     REQUIRE(followedBy(overlayOf(world, glm::vec2{156.0F, 26.0F})) != further);
     REQUIRE(followedBy(overlayOf(world, glm::vec2{10.0F, 10.0F})) != further);
 }
@@ -140,7 +140,7 @@ TEST_CASE("A locked machine actor overrides the cursor", "[app][debug]")
 {
     simple_platformer::World world;
     tests::addPlayer(
-        world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).walking());
+        world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).platforming());
     const simple_platformer::ActorId locked = world.addActor(machineNpc({60.0F, 20.0F}));
     world.addActor(machineNpc({200.0F, 20.0F}));
 
@@ -154,7 +154,7 @@ TEST_CASE("The machine window follows nothing off screen", "[app][debug]")
 {
     simple_platformer::World world;
     tests::addPlayer(
-        world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).walking());
+        world, tests::ActorBuilder::sized({12.0F, 12.0F}).at({100.0F, 20.0F}).platforming());
     const simple_platformer::ActorId offScreen =
         world.addActor(machineNpc({simple_platformer::InternalViewportSize.x + 100.0F, 20.0F}));
 

@@ -41,7 +41,7 @@ namespace
         simple_platformer::Cell cell)
     {
         return tests::addPlayer(
-            world, tests::ActorBuilder::sized({12.0F, 12.0F}).inCell(cell).walking());
+            world, tests::ActorBuilder::sized({12.0F, 12.0F}).inCell(cell).platforming());
     }
 
     simple_platformer::ActorId addNpcIn(
@@ -206,7 +206,7 @@ TEST_CASE("Firing exposes a hidden player for the reveal window", "[render][cove
         world,
         tests::ActorBuilder::sized({12.0F, 12.0F})
             .inCell({3, 1})
-            .walking()
+            .platforming()
             .onTeam(simple_platformer::Team::Player)
             .shooting());
     simple_platformer::updateCoverFades(map, world, QuarterFade);

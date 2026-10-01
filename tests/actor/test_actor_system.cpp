@@ -18,7 +18,7 @@ namespace
 {
     simple_platformer::Actor makeActor(glm::vec2 feet)
     {
-        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).platforming();
     }
 }
 
@@ -45,7 +45,7 @@ TEST_CASE("An actor's optional climb component uses its climb request", "[actor]
         tests::TileMapBuilder({"......", "..c...", "..c...", "..c...", "######"})
             .where('c', tests::Tile{}.blocksMovement().climbable());
     simple_platformer::Actor climber =
-        tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet({54.0F, 48.0F}).walking().climbing();
+        tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet({54.0F, 48.0F}).platforming().climbing();
     climber.intentions.climbGrip = simple_platformer::ClimbGrip::Hold;
     climber.intentions.direction.y = -1.0F;
     simple_platformer::World world;

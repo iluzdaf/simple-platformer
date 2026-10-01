@@ -44,7 +44,7 @@ namespace
 {
     tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
-        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).platforming();
     }
 
     tests::ActorBuilder::Thinking makeNpc(glm::vec2 feet)
@@ -71,7 +71,7 @@ TEST_CASE("A scripted route follows a climbing path", "[npc][lua][climb]")
     simple_platformer::Actor npc =
         tests::ActorBuilder::sized({12.0F, 12.0F})
             .inCell({2, 5})
-            .walking()
+            .platforming()
             .climbing({60.0F})
             .thinking({})
             .running(tests::NpcMachineBuilder::named("climber").state(

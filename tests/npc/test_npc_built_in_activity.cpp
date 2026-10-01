@@ -35,7 +35,7 @@ namespace
 {
     tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
-        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).platforming();
     }
 
     tests::ActorBuilder::Thinking makeNpc(glm::vec2 feet)
@@ -59,7 +59,7 @@ TEST_CASE(
     const simple_platformer::ActorId npcId =
         world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                            .atFeet({72.0F, 32.0F})
-                           .walking()
+                           .platforming()
                            .onTeam(simple_platformer::Team::Enemy)
                            .shooting()
                            .thinking({96.0F, 1.0F}));
@@ -161,7 +161,7 @@ TEST_CASE(
     // where it can stand.
     const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
                                           .atFeet({56.0F, 32.0F})
-                                          .walking()
+                                          .platforming()
                                           .thinking({64.0F, 1.0F}));
     tests::platformerMovement(world, npcId).grounded = true;
     const glm::vec2 lastKnownFeet{8.0F, 20.0F};

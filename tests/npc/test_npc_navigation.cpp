@@ -58,7 +58,7 @@ TEST_CASE("A climbing NPC patrols over a wall and ceiling", "[npc][navigation][c
     const glm::vec2 second = simple_platformer::feetInCell(tests::TileSize, {11, 5});
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .atFeet(first)
-                                       .walking()
+                                       .platforming()
                                        .climbing({60.0F})
                                        .patrolling(first, second)
                                        .thinking({});
@@ -89,7 +89,7 @@ TEST_CASE("A climbing NPC holds the ceiling at the end of its patrol", "[npc][na
     const glm::vec2 underCeiling = simple_platformer::feetInCell(tests::TileSize, {6, 1});
     simple_platformer::Actor npc = tests::ActorBuilder::sized({8.0F, 8.0F})
                                        .atFeet(onFloor)
-                                       .walking()
+                                       .platforming()
                                        .climbing({60.0F})
                                        .patrolling(onFloor, underCeiling)
                                        .thinking({});
@@ -121,7 +121,7 @@ namespace
 {
     tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
-        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).platforming();
     }
 
     simple_platformer::FrameProfile profiledNpcUpdate(
@@ -143,7 +143,7 @@ TEST_CASE("A walking NPC's search reads the fill's cache and never simulates", "
     const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
     const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({56.0F, 32.0F})
-                                          .walking()
+                                          .platforming()
                                           .thinking({64.0F, 1.0F}));
     tests::platformerMovement(world, npcId).grounded = true;
     brain(world, npcId).target = playerId;
@@ -178,7 +178,7 @@ TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[n
     const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
     const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({8.0F, 32.0F})
-                                          .walking()
+                                          .platforming()
                                           .thinking({64.0F, 1.0F}));
     tests::prepareNavigationCache(map, world);
     const simple_platformer::PlatformerTraversalProfile profile{
@@ -241,7 +241,7 @@ TEST_CASE("An NPC plans its path again after a break", "[npc][navigation]")
     const auto playerId = world.addActor(makePlayer({40.0F, 32.0F}));
     const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({8.0F, 32.0F})
-                                          .walking()
+                                          .platforming()
                                           .thinking({64.0F, 1.0F}));
     tests::prepareNavigationCache(map, world);
     tests::platformerMovement(world, npcId).grounded = true;

@@ -21,7 +21,8 @@ TEST_CASE(
     const simple_platformer::TileMap map = tests::TileMapBuilder({"......", "...cc.", "......"})
                                                .where('c', tests::Tile().blocksSight());
     simple_platformer::World world;
-    tests::addPlayer(world, tests::ActorBuilder::sized({12.0F, 12.0F}).inCell({0, 1}).walking());
+    tests::addPlayer(
+        world, tests::ActorBuilder::sized({12.0F, 12.0F}).inCell({0, 1}).platforming());
     const simple_platformer::ActorId npc = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                                               .inCell({4, 1})
                                                               .flying(0.0F)

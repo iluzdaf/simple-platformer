@@ -35,7 +35,7 @@ TEST_CASE("World simulation senses decides and moves an NPC in one update", "[wo
 
     simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({70.0F, 28.0F})
-                                          .walking()
+                                          .platforming()
                                           .withHealth(3, 3)
                                           .onTeam(simple_platformer::Team::Player);
     const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
@@ -65,7 +65,7 @@ TEST_CASE("World simulation lets a ranged NPC shoot a visible player", "[world][
 
     simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({54.0F, 28.0F})
-                                          .walking()
+                                          .platforming()
                                           .withHealth(3, 3)
                                           .onTeam(simple_platformer::Team::Player);
     tests::addPlayer(world, player);
@@ -97,7 +97,7 @@ TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world
 
     simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({86.0F, 48.0F})
-                                          .walking()
+                                          .platforming()
                                           .withHealth(3, 3)
                                           .onTeam(simple_platformer::Team::Player)
                                           .shooting();
@@ -140,7 +140,7 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .atFeet(lowerFeet)
-                                       .walking()
+                                       .platforming()
                                        .patrolling(lowerFeet, upperFeet)
                                        .thinking({});
     tests::platformerMovement(npc).grounded = true;
@@ -203,7 +203,7 @@ TEST_CASE(
 
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 20.0F})
                                        .inCell(SpawnCell)
-                                       .walking()
+                                       .platforming()
                                        .patrolling(firstFeet, secondFeet)
                                        .thinking({});
     tests::platformerMovement(npc).config.maximumSpeed = 60.0F;
@@ -235,7 +235,7 @@ TEST_CASE(
 
     simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({104.0F, 64.0F})
-                                          .walking()
+                                          .platforming()
                                           .withHealth(3, 3)
                                           .onTeam(simple_platformer::Team::Player);
     const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
@@ -251,7 +251,7 @@ TEST_CASE(
     // collider still overlaps the platform and remains grounded.
     simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
                                           .atFeet({PlatformRightEdge + 0.5F, 32.0F})
-                                          .walking()
+                                          .platforming()
                                           .withHealth(3, 3)
                                           .onTeam(simple_platformer::Team::Enemy)
                                           .patrolling(leftPatrolFeet, rightPatrolFeet)
@@ -301,14 +301,14 @@ TEST_CASE(
     simple_platformer::World world;
     simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 20.0F})
                                           .inCell({2, 3})
-                                          .walking()
+                                          .platforming()
                                           .onTeam(simple_platformer::Team::Player);
     tests::platformerMovement(player).grounded = true;
     const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
 
     simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
                                           .inCell({7, 1})
-                                          .walking()
+                                          .platforming()
                                           .onTeam(simple_platformer::Team::Enemy)
                                           .thinking({});
     tests::platformerMovement(zombie).grounded = true;
@@ -391,14 +391,14 @@ TEST_CASE(
     simple_platformer::World world;
     simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 20.0F})
                                           .atFeet(playerFeet)
-                                          .walking()
+                                          .platforming()
                                           .onTeam(simple_platformer::Team::Player);
     tests::platformerMovement(player).grounded = true;
     const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
 
     simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
                                           .inCell({6, 1})
-                                          .walking()
+                                          .platforming()
                                           .onTeam(simple_platformer::Team::Enemy)
                                           .biting()
                                           .thinking({});

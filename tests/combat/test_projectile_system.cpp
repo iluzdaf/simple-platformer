@@ -22,7 +22,7 @@ namespace
     {
         return tests::ActorBuilder::sized({10.0F, 10.0F})
             .at(topLeft)
-            .walking()
+            .platforming()
             .withHealth(3, 3)
             .onTeam(team);
     }

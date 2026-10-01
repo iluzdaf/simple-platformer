@@ -21,7 +21,7 @@ namespace
         const simple_platformer::Animator animator = tests::fullAnimator();
         simple_platformer::Actor actor = tests::ActorBuilder::sized({12.0F, 12.0F})
                                              .at({0.0F, 0.0F})
-                                             .walking()
+                                             .platforming()
                                              .withSprite({0, {}, {1.0F, 1.0F}})
                                              .withAnimator(animator);
         tests::platformerMovement(actor).grounded = true;

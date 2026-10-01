@@ -68,7 +68,7 @@ TEST_CASE(
     const simple_platformer::ActorId npc = world.addActor(
         tests::ActorBuilder::sized({12.0F, 12.0F})
             .atFeet({24.0F, 32.0F})
-            .walking(movement)
+            .platforming(movement)
             .onTeam(simple_platformer::Team::Enemy)
             .withContactDamage()
             .thinking({})

@@ -37,7 +37,7 @@
 TEST_CASE("Debug overlay data supports actors without presentation components", "[app][debug]")
 {
     const simple_platformer::Actor actor =
-        tests::ActorBuilder::sized({8.0F, 10.0F}).at({12.0F, 20.0F}).walking();
+        tests::ActorBuilder::sized({8.0F, 10.0F}).at({12.0F, 20.0F}).platforming();
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(actor);
     const simple_platformer::TileMap map = tests::TileMapBuilder({"....", "####"});
@@ -126,7 +126,7 @@ TEST_CASE("Debug overlay data describes NPC patrol points", "[app][debug]")
 {
     simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                        .at({16.0F, 20.0F})
-                                       .walking()
+                                       .platforming()
                                        .thinking({})
                                        .patrolling({24.0F, 32.0F}, {72.0F, 32.0F});
     tests::patrol(npc).headingToSecond = false;
@@ -158,12 +158,12 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
 
     const simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 12.0F})
                                                 .atFeet({38.0F, 208.0F})
-                                                .walking()
+                                                .platforming()
                                                 .withSprite({1, region, {32.0F, 24.0F}})
                                                 .withAnimator(animator);
 
     simple_platformer::Actor npc =
-        tests::ActorBuilder::sized({12.0F, 12.0F}).at({80.0F, 196.0F}).walking().thinking({});
+        tests::ActorBuilder::sized({12.0F, 12.0F}).at({80.0F, 196.0F}).platforming().thinking({});
     tests::brain(npc).state = simple_platformer::NpcState::Chase;
 
     simple_platformer::World world;
@@ -212,12 +212,12 @@ TEST_CASE("Debug overlay data describes visible and remembered targets", "[app][
         world,
         tests::ActorBuilder::sized({12.0F, 12.0F})
             .atFeet({54.0F, 32.0F})
-            .walking()
+            .platforming()
             .onTeam(simple_platformer::Team::Player));
 
     simple_platformer::Actor visibleNpc = tests::ActorBuilder::sized({12.0F, 12.0F})
                                               .at({16.0F, 20.0F})
-                                              .walking()
+                                              .platforming()
                                               .onTeam(simple_platformer::Team::Enemy)
                                               .thinking({80.0F, 1.5F});
     tests::brain(visibleNpc).target = playerId;
@@ -307,7 +307,7 @@ TEST_CASE("Debug overlay data shows only an active bite hitbox", "[app][debug]")
 {
     simple_platformer::Actor activeBiter = tests::ActorBuilder::sized({12.0F, 12.0F})
                                                .at({16.0F, 20.0F})
-                                               .walking()
+                                               .platforming()
                                                .onTeam(simple_platformer::Team::Enemy)
                                                .biting();
     activeBiter.facing = simple_platformer::Facing::Right;
@@ -355,9 +355,9 @@ TEST_CASE("The overlay shows only what the camera can see", "[app][debug]")
     const glm::vec2 edge = simple_platformer::InternalViewportSize;
     const auto tile = static_cast<float>(tests::TileSize);
     const simple_platformer::ActorId beyondEdge = world.addActor(
-        tests::ActorBuilder::sized({8.0F, 8.0F}).at({edge.x + tile * 0.5F, 20.0F}).walking());
+        tests::ActorBuilder::sized({8.0F, 8.0F}).at({edge.x + tile * 0.5F, 20.0F}).platforming());
     world.addActor(
-        tests::ActorBuilder::sized({8.0F, 8.0F}).at({edge.x + tile * 2.0F, 20.0F}).walking());
+        tests::ActorBuilder::sized({8.0F, 8.0F}).at({edge.x + tile * 2.0F, 20.0F}).platforming());
     simple_platformer::Projectile shown;
     shown.bounds = {{20.0F, 20.0F}, {4.0F, 2.0F}};
     shown.lifetimeRemaining = 1.0F;

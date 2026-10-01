@@ -23,7 +23,7 @@ namespace
 {
     simple_platformer::Actor makeActor()
     {
-        return tests::ActorBuilder::sized({12.0F, 12.0F}).at({8.0F, 8.0F}).walking();
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).at({8.0F, 8.0F}).platforming();
     }
 }
 

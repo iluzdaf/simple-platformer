@@ -37,7 +37,7 @@ namespace
 {
     tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
-        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).platforming();
     }
 
     tests::ActorBuilder::Thinking makeNpc(glm::vec2 feet)
@@ -191,7 +191,7 @@ TEST_CASE("A machine reacts to landing and blocked walking facts", "[npc][machin
     auto charger =
         tests::ActorBuilder::sized({12.0F, 12.0F})
             .atFeet({24.0F, 32.0F})
-            .walking()
+            .platforming()
             .onTeam(simple_platformer::Team::Enemy)
             .thinking({80.0F, 1.0F})
             .running(tests::NpcMachineBuilder::named("charger")

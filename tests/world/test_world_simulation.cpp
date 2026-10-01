@@ -50,7 +50,7 @@ TEST_CASE("World simulation spawns a projectile after projectile movement", "[wo
     simple_platformer::World world;
     simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({22.0F, 28.0F})
-                                          .walking()
+                                          .platforming()
                                           .onTeam(simple_platformer::Team::Player)
                                           .shooting();
     player.intentions.aimDirection = {1.0F, 0.0F};
@@ -98,7 +98,7 @@ TEST_CASE(
             world,
             tests::ActorBuilder::sized({12.0F, 12.0F})
                 .inCell({1, 1})
-                .walking()
+                .platforming()
                 .onTeam(simple_platformer::Team::Player));
         world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                            .inCell({6, 1})

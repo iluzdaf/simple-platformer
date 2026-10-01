@@ -18,19 +18,19 @@
 
 namespace
 {
-    template <typename Builder, typename = void> struct CanWalk : std::false_type
+    template <typename Builder, typename = void> struct CanPlatform : std::false_type
     {
     };
 
     template <typename Builder>
-    struct CanWalk<Builder, std::void_t<decltype(std::declval<Builder>().walking())>>
+    struct CanPlatform<Builder, std::void_t<decltype(std::declval<Builder>().platforming())>>
         : std::true_type
     {
     };
 }
 
-static_assert(!CanWalk<tests::ActorBuilder::Sized>::value);
-static_assert(CanWalk<tests::ActorBuilder::Placed>::value);
+static_assert(!CanPlatform<tests::ActorBuilder::Sized>::value);
+static_assert(CanPlatform<tests::ActorBuilder::Placed>::value);
 static_assert(!std::is_convertible_v<tests::ActorBuilder::Sized, simple_platformer::Actor>);
 static_assert(!std::is_convertible_v<tests::ActorBuilder::Placed, simple_platformer::Actor>);
 static_assert(std::is_convertible_v<tests::ActorBuilder, simple_platformer::Actor>);
@@ -40,11 +40,11 @@ TEST_CASE(
     "[support][actor-builder]")
 {
     const simple_platformer::Actor byCorner =
-        tests::ActorBuilder::sized({12.0F, 20.0F}).at({8.0F, 4.0F}).walking();
+        tests::ActorBuilder::sized({12.0F, 20.0F}).at({8.0F, 4.0F}).platforming();
     const simple_platformer::Actor byFeet =
-        tests::ActorBuilder::sized({12.0F, 20.0F}).atFeet({24.0F, 32.0F}).walking();
+        tests::ActorBuilder::sized({12.0F, 20.0F}).atFeet({24.0F, 32.0F}).platforming();
     const simple_platformer::Actor byCell =
-        tests::ActorBuilder::sized({12.0F, 20.0F}).inCell({1, 1}).walking();
+        tests::ActorBuilder::sized({12.0F, 20.0F}).inCell({1, 1}).platforming();
 
     REQUIRE(byCorner.body.bounds.topLeft == glm::vec2{8.0F, 4.0F});
     REQUIRE(byCorner.body.bounds.size == glm::vec2{12.0F, 20.0F});
@@ -56,13 +56,13 @@ TEST_CASE(
 
 TEST_CASE("The actor builder gives exactly one movement component", "[support][actor-builder]")
 {
-    simple_platformer::Actor walker =
-        tests::ActorBuilder::sized({12.0F, 20.0F}).at({0.0F, 0.0F}).walking();
+    simple_platformer::Actor platformer =
+        tests::ActorBuilder::sized({12.0F, 20.0F}).at({0.0F, 0.0F}).platforming();
     simple_platformer::Actor flyer =
         tests::ActorBuilder::sized({12.0F, 20.0F}).at({0.0F, 0.0F}).flying(40.0F);
 
-    REQUIRE(walker.platformerMovement.has_value());
-    REQUIRE_FALSE(walker.flyingMovement.has_value());
+    REQUIRE(platformer.platformerMovement.has_value());
+    REQUIRE_FALSE(platformer.flyingMovement.has_value());
     REQUIRE(tests::flyingMovement(flyer).speed == 40.0F);
     REQUIRE_FALSE(flyer.platformerMovement.has_value());
 }
@@ -73,7 +73,7 @@ TEST_CASE("An NPC from the actor builder is one World accepts", "[support][actor
     const simple_platformer::ActorId id =
         world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
                            .atFeet({24.0F, 32.0F})
-                           .walking()
+                           .platforming()
                            .onTeam(simple_platformer::Team::Enemy)
                            .thinking({64.0F, 2.0F})
                            .patrolling({8.0F, 32.0F}, {56.0F, 32.0F})
@@ -98,7 +98,7 @@ TEST_CASE("A thinking actor from the builder can run a machine", "[support][acto
     const simple_platformer::ActorId id =
         world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                            .at({8.0F, 8.0F})
-                           .walking()
+                           .platforming()
                            .thinking({})
                            .running(tests::NpcMachineBuilder::named("test").state(
                                "rest", simple_platformer::NpcState::Idle)));

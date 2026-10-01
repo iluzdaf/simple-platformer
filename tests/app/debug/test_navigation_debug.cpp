@@ -35,7 +35,7 @@ TEST_CASE(
 
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .atFeet({8.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     const auto cellsOf = [&]
     {
@@ -97,11 +97,11 @@ TEST_CASE(
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .atFeet({8.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F})
                        .atFeet({40.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     const auto infoFor = [&](std::size_t profileIndex)
     {
@@ -160,7 +160,7 @@ TEST_CASE(
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .atFeet({8.0F, 32.0F})
-                       .walking()
+                       .platforming()
                        .thinking({64.0F, 1.0F}));
     const auto infoAt = [&](std::optional<glm::vec2> cursor)
     {
@@ -240,7 +240,7 @@ TEST_CASE(
     simple_platformer::World walkers;
     walkers.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                          .inCell({3, 3})
-                         .walking()
+                         .platforming()
                          .thinking({64.0F, 1.0F}));
     const simple_platformer::NavigationCacheDebugInfo walking = infoFor(walkers);
     REQUIRE(walking.cells.size() == 5);
@@ -251,7 +251,7 @@ TEST_CASE(
     simple_platformer::World climbers;
     climbers.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                           .inCell({3, 3})
-                          .walking()
+                          .platforming()
                           .climbing({60.0F})
                           .thinking({64.0F, 1.0F}));
     tests::prepareNavigationCache(map, climbers);

@@ -588,8 +588,9 @@ wall stays on it.
 ### The search
 
 `route_search` finds the cheapest route with A*. It searches over locations: a cell and
-a surface, so a cell's floor, walls and ceiling are separate places. Flying and walking
-searches only use floors; climbing searches also use walls and ceilings.
+a surface, so a cell's floor, walls and ceiling are separate places. Flying searches,
+and platformer searches without climbing, only use floors; climbing searches also use
+walls and ceilings.
 
 The caller supplies three things:
 
@@ -639,8 +640,8 @@ the movement ticks the simulation took.
 The platformer heuristic guesses the ticks it takes to cross the whole columns between
 a cell and the goal cell at the profile's fastest speed. A body's feet in the one cell
 and in the other are at least that far apart, whatever surface it holds, so the guess
-is never too high. Walkers and climbers share it; a new capability only adds its
-speed. Platformer searches also add a fixed jump-start penalty, in ticks, so a small
+is never too high. Platformers with and without climbing share it; a new capability only
+adds its speed. Platformer searches also add a fixed jump-start penalty, in ticks, so a small
 shortcut does not make a grounded NPC hop.
 
 ### Traversals

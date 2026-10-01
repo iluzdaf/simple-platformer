@@ -31,7 +31,7 @@ namespace
             world,
             tests::ActorBuilder::sized({12.0F, 16.0F})
                 .atFeet({22.0F, 32.0F})
-                .walking()
+                .platforming()
                 .withHealth(1, 3)
                 .withInventory(simple_platformer::Inventory(2)));
         return world;

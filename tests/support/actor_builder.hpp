@@ -23,9 +23,30 @@
 
 namespace tests
 {
-    // The staged chain requires size, placement, and one movement component before
-    // World can accept the actor. thinking() adds the four NPC components together;
-    // tests choose their own geometry and components instead of loading shipped content.
+    // Builds an actor for a test, from the geometry and components the test chooses
+    // rather than from shipped content:
+    //
+    //   ActorBuilder::sized({12.0F, 12.0F})
+    //       .inCell({3, 1})
+    //       .platforming()
+    //       .climbing({60.0F})
+    //       .thinking({64.0F, 1.0F})
+    //       .running(machine)
+    //
+    // The build rules, which the chain enforces at compile time:
+    //
+    // 1. sized() comes first, and offers only a placement: at(), atFeet(), inCell() or
+    //    restingAt().
+    // 2. A placement offers only a movement: platforming() or flying(). Every actor gets
+    //    exactly one, which World requires.
+    // 3. After the movement, the optional components may come in any order.
+    // 4. thinking() makes the actor an NPC, adding its brain, perception, senses and path
+    //    follower together. Only then can running() give it a state machine, which is
+    //    started and validated as it is added.
+    //
+    // The chain converts to an Actor wherever one is expected. It checks nothing beyond
+    // its order: World validates the result when the actor is added, so climbing() on a
+    // flyer builds, and World rejects it.
     class ActorBuilder
     {
     public:
@@ -73,7 +94,7 @@ namespace tests
             return std::move(*this);
         }
 
-        // Only a walking actor can climb; World rejects a climbing flyer.
+        // Only a platforming actor can climb. World rejects a climbing flyer.
         ActorBuilder climbing(simple_platformer::SurfaceClimbConfig config = {}) &&
         {
             built.surfaceClimb = simple_platformer::SurfaceClimb{config};
@@ -112,6 +133,7 @@ namespace tests
         simple_platformer::Actor built;
     };
 
+    // An NPC: everything an ActorBuilder offers, and running().
     class ActorBuilder::Thinking : public ActorBuilder
     {
     public:
@@ -139,10 +161,11 @@ namespace tests
         return Thinking(std::move(built));
     }
 
+    // A sized, placed body waiting for its one movement component.
     class ActorBuilder::Placed
     {
     public:
-        ActorBuilder walking(simple_platformer::PlatformerMovementConfig config = {}) &&
+        ActorBuilder platforming(simple_platformer::PlatformerMovementConfig config = {}) &&
         {
             built.platformerMovement = simple_platformer::PlatformerMovement{config};
             return ActorBuilder(std::move(built));
@@ -165,6 +188,7 @@ namespace tests
         simple_platformer::Actor built;
     };
 
+    // A body size waiting for its placement.
     class ActorBuilder::Sized
     {
     public:

@@ -27,7 +27,7 @@ namespace
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F})
             .atFeet(feet)
-            .walking()
+            .platforming()
             .onTeam(simple_platformer::Team::Player);
     }
 
@@ -53,7 +53,7 @@ namespace
             world,
             tests::ActorBuilder::sized(target.size)
                 .atFeet(simple_platformer::feetOf(target))
-                .walking()
+                .platforming()
                 .onTeam(simple_platformer::Team::Player));
         const simple_platformer::ActorId npcId =
             world.addActor(tests::ActorBuilder::sized(observer.size)
@@ -89,7 +89,7 @@ TEST_CASE("A landing is heard once by a ground NPC on the same run", "[npc][sens
     const auto playerId = tests::addPlayer(world, makePlayer({72.0F, 47.0F}));
     const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({24.0F, 48.0F})
-                                          .walking()
+                                          .platforming()
                                           .onTeam(simple_platformer::Team::Enemy)
                                           .thinking({64.0F, 1.0F}));
     tests::platformerMovement(actor(world, playerId)).grounded = false;
@@ -113,7 +113,7 @@ TEST_CASE("Perception refreshes without clearing brain memory or decision state"
     const auto playerId = tests::addPlayer(world, makePlayer({72.0F, 48.0F}));
     const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({24.0F, 48.0F})
-                                          .walking()
+                                          .platforming()
                                           .onTeam(simple_platformer::Team::Enemy)
                                           .thinking({64.0F, 1.0F}));
     tests::platformerMovement(actor(world, npcId)).grounded = true;
@@ -146,7 +146,7 @@ TEST_CASE("A landing across a broken run is not heard", "[npc][senses][noise]")
     const auto playerId = tests::addPlayer(world, makePlayer({104.0F, 48.0F}));
     const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({24.0F, 48.0F})
-                                          .walking()
+                                          .platforming()
                                           .onTeam(simple_platformer::Team::Enemy)
                                           .thinking({128.0F, 1.0F}));
     tests::platformerMovement(actor(world, npcId)).grounded = true;
@@ -334,7 +334,7 @@ TEST_CASE("A noise batch preserves landing facts alongside shots", "[npc][senses
     const auto playerId = tests::addPlayer(world, makePlayer({72.0F, 48.0F}));
     const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                           .atFeet({24.0F, 48.0F})
-                                          .walking()
+                                          .platforming()
                                           .onTeam(simple_platformer::Team::Enemy)
                                           .thinking({96.0F, 1.0F}));
     tests::platformerMovement(actor(world, npcId)).grounded = true;

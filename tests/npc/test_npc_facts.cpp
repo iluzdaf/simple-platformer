@@ -24,7 +24,7 @@ namespace
 {
     tests::ActorBuilder makePlayer(glm::vec2 feet)
     {
-        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).walking();
+        return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).platforming();
     }
 
     // A grounded walker at (24, 32) that notices within 32 pixels.
@@ -33,7 +33,7 @@ namespace
         const simple_platformer::ActorId npcId =
             world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                                .atFeet({24.0F, 32.0F})
-                               .walking()
+                               .platforming()
                                .thinking({32.0F, 1.0F}));
         tests::platformerMovement(actor(world, npcId)).grounded = true;
         return npcId;

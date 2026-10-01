@@ -26,7 +26,7 @@ namespace
     {
         simple_platformer::Actor actor = tests::ActorBuilder::sized({12.0F, 12.0F})
                                              .at({16.0F, 32.0F})
-                                             .walking()
+                                             .platforming()
                                              .climbing()
                                              .withSprite({0, {}, SpriteSize});
         tests::surfaceClimb(actor).surface = surface;

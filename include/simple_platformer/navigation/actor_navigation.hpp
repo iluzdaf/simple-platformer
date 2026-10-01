@@ -14,19 +14,20 @@ namespace simple_platformer
     struct FrameProfile;
     class TileMap;
 
-    // The one way into navigation. Searches from where the actor's body rests, with
-    // the connections its movement and capabilities give it, for the cheapest path to
-    // the cell holding the goal. A goal it cannot reach gives the path that ends in the
-    // reachable cell nearest it; the result says how far that end is from the goal. No
-    // result means the actor has nowhere to start from yet, as when
-    // it is in the air, or has no movement to navigate with.
+    // The one way into navigation. Finds the cheapest path for the actor, from where its
+    // body rests to the cell holding the goal, using only the moves the actor has. If it
+    // cannot reach that cell, the path leads as close to the goal as possible, and the
+    // result says how far the path's end is from it. No result means the actor has
+    // nowhere to start from yet, such as when it is in the air, or no movement to
+    // navigate with.
     //
-    // A platformer's connections are simulated tick by tick at stepSeconds, the fixed
-    // step it is moved with, so a predicted jump and the real one run the same physics,
-    // and costs are counted in those ticks. The step must be finite and positive. The
-    // search never simulates: it reads the cache, which the navigation fill builds. A
-    // cell the cache does not hold yet is queued for the fill and moved to the front,
-    // and the result is Deferred. An optional frame profile records search work.
+    // A platformer's connections come from running its movement at stepSeconds, the
+    // fixed step it moves at, so a planned jump and the real one behave the same. Their
+    // costs are counted in those ticks, and the step must be finite and positive. The
+    // search itself never runs movement: it reads connections from the cache, which the
+    // navigation fill builds. If the cache does not hold a cell the search needs yet,
+    // that cell goes to the front of the fill and the result is Deferred. An optional
+    // frame profile records the search's work.
     std::optional<NavigationPathResult> findActorPath(
         const TileMap& map,
         const Actor& actor,
@@ -35,7 +36,8 @@ namespace simple_platformer
         PlatformerConnectionCache& cache,
         FrameProfile* frameProfile = nullptr);
 
-    // The profile a platformer actor's connections are simulated and cached for. The
-    // navigation fill uses it to fill the same cache entries a search reads.
+    // Everything a platformer actor's connections depend on: its body size, movement,
+    // climbing and the step. The navigation fill uses it to build the same cache entries
+    // a search reads.
     PlatformerTraversalProfile platformerTraversalProfileFor(const Actor& actor, float stepSeconds);
 }

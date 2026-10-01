@@ -3,55 +3,32 @@
 #include <utility>
 #include <vector>
 
-#include "simple_platformer/actor/actor.hpp"
-#include "simple_platformer/math/aabb.hpp"
+#include <glm/vec2.hpp>
+
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
-#include "support/actor_builder.hpp"
 #include "support/tile_size.hpp"
 
 namespace tests
 {
-    // The profile's body resting at the location, where a search can start from it.
-    inline simple_platformer::Aabb restingBody(
-        simple_platformer::RouteLocation location,
-        const simple_platformer::PlatformerTraversalProfile& profile)
-    {
-        return simple_platformer::boundsAtSurface(TileSize, location, profile.size);
-    }
-
-    // The walker a profile describes, with this body; a climber when the profile can
-    // climb. Navigation reads the profile back from it.
-    inline simple_platformer::Actor actorFor(
-        const simple_platformer::Aabb& body,
-        const simple_platformer::PlatformerTraversalProfile& profile)
-    {
-        ActorBuilder walker =
-            ActorBuilder::sized(body.size).at(body.topLeft).walking(profile.movement);
-        if (profile.climb.has_value())
-        {
-            return std::move(walker).climbing(*profile.climb);
-        }
-        return std::move(walker);
-    }
-
     // The waypoints a route of floor steps from the start cell gives, for tests that
     // assemble a path from simulated connections.
     inline simple_platformer::NavigationPath floorPath(
         simple_platformer::Cell start,
         std::vector<simple_platformer::RouteStep> steps)
     {
-        simple_platformer::NavigationPath path{simple_platformer::feetInCell(TileSize, start), {}};
+        using simple_platformer::feetInCell;
+
+        simple_platformer::NavigationPath path{feetInCell(TileSize, start), {}};
         for (simple_platformer::RouteStep& step : steps)
         {
             path.waypoints.push_back(
-                {simple_platformer::feetInCell(TileSize, step.destination.cell),
+                {feetInCell(TileSize, step.destination.cell),
                  step.traversal,
                  std::move(step.inputs)});
         }

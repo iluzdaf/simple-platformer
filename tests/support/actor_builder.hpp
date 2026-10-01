@@ -13,6 +13,8 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
+#include "simple_platformer/navigation/platformer_cells.hpp"
+#include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
@@ -183,6 +185,13 @@ namespace tests
         Placed inCell(simple_platformer::Cell cell) &&
         {
             return Placed(simple_platformer::boxInCell(TileSize, cell, size));
+        }
+
+        // Resting at the location: standing on the cell's floor, flush against its wall, or
+        // hanging from its ceiling, where a search would start from it.
+        Placed restingAt(simple_platformer::RouteLocation location) &&
+        {
+            return Placed(simple_platformer::boundsAtSurface(TileSize, location, size));
         }
 
     private:

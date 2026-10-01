@@ -7,6 +7,7 @@
 
 #include <glm/vec2.hpp>
 
+#include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
@@ -159,11 +160,13 @@ TEST_CASE("A broken wall opens a route once the fill has caught up", "[navigatio
     const PlatformerTraversalProfile profile{BodySize, {}, tests::FixedStepSeconds};
     tests::prepareNavigationCache(map, world);
     PlatformerConnectionCache& cache = world.platformerConnections();
+    const simple_platformer::Actor platformer =
+        tests::ActorBuilder::sized(BodySize).restingAt({start}).walking();
     const auto search = [&](FrameProfile& frame)
     {
         return simple_platformer::findActorPath(
                    map,
-                   tests::actorFor(tests::restingBody({start}, profile), profile),
+                   platformer,
                    simple_platformer::feetInCell(tests::TileSize, goal),
                    profile.stepSeconds,
                    cache,
@@ -284,21 +287,20 @@ TEST_CASE("A broken climbable tile takes its climbs away", "[navigation][cache][
         tests::TileMapBuilder({"......", ".c....", ".g....", ".c....", "######"})
             .where('c', tests::Tile().blocksMovement().climbable())
             .where('g', tests::Tile().blocksMovement().climbable().breaksInto('.'));
-    const PlatformerTraversalProfile climber{BodySize, {}, tests::FixedStepSeconds, {{60.0F}}};
+    const simple_platformer::SurfaceClimbConfig climbing{60.0F};
+    const PlatformerTraversalProfile climber{BodySize, {}, tests::FixedStepSeconds, climbing};
     const RouteLocation start{{2, 3}};
     const RouteLocation onWall{{2, 1}, ClimbSurface::LeftWall};
     const glm::vec2 wallFeet = simple_platformer::feetOf(
         simple_platformer::boundsAtSurface(tests::TileSize, onWall, BodySize));
     PlatformerConnectionCache cache;
     tests::fillConnections(map, cache, climber);
+    const simple_platformer::Actor climberActor =
+        tests::ActorBuilder::sized(BodySize).restingAt(start).walking().climbing(climbing);
     const auto search = [&]()
     {
         return simple_platformer::findActorPath(
-                   map,
-                   tests::actorFor(tests::restingBody(start, climber), climber),
-                   wallFeet,
-                   climber.stepSeconds,
-                   cache)
+                   map, climberActor, wallFeet, climber.stepSeconds, cache)
             .value();
     };
 

@@ -19,7 +19,10 @@ namespace
     using simple_platformer::ClimbSurface;
     using simple_platformer::ConnectionFunction;
     using simple_platformer::endOf;
+    using simple_platformer::ExpansionReady;
     using simple_platformer::findLowestCostRoute;
+    using simple_platformer::GridSize;
+    using simple_platformer::HeuristicFunction;
     using simple_platformer::InputProgram;
     using simple_platformer::Route;
     using simple_platformer::RouteConnection;
@@ -27,7 +30,7 @@ namespace
     using simple_platformer::RouteSearchResult;
     using simple_platformer::Traversal;
 
-    constexpr simple_platformer::GridSize TestGrid{8, 8};
+    constexpr GridSize TestGrid{8, 8};
 
     // The floor of the cell, the only location a search without climbing uses.
     RouteLocation floorOf(int x, int y)
@@ -259,8 +262,8 @@ TEST_CASE(
     // A missing connection function, a missing heuristic, and a heuristic that guesses
     // below zero.
     const ConnectionFunction missingConnections;
-    const simple_platformer::HeuristicFunction missingHeuristic;
-    const simple_platformer::HeuristicFunction negativeHeuristic = [](Cell, Cell) { return -1; };
+    const HeuristicFunction missingHeuristic;
+    const HeuristicFunction negativeHeuristic = [](Cell, Cell) { return -1; };
     REQUIRE_THROWS_AS(
         findLowestCostRoute(floorOf(0, 0), {1, 0}, TestGrid, missingConnections, zeroHeuristic),
         std::invalid_argument);

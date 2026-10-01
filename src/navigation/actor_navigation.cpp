@@ -33,10 +33,11 @@ namespace simple_platformer
 {
     namespace
     {
-        // Added whenever a route starts a jump, so a small time saving does not make
-        // a grounded actor hop unnecessarily.
+        // Added to the cost of every jump, so saving a little time does not make a
+        // grounded actor hop.
         constexpr int JumpStartPenaltyTicks = 30;
 
+        // Every place in a cell a body can rest: its floor, walls and ceiling.
         constexpr std::array<ClimbSurface, 4> Surfaces{
             ClimbSurface::None,
             ClimbSurface::LeftWall,
@@ -46,10 +47,10 @@ namespace simple_platformer
         // In pixels: how far a body may sit off a surface and still rest on it.
         constexpr float RestingTolerance = 1.0F;
 
-        // The location a body is resting at, judged from its bounds alone: among the places
-        // the profile can rest near it, the one whose resting bounds match the body within
-        // a pixel across its surface, and lie nearest along it, within a tile. Nothing
-        // when the body rests nowhere, as when it is in the air.
+        // Where a body is resting, judged from its bounds alone. Of the places near it the
+        // profile can rest at, it picks the one whose resting bounds are within a pixel of
+        // the body across the surface, and nearest along it, up to a tile away. Nothing if
+        // the body rests nowhere, such as in the air.
         std::optional<RouteLocation> restingLocationOf(
             const TileMap& map,
             const Aabb& bounds,
@@ -97,7 +98,7 @@ namespace simple_platformer
             return resting;
         }
 
-        // The path a route of locations gives: the body's resting feet at each.
+        // Turns a route into a path: the body's resting feet at each place on the route.
         NavigationPath waypointsOf(int tileSize, const Route& route, glm::vec2 bodySize)
         {
             NavigationPath path{feetOf(boundsAtSurface(tileSize, route.start, bodySize)), {}};
@@ -112,9 +113,8 @@ namespace simple_platformer
             return path;
         }
 
-        // What a search's route gives its caller: Found when it ends in the goal cell,
-        // Unreachable otherwise, with its waypoints and how far their end lies from the
-        // goal.
+        // What the caller gets from a route: Found if it ends in the goal cell, Unreachable
+        // if not, with the path and how far the path's end is from the goal.
         NavigationPathResult pathResultOf(
             int tileSize,
             const Route& route,
@@ -130,13 +130,14 @@ namespace simple_platformer
             return {status, std::move(path), remaining};
         }
 
-        // Grid steps between two cells: the fewest cost-one flights between them.
+        // The number of cells between two cells along the grid. Each flight moves one cell
+        // for a cost of 1, so the guess is never more than the real cost.
         int manhattanHeuristic(Cell cell, Cell goal)
         {
             return std::abs(cell.x - goal.x) + std::abs(cell.y - goal.y);
         }
 
-        // Cost-one flight connections to adjacent open cells.
+        // A flight to each open cell next to this one, for a cost of 1.
         std::vector<RouteConnection> flyingConnections(const TileMap& map, Cell cell)
         {
             constexpr std::array<glm::ivec2, 4> Directions{
@@ -154,9 +155,8 @@ namespace simple_platformer
             return connections;
         }
 
-        // The cheapest flight from the cell at the flyer's feet to the goal cell: every
-        // cell that allows movement is a node, joined to its four neighbors at a cost
-        // of one. No result when the flyer's feet are off the map.
+        // The cheapest flight from the cell at the flyer's feet to the goal cell, through
+        // open cells. No result if the flyer's feet are off the map.
         std::optional<NavigationPathResult> findFlyingPath(
             const TileMap& map,
             const Aabb& body,
@@ -198,10 +198,11 @@ namespace simple_platformer
             return pathResultOf(tileSize, *result.route, body.size, goal, goalFeet);
         }
 
-        // Optimistic remaining travel time in ticks from a cell to the goal cell, at the
-        // profile's fastest speed. The feet of a body in the one cell and in the other
-        // lie at least the whole columns between them apart, whatever surface it holds.
-        // Acceleration, braking, obstacles, and vertical travel are ignored.
+        // Guesses the ticks left from a cell to the goal cell: the time to cross the whole
+        // columns between them at the profile's fastest speed. A body's feet in the one
+        // cell and in the other are at least that far apart, whatever surface it holds,
+        // and the guess leaves out acceleration, braking, obstacles and height, so it is
+        // never more than the real cost.
         int platformerTickHeuristic(
             int tileSize,
             Cell cell,
@@ -230,7 +231,8 @@ namespace simple_platformer
             return static_cast<int>(std::ceil(distance / (maximumSpeed * profile.stepSeconds)));
         }
 
-        // Adjust this search's copy, not the simulated travel costs shared by the cache.
+        // Adds the penalty to each jump in this search's copy of the connections. The
+        // cached costs stay the simulated ticks.
         void applyJumpStartPenalty(std::vector<RouteConnection>& connections, int penaltyTicks)
         {
             for (RouteConnection& connection : connections)
@@ -257,10 +259,10 @@ namespace simple_platformer
             }
         }
 
-        // The cheapest route over the floors, and for a climber the walls and ceilings,
-        // from where the body rests to the goal cell. The search only reads the cache
-        // and never simulates: a cell the cache does not hold yet is queued for the
-        // fill, moved to the front, and defers the search. No result when the body rests
+        // The cheapest path over floors, and for a climber walls and ceilings, from where
+        // the body rests to the goal cell. It only reads the cache and never runs movement.
+        // If the cache does not hold a cell the search needs yet, that cell goes to the
+        // front of the fill and the result is Deferred. No result if the body rests
         // nowhere.
         std::optional<NavigationPathResult> findPlatformerPath(
             const TileMap& map,
@@ -271,12 +273,15 @@ namespace simple_platformer
             FrameProfile* frameProfile)
         {
             requireValid(goalFeet, profile);
+
             addFrameStatistic(frameProfile, "Navigation", "Path searches");
+
             const std::optional<RouteLocation> resting = restingLocationOf(map, body, profile);
             if (!resting.has_value())
             {
                 return std::nullopt;
             }
+
             const RouteLocation start = *resting;
             const int tileSize = map.tileSize();
             const Cell goal = cellAtFeet(tileSize, goalFeet);
@@ -291,6 +296,7 @@ namespace simple_platformer
             {
                 const PhaseScope connectionPhase(
                     frameProfile, "Navigation", "Connection retrieval");
+
                 ++cellsExpanded;
 
                 // 1. Read the cell's connections from the cache. One entry holds the
@@ -317,19 +323,25 @@ namespace simple_platformer
                 // 3. Charge each jump the start penalty. This changes the search's copy
                 //    only; the cached costs stay the simulated ticks.
                 applyJumpStartPenalty(leaving, JumpStartPenaltyTicks);
+
                 return leaving;
             };
+
             const HeuristicFunction heuristic = [tileSize, &profile](Cell cell, Cell goalCell)
             { return platformerTickHeuristic(tileSize, cell, goalCell, profile); };
-            // A cell the cache does not hold yet pauses the search; the fill builds it.
+
+            // The search pauses at a cell the cache does not hold yet, until the fill
+            // builds it.
             const ExpansionReady canExpand = [&cache, &profile](RouteLocation location)
             { return cache.cachedConnections(location.cell, profile) != nullptr; };
+
             RouteSearchResult result;
             {
                 const PhaseScope algorithmPhase(frameProfile, "Navigation", "Search algorithm");
                 result =
                     findLowestCostRoute(start, goal, map.size(), connections, heuristic, canExpand);
             }
+
             addFrameStatistic(frameProfile, "Navigation", "Cells expanded", cellsExpanded);
 
             if (result.unexpandedLocation.has_value())
@@ -342,6 +354,7 @@ namespace simple_platformer
                 addFrameStatistic(frameProfile, "Navigation", "Paths deferred");
                 return NavigationPathResult{NavigationPathStatus::Deferred, std::nullopt};
             }
+
             if (!result.route.has_value())
             {
                 throw std::logic_error("A completed route search returned no route");

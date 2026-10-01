@@ -430,10 +430,10 @@ cover-fade module. Combat maintains no reveal countdown. Rendering does not adva
 the clock, and consuming noise does not affect the stamp. Hearing never polls this
 timestamp; no noise event needs to persist for the reveal or target-memory window.
 
-NPCs pass the last-known feet to navigation as a target point. Navigation leads the
-pursuer as close to it as its own collider and capabilities allow; see
-[targets](#targets). It never reads the hidden player's current position or moves
-either actor directly. Patrol endpoints are targets in the same way.
+NPCs pass the last-known feet to navigation as a goal point. Navigation leads the
+pursuer as close to it as its own body and moves allow; see [goals](#goals). It never
+reads the hidden player's current position or moves either actor directly. Patrol
+endpoints are goals in the same way.
 
 Sensing only records observations. It does not decide whether to patrol, chase, bite,
 or shoot. This keeps perception and decisions separately testable.
@@ -539,44 +539,51 @@ Scripts cannot create noise events or apply damage directly.
 
 ## Navigation
 
-Navigation is intentionally the most advanced subsystem, and [START_HERE.md](START_HERE.md)
-reads it last. It separates a generic lowest-cost search from the movement-specific
-policies that tell the search how cells connect, and it never moves an actor itself: a
-path is turned into intentions, and the ordinary movement systems do the moving. This
-section starts with the search and movement-specific policies, then explains the
-cache and its background fill.
+Navigation is the most advanced part of the engine. It keeps the search, which finds the cheapest route, apart from the code
+that says how places connect for each kind of movement. It never moves an actor itself:
+the path follower turns a path into intentions, and the ordinary movement systems do the
+moving. This section covers the search and the connections first, then the cache and
+the fill that builds it.
 
-`findActorPath` is the one way in, and with `platformerTraversalProfileFor` the only
-public part of `actor_navigation`; the flying and platformer searches it chooses
-between are private to it. NPCs pass their actor and a target point.
-Navigation reads only the actor's body and its movement
-capabilities, never its current movement state. A flyer starts in the cell at its
-feet. A platformer starts where its body rests, judged from its bounds alone: the
-floor, wall, or ceiling position it matches within a pixel across the surface and
-most nearly along it. A body resting nowhere, as in the air, gets no result.
+`findActorPath` is the one way into navigation. An NPC passes it the actor and a goal
+point. It looks only at the actor's body and the moves it has, never at what the actor
+is doing right now.
 
-The result is a `NavigationPath` of waypoints. Each waypoint is where the body's feet
+Where the path starts depends on how the actor moves:
+
+- A flyer starts in the cell at its feet.
+- A platformer starts where its body rests: on a floor, a wall or a ceiling. This is
+  judged from the body's position alone. The body must be within a pixel of the surface,
+  and of the places that fit, the nearest along the surface is chosen.
+- A body that rests nowhere, such as in the air, gets no path.
+
+`actor_navigation` makes only `findActorPath` and `platformerTraversalProfileFor` public.
+The flying and platformer searches are private to it.
+
+The result is a `NavigationPath` of waypoints. Each waypoint says where the body's feet
 rest at the end of a step, how the step is travelled, and the inputs recorded for a
-fall, jump, or climb. Cells and surfaces stay inside navigation.
+fall, jump or climb. Cells and surfaces stay inside navigation.
 
-### Targets
+### Goals
 
-A target is a point, and it need not be somewhere the actor can be. It may be
-mid-jump, inside a wall, outside the map, or on a platform the actor cannot reach.
-The search works in cells only: it heads for the cell that holds the point and stops
-at the cheapest node in that cell.
+A goal is a point, and it need not be somewhere the actor can be. The search works in
+cells: it heads for the cell holding the point and stops at the cheapest place in that
+cell.
 
-If it reaches the cell, the result is `Found`. If it cannot, the failed search has
-visited everything reachable from the start, and the result is `Unreachable` with a
-path to the visited node whose cell is nearest the target's; of equally near cells,
-the first reached wins. That path has no waypoints when the actor is already there.
-Either way the result carries the distance from the path's last waypoint to the
-target point, so a caller can judge the outcome for itself. `Deferred` carries no path
-and asks for a retry once pending cache work is done. Flying paths never defer.
+The result's status says how it went:
 
-A cell holding more than one kind of node, such as a floor at the foot of a
-climbable wall, ends at whichever the actor reaches first. A climber approaching
-from the wall stays on it.
+| Status        | When                                                                       | The path                                                                                                                                | Distance from its end to the goal |
+| ------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `Found`       | The path reaches the goal's cell.                                          | Ends in the goal's cell.                                                                                                                | Yes                               |
+| `Unreachable` | The search tried everything reachable from the start, and never got there. | Ends in the reached cell nearest the goal, the first reached of any equally close. It has no waypoints when the actor is already there. | Yes                               |
+| `Deferred`    | The cache is missing a cell the search needs. Flying paths never defer.    | None. The caller tries again once the fill has built the cell.                                                                          | No                                |
+
+The distance lets a caller judge the outcome for itself, such as whether an
+unreachable goal is close enough.
+
+A cell with more than one place to rest, such as a floor at the foot of a climbable
+wall, ends the path at whichever the actor reaches first. A climber arriving from the
+wall stays on it.
 
 ### The search
 
@@ -605,10 +612,10 @@ The search ends in one of three ways:
 
 ### Flying paths
 
-Flying navigation treats every cell that allows movement as a node joined to its four
-neighbors at a cost of one, with the grid steps between two cells as the heuristic. The path
-follower steers straight at each step's cell while collision keeps the body outside
-platforms. It shortens the final movement to avoid overshooting the cell's feet point.
+Flying navigation joins every open cell to its four neighbors at a cost of 1, and
+guesses the cost to the goal by counting the cells between. The path follower steers
+straight at each step's cell while collision keeps the body out of platforms. It
+shortens the last move so it does not overshoot the cell's feet point.
 
 ### Platformer connections
 
@@ -624,7 +631,7 @@ caller receives.
 `platformer_connections` builds the connections leaving every location of a cell
 the body can rest at. It tries each traversal the profile allows with the real
 physics at the caller's step, and each success becomes a connection. The NPC system
-passes its current tick's step, so a predicted move and the real one run the same
+passes its current tick's step, so a planned move and the real one run the same
 physics. A connection records the surface it leaves and the surface it reaches, and
 the search expands a location with the connections leaving its surface. Costs are
 the movement ticks the simulation took.
@@ -716,7 +723,7 @@ moves more than 8 pixels; the path itself may end short of it. End-to-end tests 
 input programs through the real simulation so navigation cannot quietly drift away
 from runtime movement.
 
-Targets are points measured against the body's bounds, so neither ground nor flying
+Goals are points measured against the body's bounds, so neither ground nor flying
 navigation depends on where the actor is anchored. NPCs still remember and patrol
 by feet, which a floor body's bounds cover at their bottom edge.
 

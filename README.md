@@ -13,6 +13,8 @@ loop, and ImGui debugging tools.
 | [START_HERE.md](docs/START_HERE.md)     | A recommended route through the code, and which details can wait until later.     |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design, ownership rules, runtime flow, and the reasons behind the main decisions. |
 | [CONTENT.md](docs/CONTENT.md)           | How to author levels, definitions, machines, and NPC scripts under `assets`.      |
+| [GLOSSARY.md](docs/GLOSSARY.md)         | The words the code and documents use, each with one meaning.                      |
+| [CPP_STYLE.md](docs/CPP_STYLE.md)       | How the C++ is written, and the language features to know before reading it.      |
 | [FUTURE_WORK.md](docs/FUTURE_WORK.md)   | Proposed features that are not implemented yet.                                   |
 
 New to the project? Start with [START_HERE.md](docs/START_HERE.md).

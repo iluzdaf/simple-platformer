@@ -8,6 +8,10 @@ Build and run the project using the instructions in [README.md](../README.md) be
 starting the tour. Keep a matching test file open beside each implementation file;
 the tests often provide the smallest examples of how a subject is meant to be used.
 
+Two short references help while reading. The [glossary](GLOSSARY.md) gives the meaning
+of the words the code uses, and [C++ style](CPP_STYLE.md) explains how the code is
+written and the language features worth knowing first.
+
 There are two routes through this document:
 
 - If you are new to the engine, follow the

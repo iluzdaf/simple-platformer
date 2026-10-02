@@ -7,6 +7,7 @@ the renderer. You do not need to understand every subsystem before changing the 
 Build and run the project using the instructions in [README.md](../README.md) before
 starting the tour. Keep a matching test file open beside each implementation file;
 the tests often provide the smallest examples of how a subject is meant to be used.
+Each step below names a starting test and a question to answer before moving on.
 
 Two short references help while reading. The [glossary](GLOSSARY.md) gives the meaning
 of the words the code uses, and [C++ style](CPP_STYLE.md) explains how the code is
@@ -120,21 +121,31 @@ senses and memory
 
 Start with [`app/main.cpp`](../app/main.cpp), then skim
 [`app/application.cpp`](../app/application.cpp). The application owns the window, input,
-fixed-step loop, UI, and graphics setup. Do not worry about the OpenGL details yet.
+fixed-step loop, UI, and graphics setup. Start at `runApplication` and find the callback
+that calls `game.update`. Do not worry about the OpenGL details yet.
+
+**Starting test:** "Elapsed time is simulated in fixed 60 Hz updates" in
+[`test_fixed_step.cpp`](../tests/timing/test_fixed_step.cpp). How many simulation updates
+can happen during one rendered frame?
 
 ### 2. See what the game coordinates
 
 Read [`app/game/game.hpp`](../app/game/game.hpp) and
 [`app/game/game.cpp`](../app/game/game.cpp). `Game` is the seam between the application
 and the engine: it passes input into the simulation, updates presentation state, changes
-levels, and builds a scene for rendering. What it and `GameLevel` own is listed under
-[Application folders](ARCHITECTURE.md#application-folders).
+levels, and builds a scene for rendering. Start with `Game::update` and `Game::buildScene`;
+return to construction and level-loading helpers in step 9. What it and `GameLevel` own
+is listed under [Application folders](ARCHITECTURE.md#application-folders).
 
 Then open [`assets/levels/levels.json`](../assets/levels/levels.json), which selects the
 starting level and maps IDs to files. Follow its first entry into
 [`level_1.json`](../assets/levels/level_1.json). For now, notice the terrain, player spawn,
 and actor placements: level data becomes a tile map and a world of actors. Return to
 parsing and composition in step 9, after learning the data they build.
+
+**Starting test:** "World simulation advances its shared clock once per update" in
+[`test_world_simulation.cpp`](../tests/world/test_world_simulation.cpp). Which call in
+`Game` advances gameplay, and which builds the draw data?
 
 ### 3. Learn the core data model
 
@@ -151,6 +162,10 @@ The important idea is composition: gameplay roles are not represented by differe
 actor subclasses. Each actor is assembled from a different combination of data. The
 full recipe is in [Actor composition](ARCHITECTURE.md#actor-composition).
 
+**Starting test:** "The actor builder gives exactly one movement component" in
+[`test_actor_builder.cpp`](../tests/support/test_actor_builder.cpp). Which data does a
+platformer have that a flyer does not?
+
 ### 4. Follow one simulation tick
 
 Read [`world_simulation.cpp`](../src/world/world_simulation.cpp). It is the short,
@@ -164,7 +179,13 @@ For the player movement path, a useful order is:
 3. [`platformer_movement.cpp`](../src/movement/platformer_movement.cpp)
 
 Read [`test_platformer_movement.cpp`](../tests/movement/test_platformer_movement.cpp)
-beside the movement implementation for examples of acceleration and jumping.
+beside the movement implementation for examples of acceleration and jumping. Start with
+"Ground movement accelerates and decelerates", then "Grounded actors can jump".
+Which intention starts a jump, and which body field changes?
+
+For input, read "A pressed edge is consumed by only one fixed update" in
+[`test_input_state.cpp`](../tests/input/test_input_state.cpp). Why does holding a button
+differ from pressing it this tick?
 
 ### 5. Understand physics and tile collision
 
@@ -176,7 +197,9 @@ Follow the movement loop into physics:
 
 `moveBody` moves horizontally, then vertically. Each sweep stops at the first blocking
 tile and clears velocity on that axis. Read
-[`test_body.cpp`](../tests/physics/test_body.cpp) beside the implementation.
+[`test_body.cpp`](../tests/physics/test_body.cpp) beside the implementation. Start with
+"Horizontal movement stops on either side of a solid tile". Where does the body stop,
+and what happens to its velocity? Then read "Collision resolves X before Y at a corner".
 See [Tile map, collision, and validation](ARCHITECTURE.md#tile-map-collision-and-validation)
 for more detail.
 
@@ -198,6 +221,10 @@ opacity. Then read these after the movement loop:
    commands to OpenGL.
 
 The first three can be understood and tested without knowing OpenGL.
+
+**Starting test:** "A render scene contains visible tiles followed by the player" in
+[`test_render_scene.cpp`](../tests/render/test_render_scene.cpp). Which fields place the
+player on screen, and where does draw order come from?
 
 ### 7. Read NPC behaviour and combat
 
@@ -224,10 +251,19 @@ Patrol -> sees player -> Chase -> movement intentions
 5. Return to [`actor_system.cpp`](../src/actor/actor_system.cpp): it sends those intentions
    through the movement code from step 4. Step 8 explains how a path becomes intentions.
 
+**Starting tests:** "NPC sight observes distance and solid tiles" in
+[`test_npc_senses.cpp`](../tests/npc/test_npc_senses.cpp), then "A known target is chased
+from idle and from patrol" in
+[`test_npc_transitions.cpp`](../tests/npc/test_npc_transitions.cpp). What observation
+becomes a fact, and how does that fact change Patrol to Chase?
+
 Then skim [`attack_system.cpp`](../src/combat/attack_system.cpp) and
 [`projectile_system.cpp`](../src/combat/projectile_system.cpp) for how attack intentions
 produce hits. [`world_requests.cpp`](../src/world/world_requests.cpp) applies their damage and
-handles death together with queued removals and spawns. Other NPC tactics and states can wait until this case makes sense.
+handles death together with queued removals and spawns. Start with "Damage is deferred
+until world requests are applied" in
+[`test_world_requests.cpp`](../tests/world/test_world_requests.cpp). When does a hit
+actually reduce health? Other NPC tactics and states can wait until this case makes sense.
 
 ### 8. Follow basic navigation
 
@@ -261,6 +297,14 @@ Connections are found by running the real movement and collision code. The follo
 produces intentions; the movement system still moves the body. [Navigation](ARCHITECTURE.md#navigation)
 is the detailed reference when you need more than this basic route.
 
+**Starting tests:** "A search chooses by the connections' costs, not by how many steps a
+route takes" in [`test_route_search.cpp`](../tests/navigation/test_route_search.cpp).
+Why can a longer route be cheaper? Then read "A platformer path follower approaches and
+brakes without moving the body directly" and "A platformer path follower executes a
+generated jump through movement and collision" in
+[`test_path_follower.cpp`](../tests/navigation/test_path_follower.cpp). Which part chooses
+intentions, and which part changes the body's position?
+
 ### 9. Complete the level loop
 
 Finally, read the small inventory and world-object subjects:
@@ -273,11 +317,19 @@ Finally, read the small inventory and world-object subjects:
 
 These show automatic pickup, deferred world changes, item use, and level completion.
 
+**Starting test:** "An entered exit completes only once it has had time to open" in
+[`test_level_exit.cpp`](../tests/world/test_level_exit.cpp). What starts opening the door,
+and what completes the level?
+
 Now return to [`level_composition.cpp`](../app/game/level_composition.cpp):
 `composeGameLevel` builds the map and world from level data and catalog definitions.
 Read [`level_data.cpp`](../app/content/level_data.cpp) afterward, starting with
 `loadLevelData` and `parseLevelData`, to see how JSON becomes that data. Use
 [CONTENT.md](CONTENT.md) for the JSON fields and shared catalogs.
+
+Start with "A level composes an actor from its catalog definition" in
+[`test_level_composition.cpp`](../tests/app/game/test_level_composition.cpp). Which data
+comes from the catalog, and which comes from the level placement?
 
 ## What to skip on a first reading
 

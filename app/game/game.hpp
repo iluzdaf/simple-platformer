@@ -59,13 +59,13 @@ namespace simple_platformer
         bool complete() const;
         std::optional<glm::vec2> levelExitScreenPosition() const;
         bool exitReady() const;
-        // The icon of what the exit needs, while the player has just tried it without.
+        // The required item's icon after a locked touch, or nothing once the hint expires.
         std::optional<Sprite> lockedExitHintIcon() const;
         const HudIcons& hudIcons() const;
 
     private:
         void loadLevel(int levelNumber);
-        // Forgets the old world's script state, then composes the level around player.
+        // Replaces the map and world, then inserts the supplied player into the new level.
         void replaceLevel(int levelNumber, Actor player);
         void startLevel(Actor player);
         CameraController& cameraControllerValue();

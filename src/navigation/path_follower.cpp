@@ -96,8 +96,8 @@ namespace simple_platformer
             return intentions;
         }
 
-        // Travels the held surface to the start of a climb: along a ceiling sideways,
-        // along a wall up or down. Nothing once there.
+        // Moves along the held surface towards the climb's start. Returns no intentions
+        // once close enough, or when speed or deltaTime allows no movement.
         std::optional<InputIntentions> climbTowards(
             const Body& body,
             const SurfaceClimb& climb,
@@ -187,14 +187,12 @@ namespace simple_platformer
                 clearPath(follower);
                 return {};
             }
-            // Ready for the next step, which starts from its own approach.
             follower.programElapsed = 0.0F;
             return {true, {}};
         }
 
-        // The recorded inputs start where the climb starts: a climber already holding a
-        // surface travels along it there, one standing walks there and stops, and one
-        // in the air grabs whatever it touches.
+        // Reach the recorded starting point before replay. A climber already attached
+        // moves along its surface; a grounded one walks and stops; an airborne one grabs.
         StepProgress followClimbStep(
             const Body& body,
             const PlatformerMovement& movement,
@@ -234,8 +232,8 @@ namespace simple_platformer
                     waypoint.feet == start &&
                     waypoint.inputs.front().intentions.climbGrip == ClimbGrip::Hold)
                 {
-                    // An in-place grab needs contact, but walking may stop short
-                    // within its arrival tolerance. Acquire the wall before replay.
+                    // Walking may stop within tolerance without touching the wall.
+                    // Keep asking for the grab until attached, then replay the climb.
                     return {false, waypoint.inputs.front().intentions};
                 }
             }
@@ -344,14 +342,12 @@ namespace simple_platformer
             return {};
         }
 
-        // Follow the current step. A step that is already done hands straight on to the
-        // next, so several can finish in one tick; the first unfinished one gives the
-        // intentions. A step that goes wrong clears the path and reports itself unfinished,
-        // so the loop returns before looking at the path again.
+        // Skip completed steps in the same tick; return intentions for the first unfinished
+        // one. A failed step clears the path and returns complete == false, so this loop
+        // must return before reading the cleared path or its waypoint again.
         while (follower.nextStep < follower.path->waypoints.size())
         {
             const Waypoint& waypoint = follower.path->waypoints[follower.nextStep];
-            // Where this step's recorded inputs, if any, were recorded from.
             const glm::vec2 start = stepStart(*follower.path, follower.nextStep);
             StepProgress progress;
             switch (waypoint.traversal)

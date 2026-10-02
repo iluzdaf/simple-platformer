@@ -14,7 +14,8 @@ namespace simple_platformer
         ItemStack stack;
         // Without an override, rendering uses the item's inventory icon.
         std::optional<Sprite> sprite = std::nullopt;
-        // As Actor::screenVisibility.
+        // Screen visibility from 0 to 1, eased towards what the player can see.
+        // Unset until the first presentation update.
         std::optional<float> screenVisibility = std::nullopt;
     };
 

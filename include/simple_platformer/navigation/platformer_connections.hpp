@@ -17,7 +17,8 @@ namespace simple_platformer
         CellRange footprint;
     };
 
-    // Simulates connections against the current map.
+    // Simulates moves from every surface the profile can use in this cell. Returns the
+    // successful connections and the tiles read or swept by all attempts, including failures.
     BuiltPlatformerConnections buildPlatformerConnections(
         const TileMap& map,
         Cell cell,

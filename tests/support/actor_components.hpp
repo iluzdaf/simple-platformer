@@ -20,9 +20,8 @@
 
 namespace tests
 {
-    // Reads an actor back out of a World, or one of its components out of an actor or a World.
-    // Each fails the test when the actor or component is missing, rather than letting it
-    // dereference nothing.
+    // Reads actors and components for assertions. A missing actor fails REQUIRE; a
+    // missing component throws, so a broken fixture fails instead of dereferencing nothing.
 
     inline simple_platformer::Actor& actor(
         simple_platformer::World& world,

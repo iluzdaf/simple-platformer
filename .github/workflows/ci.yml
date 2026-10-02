@@ -9,8 +9,8 @@ on:
 jobs:
   formatting:
     name: Formatting
-    # Strict branch protection runs this job, the header check, and static analysis before
-    # a pull request can merge. Do not repeat them on the resulting push to main.
+    # Quality checks run on pull requests. Skip the push to main after merging so the
+    # same checks do not run twice.
     if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     env:
@@ -83,8 +83,8 @@ jobs:
 
   static-analysis:
     name: Static analysis (${{ matrix.shard }}/3)
-    # Header changes bring their transitive includers with them. Three shards keep
-    # broad changes and full-tree fallbacks from returning to one long-running job.
+    # Header changes include every affected source. Split that work across three shards
+    # so broad changes do not leave one job checking the whole tree alone.
     if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     strategy:
@@ -143,8 +143,8 @@ jobs:
 
   static-analysis-result:
     name: Static analysis
-    # The check branch protection requires, so it doesn't name each shard. A skipped job
-    # would count as passing, so this one always runs and fails unless every shard succeeded.
+    # One required check for all shards. Run even after a failure or cancellation so it
+    # reports failure unless every shard succeeded.
     if: always() && github.event_name != 'push'
     needs: static-analysis
     runs-on: ubuntu-24.04

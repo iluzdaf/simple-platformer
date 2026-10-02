@@ -47,10 +47,9 @@ namespace simple_platformer
         // In pixels: how far a body may sit off a surface and still rest on it.
         constexpr float RestingTolerance = 1.0F;
 
-        // Where a body is resting, judged from its bounds alone. Of the places near it the
-        // profile can rest at, it picks the one whose resting bounds are within a pixel of
-        // the body across the surface, and nearest along it, up to a tile away. Nothing if
-        // the body rests nowhere, such as in the air.
+        // Finds where the body rests, using its bounds rather than its movement state.
+        // Candidates must fit the body and be within RestingTolerance across the surface.
+        // Chooses the nearest along the surface, less than a tile away; nothing if none fit.
         std::optional<RouteLocation> restingLocationOf(
             const TileMap& map,
             const Aabb& bounds,
@@ -113,8 +112,8 @@ namespace simple_platformer
             return path;
         }
 
-        // What the caller gets from a route: Found if it ends in the goal cell, Unreachable
-        // if not, with the path and how far the path's end is from the goal.
+        // Turns a successful route into a Found result, with waypoints and the distance
+        // from the final feet to the requested goal. The search has reached the goal cell.
         NavigationPathResult pathResultOf(
             int tileSize,
             const Route& route,
@@ -282,8 +281,6 @@ namespace simple_platformer
                     }
                 }
 
-                // Charge each jump the start penalty. This changes the search's copy
-                // only; the table's costs stay the simulated ticks.
                 applyJumpStartPenalty(leaving, JumpStartPenaltyTicks);
 
                 return leaving;

@@ -24,13 +24,10 @@ namespace simple_platformer
         Stunned
     };
 
-    // The brain's policy, asked wherever the transition table makes a choice: what to do
-    // about a known target, and where a lost one leaves the NPC. A Pursuer closes in,
-    // attacks with what reaches, and searches where it lost its target. A KeepDistance
-    // NPC backs away from a target nearer than its standoff, so a ranged NPC keeps its
-    // range, and watches from where it stands rather than walk to where the target was.
-    // Coward flees and bites when cornered. Charger wakes on a landing, commits to
-    // a charge, and recovers after being blocked. Tactics select built-in states.
+    // Chooses built-in states. Pursuer closes in and searches after losing its target.
+    // KeepDistance backs away inside standoff distance and watches after losing it.
+    // Coward flees and bites at close range. Charger wakes on a landing, keeps its charge
+    // direction, and recovers when blocked.
     enum class NpcTactic
     {
         Pursuer,

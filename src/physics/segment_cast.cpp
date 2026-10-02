@@ -19,6 +19,8 @@ namespace simple_platformer
 {
     namespace
     {
+        // Narrows [first, last] to where the segment lies within this axis's bounds.
+        // Returns false if it misses those bounds or no shared interval remains.
         bool castAxis(
             float start,
             float movement,

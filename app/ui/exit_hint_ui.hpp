@@ -6,6 +6,6 @@ namespace simple_platformer
     struct Texture;
     struct WindowViewport;
 
-    // Draws the icon of what a locked exit needs above it, while the game says to.
+    // Draws the required item's icon above the exit while its locked-touch hint is active.
     void drawLockedExitHint(const Game& game, const Texture& atlas, const WindowViewport& viewport);
 }

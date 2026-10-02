@@ -28,7 +28,7 @@ namespace simple_platformer
         std::optional<PlatformerMovementConfig> platformer;
         std::optional<FlyingMovement> flying;
         std::optional<SurfaceClimbConfig> surfaceClimb;
-        // Presence creates the brain, perception, and path follower with these senses.
+        // Configuring senses creates the brain, perception, and path follower together.
         std::optional<NpcSenses> senses;
         NpcTactic tactic = NpcTactic::Pursuer;
         // Reuse the engine's attack settings. Composition resets their phase/timer state;

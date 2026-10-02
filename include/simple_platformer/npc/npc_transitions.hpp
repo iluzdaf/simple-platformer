@@ -7,8 +7,7 @@
 
 namespace simple_platformer
 {
-    // The state to enter from this one given the facts, or nothing to stay. Every
-    // transition the NPC makes is a branch here, and none of them act. The tactic is
-    // used to select its policy: pursuit, flight or committed charging.
+    // Returns the state to enter, or nothing to stay. Uses only the tactic, current state,
+    // and facts; it does not change the actor or issue intentions.
     std::optional<NpcState> nextNpcState(NpcTactic tactic, NpcState state, const NpcFacts& facts);
 }

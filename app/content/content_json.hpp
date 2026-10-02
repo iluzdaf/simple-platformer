@@ -10,11 +10,10 @@
 
 namespace simple_platformer
 {
-    // Shape checks only. Domain rules (positive quantities, known names) stay in validators.
-    // Loaders may supply the filename here or add it once at their outer error boundary.
-    // fieldPath, indexPath and failJson live in content_diagnostics.hpp; include it to use them.
-    // Every readOptional... leaves the supplied default in place when the key is missing;
-    // a key that is present but invalid is an error.
+    // Reads JSON shapes; content validators check rules such as quantities and names.
+    // Missing optional fields keep the supplied default. Present but invalid fields fail.
+    // sourceName and path identify the bad field; loaders may add the filename at their
+    // outer boundary instead. Path helpers and failJson live in content_diagnostics.hpp.
     void checkJsonFields(
         const nlohmann::json& value,
         const std::vector<std::string_view>& allowed,
@@ -27,8 +26,7 @@ namespace simple_platformer
         std::string_view sourceName = {},
         std::string_view path = {});
 
-    // The member when the object has it, otherwise nullptr: for fields whose absence means
-    // "keep the C++ default". Like requiredJsonMember, the object itself must be an object.
+    // Returns the member, or nullptr when missing. A non-object value is an error.
     const nlohmann::json* optionalJsonMember(
         const nlohmann::json& object,
         std::string_view key,
@@ -53,7 +51,7 @@ namespace simple_platformer
         std::string_view sourceName = {},
         std::string_view path = {});
 
-    // For a field that is absent rather than defaulted when the key is missing.
+    // Leaves result unchanged when the key is missing; a present field must be an integer.
     void readOptionalInteger(
         const nlohmann::json& object,
         std::string_view key,

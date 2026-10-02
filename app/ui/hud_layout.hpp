@@ -6,7 +6,6 @@ namespace simple_platformer
     constexpr float HudIconSize = 16.0F;
     constexpr float HudMargin = 4.0F;
     constexpr float HudGap = 2.0F;
-    // What floats above the level exit, the locked hint or the completion message, ends
-    // this far above the door.
+    // Gap between the door's top and the locked hint or completion message, in internal pixels.
     constexpr float GapAboveDoor = 4.0F;
 }

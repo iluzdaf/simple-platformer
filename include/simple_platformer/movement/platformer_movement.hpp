@@ -28,7 +28,6 @@ namespace simple_platformer
     };
 
     void validatePlatformerMovementConfig(const PlatformerMovementConfig& config);
-    // Equal in every field.
     bool operator==(const PlatformerMovementConfig& left, const PlatformerMovementConfig& right);
     bool operator!=(const PlatformerMovementConfig& left, const PlatformerMovementConfig& right);
 

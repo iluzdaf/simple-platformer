@@ -88,8 +88,8 @@ namespace simple_platformer
         std::optional<ActorId> owner;
         Team team = Team::Neutral;
         Sprite sprite;
-        // Copied from the weapon that fired it, since the weapon is gone by the time
-        // the projectile reaches a tile.
+        // Copied at firing so the shot keeps its tile-breaking rule even if its owner
+        // is removed or its weapon changes.
         bool breaksTiles = false;
     };
 

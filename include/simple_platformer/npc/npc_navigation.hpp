@@ -10,10 +10,9 @@ namespace simple_platformer
     struct NpcUpdate;
     struct PathFollower;
 
-    // This tick's intentions towards the goal: plans a path when there is none, when the
-    // goal has moved, when the actor has been moved off a finished path, or when a tile
-    // has broken since, then follows it. Only movement is set, so a caller that also aims
-    // does so afterwards.
+    // Returns movement intentions towards the goal, planning a path when needed.
+    // Replans after a tile break, a large enough goal change, or displacement from a
+    // finished path. A caller that also aims sets the aim afterwards.
     InputIntentions intentionsToReach(
         const NpcUpdate& update,
         Actor& actor,

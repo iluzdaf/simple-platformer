@@ -64,7 +64,7 @@ def included_by(paths):
 
 
 def reaching(changed, users):
-    """Return the changed files and every file which transitively includes them."""
+    """Return changed files and all files that include them, directly or indirectly."""
     found = set(changed)
     pending = list(changed)
     while pending:
@@ -107,7 +107,7 @@ def changed_since(reference):
 
 
 def selected_paths(paths, changed):
-    """Select changed C++ paths, preserving conservative configuration fallbacks."""
+    """Select affected C++ files, or the whole tree when dependencies cannot be traced."""
     if any(str(path) in FULL_TREE_RULES for path in changed):
         return paths
 

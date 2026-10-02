@@ -7,8 +7,8 @@ namespace simple_platformer
 {
     struct RenderScene;
 
-    // A loaded texture. The SpriteRenderer owns and deletes it; copies are only for drawing
-    // with.
+    // A view of a loaded texture. SpriteRenderer owns the GPU resource; copying this
+    // value does not transfer ownership or extend its lifetime.
     struct Texture
     {
         unsigned int handle = 0;

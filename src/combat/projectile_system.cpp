@@ -105,9 +105,9 @@ namespace simple_platformer
     {
         requireSeconds(deltaTime, "Projectiles time step");
 
-        // The map belongs to GameLevel, not World, so breaks are not WorldRequests. They are
-        // still held back until every shot has been traced, so one shot cannot open a hole
-        // that a later shot in the same frame flies through.
+        // Trace every shot against the same map before applying breaks. Otherwise an
+        // earlier shot could open a hole for a later one in this update. Breaks are local
+        // to this system because the map is separate from World.
         std::vector<Cell> brokenTiles;
         for (std::size_t index = 0; index < world.projectiles().size(); ++index)
         {

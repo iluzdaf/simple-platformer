@@ -8,7 +8,8 @@ namespace tests
     //
     //   NpcFactsBuilder::facts().withPatrol().knowingTarget().biteReadyFor(0.1F)
     //
-    // Every fact starts false, so a chain names only the ones the transition depends on.
+    // Flags start false and elapsed times start at zero. A chain sets only the facts
+    // the transition depends on.
     // The chain converts to NpcFacts wherever one is expected, such as nextNpcState.
     class NpcFactsBuilder
     {
@@ -30,7 +31,7 @@ namespace tests
             return *this;
         }
 
-        // A visible target inside the bite's hitbox, which is known as well.
+        // Sets the target as known, visible, and inside the bite's hitbox.
         NpcFactsBuilder targetInBiteRange() &&
         {
             built.targetKnown = true;
@@ -39,7 +40,7 @@ namespace tests
             return *this;
         }
 
-        // A visible target with a ranged weapon to shoot it, which is known as well.
+        // Sets a known, visible target and the fact that the NPC can shoot it.
         NpcFactsBuilder targetInSights() &&
         {
             built.targetKnown = true;

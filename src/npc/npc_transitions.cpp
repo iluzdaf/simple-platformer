@@ -71,9 +71,8 @@ namespace simple_platformer
             }
         }
 
-        // The second choice the table puts to the tactic: where a lost target leaves the
-        // NPC. A Pursuer searches where it lost it, a KeepDistance NPC watches from where
-        // it stands, and one that does not search goes back to its routine.
+        // After losing a target, Pursuer searches and KeepDistance watches. With searching
+        // disabled, both return to patrol or idle.
         NpcState lostTarget(NpcTactic tactic, const NpcFacts& facts)
         {
             if (!facts.searches)
@@ -83,10 +82,8 @@ namespace simple_platformer
             return tactic == NpcTactic::KeepDistance ? NpcState::Watch : NpcState::Search;
         }
 
-        // The first choice the table puts to the tactic: how a known target is pursued.
-        // With the attack that can reach it now, a bite before a shot, and otherwise by
-        // chasing; a KeepDistance NPC first backs away from a target that has come too
-        // near. Nothing without a target.
+        // For a known target, choose a bite or shot that can reach it, otherwise chase.
+        // KeepDistance first backs away if the target is too close. Nothing without a target.
         std::optional<NpcState> pursuit(NpcTactic tactic, const NpcFacts& facts)
         {
             if (!facts.targetKnown)
@@ -156,9 +153,8 @@ namespace simple_platformer
             }
             return facts.searchTimeUp ? std::optional(patrolOrIdle(facts)) : std::nullopt;
         case NpcState::Bite:
-            // The bite starts the update after it is asked for, so a bite still ready on
-            // the entering update has not begun; the wait lets the attack system see it.
-            // A finished bite chases before it bites again.
+            // Ready on entry means combat has not seen the request yet. Wait for a later
+            // decision before treating Ready as a finished bite. Chase before biting again.
             if (!facts.biteReady || facts.stateElapsed <= 0.0F)
             {
                 return std::nullopt;

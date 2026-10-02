@@ -11,9 +11,8 @@
 
 namespace simple_platformer
 {
-    // Nothing can stand in a tile that blocks movement, so a sight-blocking tile only hides
-    // what is in it when it can be walked into. That is the difference between grass, which
-    // blocks sight and conceals whoever stands in it, and stone, which only blocks.
+    // Shared rules and art for a tile ID. Movement and sight blocking are independent:
+    // glass stops bodies but not sight; grass stops sight but lets bodies enter it.
     struct TileDefinition
     {
         bool blocksMovement = false;
@@ -44,7 +43,6 @@ namespace simple_platformer
         int tileSize() const;
         int width() const;
         int height() const;
-        // Both, as the grid a search runs over.
         GridSize size() const;
         float pixelWidth() const;
         float pixelHeight() const;
@@ -60,13 +58,11 @@ namespace simple_platformer
         // Out-of-map walls are not climbable.
         bool climbableAt(Cell cell) const;
 
-        // Replaces the cell with whatever its definition breaks into, and reports
-        // whether that happened. A cell outside the map, or one whose definition has no
-        // breaksIntoTileId, is left alone: callers pass in cells that came from a cast,
-        // and map boundaries report as blocking cells that lie outside the map.
+        // Replaces the tile with breaksIntoTileId and returns true. Returns false for an
+        // unbreakable tile or an off-map cell, including boundaries reported by a cast.
         bool breakTile(Cell cell);
-        // Every cell broken so far, in order, so whatever was worked out from the map as it
-        // was can find out what changed since.
+        // Successful breaks in order. Navigation remembers how far it has read this log
+        // so it can update connections and paths after a break.
         const std::vector<Cell>& brokenCells() const;
 
     private:

@@ -21,7 +21,7 @@ namespace simple_platformer
         bool frameProfileDetails = false;
         bool worldAndCameraOverlay = false;
         bool actorText = false;
-        bool navigationCacheText = false;
+        bool navigationConnectionsText = false;
         bool stateMachine = false;
     };
 

@@ -133,8 +133,8 @@ namespace simple_platformer
             }
             if (key == GLFW_KEY_4 && action == GLFW_PRESS && context->showDebugOverlay)
             {
-                context->debugToolVisibility.navigationCacheText =
-                    !context->debugToolVisibility.navigationCacheText;
+                context->debugToolVisibility.navigationConnectionsText =
+                    !context->debugToolVisibility.navigationConnectionsText;
                 return;
             }
             if (key == GLFW_KEY_5 && action == GLFW_PRESS && context->showDebugOverlay)

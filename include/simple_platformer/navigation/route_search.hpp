@@ -15,19 +15,13 @@ namespace simple_platformer
     // Guesses the cost from a cell to the goal cell. The guess must never be more than
     // the real cost, and never below zero.
     using HeuristicFunction = std::function<int(Cell cell, Cell goal)>;
-    // Says whether the search may expand a location now. False pauses the search there,
-    // before it asks for that location's connections, so a cache can finish its work
-    // first. An empty function allows every location.
-    using ExpansionReady = std::function<bool(RouteLocation location)>;
 
     // What a search ends with. A finished search has a route to the cheapest location in
     // the goal cell. If it could not reach that cell, the route leads to a cell as close
-    // to it as possible, the first reached of any equally close. A paused search has no
-    // route, and names the location it stopped at.
+    // to it as possible, the first reached of any equally close.
     struct RouteSearchResult
     {
         std::optional<Route> route;
-        std::optional<RouteLocation> unexpandedLocation;
     };
 
     // Finds the cheapest route from start to any location in the goal cell, using A*.
@@ -40,6 +34,5 @@ namespace simple_platformer
         Cell goal,
         GridSize grid,
         const ConnectionFunction& connections,
-        const HeuristicFunction& heuristic,
-        const ExpansionReady& canExpand = {});
+        const HeuristicFunction& heuristic);
 }

@@ -15,11 +15,11 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/actor_navigation.hpp"
-#include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
+#include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -39,43 +39,38 @@ namespace simple_platformer
 
         CursorCellDebugInfo cursorCellDebugInfo(
             const TileMap& map,
-            const PlatformerConnectionCache& cache,
+            const PlatformerConnectionTable& table,
             const PlatformerTraversalProfile& profile,
             Cell cell)
         {
             const int tileSize = map.tileSize();
             CursorCellDebugInfo info;
             info.bounds = cellBounds(tileSize, cell);
-            const std::optional<CellRange> footprint = cache.cachedFootprint(cell, profile);
-            if (footprint.has_value())
+            if (!table.isBuilt(profile))
             {
-                const CellRange range = footprint.value_or(CellRange{});
-                const Aabb first = cellBounds(tileSize, range.first);
-                const Aabb last = cellBounds(tileSize, range.last);
-                info.footprint = Aabb{first.topLeft, last.topLeft + last.size - first.topLeft};
+                return info;
             }
-            const std::vector<RouteConnection>* cached = cache.cachedConnections(cell, profile);
-            if (cached != nullptr)
+            const CellRange& footprint = table.footprint(cell, profile);
+            const Aabb first = cellBounds(tileSize, footprint.first);
+            const Aabb last = cellBounds(tileSize, footprint.last);
+            info.footprint = Aabb{first.topLeft, last.topLeft + last.size - first.topLeft};
+            for (const RouteConnection& connection : table.connections(cell, profile))
             {
-                for (const RouteConnection& connection : *cached)
-                {
-                    const glm::vec2 fromFeet = feetOf(
-                        boundsAtSurface(tileSize, {cell, connection.sourceSurface}, profile.size));
-                    info.connections.push_back(
-                        {fromFeet,
-                         feetOf(
-                             boundsAtSurface(tileSize, connection.step.destination, profile.size)),
+                const glm::vec2 fromFeet = feetOf(
+                    boundsAtSurface(tileSize, {cell, connection.sourceSurface}, profile.size));
+                info.connections.push_back(
+                    {fromFeet,
+                     feetOf(boundsAtSurface(tileSize, connection.step.destination, profile.size)),
+                     connection.step.traversal,
+                     connection.cost,
+                     sampleAirborneProgram(
+                         map,
+                         fromFeet,
+                         profile.size,
+                         profile.movement,
                          connection.step.traversal,
-                         connection.cost,
-                         sampleAirborneProgram(
-                             map,
-                             fromFeet,
-                             profile.size,
-                             profile.movement,
-                             connection.step.traversal,
-                             connection.step.inputs,
-                             profile.stepSeconds)});
-                }
+                         connection.step.inputs,
+                         profile.stepSeconds)});
             }
             return info;
         }
@@ -111,7 +106,7 @@ namespace simple_platformer
         return sampledFeet;
     }
 
-    std::optional<NavigationCacheDebugInfo> makeNavigationCacheDebugInfo(
+    std::optional<NavigationConnectionsDebugInfo> makeNavigationConnectionsDebugInfo(
         const World& world,
         const TileMap& map,
         float simulationStepSeconds,
@@ -143,8 +138,7 @@ namespace simple_platformer
         }
         const std::size_t shown = view.profileIndex % profiles.size();
         const PlatformerTraversalProfile& profile = profiles[shown];
-        const PlatformerConnectionCache& cache = world.platformerConnections();
-        NavigationCacheDebugInfo info;
+        NavigationConnectionsDebugInfo info;
         info.bodySize = profile.size;
         for (const NamedNavigationProfile& named : view.namedProfiles)
         {
@@ -156,10 +150,8 @@ namespace simple_platformer
         }
         info.profileIndex = shown;
         info.profileCount = profiles.size();
-        info.cachedCellCount = cache.cachedCellCount(profile);
-        info.cellsConnected = cache.cellsConnected(profile);
-        info.cellsPending = cache.cellsPending(profile);
-        info.cachedWalkCount = cache.cachedWalkCount(profile);
+        const PlatformerConnectionTable& table = world.platformerConnections();
+        const bool built = table.isBuilt(profile);
         for (int row = 0; row < map.height(); ++row)
         {
             for (int column = 0; column < map.width(); ++column)
@@ -176,11 +168,17 @@ namespace simple_platformer
                 {
                     continue;
                 }
-                const std::vector<RouteConnection>* cached = cache.cachedConnections(cell, profile);
-                info.cells.push_back(
-                    {bounds,
-                     cached == nullptr ? std::nullopt : std::optional<std::size_t>(cached->size()),
-                     standable});
+                if (!built)
+                {
+                    info.cells.push_back({bounds, std::nullopt, standable});
+                    continue;
+                }
+                const std::size_t connections = table.connections(cell, profile).size();
+                info.cells.push_back({bounds, connections, standable});
+                if (connections > 0)
+                {
+                    ++info.cellsConnected;
+                }
             }
         }
         if (view.cursorWorld.has_value())
@@ -190,7 +188,7 @@ namespace simple_platformer
                 cursor.y < map.pixelHeight())
             {
                 info.cursorCell =
-                    cursorCellDebugInfo(map, cache, profile, cellAt(map.tileSize(), cursor));
+                    cursorCellDebugInfo(map, table, profile, cellAt(map.tileSize(), cursor));
             }
         }
         return info;

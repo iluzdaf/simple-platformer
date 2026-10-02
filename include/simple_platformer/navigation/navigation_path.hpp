@@ -36,14 +36,12 @@ namespace simple_platformer
     enum class NavigationPathStatus
     {
         Found,
-        Unreachable,
-        Deferred
+        Unreachable
     };
 
     // Found carries a path that ends in the cell holding the goal. Unreachable
     // carries a path to the reachable cell nearest it, without waypoints when the
-    // actor is already there. Deferred carries no path: the caller should retry after
-    // pending navigation work completes. Flying paths never defer.
+    // actor is already there.
     struct NavigationPathResult
     {
         NavigationPathStatus status = NavigationPathStatus::Unreachable;

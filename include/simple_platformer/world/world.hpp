@@ -11,7 +11,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/inventory/item.hpp"
-#include "simple_platformer/navigation/platformer_connection_cache.hpp"
+#include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/pickup.hpp"
 
@@ -93,18 +93,18 @@ namespace simple_platformer
         glm::vec2 playerSpawnFeet() const;
         void respawnPlayer();
 
-        // The platformer connections this world's searches have found, for the map it is
-        // simulated with. The world goes with its level, so what one search simulated
-        // serves every later one; a tile broken during play drops only what it touched.
-        PlatformerConnectionCache& platformerConnections();
-        const PlatformerConnectionCache& platformerConnections() const;
+        // Every cell's platformer connections for the map this world is simulated with.
+        // The world goes with its level, so a profile is built once for the whole level;
+        // a tile broken during play rebuilds only the cells it touched.
+        PlatformerConnectionTable& platformerConnections();
+        const PlatformerConnectionTable& platformerConnections() const;
 
     private:
         // A stamp on the world clock may be unset, but never ahead of the clock.
         void requireWithinSimulationTime(const std::optional<double>& time, const char* what) const;
 
         std::vector<ItemDefinition> itemDefinitions;
-        PlatformerConnectionCache platformerConnectionCache;
+        PlatformerConnectionTable platformerConnectionTable;
         std::vector<Pickup> pickupStorage;
         std::optional<LevelExit> levelExit;
         bool completed = false;

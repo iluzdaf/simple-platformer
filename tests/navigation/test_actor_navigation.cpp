@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
-#include <cstddef>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -16,11 +15,11 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/actor_navigation.hpp"
-#include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
+#include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/navigation/traversal.hpp"
@@ -30,7 +29,6 @@
 #include "support/actor_builder.hpp"
 #include "support/fixed_step.hpp"
 #include "support/route_connections.hpp"
-#include "support/navigation_paths.hpp"
 #include "support/tile_map_builder.hpp"
 #include "support/tile_size.hpp"
 
@@ -55,7 +53,7 @@ namespace
     using simple_platformer::NavigationPathStatus;
     using simple_platformer::pathComplete;
     using simple_platformer::PathFollower;
-    using simple_platformer::PlatformerConnectionCache;
+    using simple_platformer::PlatformerConnectionTable;
     using simple_platformer::PlatformerMovement;
     using simple_platformer::PlatformerMovementConfig;
     using simple_platformer::PlatformerTraversalProfile;
@@ -119,18 +117,19 @@ namespace
         return result.path.value_or(NavigationPath{});
     }
 
-    // A search for the actor after the fill has cached every cell of the map for it, as
-    // the game's world does for each NPC. Nothing if the body rests nowhere.
-    std::optional<NavigationPathResult> findActorPathAfterFill(
+    // A search with the given connection table, or a fresh one that builds the actor's
+    // profile for this search alone. Nothing if the body rests nowhere.
+    std::optional<NavigationPathResult> searchForActor(
         const TileMap& map,
         const Actor& actor,
         glm::vec2 goalFeet,
         float stepSeconds = tests::FixedStepSeconds,
-        FrameProfile* frameProfile = nullptr)
+        FrameProfile* frameProfile = nullptr,
+        PlatformerConnectionTable* table = nullptr)
     {
-        PlatformerConnectionCache cache;
-        tests::fillConnections(map, cache, platformerTraversalProfileFor(actor, stepSeconds));
-        return findActorPath(map, actor, goalFeet, stepSeconds, cache, frameProfile);
+        PlatformerConnectionTable fresh;
+        return findActorPath(
+            map, actor, goalFeet, stepSeconds, table != nullptr ? *table : fresh, frameProfile);
     }
 
     // The same, for an actor that rests somewhere: the result itself.
@@ -139,9 +138,21 @@ namespace
         const Actor& actor,
         glm::vec2 goalFeet,
         float stepSeconds = tests::FixedStepSeconds,
+        FrameProfile* frameProfile = nullptr,
+        PlatformerConnectionTable* table = nullptr)
+    {
+        return resultOf(searchForActor(map, actor, goalFeet, stepSeconds, frameProfile, table));
+    }
+
+    // A search sharing a table with earlier ones, as an NPC's searches share its world's.
+    NavigationPathResult findPathWith(
+        PlatformerConnectionTable& table,
+        const TileMap& map,
+        const Actor& actor,
+        glm::vec2 goalFeet,
         FrameProfile* frameProfile = nullptr)
     {
-        return resultOf(findActorPathAfterFill(map, actor, goalFeet, stepSeconds, frameProfile));
+        return findPath(map, actor, goalFeet, tests::FixedStepSeconds, frameProfile, &table);
     }
 
     bool hasStep(const NavigationPath& path, Traversal traversal)
@@ -185,24 +196,13 @@ namespace
         return endOf(pathOf(result));
     }
 
-    // A search with a cache the test sets up itself.
-    std::optional<NavigationPathResult> searchWith(
-        const TileMap& map,
-        const Actor& actor,
-        glm::vec2 goalFeet,
-        PlatformerConnectionCache& cache,
-        FrameProfile* frameProfile = nullptr)
-    {
-        return findActorPath(map, actor, goalFeet, tests::FixedStepSeconds, cache, frameProfile);
-    }
-
     // Where navigation decides a search for this actor starts: the resting place it picked
     // from the body's position, which can differ from where the body's feet are. Nothing if
     // the body rests nowhere. The goal is the body's own feet only to keep the search short.
     std::optional<glm::vec2> startFeetOf(const TileMap& map, const Actor& actor)
     {
         const std::optional<NavigationPathResult> result =
-            findActorPathAfterFill(map, actor, feetOf(actor.body.bounds));
+            searchForActor(map, actor, feetOf(actor.body.bounds));
         if (!result.has_value() || !result->path.has_value())
         {
             return std::nullopt;
@@ -210,14 +210,14 @@ namespace
         return result->path->startFeet;
     }
 
-    // A flyer needs no cache.
+    // Search using flying movement.
     std::optional<NavigationPathResult> findFlight(
         const TileMap& map,
         const Actor& flyer,
         glm::vec2 goalFeet,
         FrameProfile* frameProfile = nullptr)
     {
-        PlatformerConnectionCache unused;
+        PlatformerConnectionTable unused;
         return findActorPath(map, flyer, goalFeet, tests::FixedStepSeconds, unused, frameProfile);
     }
 
@@ -295,8 +295,7 @@ TEST_CASE(
 
 TEST_CASE("Actors that climb differently get different traversal profiles", "[navigation][actor]")
 {
-    // The cache keeps connections per profile, so an actor that climbs, or climbs at a
-    // different speed, must not share the connections of one that cannot.
+    // Climb capability and speed both affect the simulated connections.
     Actor actor = tests::ActorBuilder::sized(SmallBody).inCell({0, 0}).platforming();
     const auto withoutClimbing = platformerTraversalProfileFor(actor, tests::FixedStepSeconds);
     REQUIRE_FALSE(withoutClimbing.climb.has_value());
@@ -466,85 +465,71 @@ TEST_CASE(
     REQUIRE(followsToTheEnd(map, pathOf(result), climber, 1000));
 }
 
-// Searching with the connection cache
-
-TEST_CASE("A search never simulates or writes to the cache", "[navigation][cache]")
+TEST_CASE(
+    "The first search for a profile builds it and later ones only read it",
+    "[navigation][actor]")
 {
-    const TileMap map =
-        tests::TileMapBuilder({"........", "........", "........", "###..###", "########"});
-    const RouteLocation start{{0, 2}};
-    const glm::vec2 goalFeet = feetIn({7, 2});
-    const Actor platformer = platformerAt(start);
-    // The cache keys what it holds by the platformer's profile.
-    const PlatformerTraversalProfile profile =
-        platformerTraversalProfileFor(platformer, tests::FixedStepSeconds);
-    PlatformerConnectionCache cache;
+    const TileMap map = tests::TileMapBuilder({".....", "#####"});
+    const Actor actor = platformerAt({{0, 0}});
+    PlatformerConnectionTable table;
 
-    // With an empty cache, the search stores nothing. It puts the cell it needs at the
-    // front of the fill, and the result is Deferred.
-    FrameProfile waiting;
-    const NavigationPathResult deferred =
-        resultOf(searchWith(map, platformer, goalFeet, cache, &waiting));
-    REQUIRE(deferred.status == NavigationPathStatus::Deferred);
-    REQUIRE_FALSE(deferred.path.has_value());
-    REQUIRE(cache.cachedCellCount(profile) == 0);
-    REQUIRE(cache.cellsPending(profile) == 1);
-    REQUIRE(cache.nextPending(profile) == start.cell);
-    REQUIRE(frameStatisticCount(waiting, "Path searches") == 1);
-    REQUIRE(frameStatisticCount(waiting, "Cells expanded") == 0);
-    REQUIRE(frameStatisticCount(waiting, "Paths deferred") == 1);
+    FrameProfile first;
+    REQUIRE(
+        findPathWith(table, map, actor, feetIn({4, 0}), &first).status ==
+        NavigationPathStatus::Found);
+    REQUIRE(frameStatisticCount(first, "Cells built") == 10);
+    REQUIRE(frameStatisticCount(first, "Build simulated ticks") > 0);
 
-    // Once the fill has cached the map, the search reads it and still writes nothing.
-    tests::fillConnections(map, cache, profile);
-    const std::size_t cachedBeforeSearching = cache.size();
-    FrameProfile reading;
-    const NavigationPathResult found =
-        resultOf(searchWith(map, platformer, goalFeet, cache, &reading));
-    REQUIRE(found.status == NavigationPathStatus::Found);
-    REQUIRE(frameStatisticCount(reading, "Cells expanded") > 0);
-    REQUIRE(cache.size() == cachedBeforeSearching);
-    REQUIRE(cache.cellsPending(profile) == 0);
+    FrameProfile second;
+    REQUIRE(
+        findPathWith(table, map, actor, feetIn({4, 0}), &second).status ==
+        NavigationPathStatus::Found);
+    REQUIRE(frameStatisticCount(second, "Path searches") == 1);
+    REQUIRE(frameStatisticCount(second, "Cells expanded") > 0);
+    REQUIRE(frameStatisticCount(second, "Cells built") == 0);
+    REQUIRE(frameStatisticCount(second, "Cells rebuilt") == 0);
+}
+
+TEST_CASE("A new path search uses the map after a support tile breaks", "[navigation][actor]")
+{
+    TileMap map = tests::TileMapBuilder({".....", "##g##"})
+                      .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    const Actor actor = platformerAt({{0, 0}});
+    PlatformerConnectionTable table;
+    REQUIRE(findPathWith(table, map, actor, feetIn({2, 0})).status == NavigationPathStatus::Found);
+    REQUIRE(map.breakTile({2, 1}));
+    const auto result = findPathWith(table, map, actor, feetIn({2, 0}));
+    REQUIRE(result.status == NavigationPathStatus::Unreachable);
+    REQUIRE(result.path.has_value());
+    REQUIRE(endOf(result) != feetIn({2, 0}));
+}
+
+TEST_CASE("A broken wall opens a route on the next search", "[navigation][actor]")
+{
+    TileMap map = tests::TileMapBuilder({"########", "#..g...#", "########"})
+                      .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    const Actor actor = platformerAt({{1, 1}});
+    PlatformerConnectionTable table;
+    REQUIRE(
+        findPathWith(table, map, actor, feetIn({5, 1})).status ==
+        NavigationPathStatus::Unreachable);
+    REQUIRE(map.breakTile({3, 1}));
+    REQUIRE(findPathWith(table, map, actor, feetIn({5, 1})).status == NavigationPathStatus::Found);
 }
 
 TEST_CASE(
-    "A search waits for a cell the cache does not hold yet, even when a costlier path exists",
-    "[navigation][cache]")
+    "A broken climbable tile removes a route on the next search",
+    "[navigation][actor][climb]")
 {
-    // The start leads to the goal two ways: cheaply through a cell the cache does not
-    // hold yet, or straight there at a cost of 100. The search waits for the missing cell
-    // rather than take the costly way, and moves it ahead of an unrelated cell in the
-    // fill. Once the cell is cached, the path goes through it.
-    const TileMap map = tests::TileMapBuilder({"...."});
-    const Cell start{0, 0};
-    const Cell pending{1, 0};
-    const Cell goal{2, 0};
-    const Cell unrelated{3, 0};
-    const Actor platformer = platformerAt({start});
-    const PlatformerTraversalProfile profile =
-        platformerTraversalProfileFor(platformer, tests::FixedStepSeconds);
-    PlatformerConnectionCache cache;
-    cache.storeConnections(
-        start,
-        profile,
-        {{{{pending}, Traversal::Walk, {}}, 1}, {{{goal}, Traversal::Walk, {}}, 100}},
-        {start, goal});
-    cache.queue(unrelated, profile);
-    cache.queue(pending, profile);
-    REQUIRE(cache.nextPending(profile) == unrelated);
-
-    FrameProfile waiting;
-    const auto deferred = resultOf(searchWith(map, platformer, feetIn(goal), cache, &waiting));
-    REQUIRE(deferred.status == NavigationPathStatus::Deferred);
-    REQUIRE_FALSE(deferred.path.has_value());
-    REQUIRE(frameStatisticCount(waiting, "Paths deferred") == 1);
-    REQUIRE(frameStatisticCount(waiting, "Cells expanded") == 1);
-    REQUIRE(cache.nextPending(profile) == pending);
-
-    cache.storeConnections(pending, profile, {{{{goal}, Traversal::Walk, {}}, 1}}, {pending, goal});
-    const auto found = resultOf(searchWith(map, platformer, feetIn(goal), cache));
-    REQUIRE(found.status == NavigationPathStatus::Found);
-    REQUIRE(found.path.has_value());
-    const NavigationPath path = pathOf(found);
-    REQUIRE(path.waypoints.size() == 2);
-    REQUIRE(path.waypoints.front().feet == feetIn(pending));
+    TileMap map = tests::TileMapBuilder({"......", ".c....", ".g....", ".c....", "######"})
+                      .where('c', tests::Tile().blocksMovement().climbable())
+                      .where('g', tests::Tile().blocksMovement().climbable().breaksInto('.'));
+    const Actor actor = climberAt({{2, 3}});
+    const glm::vec2 goal = feetAt({{2, 1}, ClimbSurface::LeftWall});
+    PlatformerConnectionTable table;
+    REQUIRE(findPathWith(table, map, actor, goal).status == NavigationPathStatus::Found);
+    REQUIRE(map.breakTile({1, 2}));
+    const auto result = findPathWith(table, map, actor, goal);
+    REQUIRE(result.status == NavigationPathStatus::Unreachable);
+    REQUIRE(cellAtFeet(tests::TileSize, endOf(result)) == Cell{2, 3});
 }

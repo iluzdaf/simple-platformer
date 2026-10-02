@@ -18,7 +18,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/inventory/item.hpp"
-#include "simple_platformer/navigation/platformer_connection_cache.hpp"
+#include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
@@ -82,14 +82,14 @@ namespace simple_platformer
         }
     }
 
-    PlatformerConnectionCache& World::platformerConnections()
+    PlatformerConnectionTable& World::platformerConnections()
     {
-        return platformerConnectionCache;
+        return platformerConnectionTable;
     }
 
-    const PlatformerConnectionCache& World::platformerConnections() const
+    const PlatformerConnectionTable& World::platformerConnections() const
     {
-        return platformerConnectionCache;
+        return platformerConnectionTable;
     }
 
     double World::simulationTimeSeconds() const

@@ -21,10 +21,9 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/src/movement/platformer_movement.cpp
     ${PROJECT_SOURCE_DIR}/src/movement/surface_climb.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/actor_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/src/navigation/navigation_fill.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/path_follower.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/platformer_cells.cpp
-    ${PROJECT_SOURCE_DIR}/src/navigation/platformer_connection_cache.cpp
+    ${PROJECT_SOURCE_DIR}/src/navigation/platformer_connection_table.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/platformer_connections.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/route_search.cpp
     ${PROJECT_SOURCE_DIR}/src/npc/npc_built_in_activity.cpp

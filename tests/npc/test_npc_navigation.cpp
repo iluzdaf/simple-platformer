@@ -1,9 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
-#include <cstddef>
-#include <vector>
-
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
@@ -11,12 +8,8 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
-#include "simple_platformer/navigation/platformer_connection_cache.hpp"
-#include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
-#include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
@@ -29,7 +22,6 @@
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 #include "support/add_player.hpp"
-#include "support/prepare_navigation_cache.hpp"
 #include "support/fixed_step.hpp"
 #include "support/tile_size.hpp"
 
@@ -145,102 +137,6 @@ namespace
 
 }
 
-TEST_CASE("A walking NPC's search reads the fill's cache and never simulates", "[npc][navigation]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
-    simple_platformer::World world;
-    const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
-    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                                          .atFeet({56.0F, 32.0F})
-                                          .platforming()
-                                          .thinking({64.0F, 1.0F}));
-    tests::platformerMovement(world, npcId).grounded = true;
-    brain(world, npcId).target = playerId;
-    brain(world, npcId).lastKnownTargetFeet = {8.0F, 32.0F};
-    tests::perception(world, npcId).targetVisible = false;
-    const simple_platformer::PlatformerConnectionCache& cache = world.platformerConnections();
-
-    // Before the fill, the search stores nothing: it queues the cell it needs and waits.
-    const simple_platformer::FrameProfile waiting = profiledNpcUpdate(map, world);
-    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Path searches") == 1);
-    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Paths deferred") == 1);
-    REQUIRE(cache.size() == 0);
-    REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
-
-    // Once the fill has cached the map, the search finds a route and writes nothing.
-    tests::prepareNavigationCache(map, world);
-    const std::size_t cachedAfterFill = cache.size();
-    const simple_platformer::FrameProfile searched = profiledNpcUpdate(map, world);
-    REQUIRE(simple_platformer::frameStatisticCount(searched, "Path searches") == 1);
-    REQUIRE(simple_platformer::frameStatisticCount(searched, "Paths deferred") == 0);
-    REQUIRE(simple_platformer::frameStatisticCount(searched, "Cells expanded") > 0);
-    REQUIRE(pathFollower(world, npcId).path.has_value());
-    REQUIRE(cache.size() == cachedAfterFill);
-}
-
-TEST_CASE("An NPC's search after a break waits for the fill and asks again", "[npc][navigation]")
-{
-    simple_platformer::TileMap map =
-        tests::TileMapBuilder({".....", ".....", "##g##"})
-            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
-    simple_platformer::World world;
-    const auto playerId = world.addActor(makePlayer({70.0F, 32.0F}));
-    const auto npcId = world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                                          .atFeet({8.0F, 32.0F})
-                                          .platforming()
-                                          .thinking({64.0F, 1.0F}));
-    tests::prepareNavigationCache(map, world);
-    const simple_platformer::PlatformerTraversalProfile profile{
-        {12.0F, 12.0F}, simple_platformer::PlatformerMovementConfig{}, tests::FixedStepSeconds};
-    REQUIRE(world.platformerConnections().cachedConnections({2, 1}, profile) != nullptr);
-
-    REQUIRE(map.breakTile({2, 2}));
-    tests::platformerMovement(world, npcId).grounded = true;
-    brain(world, npcId).target = playerId;
-    brain(world, npcId).lastKnownTargetFeet = {72.0F, 32.0F};
-    tests::perception(world, npcId).targetVisible = false;
-    const simple_platformer::FrameProfile waiting = profiledNpcUpdate(map, world);
-
-    // The search synced with the map first, so the cells the break touched were dropped;
-    // it met one and gave up rather than simulate it, and the NPC asks again next step.
-    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Tile breaks applied") == 1);
-    REQUIRE(
-        simple_platformer::frameStatisticCount(waiting, "Cells dropped") ==
-        static_cast<int>(world.platformerConnections().cellsPending(profile)));
-    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Path searches") == 1);
-    REQUIRE(simple_platformer::frameStatisticCount(waiting, "Paths deferred") == 1);
-    REQUIRE(world.platformerConnections().cellsPending(profile) > 0);
-    REQUIRE_FALSE(pathFollower(world, npcId).path.has_value());
-
-    // The fill recaches the dropped cells over the steps that follow, charged to
-    // the profile, and the next search goes through. The cell over the hole, which
-    // nothing can stand on now, is cached as having no connections.
-    int filledTicks = 0;
-    const std::size_t pending = world.platformerConnections().cellsPending(profile);
-    for (std::size_t step = 0;
-         step < pending && world.platformerConnections().cellsPending(profile) > 0;
-         ++step)
-    {
-        simple_platformer::FrameProfile fillProfile;
-        simple_platformer::advanceNavigationFill(
-            map,
-            world.platformerConnections(),
-            simple_platformer::NavigationFillTicksPerStep,
-            &fillProfile);
-        filledTicks += simple_platformer::frameStatisticCount(fillProfile, "Fill simulated ticks");
-    }
-    REQUIRE(filledTicks > 0);
-    REQUIRE(world.platformerConnections().cellsPending(profile) == 0);
-    const std::vector<simple_platformer::RouteConnection>* overTheHole =
-        world.platformerConnections().cachedConnections({2, 1}, profile);
-    REQUIRE(overTheHole != nullptr);
-    REQUIRE(overTheHole->empty());
-    const simple_platformer::FrameProfile searched = profiledNpcUpdate(map, world);
-    REQUIRE(simple_platformer::frameStatisticCount(searched, "Path searches") == 1);
-    REQUIRE(simple_platformer::frameStatisticCount(searched, "Paths deferred") == 0);
-    REQUIRE(pathFollower(world, npcId).path.has_value());
-}
-
 TEST_CASE("An NPC plans its path again after a break", "[npc][navigation]")
 {
     simple_platformer::TileMap map =
@@ -252,7 +148,7 @@ TEST_CASE("An NPC plans its path again after a break", "[npc][navigation]")
                                           .atFeet({8.0F, 32.0F})
                                           .platforming()
                                           .thinking({64.0F, 1.0F}));
-    tests::prepareNavigationCache(map, world);
+
     tests::platformerMovement(world, npcId).grounded = true;
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastKnownTargetFeet = {40.0F, 32.0F};

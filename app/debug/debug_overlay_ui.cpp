@@ -433,11 +433,11 @@ namespace simple_platformer
         void drawDebugTextPanel(
             const DebugOverlay& scene,
             bool showActorText,
-            bool showNavigationCacheText)
+            bool showNavigationConnectionsText)
         {
             const bool hasActorText = showActorText && !scene.actors.empty();
             const bool hasNavigationText =
-                showNavigationCacheText && scene.navigationCache.has_value();
+                showNavigationConnectionsText && scene.navigationConnections.has_value();
             if (!hasActorText && !hasNavigationText)
             {
                 return;
@@ -470,7 +470,7 @@ namespace simple_platformer
                 }
                 if (hasNavigationText)
                 {
-                    drawNavigationTotals(*drawList, *scene.navigationCache, position);
+                    drawNavigationTotals(*drawList, *scene.navigationConnections, position);
                 }
                 ImGui::Dummy({DebugTextContentWidth, position.y - contentTop});
             }
@@ -483,7 +483,7 @@ namespace simple_platformer
         const std::optional<WindowViewport>& viewport,
         bool showWorldAndCamera,
         bool showActorText,
-        bool showNavigationCacheText,
+        bool showNavigationConnectionsText,
         bool showStateMachine)
     {
         ImDrawList* drawList = ImGui::GetBackgroundDrawList();
@@ -550,11 +550,11 @@ namespace simple_platformer
             {
                 drawProjectile(*drawList, projectile, scene, *viewport);
             }
-            if (scene.navigationCache.has_value())
+            if (scene.navigationConnections.has_value())
             {
-                drawNavigationCache(
+                drawNavigationConnections(
                     *drawList,
-                    scene.navigationCache.value_or(NavigationCacheDebugInfo{}),
+                    scene.navigationConnections.value_or(NavigationConnectionsDebugInfo{}),
                     scene.cameraBounds,
                     *viewport);
             }
@@ -574,6 +574,6 @@ namespace simple_platformer
                     pickup.itemName.c_str());
             }
         }
-        drawDebugTextPanel(scene, showActorText, showNavigationCacheText);
+        drawDebugTextPanel(scene, showActorText, showNavigationConnectionsText);
     }
 }

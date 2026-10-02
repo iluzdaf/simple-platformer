@@ -86,14 +86,6 @@ namespace simple_platformer
             {
                 setPath(follower, std::move(pathResult->path.value()));
             }
-            else
-            {
-                // A deferred search has no path, so the next step plans again once the
-                // fill has caught up.
-                follower.path.reset();
-                follower.nextStep = 0;
-                follower.programElapsed = 0.0F;
-            }
         }
     }
 

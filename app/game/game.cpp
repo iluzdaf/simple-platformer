@@ -22,7 +22,7 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/math/validation.hpp"
-#include "simple_platformer/navigation/navigation_fill.hpp"
+#include "simple_platformer/navigation/actor_navigation.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/presentation.hpp"
 #include "simple_platformer/render/render_scene.hpp"
@@ -96,7 +96,7 @@ namespace simple_platformer
         }
         cameraController =
             makeCameraController(level.map, playerActor->body.bounds, levelCatalog.cameraDeadZone);
-        queueNavigationFill(level.map, level.world, simulationStepSeconds);
+        prepareNavigation(level.map, level.world, simulationStepSeconds);
     }
 
     void Game::update(const InputIntentions& intentions, float deltaTime, FrameProfile* profile)

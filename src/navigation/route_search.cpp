@@ -112,8 +112,7 @@ namespace simple_platformer
         Cell goal,
         GridSize grid,
         const ConnectionFunction& connections,
-        const HeuristicFunction& heuristic,
-        const ExpansionReady& canExpand)
+        const HeuristicFunction& heuristic)
     {
         if (!connections)
         {
@@ -225,17 +224,12 @@ namespace simple_platformer
             //    cheapest one because the heuristic never overestimates.
             if (node.location.cell == goal)
             {
-                return {reconstructRoute(nodes, next.nodeIndex), std::nullopt};
+                return {reconstructRoute(nodes, next.nodeIndex)};
             }
 
-            // 3. A location the caller is not ready to expand pauses the search there.
             const RouteLocation location = node.location;
-            if (canExpand && !canExpand(location))
-            {
-                return {std::nullopt, location};
-            }
 
-            // 4. Expand it: close it, then for each place one step away, check whether going
+            // 3. Expand it: close it, then for each place one step away, check whether going
             //    through this node is the cheapest way there found so far.
             const int parentCost = node.costFromStart;
             node.closed = true;

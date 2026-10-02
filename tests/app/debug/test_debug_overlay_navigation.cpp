@@ -141,9 +141,9 @@ TEST_CASE("The overlay shows only navigation cells near the camera", "[app][debu
     const simple_platformer::DebugOverlay debug = simple_platformer::makeDebugOverlay(
         world, map, cameraController, 128.0F, tests::FixedStepSeconds);
 
-    REQUIRE(debug.navigationCache.has_value());
-    const simple_platformer::NavigationCacheDebugInfo navigation =
-        debug.navigationCache.value_or(simple_platformer::NavigationCacheDebugInfo{});
+    REQUIRE(debug.navigationConnections.has_value());
+    const simple_platformer::NavigationConnectionsDebugInfo navigation =
+        debug.navigationConnections.value_or(simple_platformer::NavigationConnectionsDebugInfo{});
     const std::vector<simple_platformer::NavigationCellDebugInfo>& cells = navigation.cells;
     REQUIRE(cells.size() == 21);
     REQUIRE(cells.front().bounds.topLeft == glm::vec2{0.0F, 0.0F});

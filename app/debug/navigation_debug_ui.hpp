@@ -5,20 +5,20 @@
 namespace simple_platformer
 {
     struct Aabb;
-    struct NavigationCacheDebugInfo;
+    struct NavigationConnectionsDebugInfo;
     struct WindowViewport;
 
-    // The connection cache's cells by state, and for the cell under the cursor its
+    // The current map's connections, and for the cell under the cursor its
     // footprint and its connections.
-    void drawNavigationCache(
+    void drawNavigationConnections(
         ImDrawList& drawList,
-        const NavigationCacheDebugInfo& cache,
+        const NavigationConnectionsDebugInfo& navigation,
         const Aabb& cameraBounds,
         const WindowViewport& viewport);
 
-    // Draws selected-profile and cache-wide totals, then advances the text position.
+    // Draws selected-profile and navigation-wide totals, then advances the text position.
     void drawNavigationTotals(
         ImDrawList& drawList,
-        const NavigationCacheDebugInfo& cache,
+        const NavigationConnectionsDebugInfo& navigation,
         ImVec2& position);
 }

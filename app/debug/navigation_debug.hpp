@@ -9,7 +9,6 @@
 
 #include "simple_platformer/input/input_program.hpp"
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/navigation/traversal.hpp"
 
@@ -32,7 +31,7 @@ namespace simple_platformer
         float stepSeconds);
 
     // One connection leaving the cursor cell, resolved to feet for drawing.
-    struct CachedConnectionDebugInfo
+    struct ConnectionDebugInfo
     {
         glm::vec2 fromFeet = {0.0F, 0.0F};
         glm::vec2 toFeet = {0.0F, 0.0F};
@@ -42,18 +41,19 @@ namespace simple_platformer
         std::vector<glm::vec2> sampledFeet;
     };
 
-    // The cursor cell's cached connections and their footprint. A break inside the
-    // footprint invalidates those connections.
+    // The cursor cell's connections and their footprint, from the world's connection
+    // table. A break inside the footprint rebuilds those connections. Neither is present
+    // before the table builds the profile.
     struct CursorCellDebugInfo
     {
         Aabb bounds;
         std::optional<Aabb> footprint;
-        std::vector<CachedConnectionDebugInfo> connections;
+        std::vector<ConnectionDebugInfo> connections;
     };
 
-    // One cell the body can rest in, as the connection cache sees it: its connection count
-    // when cached, or no count when absent, such as after a break drops it. The count covers
-    // every place in the cell: its floor, and its walls and ceiling for a climber.
+    // One cell the body can rest in, as the connection table holds it: its connection
+    // count, or no count before the table builds the profile. The count covers every
+    // place in the cell: its floor, and its walls and ceiling for a climber.
     struct NavigationCellDebugInfo
     {
         Aabb bounds;
@@ -78,31 +78,25 @@ namespace simple_platformer
         std::vector<NamedNavigationProfile> namedProfiles;
     };
 
-    // Cells the body can rest in within the requested view, per-profile totals, and
-    // cache-wide counts.
+    // Cells the body can rest in within the requested view, and per-profile totals.
     // Absent when no platformer NPC profile is known.
-    struct NavigationCacheDebugInfo
+    struct NavigationConnectionsDebugInfo
     {
         glm::vec2 bodySize = {0.0F, 0.0F};
         std::string actorName;
         std::size_t profileIndex = 0;
         std::size_t profileCount = 0;
-        // For this profile: every cached cell, standable or not, and those with connections.
-        std::size_t cachedCellCount = 0;
+        // Cells with connections within the requested view.
         std::size_t cellsConnected = 0;
-        // Cells awaiting the initial fill or recaching after a break.
-        std::size_t cellsPending = 0;
-        // Walk lengths simulated once for this profile, including failed attempts.
-        std::size_t cachedWalkCount = 0;
         std::vector<NavigationCellDebugInfo> cells;
         std::optional<CursorCellDebugInfo> cursorCell;
     };
 
-    // Built from the map and the world's connection cache, without ImGui, so it can be
-    // tested. The step is the one the world is simulated with, which is part of the
-    // profile the cache keys on. When visibleBounds is present, only cells overlapping it
-    // are included; the cache totals still describe the whole map.
-    std::optional<NavigationCacheDebugInfo> makeNavigationCacheDebugInfo(
+    // Built from the map and the world's connection table, without ImGui, so it can be
+    // tested. It never simulates movement except to sample the cursor cell's jump arcs.
+    // The step is the one the world is simulated with, which is part of the profile the
+    // table keys on. When visibleBounds is present, only cells overlapping it are included.
+    std::optional<NavigationConnectionsDebugInfo> makeNavigationConnectionsDebugInfo(
         const World& world,
         const TileMap& map,
         float simulationStepSeconds,

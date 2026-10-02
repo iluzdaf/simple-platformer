@@ -1,236 +1,136 @@
 # Content and Level Format
 
-This is the authoring reference for levels, shared JSON definitions, NPC machines, and
-Lua activity files under `assets`.
+The authoring reference for the files under `assets`. Levels place named definitions;
+definitions configure engine components; machines and Lua activities decide what NPCs
+do. Movement, combat and pathfinding stay in C++.
 
-The files select and place known game concepts rather than defining new engine behaviour.
-For example, `"definition": "zombie"` in an actor placement selects a named definition in
-`actors.json`. Definitions configure supported components. Machines choose activities;
-Lua scripts may decide what an NPC requests, while movement and combat run in C++.
+- Unknown fields are rejected, so misspellings are reported.
+- Errors name the file and either a field path (`items.herb.maximumStack`, `map[2][7]`)
+  or, for a JSON syntax error, a line and column.
+- Every shared definition is validated, even when no level uses it.
+- Shared catalogs and Lua scripts load once at startup; restart the game to reload them.
+  A level file loads when the level starts.
+- Units are pixels, seconds and pixels per second. Sprite regions are atlas pixels.
 
-JSON loaders reject unknown fields, so misspellings are reported. Shared definitions
-are validated even when no level places them. Referenced Lua scripts and activities
-are checked when the game loads.
+[ARCHITECTURE.md](ARCHITECTURE.md#data-driven-level-boundary) explains how the loaders
+turn these files into the game.
 
-[ARCHITECTURE.md](ARCHITECTURE.md) explains why this boundary exists and what the engine
-does with the loaded data. [README.md](../README.md) covers building and running.
+## Files
+
+| File                                                             | Holds                                                 | Loader                                                                                                                       |
+| ---------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| [`levels/levels.json`](../assets/levels/levels.json)             | Start level, camera dead zone, level numbers to files | [`level_catalog.cpp`](../app/content/level_catalog.cpp)                                                                      |
+| `levels/level_N.json`                                            | A level's map, legends and placements                 | [`level_data.cpp`](../app/content/level_data.cpp)                                                                            |
+| [`catalogs/tiles.json`](../assets/catalogs/tiles.json)           | Tile size and tiles                                   | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp)                                                                        |
+| [`catalogs/actors.json`](../assets/catalogs/actors.json)         | The player and every actor definition                 | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp)       |
+| [`catalogs/animations.json`](../assets/catalogs/animations.json) | Animation sets                                        | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp)                                                              |
+| [`catalogs/machines.json`](../assets/catalogs/machines.json)     | NPC state machines                                    | [`machine_catalog.cpp`](../app/content/machine_catalog.cpp)                                                                  |
+| [`scripts/*.lua`](../assets/scripts)                             | Lua activities                                        | [`npc_script_catalog.cpp`](../app/content/npc_script_catalog.cpp), [`lua_npc_scripts.cpp`](../scripting/lua_npc_scripts.cpp) |
+| [`catalogs/items.json`](../assets/catalogs/items.json)           | Inventory items                                       | [`item_catalog.cpp`](../app/content/item_catalog.cpp)                                                                        |
+| [`catalogs/pickups.json`](../assets/catalogs/pickups.json)       | World pickups                                         | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp)                                                                    |
+| [`catalogs/exits.json`](../assets/catalogs/exits.json)           | Exit bodies and sprites                               | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp)                                                                        |
+| [`catalogs/hud.json`](../assets/catalogs/hud.json)               | HUD icon regions                                      | [`hud_catalog.cpp`](../app/content/hud_catalog.cpp)                                                                          |
+
+Every catalog is required, even when empty. A Lua script loads only when a machine
+names it. Every sprite region, frame and icon must lie inside the atlas.
 
 ## Level catalog
-
-The [content-file guide](#content-files-at-a-glance) below lists the shared definitions
-used alongside this catalog.
-
-`assets/levels/levels.json` selects the starting level, sets the camera's dead zone,
-and assigns stable numeric level IDs to files:
 
 ```json
 {
   "startLevel": 1,
   "cameraDeadZone": [80, 45],
-  "levels": [
-    { "number": 1, "file": "level_1.json" },
-    { "number": 2, "file": "level_2.json" },
-    { "number": 3, "file": "level_3.json" }
-  ]
+  "levels": [{ "number": 1, "file": "level_1.json" }]
 }
 ```
 
-- `number` is a positive, unique level ID.
-- `file` is a path relative to the catalog's directory.
-- `startLevel` names one of the catalog entries.
-- `cameraDeadZone` is the part of the view, in internal pixels, the player can move in
-  before the camera follows. It must be positive and fit in the 320 by 180 view.
-- An exit's `nextLevel` refers to a level ID in the catalog.
+| Field            | Meaning                                                                                |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| `startLevel`     | The `number` of the first level.                                                       |
+| `cameraDeadZone` | The part of the 320 by 180 view the player moves in before the camera follows.         |
+| `levels`         | `number`, a positive unique ID that exits refer to, and `file`, relative to this file. |
 
-Each catalog entry assigns a level ID to a level file. The referenced file contains that
-level's map and object placements. Students can rename, add, or remove level files by
-updating the catalog without changing C++.
-
-## Content files at a glance
-
-Level files and `levels.json` live in `assets/levels/`; shared definitions live in
-`assets/catalogs/`, Lua activities in `assets/scripts/`, and the runtime atlas in
-`assets/textures/`:
-
-| File                                                                  | What to change here                                                  | Loader or composition code                                                                                                   |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| [`levels.json`](../assets/levels/levels.json)                         | Starting level, camera dead zone, and level ID-to-file mapping       | [`level_catalog.cpp`](../app/content/level_catalog.cpp)                                                                      |
-| A level file, such as [`level_1.json`](../assets/levels/level_1.json) | Map rows, legends, spawns, patrols, pickups, and exit settings       | [`level_data.cpp`](../app/content/level_data.cpp)                                                                            |
-| [`tiles.json`](../assets/catalogs/tiles.json)                         | Tile artwork, movement/sight properties, and what a tile breaks into | [`tile_catalog.cpp`](../app/content/tile_catalog.cpp)                                                                        |
-| [`actors.json`](../assets/catalogs/actors.json)                       | Player definition, actor capabilities, and tuning                    | [`actor_catalog.cpp`](../app/content/actor_catalog.cpp), [`actor_definition.cpp`](../app/content/actor_definition.cpp)       |
-| [`animations.json`](../assets/catalogs/animations.json)               | Named animation sets, frame rectangles, timing, and looping          | [`animation_catalog.cpp`](../app/content/animation_catalog.cpp)                                                              |
-| [`machines.json`](../assets/catalogs/machines.json)                   | Named data-driven NPC state machines                                 | [`machine_catalog.cpp`](../app/content/machine_catalog.cpp)                                                                  |
-| [`scripts/`](../assets/scripts)                                       | Lua activities referenced by machine states                          | [`npc_script_catalog.cpp`](../app/content/npc_script_catalog.cpp), [`lua_npc_scripts.cpp`](../scripting/lua_npc_scripts.cpp) |
-| [`items.json`](../assets/catalogs/items.json)                         | Inventory names, icons, stacking, and effect settings                | [`item_catalog.cpp`](../app/content/item_catalog.cpp)                                                                        |
-| [`pickups.json`](../assets/catalogs/pickups.json)                     | World pickup quantities, bounds, and optional sprites                | [`pickup_catalog.cpp`](../app/content/pickup_catalog.cpp)                                                                    |
-| [`exits.json`](../assets/catalogs/exits.json)                         | Exit bounds and sprites                                              | [`exit_catalog.cpp`](../app/content/exit_catalog.cpp)                                                                        |
-| [`hud.json`](../assets/catalogs/hud.json)                             | Atlas regions of the HUD's heart and bag icons                       | [`hud_catalog.cpp`](../app/content/hud_catalog.cpp)                                                                          |
-
-[`level_composition.cpp`](../app/game/level_composition.cpp) combines definitions and placements
-into runtime objects. Catalogs and JSON conventions belong to the application;
-the core receives C++ values and does not read these files. Shared JSON catalogs
-are required even when a level uses no pickups or NPCs; item and pickup catalogs
-can contain empty definitions objects. Lua files are loaded only when a machine
-references them.
-
-The application loads the atlas, then shared definitions with
-[`loadGameCatalogs`](../app/content/game_catalogs.cpp), then referenced Lua activities,
-and passes the definitions and activities to `Game`. `loadGameCatalogs` takes the
-atlas's size and checks that every sprite region, frame, and icon lies inside it, naming
-the file and field of the first that runs past its edge.
-Tile, animation, actor, item, pickup, and exit definitions are reused across
-transitions and restarts. Each level file is loaded
-when entering that level; the game does not construct every world at startup.
-Restart the game application to reload shared definitions or Lua scripts after editing
-their files.
-
-Actor animation clips are configured in `animations.json`.
-See [Actors](#actors), [Exits](#exits), and [Animation](ARCHITECTURE.md#animation) for those boundaries.
+Levels can be renamed, added or removed by editing the catalog, without changing C++.
 
 ## Level files
-
-A minimal level looks like this:
 
 ```json
 {
   "tileLegend": { ".": "empty", "#": "stone" },
-  "map": ["........", "........", "########"],
-  "playerSpawnCell": [1, 1],
-  "exit": {
-    "definition": "bunker_door",
-    "spawnCell": [6, 1]
-  }
+  "objectLegend": { "Z": { "type": "actor", "definition": "zombie" } },
+  "map": ["..Z.....", "########"],
+  "playerSpawnCell": [1, 0],
+  "pickups": [{ "definition": "medicine_box", "spawnCell": [4, 0] }],
+  "exit": { "definition": "bunker_door", "spawnCell": [6, 0], "nextLevel": 2 }
 }
 ```
 
-Every level requires `tileLegend`, `map`, one player spawn, and `exit`. An exit
-without `nextLevel` completes the game.
+| Field                                  | Required | Meaning                                                                            |
+| -------------------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| `tileLegend`                           | Yes      | One-character map symbols to tile names in `tiles.json`.                           |
+| `objectLegend`                         | No       | One-character map symbols that place objects. See [Object legend](#object-legend). |
+| `map`                                  | Yes      | Rows of equal, nonzero length. Every symbol is in one legend.                      |
+| `playerSpawnCell` or `playerSpawnFeet` | Yes\*    | Where the player starts.                                                           |
+| `actors`                               | No       | Actor placements.                                                                  |
+| `pickups`                              | No       | Pickup placements.                                                                 |
+| `exit`                                 | Yes\*    | The exit placement. Without `nextLevel`, it completes the game.                    |
 
-To place actors or pickups explicitly, add either or both arrays to the level object:
+\* Or a marker in `objectLegend`. A level has exactly one player and one exit.
 
-```json
-"actors": [{ "definition": "zombie", "spawnCell": [5, 1] }],
-"pickups": [{ "definition": "medicine_box", "spawnCell": [4, 1] }]
-```
+### Positions
 
-## Maps and positions
+Coordinates start at the top-left, with Y pointing down. A cell is `[column, row]`.
+Each position is given one way: `…Cell` puts an object's feet at the bottom centre of
+that cell, and `…Feet` gives that point in world pixels. Feet are a reference point; an
+object placed by them need not stand on the ground.
 
-Map rows have the same non-zero length. Every symbol a map uses is declared in its
-`tileLegend`, which maps it to a tile name from `tiles.json`:
+### Placements
 
-```json
-"tileLegend": { ".": "empty", "#": "stone", "G": "grass", "X": "glass" }
-```
+| Placement | Fields                                                                                                                                                          |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Actor     | `definition` from `actors.json`; `spawnCell` or `spawnFeet`; optional `patrol` with `firstCell`/`firstFeet` and `secondCell`/`secondFeet`, absolute positions.  |
+| Pickup    | `spawnCell` or `spawnFeet`, and either `definition` from `pickups.json` or an inline `item`, positive `quantity` and `bodySize`.                                |
+| Exit      | `definition` from `exits.json`; `spawnCell` or `spawnFeet`; optional `requirement` (`item`, positive `quantity`), `consumeItem` (default `false`), `nextLevel`. |
 
-An optional `objectLegend` places objects directly in the same map rows:
+Bodies come from definitions, never placements. An inline pickup draws its item's icon.
+A pickup falls until it rests on a tile, and falls again if that tile breaks.
+
+### Object legend
+
+An entry has a `type`, `player`, `actor`, `pickup` or `exit`, and the same fields as
+that placement except its position, which each marked cell supplies. A player entry has
+no other fields.
 
 ```json
 "objectLegend": {
   "P": { "type": "player" },
-  "Z": { "type": "actor", "definition": "zombie" },
-  "B": { "type": "actor", "definition": "bat" },
-  "S": { "type": "actor", "definition": "zombie_soldier" },
   "K": { "type": "pickup", "definition": "key" },
   "E": { "type": "exit", "definition": "bunker_door", "requirement": { "item": "key", "quantity": 1 } }
 }
 ```
 
-Each occurrence creates a placement using the cell's bottom-centre feet anchor, just
-like `spawnCell`, with empty terrain underneath. Symbols must be one character and
-cannot appear in both legends. There must be exactly one player and one exit placement,
-whether supplied by a marker or explicitly. Repeated NPC and pickup markers create
-separate objects. Named pickups take their quantity and body size from `pickups.json`;
-an inline pickup states `item`, `quantity` and `bodySize` itself, in the placement or
-legend entry, and is drawn with the item's inventory icon. A pickup falls from
-where it is placed until it rests on a tile, and falls again if that tile breaks.
+- A marked cell becomes empty terrain.
+- A symbol cannot be in both legends.
+- Explicit placements come first, then markers in row order, left to right.
+- Every marker of a symbol shares its entry. Use an explicit placement for an object
+  with its own patrol, on non-empty terrain, or off a cell's centre.
 
-Object entries use the same settings as explicit placements: NPCs can specify a
-`patrol`, and exits can specify `requirement`, `consumeItem`, and `nextLevel`.
-Patrol endpoints remain absolute positions, not offsets from the marker.
-`type` selects the object category: `player`, `actor`, `pickup`, or `exit`.
-For actors, exits, and named pickups, `definition` selects an entry in the corresponding
-catalog. A tile legend needs only the definition name because its category is
-already established by `tileLegend`.
-Do not put `spawnCell` or `spawnFeet` in a legend entry: the marker supplies its position.
+## Tiles
 
-Explicit actors and pickups are kept first, followed by markers in row order, left to
-right. They are added, not merged or deduplicated. Use explicit placements for overlaps
-(such as a zombie inside grass), fractional positions, or individually configured objects.
-The loader expands markers into ordinary placements and resolves their terrain to empty;
-the simulation does not interpret object symbols.
+`tiles.json` has `tileSize`, the side of a tile in world pixels (16), and `tiles`, by name.
 
-Level parsing errors include the source filename and the field or map cell to inspect.
-Map paths use zero-based `map[row][column]` indices; JSON syntax errors report one-based
-file lines and byte columns. Duplicate player or exit markers report both placements,
-and legend settings are reported by their authored paths, such as `objectLegend.K.definition`.
+| Field            | Required | Meaning                                                                                |
+| ---------------- | -------- | -------------------------------------------------------------------------------------- |
+| `blocksMovement` | Yes      | Solid to bodies.                                                                       |
+| `blocksSight`    | Yes      | Stops NPC sight.                                                                       |
+| `sprite`         | \*       | `{ "position": [x, y] }`; the region is one tile square. `empty` has none.             |
+| `climbable`      | No       | A climber can grip its walls and underside. Map edges never are.                       |
+| `breaksInto`     | No       | The tile it becomes when a `breaksTiles` shot hits it. Chain tiles to break in stages. |
 
-## Tile definitions
-
-Shared definitions live in `assets/catalogs/tiles.json`. `tileSize` is the side of one tile in
-world pixels, shared by every level that uses the catalog; the game uses 16. Each
-definition requires boolean `blocksMovement` and `blocksSight`. Nonempty tiles also need a
-`sprite` with its atlas `position: [x, y]` and no `size`: a tile always fills one cell, so
-its region is `tileSize` square. Other sprites in the same atlas carry their own world
-size. The `empty` definition must allow movement and sight and is not rendered. Unknown
-names and map symbols are rejected during loading. Fixture catalogs supply their own
-`tiles.json`.
-
-Solid tiles may set `climbable: true` to let a climbing actor grip their walls and
-undersides. Omitted or false means the tile remains solid but cannot be gripped;
-map boundaries are never climbable. The shipped stone is climbable, while glass is not.
-
-Changing `tileSize` changes the geometry, not the tuning: jump heights, speeds, and the
-navigation reach are pixel values chosen for 16-pixel tiles.
-
-A nonempty tile may add `breaksInto` naming the tile it becomes when broken:
-
-```json
-"glass": {
-  "sprite": { "position": [144, 192] },
-  "blocksMovement": true, "blocksSight": false,
-  "breaksInto": "empty"
-}
-```
-
-The name may be any tile in the same file, including one defined further down, and a
-tile cannot break into itself. Omit the field to make a tile unbreakable. Breaking also
-needs a weapon that does it, which is `breaksTiles` on a `ranged` weapon in
-`actors.json`. Chain the field to wear a tile down in stages, such as glass into
-cracked glass into empty.
-
-## Placement coordinates
-
-World coordinates begin at the top-left: positive X points right and positive Y
-points down. A cell position is `[column, row]`, also counted from the top-left.
-
-Actors, pickups, exits, and patrol endpoints support two placement forms:
-
-- `spawnCell` places the object's feet at the bottom-centre of a tile cell.
-- `spawnFeet` supplies that bottom-centre position directly in world pixels.
-
-The player spawn uses the corresponding names `playerSpawnCell` and `playerSpawnFeet`.
-Each placement uses exactly one form. Patrol endpoints use `firstCell` or `firstFeet`,
-and `secondCell` or `secondFeet`. Feet provide a stable bottom-centre reference point
-and do not imply that an object must stand on the ground.
+\* Required on every tile but `empty`, which must allow movement and sight. Speeds and
+jump heights are tuned for 16-pixel tiles.
 
 ## Actors
-
-An actor requires `definition` (a name in `actors.json`) and one spawn placement. Any
-actor definition in that catalog can be placed; adding a new definition name does
-not require a parser branch. A patrol is optional:
-
-```json
-{
-  "definition": "zombie",
-  "spawnCell": [5, 8],
-  "patrol": {
-    "firstCell": [5, 8],
-    "secondCell": [10, 8]
-  }
-}
-```
-
-Shared definitions live in `assets/catalogs/actors.json`:
 
 ```json
 {
@@ -244,7 +144,7 @@ Shared definitions live in `assets/catalogs/actors.json`:
       "animations": "player",
       "platformer": {}
     },
-    "scout": {
+    "bat": {
       "bodySize": [12, 8],
       "team": "enemy",
       "health": 1,
@@ -258,329 +158,198 @@ Shared definitions live in `assets/catalogs/actors.json`:
 }
 ```
 
-`actor_definition.hpp` is the C++ configuration boundary; `composeActor` creates fresh
-runtime components and calls the engine's `validateActor`. `actor_catalog.cpp` reads
-JSON, validates every definition, and resolves names. The
-top-level `player` chooses the player definition, which must have health and inventory
-for the game's HUD, and must not enable NPC sensing. Level patrols remain per-instance.
+`player` names the player's definition, which needs `health` and `inventorySlots` and
+no `senses`.
 
-Exactly one of `platformer` or `flying` is required. Optional `surfaceClimb` works
-with `platformer` only. Empty component objects use C++ defaults; omitted optional
-components are absent. `senses` adds the NPC brain,
-transient perception, sensing configuration and path follower together. `tactic` is
-that brain's policy, `pursuer` or `keepDistance`, and requires `senses`. `machine`
-names a state machine in `machines.json` to run instead of the tactic; it requires
-`senses` too. `health` and `inventorySlots` are positive integers.
-Primary attacks use either `bite` or `ranged`. Optional `contactDamage` is independent
-and can coexist with either; all require a non-neutral team. There is no
-inheritance or arbitrary per-placement override mechanism.
+| Field            | Meaning                                                                    |
+| ---------------- | -------------------------------------------------------------------------- |
+| `bodySize`       | Required. The collider.                                                    |
+| `team`           | `player`, `enemy` or `neutral` (default). Attacks need a non-neutral team. |
+| `facing`         | `left` or `right` (default).                                               |
+| `animations`     | A set in `animations.json`.                                                |
+| `spriteAnchor`   | `feet` (default) or `center`.                                              |
+| `health`         | Positive.                                                                  |
+| `inventorySlots` | Positive.                                                                  |
+| `platformer`     | Walking and jumping. Exactly one of `platformer` and `flying`.             |
+| `flying`         | Flying.                                                                    |
+| `surfaceClimb`   | Climbing walls and ceilings. Needs `platformer`.                           |
+| `senses`         | Makes the actor an NPC.                                                    |
+| `tactic`         | `pursuer` (default) or `keepDistance`. Needs `senses`.                     |
+| `machine`        | A machine in `machines.json`, run instead of the tactic. Needs `senses`.   |
+| `bite`           | A melee attack. At most one of `bite` and `ranged`.                        |
+| `ranged`         | A projectile attack.                                                       |
+| `contactDamage`  | Damage on touch, when a script asks for it. Works with either attack.      |
 
-Platformer fields match `PlatformerMovementConfig`; flying and `surfaceClimb` each
-expose `speed`. Climbing requires a `climbGrip` of `Hold` from policy. Sensing
-exposes `noticeDistance`, `standoffDistance`, `targetMemoryDuration`, and
-`searchDuration`. Bite exposes `damage`, `hitboxSize`, `reach`,
-`windupDuration`, `activeDuration`, and `recoveryDuration`. `contactDamage` exposes
-only `damage`; movement speed belongs to the movement component. Ranged exposes `damage`,
-`projectileSize`, `projectileSpeed`, `projectileLifetime`, `shootDuration`,
-`recoveryDuration`, `breaksTiles`, and an optional `sprite` object with `position`, `size`,
-optional `displaySize`, and optional `anchor`. Sprite coordinates use atlas pixels.
-Animation names reference named sets in `animations.json`;
-animation frames are not loaded here. `facing` is `left` or `right`, and `spriteAnchor`
-is `feet` or `center`.
+A component object may leave out any field to keep its default, so `{}` is all defaults.
+
+| Component       | Fields (default)                                                                                                                                                                                                                   |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `platformer`    | `maximumSpeed` (100), `groundAcceleration` (800), `airAcceleration` (400), `groundDeceleration` (1000), `jumpSpeed` (240), `gravity`, `jumpReleaseGravity`, `maximumFallSpeed`, `coyoteDuration` (0.1), `jumpBufferDuration` (0.1) |
+| `flying`        | `speed` (60)                                                                                                                                                                                                                       |
+| `surfaceClimb`  | `speed` (60)                                                                                                                                                                                                                       |
+| `senses`        | `noticeDistance` (96), `targetMemoryDuration` (1.5), `searchDuration` (2), `standoffDistance` (48)                                                                                                                                 |
+| `bite`          | `damage` (1), `hitboxSize` ([10, 8]), `reach` (4), `windupDuration` (0.12), `activeDuration` (0.08), `recoveryDuration` (0.3)                                                                                                      |
+| `ranged`        | `damage` (1), `projectileSize` ([4, 2]), `projectileSpeed` (180), `projectileLifetime` (2), `shootDuration` (0.15), `recoveryDuration` (0.2), `breaksTiles` (false), `sprite`                                                      |
+| `contactDamage` | `damage` (1)                                                                                                                                                                                                                       |
+
+A `sprite`, here and for items, pickups and exits, has `position` and `size`, the atlas
+region; `displaySize`, the drawn size (default `size`); and `anchor`, `feet` (default) or
+`center`.
 
 ## State machines
 
-`machines.json` holds named machines an actor definition can run through its `machine`
-field. A machine has `states`, an array of `{ "name", "does" }` in the order they are
-declared, and `transitions`, an array of `{ "from", "to", "when", "after" }`. The
-first state is the one the NPC starts in. A string `does` value names the built-in
-activity the state runs: `idle`, `patrol`, `chase`, `bite`, `shoot`, `search`,
-`retreat` or `watch`. A Lua activity uses
-`{"kind":"lua","script":"rat","activity":"flee"}`.
+`machines.json` holds machines by name. A machine's first state is the one an NPC starts in.
 
-`from` is a state name or an array of them, which declares one transition per name.
-`when` maps fact names to the boolean each must hold, and may be empty for a transition
-that always holds. `after` is optional and is how many seconds every condition must
-hold before the transition fires. Among the transitions from one state, the first in
-the array whose conditions have held long enough wins.
+```json
+"guard": {
+  "states": [
+    { "name": "patrol", "does": "patrol" },
+    { "name": "flee", "does": { "kind": "lua", "script": "rat", "activity": "flee" } }
+  ],
+  "transitions": [
+    { "from": "patrol", "to": "flee", "when": { "targetKnown": true } },
+    { "from": "flee", "to": "patrol", "when": { "targetKnown": false }, "after": 0.5 }
+  ]
+}
+```
 
-A Lua reference named `"script": "rat"` loads `assets/scripts/rat.lua`. The script
-returns an `activities` table; each referenced activity needs an `update` function,
-while `enter` and `exit` are optional. Loading rejects missing scripts or activities.
-An update returns intentions or narrow requests such as an aim or route; the engine
-performs movement, pathfinding, and damage. See the [Lua boundary](ARCHITECTURE.md#lua-activity-boundary)
-for the runtime details.
+| Field   | Meaning                                                                               |
+| ------- | ------------------------------------------------------------------------------------- |
+| `name`  | The state's name, unique in the machine.                                              |
+| `does`  | A built-in activity by name, or a [Lua activity](#lua-activities).                    |
+| `from`  | A state, or a list of states for one transition from each.                            |
+| `to`    | The state to enter.                                                                   |
+| `when`  | [Facts](#facts) and the value each must have. Empty always holds.                     |
+| `after` | Optional seconds every condition must hold before the transition fires. Not negative. |
 
-Positions in the snapshot, such as `snapshot.feet`, `snapshot.targetFeet`, and the
-patrol's `firstFeet` and `secondFeet`, are `vec2` values: the engine's `glm::vec2`.
-`vec2(x, y)` makes one. They have `x` and `y` fields, add and subtract, negate,
-multiply and divide by a number, compare with `==`, and print with `tostring`. Their
-methods are `length()`, `distance(other)`, `distanceSquared(other)`, and `dot(other)`,
-as in `snapshot.feet:distanceSquared(snapshot.targetFeet)`. A command's vectors, such
-as `direction`, `aimAt`, and `routeTo`, take a `vec2` or an `{x, y}` table. A command's
-`climbGrip` is `"hold"`, `"release"` or `"keep"`; leaving it out keeps the grip, so a
-climber that stops stays on its wall or ceiling.
+The built-in activities are `idle`, `patrol`, `chase`, `bite`, `shoot`, `search`,
+`retreat` and `watch`. A Lua activity is `{ "kind": "lua", "script", "activity" }`, where
+`script` is a file in `assets/scripts` without `.lua`.
 
-The engine supplies these boolean facts to machine `when` conditions:
+From one state, the first transition in the list whose conditions have held long enough
+fires. Each transition times its own `after`, so two transitions between the same states
+do not share elapsed time.
 
-| Fact                           | True when                                                                              | Position or timing                                                                           |
-| ------------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `targetKnown`                  | The NPC remembers a living target.                                                     | Sight or an eligible noise refreshes target memory; it expires after `targetMemoryDuration`. |
-| `targetVisible`                | The NPC sees the target.                                                               | Rechecked each sensing update using notice distance and line of sight.                       |
-| `targetInBiteRange`            | The visible target overlaps the NPC's bite hitbox.                                     | Uses current actor bounds and facing; requires a bite component.                             |
-| `biteReady`                    | The NPC has a bite in its ready phase.                                                 | Does not require a target.                                                                   |
-| `targetInSights`               | The target is visible and the NPC has a ranged weapon.                                 | Does not test aim alignment or weapon readiness.                                             |
-| `targetWithinStandoffDistance` | A living remembered target is closer than `standoffDistance`.                          | Compares the NPC's current feet with the target's last known feet; strict `<`.               |
-| `heardLanding`                 | The NPC heard a player land on its supported ground run.                               | Set for one sensing update.                                                                  |
-| `targetOnSameRun`              | The living remembered target and NPC are grounded on the same continuous walkable run. | Uses their current bounds, regardless of distance or visibility.                             |
-| `targetWithinNoticeDistance`   | The living remembered target is within `noticeDistance`.                               | Compares current feet, regardless of ground or visibility; inclusive `<=`.                   |
-| `movementBlocked`              | Movement hit a wall or the ledge guard stopped the NPC.                                | Reports the previous movement update.                                                        |
-| `hasPatrol`                    | The NPC has a patrol component.                                                        | Independent of its current state.                                                            |
-| `searchTimeUp`                 | Time in the current state is at least `searchDuration`.                                | True immediately when the duration is zero.                                                  |
+### Facts
 
-The two run and notice-distance facts are independent; policy decides how to combine
-them. Both are false without a living remembered target. Sight refreshes the last
-known feet before behavior runs; without sight or a new noise that position stays fixed
-until the target is forgotten. Lua snapshots also expose `searches` and `stateElapsed`;
-they are not boolean machine `when` conditions.
+| Fact                           | True when                                                             | Notes                                                                 |
+| ------------------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `targetKnown`                  | The NPC remembers a living target.                                    | Sight or a heard noise refreshes it; it lasts `targetMemoryDuration`. |
+| `targetVisible`                | The NPC sees the target.                                              | Within `noticeDistance` with clear line of sight.                     |
+| `targetInBiteRange`            | The visible target overlaps the NPC's bite hitbox.                    | Needs `bite`.                                                         |
+| `biteReady`                    | The NPC's bite is ready.                                              | Needs no target.                                                      |
+| `targetInSights`               | The target is visible and the NPC has `ranged`.                       | Ignores aim and reload.                                               |
+| `targetWithinStandoffDistance` | The remembered target is nearer than `standoffDistance`.              | Measured to its last known feet.                                      |
+| `heardLanding`                 | The NPC heard the player land on its ground run.                      | For one update.                                                       |
+| `targetOnSameRun`              | The NPC and its remembered target stand on the same continuous floor. | Ignores distance and sight.                                           |
+| `targetWithinNoticeDistance`   | The remembered target is within `noticeDistance`.                     | Ignores ground and sight.                                             |
+| `movementBlocked`              | The NPC hit a wall, or its ledge guard stopped it.                    | From the last movement update.                                        |
+| `hasPatrol`                    | The NPC has a patrol.                                                 |                                                                       |
+| `searchTimeUp`                 | The time in this state has reached `searchDuration`.                  | At once when the duration is zero.                                    |
 
-For an example, compare the [boar machine](../assets/catalogs/machines.json) with its
-[Lua activities](../assets/scripts/boar.lua). It combines the run and notice-distance
-facts to charge, then requests walking, ledge avoidance, and contact damage in Lua.
-Its two stunned-to-sleep transitions each hold for 1.5 seconds independently, so
-alternating failure reasons do not share elapsed time.
+The [boar machine](../assets/catalogs/machines.json) and its
+[activities](../assets/scripts/boar.lua) combine `heardLanding`, `targetOnSameRun` and
+`targetWithinNoticeDistance` to charge.
 
-Loading reports a machine with no states, a state declared twice, a transition from or
-to a state the machine lacks, a fact no row answers, an activity that does not exist,
-or a hold that is negative, by the machine and transition it found it in.
+### Lua activities
+
+A script returns `{ activities = { name = { enter, update, exit } } }`. `update` is
+required, and `enter` and `exit` are optional. Each hook gets `self`, a table kept for
+the visit, and a snapshot. `update` also gets the step in seconds, and returns a command
+or `nil`. The [Lua boundary](ARCHITECTURE.md#lua-activity-boundary) covers how they run.
+
+| Snapshot        | Meaning                                                                    |
+| --------------- | -------------------------------------------------------------------------- |
+| `feet`          | The NPC's feet.                                                            |
+| `targetFeet`    | The target's known feet, while it is known; otherwise `nil`.               |
+| `patrol`        | `firstFeet` and `secondFeet`, when the NPC has a patrol; otherwise `nil`.  |
+| `facts`         | The [facts](#facts), and `searches`: whether `searchDuration` is positive. |
+| `stateElapsed`  | Seconds in this state.                                                     |
+| `routeComplete` | Whether the last route asked for has been followed to its end.             |
+
+| Command                     | Meaning                                                |
+| --------------------------- | ------------------------------------------------------ |
+| `direction`, `aimDirection` | Movement and aim, as vectors.                          |
+| `jumpPressed`, `jumpHeld`   | Jump input.                                            |
+| `primaryAttackPressed`      | Bite or shoot.                                         |
+| `climbGrip`                 | `"hold"`, `"release"` or `"keep"` (default).           |
+| `avoidLedges`               | Stop a walker at a ledge.                              |
+| `contactDamage`             | Deal contact damage while touching.                    |
+| `routeTo`                   | Follow a route to a point; the engine plans and moves. |
+| `aimAt`                     | Aim at a point.                                        |
+| `clearRoute`                | Drop the current route.                                |
+
+Positions are `vec2` values, made with `vec2(x, y)`. They have `x` and `y`, `+`, `-`,
+negation, `*` and `/` by a number, `==`, `tostring`, and the methods `length()`,
+`distance(v)`, `distanceSquared(v)` and `dot(v)`. A command's vectors also accept
+`{x, y}` tables. Scripts have the base, math, string and table libraries.
 
 ## Animation sets
 
-Shared sets live in [`animations.json`](../assets/catalogs/animations.json). Each set contains
-`idle`, `move`, `jump`, `fall`, `attack`, and `death` clips. For example, the `move` entry
-inside a set:
+`animations.json` holds sets by name. A set has the clips `idle`, `move`, `jump`, `fall`,
+`attack` and `death`, all required.
 
 ```json
 "move": {
-  "frames": [
-    {"position": [64, 0], "size": [32, 24]},
-    {"position": [128, 0], "size": [32, 24]},
-    {"position": [96, 0], "size": [32, 24]},
-    {"position": [128, 0], "size": [32, 24]}
-  ],
+  "frames": [{ "position": [64, 0], "size": [32, 24] }, { "position": [96, 0], "size": [32, 24] }],
   "frameDuration": 0.16,
   "looping": true
 }
 ```
 
-Frame rectangles use atlas pixels. Order and repeated frames are preserved.
-`frameDuration` is seconds per frame; a non-looping clip holds its last frame. Each clip
-needs at least one frame and a positive finite duration. All six clips are required
-because actor selection can request any of them. Frames within one set share a size,
-though different sets can use different sizes. A missing set reference is rejected during
-loading.
+| Field           | Meaning                                                                       |
+| --------------- | ----------------------------------------------------------------------------- |
+| `frames`        | At least one atlas region, played in order. Every frame in a set is one size. |
+| `frameDuration` | Seconds per frame. Positive.                                                  |
+| `looping`       | Whether the clip repeats; otherwise it holds its last frame.                  |
 
-Actor definitions name a set; they do not carry frames of their own. How the engine picks
-a clip at runtime is in [Animation](ARCHITECTURE.md#animation).
+How the engine picks a clip is in [Animation](ARCHITECTURE.md#animation).
 
-## Items and pickups
-
-`items.json` defines inventory items by unique symbolic name. Each definition has a
-display `name`, `icon`, and positive `maximumStack`:
+## Items
 
 ```json
-{
-  "items": {
-    "health_potion": {
-      "name": "Health potion",
-      "icon": { "position": [16, 216], "size": [16, 16] },
-      "maximumStack": 5,
-      "effect": "heal",
-      "effectAmount": 2
-    }
-  }
+"health_potion": {
+  "name": "Health potion",
+  "icon": { "position": [16, 216], "size": [16, 16] },
+  "maximumStack": 5,
+  "effect": "heal",
+  "effectAmount": 2
 }
 ```
 
-The loader assigns numeric `ItemId` values internally; do not put IDs in JSON.
-The application loads the item catalog once; `Game` reuses it across level transitions and
-restarts, keeping carried inventory consistent. Generated IDs are not persistent asset
-identities: changing the catalog can change them on the next launch. A future saved-game
-format should store symbolic names and resolve them when loading. The display `name`
-is a UI label and does not need to be unique.
+| Field          | Meaning                                      |
+| -------------- | -------------------------------------------- |
+| `name`         | The label shown in the HUD.                  |
+| `icon`         | A [sprite](#actors), drawn in the inventory. |
+| `maximumStack` | Positive.                                    |
+| `effect`       | `none` (default) or `heal`.                  |
+| `effectAmount` | Zero for `none`, positive for `heal`.        |
 
-`effect` selects
-the C++ behaviour `none` (default, amount zero) or `heal` (positive amount). JSON
-configures these behaviours; it does not implement them.
+Saves, if added, should store item names: item IDs are assigned at load and can change.
 
-`pickups.json` defines world pickups separately from inventory items:
-
-```json
-{
-  "pickups": {
-    "medicine_box": {
-      "item": "health_potion",
-      "quantity": 2,
-      "bodySize": [16, 16]
-    }
-  }
-}
-```
-
-`item`, `quantity` and `bodySize` are required. An optional `sprite` overrides the inventory icon
-in the world. Both `icon` and `sprite` use `position` and `size` for their atlas
-rectangle, optional `displaySize` (defaults to source size), and optional `anchor`
-(`feet` or `center`, default `feet`). The collider remains independent of the sprite.
-
-A level places a named definition using one spawn placement:
+## Pickups
 
 ```json
-{
-  "definition": "medicine_box",
-  "spawnCell": [4, 8]
-}
+"medicine_box": { "item": "health_potion", "quantity": 2, "bodySize": [16, 16] }
 ```
 
-An object legend entry can use the same definition:
-`"M": { "type": "pickup", "definition": "medicine_box" }`.
-Inline `item` and `quantity` remain a shorthand for a 16-by-16 pickup using its item
-icon. A placement must not mix that shorthand with `definition`.
-New item and pickup names do not require changes to the level parser.
+| Field      | Meaning                                                  |
+| ---------- | -------------------------------------------------------- |
+| `item`     | An item in `items.json`.                                 |
+| `quantity` | Positive.                                                |
+| `bodySize` | The collider the player touches to collect it.           |
+| `sprite`   | Optional; without one, the pickup draws its item's icon. |
 
 ## Exits
 
-Shared exit appearance lives in `exits.json`:
-
 ```json
-{
-  "exits": {
-    "bunker_door": {
-      "bodySize": [16, 32],
-      "sprite": { "position": [48, 216], "size": [16, 32] }
-    }
-  }
-}
+"bunker_door": { "bodySize": [16, 32], "sprite": { "position": [48, 216], "size": [16, 32] } }
 ```
 
-Both `bodySize` and `sprite` are required. The sprite uses the same source rectangle,
-optional display size, and anchor fields as item icons and pickup sprites.
-
-An exit placement requires a `definition` name and one spawn placement. It may also contain:
-
-- `requirement`, with a name from `items.json` and a positive quantity;
-- `consumeItem`, which defaults to `false`;
-- `nextLevel`, which refers to a level ID in `levels.json`.
-
-```json
-{
-  "definition": "bunker_door",
-  "spawnCell": [18, 8],
-  "requirement": {
-    "item": "key",
-    "quantity": 1
-  },
-  "consumeItem": true,
-  "nextLevel": 2
-}
-```
-
-The same settings work in an exit legend entry, with `"type": "exit"` and no spawn
-field. Requirements, consumption, and destinations belong to the placement, not the
-shared definition: two doors can look the same but lead to different levels.
-`composeExit` creates bounds and a sprite; `level_composition.cpp` adds the resolved
-item requirement and destination before passing the exit to the World.
+`bodySize` and `sprite` are required. The requirement, consumption and next level belong
+to each [placement](#placements), so doors that look alike can lead to different levels.
 
 ## HUD icons
 
-`hud.json` names where the HUD's icons sit in the atlas:
-
-```json
-{
-  "fullHeart": { "position": [96, 192], "size": [16, 16] },
-  "emptyHeart": { "position": [112, 192], "size": [16, 16] },
-  "bag": { "position": [64, 216], "size": [16, 16] }
-}
-```
-
-All three are required, each with a non-negative `position` and a positive `size`.
-The HUD draws every icon at the same on-screen size, so a region of another size is
-stretched to fit. Where the icons go on screen is HUD layout, which stays in `app/ui`.
-
-## Loading and composition
-
-Level placements do not specify actor, pickup, or exit bounds. Actor definitions own
-actor sizes; pickup and exit definitions own their respective sizes.
-Composition creates each AABB around its loaded feet position. Their sprites
-remain independent, just like actor sprites and bodies.
-
-The JSON dependency stays at the application content boundary.
-`level_catalog.cpp` validates the catalog, and `level_data.cpp` parses a
-level into plain `LevelData`, reports invalid fields with their content path, and
-retains actor, pickup, exit, and item references. The definition catalogs validate
-definitions independently of placement; composition resolves names to runtime values. The
-composition step then creates the existing `TileMap`, `World`, actors, pickups, and
-exit. Existing construction and level validation remain authoritative.
-
-Parser tests use JSON strings and independent files under `tests/fixtures`, laid out
-like `assets/`.
-Transition tests use that fixture campaign, not the example game's layout or item values.
-Generic content checks load every entry in the example catalog;
-they do not assume particular filenames, a fixed level count, or specific NPCs.
-
-Runtime-only state is never loaded: actor IDs, velocities, current paths, attack timers,
-and NPC decisions are created fresh whenever a level starts. Texture IDs are supplied
-by the application at runtime. Animation frame regions come from `animations.json`. Projectile sprite regions
-are configured in the actor catalog, not in level placements.
-
-## Naming in `app/content`
-
-Function names in the content module follow a small vocabulary. The verb states what a
-function takes, what it returns, and whether it touches the filesystem.
-
-[`content_diagnostics.cpp`](../app/content/content_diagnostics.cpp) supplies the three
-functions every error message is built from. It has no JSON dependency, so the plain C++
-validators use it as well.
-
-| Name        | Takes                                | Returns            | Notes                                                                   |
-| ----------- | ------------------------------------ | ------------------ | ----------------------------------------------------------------------- |
-| `fieldPath` | a path and a key                     | `"parent.child"`   | The diagnostic path, not a filesystem path.                             |
-| `indexPath` | a path and an index                  | `"parent[2]"`      | Used for array elements.                                                |
-| `failJson`  | a source name, a path, and a message | nothing; it throws | Reports `source: path: message`, omitting either part when it is empty. |
-
-[`content_json.cpp`](../app/content/content_json.cpp) supplies the JSON shape readers on top
-of those. A `json` function receives a value; a `read` function finds one by key.
-
-| Name                                                  | Takes                               | Returns                                         | Notes                                                                                                                                                           |
-| ----------------------------------------------------- | ----------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `jsonText`, `jsonVector`, `jsonSprite`, ...           | a JSON value                        | the converted value                             | The caller already holds the value.                                                                                                                             |
-| `readText`, `readVector`, `readName`, ...             | an object and a key                 | the converted value                             | A missing key is an error.                                                                                                                                      |
-| `jsonName`, `readName`                                | a value or a key, and a description | the name                                        | A name that identifies an entry; an empty one is an error. A converted word uses `jsonText`, and a field whose empty string means none uses `readOptionalText`. |
-| `readOptionalText`, `readOptionalVector`, ...         | an object, a key, and a reference   | nothing                                         | A missing key keeps the caller's value; a present but invalid one is an error.                                                                                  |
-| `checkJsonFields`, `checkJsonObject`, `checkJsonPair` | a JSON value                        | nothing                                         | Shape assertions. They extract no value.                                                                                                                        |
-| `requiredJsonMember`                                  | an object and a key                 | the member                                      | Throws when the key is absent.                                                                                                                                  |
-| `optionalJsonMember`                                  | an object and a key                 | the member, or `nullptr` when the key is absent | The lookup every `readOptional...` and `requiredJsonMember` is built on. Parsers use those; only a new `readOptional...` calls this directly.                   |
-| `parseContentRoot`                                    | the file text                       | the JSON document                               | The single place a syntax error is reported with its line and column.                                                                                           |
-
-The catalogs and [`level_data.cpp`](../app/content/level_data.cpp) build on those with a
-second set of verbs.
-
-| Verb          | Example                              | Meaning                                                                                                                                                                                                                                                                                                                                                               |
-| ------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `parse...`    | `parseItemCatalog(text, sourceName)` | Text to typed data. Never opens a file.                                                                                                                                                                                                                                                                                                                               |
-| `load...`     | `loadItemCatalog(path)`              | Reads the file, then calls the matching `parse...`. Every name that touches the filesystem begins with `load`, including `loadContentText`, the primitive the others build on.                                                                                                                                                                                        |
-| `validate...` | `validateItemCatalog(catalog)`       | Authoring rules applied to typed data.                                                                                                                                                                                                                                                                                                                                |
-| `compose...`  | `composeActor(definition, ...)`      | Authoring data plus runtime context, such as a texture ID and a spawn position, to a runtime value. The family has no fixed parameter list: `composeItemStack(catalog, stack)` resolves an authoring name to an `ItemId` and takes neither. It continues into `app/game`, where `composeGameLevel` and `composePlayer` assemble a whole level from the same catalogs. |
-| a noun        | `itemDefinition(catalog, name)`      | A lookup. Returns the entry, or throws when the name is unknown. `animationSet` and `levelPath` read the same way.                                                                                                                                                                                                                                                    |
-
-`parse...` never opens a file, so every loader can be tested with a string literal instead of
-a fixture. `validate...` is separate from `parse...`, so the same rules apply whether content
-arrived as JSON or was written in C++; the loader contributes the filename and the validator
-supplies the rest of the path.
-
-The file-local helpers use the same vocabulary. `jsonActorPlacement` and `jsonExitPlacement`
-in `level_data.cpp` convert a value, `readFeetPosition` finds one of two spellings by key,
-and `checkLegendSymbols` asserts and returns nothing. `level_data.cpp` adds one more verb:
-
-| Verb        | Example                         | Meaning                                                                                                                                                             |
-| ----------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `expand...` | `expandObjectLegend(root, ...)` | A JSON document to a rewritten JSON document. It turns the map-symbol shorthand into explicit placements so both authoring forms reach the parse in the same shape. |
+`hud.json` has the regions `fullHeart`, `emptyHeart` and `bag`, each with `position` and
+`size`. The HUD draws them all at one size.

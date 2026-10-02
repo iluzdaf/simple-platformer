@@ -180,6 +180,10 @@ no `senses`.
 | `ranged`         | A projectile attack.                                                       |
 | `contactDamage`  | Damage on touch, when a script asks for it. Works with either attack.      |
 
+`bodySize` and the art are independent. The player's frames are 32 by 24 around a body
+of 12 by 20, so the gun and a jump do not change how it collides. The debug overlay (F1,
+then 2) outlines the collider in red and the art in grey.
+
 A component object may leave out any field to keep its default, so `{}` is all defaults.
 
 | Component       | Fields (default)                                                                                                                                                                                                                   |

@@ -1,4 +1,4 @@
-#include "simple_platformer/npc/npc_built_in_activity.hpp"
+#include "simple_platformer/npc/npc_states.hpp"
 
 #include <stdexcept>
 
@@ -160,8 +160,10 @@ namespace simple_platformer
         actor.intentions.aimDirection = targetFeet - feetOf(actor.body.bounds);
     }
 
-    void enterBuiltInActivity(Actor& actor, NpcBrain& brain, PathFollower& follower, NpcState state)
+    void enterNpcState(Actor& actor, NpcBrain& brain, PathFollower& follower, NpcState state)
     {
+        brain.state = state;
+        brain.stateElapsed = 0.0F;
         clearPath(follower);
         if (state == NpcState::Charge)
         {
@@ -174,7 +176,7 @@ namespace simple_platformer
         }
     }
 
-    void updateBuiltInActivity(
+    void updateNpcState(
         const NpcUpdate& update,
         Actor& actor,
         NpcBrain& brain,

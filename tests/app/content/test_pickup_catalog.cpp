@@ -27,9 +27,10 @@ TEST_CASE("Pickup definitions compose bounds and optional world sprites", "[app]
         throw std::logic_error("Missing sprite override");
     }
     REQUIRE(medicine.sprite->textureId == 7);
-    REQUIRE(medicine.sprite->size == glm::vec2{24, 16});
+    REQUIRE(medicine.sprite->region.size == glm::vec2{12, 8});
     REQUIRE(medicine.sprite->anchor == simple_platformer::SpriteAnchor::BodyCenter);
-    REQUIRE(simple_platformer::itemDefinition(items, "medicine").icon.size == glm::vec2{8, 8});
+    REQUIRE(
+        simple_platformer::itemDefinition(items, "medicine").icon.region.size == glm::vec2{8, 8});
 }
 
 TEST_CASE("Pickup JSON validates every definition including unused entries", "[app][pickups][json]")

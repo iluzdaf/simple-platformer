@@ -95,9 +95,8 @@ namespace simple_platformer
                     const auto& frame = clip.frames[index];
                     Sprite sprite;
                     sprite.region = frame;
-                    sprite.size = frame.size;
                     validateContentSprite(sprite);
-                    // Playback changes the source rectangle, not the sprite's display size.
+                    // Each frame draws at its own size, so one size keeps the actor steady.
                     if (frame.size != set.clips.front().frames.front().size)
                     {
                         throw std::invalid_argument("all frames in a set must use the same size");

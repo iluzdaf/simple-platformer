@@ -12,10 +12,11 @@ namespace simple_platformer
         {
         case SpriteAnchor::BodyFeet: {
             const glm::vec2 bodyFeet = feetOf(bodyBounds);
-            return {{bodyFeet.x - sprite.size.x * 0.5F, bodyFeet.y - sprite.size.y}, sprite.size};
+            const glm::vec2 size = sprite.region.size;
+            return {{bodyFeet.x - size.x * 0.5F, bodyFeet.y - size.y}, size};
         }
         case SpriteAnchor::BodyCenter:
-            return boxCenteredOn(centerOf(bodyBounds), sprite.size);
+            return boxCenteredOn(centerOf(bodyBounds), sprite.region.size);
         }
 
         throw std::invalid_argument("Sprite anchor is invalid");

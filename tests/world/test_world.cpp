@@ -199,7 +199,7 @@ TEST_CASE("World adds and removes projectiles through its public interface", "[w
     simple_platformer::World world;
     simple_platformer::Projectile first;
     first.bounds = {{8.0F, 8.0F}, {4.0F, 2.0F}};
-    first.sprite.size = {4.0F, 2.0F};
+    first.sprite.region.size = {4.0F, 2.0F};
     simple_platformer::Projectile second = first;
     second.bounds.topLeft = {16.0F, 8.0F};
 
@@ -217,7 +217,7 @@ TEST_CASE("World validates and owns projectile bursts", "[world][projectile]")
     simple_platformer::World world;
     simple_platformer::ProjectileBurst burst;
     burst.center = {8.0F, 8.0F};
-    burst.sprite.size = {4.0F, 2.0F};
+    burst.sprite.region.size = {4.0F, 2.0F};
 
     world.addProjectileBurst(burst);
 

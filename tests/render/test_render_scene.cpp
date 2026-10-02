@@ -56,7 +56,7 @@ namespace
 
     simple_platformer::Sprite square(int textureId, float size)
     {
-        return {textureId, {{0.0F, 0.0F}, {size, size}}, {size, size}};
+        return {textureId, {{0.0F, 0.0F}, {size, size}}};
     }
 
     simple_platformer::World worldWithPickupItem()
@@ -95,7 +95,7 @@ TEST_CASE("A render scene contains visible tiles followed by the player", "[rend
         tests::TileMapBuilder({".xxx", "...."})
             .where('x', tests::Tile().blocksMovement().blocksSight().withSprite(tileRegion));
     const simple_platformer::Camera camera{{16.0F, 0.0F}, {32.0F, 16.0F}};
-    const simple_platformer::Sprite player{9, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {10.0F, 14.0F}};
+    const simple_platformer::Sprite player{9, {{2.0F, 0.0F}, {10.0F, 14.0F}}};
     const simple_platformer::Aabb playerBounds{{20.0F, 2.0F}, {8.0F, 12.0F}};
     simple_platformer::Actor actor = tests::ActorBuilder::sized(playerBounds.size)
                                          .at(playerBounds.topLeft)
@@ -144,7 +144,7 @@ TEST_CASE("Facing right does not flip the player sprite", "[render][scene]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"..", "##"});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 32.0F}};
-    const simple_platformer::Sprite player{1, {{1.0F, 0.0F}, {1.0F, 1.0F}}, {12.0F, 12.0F}};
+    const simple_platformer::Sprite player{1, {{1.0F, 0.0F}, {12.0F, 12.0F}}};
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .at({4.0F, 4.0F})
@@ -162,14 +162,12 @@ TEST_CASE("A centre-anchored sprite surrounds a smaller flying body", "[render][
     const simple_platformer::TileMap map = tests::TileMapBuilder({"..."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {48.0F, 32.0F}};
     simple_platformer::World world;
-    world.addActor(tests::ActorBuilder::sized({12.0F, 8.0F})
-                       .at({10.0F, 10.0F})
-                       .flying(0.0F)
-                       .withSprite(
-                           {1,
-                            {{0.0F, 96.0F}, {32.0F, 24.0F}},
-                            {32.0F, 24.0F},
-                            simple_platformer::SpriteAnchor::BodyCenter}));
+    world.addActor(
+        tests::ActorBuilder::sized({12.0F, 8.0F})
+            .at({10.0F, 10.0F})
+            .flying(0.0F)
+            .withSprite(
+                {1, {{0.0F, 96.0F}, {32.0F, 24.0F}}, simple_platformer::SpriteAnchor::BodyCenter}));
 
     const simple_platformer::RenderScene scene =
         simple_platformer::buildRenderScene(map, 1, camera, world);
@@ -200,7 +198,7 @@ TEST_CASE("Dying actors fade during the final part of their death", "[render][sc
     world.addActor(tests::ActorBuilder::sized({8.0F, 8.0F})
                        .at({4.0F, 4.0F})
                        .platforming()
-                       .withSprite({1, {{0.0F, 0.0F}, {8.0F, 8.0F}}, {8.0F, 8.0F}}));
+                       .withSprite({1, {{0.0F, 0.0F}, {8.0F, 8.0F}}}));
 
     const auto aliveScene = simple_platformer::buildRenderScene(map, 1, camera, world);
     REQUIRE(aliveScene.sprites.back().opacity == 1.0F);
@@ -219,11 +217,10 @@ TEST_CASE("Actors with active hit feedback produce a white flash", "[render][sce
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({".."});
     const simple_platformer::Camera camera{{0.0F, 0.0F}, {32.0F, 16.0F}};
-    simple_platformer::Actor actor =
-        tests::ActorBuilder::sized({8.0F, 8.0F})
-            .at({4.0F, 4.0F})
-            .platforming()
-            .withSprite({1, {{0.0F, 0.0F}, {8.0F, 8.0F}}, {8.0F, 8.0F}});
+    simple_platformer::Actor actor = tests::ActorBuilder::sized({8.0F, 8.0F})
+                                         .at({4.0F, 4.0F})
+                                         .platforming()
+                                         .withSprite({1, {{0.0F, 0.0F}, {8.0F, 8.0F}}});
     actor.lastDamageTimeSeconds = 0.0F;
     simple_platformer::World world;
     world.addActor(actor);
@@ -244,7 +241,7 @@ TEST_CASE("Projectile sprites are centred and rotated in their direction", "[ren
     simple_platformer::Projectile projectile;
     projectile.bounds = {{20.0F, 10.0F}, {4.0F, 2.0F}};
     projectile.velocity = {0.0F, -10.0F};
-    projectile.sprite = {3, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {6.0F, 4.0F}};
+    projectile.sprite = {3, {{2.0F, 0.0F}, {6.0F, 4.0F}}};
     simple_platformer::World world;
     world.addProjectile(projectile);
 
@@ -266,7 +263,7 @@ TEST_CASE("Projectile bursts expand and fade around their world position", "[ren
     simple_platformer::ProjectileBurst burst;
     burst.center = {20.0F, 10.0F};
     burst.direction = {0.0F, -1.0F};
-    burst.sprite = {3, {{2.0F, 0.0F}, {1.0F, 1.0F}}, {6.0F, 4.0F}};
+    burst.sprite = {3, {{2.0F, 0.0F}, {6.0F, 4.0F}}};
     burst.lifetimeRemaining = 0.05F;
     simple_platformer::World world;
     world.addProjectileBurst(burst);

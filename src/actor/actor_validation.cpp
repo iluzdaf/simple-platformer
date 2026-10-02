@@ -81,7 +81,7 @@ namespace simple_platformer
                     !isFinitePositive(weapon.projectileLifetime) ||
                     !isFinitePositive(weapon.shootDuration) ||
                     !isFinitePositive(weapon.recoveryDuration) ||
-                    !isFinitePositive(weapon.projectileSprite.size))
+                    !isFinitePositive(weapon.projectileSprite.region.size))
                 {
                     throw std::invalid_argument("Actor ranged weapon data is invalid");
                 }

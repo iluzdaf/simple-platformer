@@ -159,7 +159,7 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     const simple_platformer::Actor player = tests::ActorBuilder::sized({12.0F, 12.0F})
                                                 .atFeet({38.0F, 208.0F})
                                                 .platforming()
-                                                .withSprite({1, region, {32.0F, 24.0F}})
+                                                .withSprite({1, region})
                                                 .withAnimator(animator);
 
     simple_platformer::Actor npc =
@@ -261,7 +261,7 @@ TEST_CASE("Debug overlay data describes projectiles", "[app][debug]")
     owned.bounds = {{24.0F, 32.0F}, {4.0F, 2.0F}};
     owned.lifetimeRemaining = 1.25F;
     owned.owner = simple_platformer::ActorId{7};
-    owned.sprite.size = {4.0F, 2.0F};
+    owned.sprite.region.size = {4.0F, 2.0F};
     world.addProjectile(owned);
 
     simple_platformer::Projectile unowned = owned;
@@ -361,7 +361,7 @@ TEST_CASE("The overlay shows only what the camera can see", "[app][debug]")
     simple_platformer::Projectile shown;
     shown.bounds = {{20.0F, 20.0F}, {4.0F, 2.0F}};
     shown.lifetimeRemaining = 1.0F;
-    shown.sprite.size = {4.0F, 2.0F};
+    shown.sprite.region.size = {4.0F, 2.0F};
     world.addProjectile(shown);
     simple_platformer::Projectile hidden = shown;
     hidden.bounds.topLeft = {20.0F, edge.y + tile * 2.0F};

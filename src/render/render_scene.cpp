@@ -228,13 +228,14 @@ namespace simple_platformer
             for (const Projectile& projectile : world.projectiles())
             {
                 const glm::vec2 projectileCenter = centerOf(projectile.bounds);
-                const glm::vec2 spritePosition = projectileCenter - projectile.sprite.size * 0.5F;
+                const glm::vec2 spritePosition =
+                    projectileCenter - projectile.sprite.region.size * 0.5F;
                 const float rotationRadians =
                     std::atan2(projectile.velocity.y, projectile.velocity.x);
                 scene.sprites.push_back(
                     {projectile.sprite.textureId,
                      worldToScreen(camera, spritePosition),
-                     projectile.sprite.size,
+                     projectile.sprite.region.size,
                      projectile.sprite.region,
                      false,
                      rotationRadians});
@@ -249,7 +250,7 @@ namespace simple_platformer
                     std::clamp(burst.lifetimeRemaining / burst.duration, 0.0F, 1.0F);
                 const float progress = 1.0F - remainingFraction;
                 const float scale = 1.0F + progress * (ProjectileBurstFinalScale - 1.0F);
-                const glm::vec2 size = burst.sprite.size * scale;
+                const glm::vec2 size = burst.sprite.region.size * scale;
                 const glm::vec2 position = burst.center - size * 0.5F;
                 const float rotationRadians = std::atan2(burst.direction.y, burst.direction.x);
                 scene.sprites.push_back(

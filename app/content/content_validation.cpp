@@ -22,11 +22,10 @@ namespace simple_platformer
 {
     void validateContentSprite(const Sprite& sprite)
     {
-        if (!isFiniteNonNegative(sprite.region.position) || !isFinitePositive(sprite.region.size) ||
-            !isFinitePositive(sprite.size))
+        if (!isFiniteNonNegative(sprite.region.position) || !isFinitePositive(sprite.region.size))
         {
             throw std::invalid_argument(
-                "sprite requires finite non-negative atlas position and positive sizes");
+                "sprite requires finite non-negative atlas position and positive size");
         }
     }
 

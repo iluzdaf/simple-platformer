@@ -3,7 +3,6 @@
 #include <optional>
 #include <string>
 #include "animation_catalog.hpp"
-#include "machine_catalog.hpp"
 #include <glm/vec2.hpp>
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -32,9 +31,6 @@ namespace simple_platformer
         // Presence creates the brain, perception, and path follower with these senses.
         std::optional<NpcSenses> senses;
         NpcTactic tactic = NpcTactic::Pursuer;
-        // A data-driven machine in the machine catalog, run instead of the tactic. Empty
-        // for none.
-        std::string machine;
         // Reuse the engine's attack settings. Composition resets their phase/timer state;
         // JSON exposes only configuration fields, never those runtime fields.
         std::optional<BiteAttack> bite;
@@ -47,10 +43,8 @@ namespace simple_platformer
         const AnimationCatalog& animations,
         int textureId,
         glm::vec2 spawnFeet = {},
-        std::optional<Patrol> patrol = std::nullopt,
-        const MachineCatalog& machines = {});
+        std::optional<Patrol> patrol = std::nullopt);
     void validateActorDefinition(
         const ActorDefinition& definition,
-        const AnimationCatalog& animations,
-        const MachineCatalog& machines = {});
+        const AnimationCatalog& animations);
 }

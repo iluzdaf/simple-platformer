@@ -12,7 +12,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/debug/frame_axes.cpp
     ${PROJECT_SOURCE_DIR}/app/debug/frame_profile_ui.cpp
     ${PROJECT_SOURCE_DIR}/app/debug/frame_selection.cpp
-    ${PROJECT_SOURCE_DIR}/app/debug/machine_graph_ui.cpp
     ${PROJECT_SOURCE_DIR}/app/debug/npc_names.cpp
     ${PROJECT_SOURCE_DIR}/app/content/actor_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/actor_definition.cpp
@@ -26,8 +25,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/content/item_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/level_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/level_data.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/machine_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/npc_script_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/pickup_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/tile_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/game/game.cpp

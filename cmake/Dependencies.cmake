@@ -12,20 +12,6 @@ target_include_directories(
     ${PROJECT_SOURCE_DIR}/external/nlohmann/single_include
 )
 
-set(LUA_ENABLE_SHARED OFF CACHE BOOL "" FORCE)
-set(LUA_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
-set(LUA_BUILD_BINARY OFF CACHE BOOL "" FORCE)
-set(LUA_BUILD_COMPILER OFF CACHE BOOL "" FORCE)
-add_subdirectory(${PROJECT_SOURCE_DIR}/external/lua external/lua EXCLUDE_FROM_ALL)
-
-add_library(simple_platformer_sol2 INTERFACE)
-target_include_directories(
-    simple_platformer_sol2
-    SYSTEM INTERFACE
-    ${PROJECT_SOURCE_DIR}/external/sol2/include
-)
-target_link_libraries(simple_platformer_sol2 INTERFACE Lua::Library)
-
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -56,10 +42,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/external/imgui/backends/imgui_impl_opengl3.cpp
     ${PROJECT_SOURCE_DIR}/external/implot/implot.cpp
     ${PROJECT_SOURCE_DIR}/external/implot/implot_items.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui-node-editor/crude_json.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui-node-editor/imgui_canvas.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui-node-editor/imgui_node_editor.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui-node-editor/imgui_node_editor_api.cpp
 )
 target_compile_features(simple_platformer_imgui PUBLIC cxx_std_17)
 target_include_directories(
@@ -68,6 +50,5 @@ target_include_directories(
     ${PROJECT_SOURCE_DIR}/external/imgui
     ${PROJECT_SOURCE_DIR}/external/imgui/backends
     ${PROJECT_SOURCE_DIR}/external/implot
-    ${PROJECT_SOURCE_DIR}/external/imgui-node-editor
 )
 target_link_libraries(simple_platformer_imgui PUBLIC glfw)

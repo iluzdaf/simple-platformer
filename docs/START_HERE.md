@@ -243,9 +243,6 @@ It is safe to return later to:
 
 - OpenGL setup and shader details in `app/graphics`;
 - ImGui layout code in `app/ui` and `app/debug`;
-- data-driven NPC machines and the Lua activities their states can run
-  ([Data-driven state machine](ARCHITECTURE.md#data-driven-state-machine) and
-  [Lua activity boundary](ARCHITECTURE.md#lua-activity-boundary));
 - cover fading, which fades NPCs and pickups standing in grass on the player's screen
   ([Tile map, collision, and validation](ARCHITECTURE.md#tile-map-collision-and-validation));
 - the connection table, which builds platformer connections when a level starts and

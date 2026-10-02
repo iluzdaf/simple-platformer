@@ -8,7 +8,7 @@ namespace simple_platformer
     struct NpcPerception;
 
     // The policy's snapshot for this update, gathered from perception, brain memory,
-    // and other actor components, so transitions and machines read nothing else.
+    // and other actor components, so transitions read nothing else.
     struct NpcFacts
     {
         // A living target is remembered, seen or not.
@@ -33,6 +33,7 @@ namespace simple_platformer
         bool searches = false;
         bool searchTimeUp = false;
         float stateElapsed = 0.0F;
+        float targetLostElapsed = 0.0F;
     };
 
     // The facts for this NPC now. The target is its living remembered target, if any, and

@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <glm/geometric.hpp>
+
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -12,6 +14,7 @@
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_navigation.hpp"
+#include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/npc/npc_update.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
@@ -39,6 +42,34 @@ namespace simple_platformer
                 patrol.headingToSecond = !patrol.headingToSecond;
                 clearPath(follower);
             }
+        }
+
+        void updateFleeState(
+            const NpcUpdate& update,
+            Actor& actor,
+            const NpcBrain& brain,
+            PathFollower& follower,
+            const Actor* target)
+        {
+            if (target == nullptr || !actor.patrol.has_value())
+            {
+                clearPath(follower);
+                return;
+            }
+            const Patrol& patrol = *actor.patrol;
+            const glm::vec2 left =
+                patrol.firstFeet.x < patrol.secondFeet.x ? patrol.firstFeet : patrol.secondFeet;
+            const glm::vec2 right =
+                patrol.firstFeet.x < patrol.secondFeet.x ? patrol.secondFeet : patrol.firstFeet;
+            const glm::vec2 feet = feetOf(actor.body.bounds);
+            const glm::vec2 refuge = feet.x < brain.lastKnownTargetFeet.x ? left : right;
+            if (glm::distance(feet, refuge) <= 1.0F)
+            {
+                clearPath(follower);
+                aimToward(actor, brain.lastKnownTargetFeet);
+                return;
+            }
+            actor.intentions = intentionsToReach(update, actor, follower, refuge);
         }
 
         void updateChaseState(
@@ -89,8 +120,7 @@ namespace simple_platformer
             }
         }
 
-        // The tactic leaves Shoot when sight is lost. A machine using this activity
-        // must handle lost sight and lost targets in its own transitions.
+        // The tactic leaves Shoot when sight is lost.
         void updateShootState(Actor& actor, const Actor* target)
         {
             if (target == nullptr)
@@ -130,9 +160,14 @@ namespace simple_platformer
         actor.intentions.aimDirection = targetFeet - feetOf(actor.body.bounds);
     }
 
-    void enterBuiltInActivity(Actor& actor, PathFollower& follower, NpcState state)
+    void enterBuiltInActivity(Actor& actor, NpcBrain& brain, PathFollower& follower, NpcState state)
     {
         clearPath(follower);
+        if (state == NpcState::Charge)
+        {
+            brain.chargeDirection =
+                brain.lastKnownTargetFeet.x < feetOf(actor.body.bounds).x ? -1.0F : 1.0F;
+        }
         if (state == NpcState::Bite)
         {
             actor.intentions.primaryAttackPressed = true;
@@ -150,6 +185,28 @@ namespace simple_platformer
     {
         switch (state)
         {
+        case NpcState::Flee:
+            updateFleeState(update, actor, brain, follower, target);
+            break;
+        case NpcState::Sleep:
+            break;
+        case NpcState::Charge:
+            actor.intentions.direction = {brain.chargeDirection, 0.0F};
+            actor.intentions.avoidLedges = true;
+            actor.intentions.contactDamage = true;
+            break;
+        case NpcState::Stunned:
+            if (target != nullptr && actor.platformerMovement.has_value() &&
+                actor.platformerMovement->grounded && target->platformerMovement.has_value() &&
+                target->platformerMovement->grounded &&
+                onSameGroundRun(update.map, actor.body.bounds, target->body.bounds) &&
+                actor.senses.has_value() &&
+                glm::distance(feetOf(actor.body.bounds), feetOf(target->body.bounds)) <=
+                    actor.senses->noticeDistance)
+            {
+                aimToward(actor, brain.lastKnownTargetFeet);
+            }
+            break;
         case NpcState::Idle:
             break;
         case NpcState::Patrol:

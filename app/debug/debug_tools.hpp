@@ -5,8 +5,6 @@
 #include "debug/frame_axes.hpp"
 #include "debug/frame_profile_ui.hpp"
 #include "debug/frame_selection.hpp"
-#include "debug/machine_graph_ui.hpp"
-#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 
 namespace simple_platformer
@@ -22,22 +20,19 @@ namespace simple_platformer
         bool worldAndCameraOverlay = false;
         bool actorText = false;
         bool navigationConnectionsText = false;
-        bool stateMachine = false;
     };
 
     // What the debug tools keep between frames: the frame history, the picked frame
-    // and axes, and the machine window's editors and optional actor lock.
+    // and axes.
     struct DebugTools
     {
         FrameHistory frameHistory;
         FrameSelection frameSelection;
         FrameAxes frameAxes;
-        MachineGraphEditors machineEditors;
-        std::optional<ActorId> machineActor;
     };
 
     // The debug tools over the scene while the overlay is open, in a fixed order: the
-    // independently optional world, text and machine layers, then the frame panel, which
+    // independently optional world and text layers, then the frame panel, which
     // records only running or stepped frames while the overlay is open.
     // It is the short list of what the overlay draws, as drawInterface is for what the
     // player sees. It draws the overlay the game built and touches nothing else of the

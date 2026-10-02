@@ -9,9 +9,66 @@ namespace simple_platformer
 {
     namespace
     {
+        constexpr float RecoverySeconds = 1.5F;
+
         NpcState patrolOrIdle(const NpcFacts& facts)
         {
             return facts.hasPatrol ? NpcState::Patrol : NpcState::Idle;
+        }
+
+        std::optional<NpcState> cowardState(NpcState state, const NpcFacts& facts)
+        {
+            switch (state)
+            {
+            case NpcState::Flee:
+                if (facts.targetInBiteRange)
+                {
+                    return NpcState::Bite;
+                }
+                if (!facts.targetKnown && facts.targetLostElapsed >= RecoverySeconds)
+                {
+                    return patrolOrIdle(facts);
+                }
+                return std::nullopt;
+            case NpcState::Bite:
+                if (!facts.biteReady || facts.stateElapsed <= 0.0F)
+                {
+                    return std::nullopt;
+                }
+                return facts.targetKnown ? NpcState::Flee : patrolOrIdle(facts);
+            default:
+                if (facts.targetVisible && facts.targetWithinStandoffDistance)
+                {
+                    return NpcState::Flee;
+                }
+                if (state != patrolOrIdle(facts))
+                {
+                    return patrolOrIdle(facts);
+                }
+                return std::nullopt;
+            }
+        }
+
+        std::optional<NpcState> chargerState(NpcState state, const NpcFacts& facts)
+        {
+            const bool canCharge = facts.targetOnSameRun && facts.targetWithinNoticeDistance;
+            switch (state)
+            {
+            case NpcState::Charge:
+                return facts.movementBlocked ? std::optional(NpcState::Stunned) : std::nullopt;
+            case NpcState::Stunned:
+                if (facts.stateElapsed < RecoverySeconds)
+                {
+                    return std::nullopt;
+                }
+                return canCharge ? NpcState::Charge : NpcState::Sleep;
+            default:
+                if (facts.heardLanding && canCharge)
+                {
+                    return NpcState::Charge;
+                }
+                return state == NpcState::Sleep ? std::nullopt : std::optional(NpcState::Sleep);
+            }
         }
 
         // The second choice the table puts to the tactic: where a lost target leaves the
@@ -54,9 +111,23 @@ namespace simple_platformer
 
     std::optional<NpcState> nextNpcState(NpcTactic tactic, NpcState state, const NpcFacts& facts)
     {
+        switch (tactic)
+        {
+        case NpcTactic::Coward:
+            return cowardState(state, facts);
+        case NpcTactic::Charger:
+            return chargerState(state, facts);
+        case NpcTactic::Pursuer:
+        case NpcTactic::KeepDistance:
+            break;
+        }
         const std::optional<NpcState> pursuing = pursuit(tactic, facts);
         switch (state)
         {
+        case NpcState::Flee:
+        case NpcState::Sleep:
+        case NpcState::Charge:
+        case NpcState::Stunned:
         case NpcState::Idle:
             if (pursuing.has_value())
             {

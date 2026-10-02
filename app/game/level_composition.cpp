@@ -164,8 +164,7 @@ namespace simple_platformer
                     catalogs.animations,
                     textureId,
                     feetOf(map, placement.spawn),
-                    makePatrol(map, placement.patrol),
-                    catalogs.machines));
+                    makePatrol(map, placement.patrol)));
                 actorDefinitionNames.emplace(id.value, placement.definitionName);
             }
             catch (const std::invalid_argument& error)

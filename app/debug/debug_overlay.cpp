@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -21,7 +20,6 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/actor_sprite.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/camera.hpp"
@@ -161,46 +159,6 @@ namespace simple_platformer
             return shown;
         }
 
-        const Actor* machineNpcUnderCursor(
-            const std::vector<const Actor*>& shown,
-            std::optional<glm::vec2> cursorWorld)
-        {
-            if (!cursorWorld.has_value())
-            {
-                return nullptr;
-            }
-            for (const Actor* actor : shown)
-            {
-                if (actor->machine.has_value() &&
-                    contains(actor->body.bounds, cursorWorld.value_or(glm::vec2{})))
-                {
-                    return actor;
-                }
-            }
-            return nullptr;
-        }
-
-        const Actor* nearestNpcWithMachine(
-            const std::vector<const Actor*>& shown,
-            const Aabb& nearTo)
-        {
-            const Actor* nearest = nullptr;
-            for (const Actor* actor : shown)
-            {
-                if (!actor->machine.has_value())
-                {
-                    continue;
-                }
-                const glm::vec2 target = centerOf(nearTo);
-                if (nearest == nullptr || glm::distance(centerOf(actor->body.bounds), target) <
-                                              glm::distance(centerOf(nearest->body.bounds), target))
-                {
-                    nearest = actor;
-                }
-            }
-            return nearest;
-        }
-
         // The bounds of the cell under the cursor when its tile can break, for the hint
         // that B breaks it; nothing off the map or over a tile that cannot.
         std::optional<Aabb> breakableCellUnderCursor(
@@ -235,8 +193,7 @@ namespace simple_platformer
         const CameraController& cameraController,
         float atlasWidth,
         float simulationStepSeconds,
-        const NavigationDebugView& navigation,
-        std::optional<ActorId> lockedMachineActor)
+        const NavigationDebugView& navigation)
     {
         if (!isFinitePositive(simulationStepSeconds))
         {
@@ -278,16 +235,9 @@ namespace simple_platformer
             {
                 info.animation = actor.animator->current;
             }
-            if (actor.brain.has_value() && !actor.machine.has_value())
+            if (actor.brain.has_value())
             {
                 info.npcState = actor.brain->state;
-            }
-            if (actor.machine.has_value())
-            {
-                info.machineState = activeNpcMachineState(*actor.machine).name;
-            }
-            else if (actor.brain.has_value())
-            {
                 info.npcTactic = actor.brain->tactic;
             }
             if (actor.pathFollower.has_value())
@@ -329,32 +279,6 @@ namespace simple_platformer
                 scene.pickups.push_back(
                     {pickup.body.bounds, world.itemDefinition(pickup.stack.item).name});
             }
-        }
-
-        const Actor* underCursor = machineNpcUnderCursor(shown, navigation.cursorWorld);
-        const Actor* followed = nullptr;
-        if (lockedMachineActor.has_value())
-        {
-            const Actor* locked = world.findActor(*lockedMachineActor);
-            if (locked != nullptr && locked->machine.has_value())
-            {
-                followed = locked;
-            }
-        }
-        else if (underCursor != nullptr)
-        {
-            followed = underCursor;
-        }
-        else
-        {
-            followed = nearestNpcWithMachine(
-                shown, player != nullptr ? player->body.bounds : scene.cameraBounds);
-        }
-        if (followed != nullptr)
-        {
-            const NpcMachine& machine = followed->machine.value_or(NpcMachine{});
-            scene.machine = MachineDebugInfo{
-                followed->id, machine.definition, machine.active, machine.lastFired};
         }
 
         scene.navigationConnections =

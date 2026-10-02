@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_facts.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
 #include "support/npc_facts_builder.hpp"
 
@@ -269,4 +270,82 @@ TEST_CASE(
     REQUIRE(
         nextNpcState(KeepDistance, NpcState::Watch, NpcFactsBuilder::facts().searchTimeUp()) ==
         NpcState::Idle);
+}
+
+TEST_CASE("A Coward flees close visible threats and bites only while fleeing", "[npc][fsm][coward]")
+{
+    const auto tactic = simple_platformer::NpcTactic::Coward;
+    simple_platformer::NpcFacts facts;
+    facts.hasPatrol = true;
+    facts.targetKnown = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Idle, facts) == NpcState::Patrol);
+    REQUIRE(nextNpcState(tactic, NpcState::Patrol, facts) == std::nullopt);
+    facts.targetVisible = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Patrol, facts) == std::nullopt);
+    facts.targetWithinStandoffDistance = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Patrol, facts) == NpcState::Flee);
+    facts.targetInBiteRange = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Flee, facts) == NpcState::Bite);
+    facts.biteReady = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Bite, facts) == std::nullopt);
+    facts.stateElapsed = 0.1F;
+    facts.biteReady = false;
+    REQUIRE(nextNpcState(tactic, NpcState::Bite, facts) == std::nullopt);
+    facts.biteReady = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Bite, facts) == NpcState::Flee);
+    facts.targetKnown = false;
+    REQUIRE(nextNpcState(tactic, NpcState::Bite, facts) == NpcState::Patrol);
+}
+
+TEST_CASE(
+    "A Coward waits for continuous target loss before resuming its routine",
+    "[npc][fsm][coward]")
+{
+    const auto tactic = simple_platformer::NpcTactic::Coward;
+    simple_platformer::NpcFacts facts;
+    facts.hasPatrol = true;
+    facts.stateElapsed = 10.0F;
+    facts.targetLostElapsed = 1.4F;
+    REQUIRE(nextNpcState(tactic, NpcState::Flee, facts) == std::nullopt);
+    facts.targetLostElapsed = 1.5F;
+    REQUIRE(nextNpcState(tactic, NpcState::Flee, facts) == NpcState::Patrol);
+    facts.hasPatrol = false;
+    REQUIRE(nextNpcState(tactic, NpcState::Flee, facts) == NpcState::Idle);
+}
+
+TEST_CASE("A Charger wakes only for a nearby landing on its ground run", "[npc][fsm][charger]")
+{
+    const auto tactic = simple_platformer::NpcTactic::Charger;
+    simple_platformer::NpcFacts facts;
+    facts.targetKnown = true;
+    facts.targetVisible = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Idle, facts) == NpcState::Sleep);
+    REQUIRE(nextNpcState(tactic, NpcState::Sleep, facts) == std::nullopt);
+    facts.heardLanding = true;
+    facts.targetOnSameRun = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Sleep, facts) == std::nullopt);
+    facts.targetWithinNoticeDistance = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Sleep, facts) == NpcState::Charge);
+    facts.targetOnSameRun = false;
+    REQUIRE(nextNpcState(tactic, NpcState::Sleep, facts) == std::nullopt);
+}
+
+TEST_CASE(
+    "A Charger commits until blocked and recovers before charging or sleeping",
+    "[npc][fsm][charger]")
+{
+    const auto tactic = simple_platformer::NpcTactic::Charger;
+    simple_platformer::NpcFacts facts;
+    REQUIRE(nextNpcState(tactic, NpcState::Charge, facts) == std::nullopt);
+    facts.movementBlocked = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Charge, facts) == NpcState::Stunned);
+    facts.stateElapsed = 1.4F;
+    REQUIRE(nextNpcState(tactic, NpcState::Stunned, facts) == std::nullopt);
+    facts.stateElapsed = 1.5F;
+    REQUIRE(nextNpcState(tactic, NpcState::Stunned, facts) == NpcState::Sleep);
+    facts.targetOnSameRun = true;
+    facts.targetWithinNoticeDistance = true;
+    REQUIRE(nextNpcState(tactic, NpcState::Stunned, facts) == NpcState::Charge);
+    facts.targetWithinNoticeDistance = false;
+    REQUIRE(nextNpcState(tactic, NpcState::Stunned, facts) == NpcState::Sleep);
 }

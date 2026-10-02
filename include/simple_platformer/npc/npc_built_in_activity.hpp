@@ -16,10 +16,14 @@ namespace simple_platformer
 
     // Every activity change drops the old path, and a bite is asked for once as its
     // activity is entered.
-    void enterBuiltInActivity(Actor& actor, PathFollower& follower, NpcState state);
+    void enterBuiltInActivity(
+        Actor& actor,
+        NpcBrain& brain,
+        PathFollower& follower,
+        NpcState state);
 
     // This tick's intentions for one of the engine's own activities, the states the tactic
-    // table and machines both use. The target is the living remembered target, if any, and
+    // switch uses. The target is the living remembered target, if any, and
     // the activity has been running for stateElapsed.
     void updateBuiltInActivity(
         const NpcUpdate& update,

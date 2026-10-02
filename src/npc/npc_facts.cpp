@@ -76,6 +76,7 @@ namespace simple_platformer
         facts.searches = searchDuration > 0.0F;
         facts.searchTimeUp = stateElapsed >= searchDuration;
         facts.stateElapsed = stateElapsed;
+        facts.targetLostElapsed = brain.targetLostElapsed;
         return facts;
     }
 }

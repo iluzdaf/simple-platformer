@@ -10,10 +10,8 @@
 #include "content/level_catalog.hpp"
 #include "content/game_catalogs.hpp"
 #include "content/hud_catalog.hpp"
-#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/render/camera.hpp"
 #include "simple_platformer/render/sprite.hpp"
-#include "lua_npc_scripts.hpp"
 
 namespace simple_platformer
 {
@@ -30,13 +28,12 @@ namespace simple_platformer
     class Game
     {
     public:
-        // Catalogs and scripts arrive loaded. Each level builds its NPCs' navigation
+        // Catalogs arrive loaded. Each level builds its NPCs' navigation
         // connections at the caller's fixed simulation step when it starts.
         Game(
             int textureId,
             LevelCatalog levelCatalog,
             GameCatalogs gameCatalogs,
-            LuaNpcScripts npcScripts,
             float simulationStepSeconds);
 
         // With a profile, the simulation charges each of its phases to it.
@@ -52,9 +49,7 @@ namespace simple_platformer
         DebugOverlay debugOverlay(
             float atlasWidth,
             std::optional<glm::vec2> internalCursor,
-            std::size_t navigationProfileIndex,
-            std::optional<ActorId> lockedMachineActor = std::nullopt) const;
-        std::optional<ActorId> machineActorAt(glm::vec2 internalPosition) const;
+            std::size_t navigationProfileIndex) const;
         Health playerHealth() const;
         // Use these references immediately. Changing or restarting the level replaces the World,
         // so do not store a returned reference for later.
@@ -85,7 +80,6 @@ namespace simple_platformer
         LevelCatalog levelCatalog;
         // Reuse the same definitions across transitions and restarts.
         GameCatalogs gameCatalogs;
-        LuaNpcScripts npcScripts;
         GameLevel level;
         std::optional<CameraController> cameraController;
         int atlasTextureId = 0;

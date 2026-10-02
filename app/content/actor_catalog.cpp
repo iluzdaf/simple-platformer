@@ -1,5 +1,4 @@
 #include "actor_catalog.hpp"
-#include "machine_catalog.hpp"
 #include "content_diagnostics.hpp"
 #include "content_json.hpp"
 #include "content_validation.hpp"
@@ -55,6 +54,14 @@ namespace simple_platformer
             {
                 return NpcTactic::Pursuer;
             }
+            if (tactic == "coward")
+            {
+                return NpcTactic::Coward;
+            }
+            if (tactic == "charger")
+            {
+                return NpcTactic::Charger;
+            }
             if (tactic == "keepDistance")
             {
                 return NpcTactic::KeepDistance;
@@ -62,7 +69,8 @@ namespace simple_platformer
             failJson(
                 sourceName,
                 path,
-                "unknown tactic '" + tactic + "'; expected pursuer or keepDistance");
+                "unknown tactic '" + tactic +
+                    "'; expected pursuer, keepDistance, coward or charger");
         }
 
         Facing jsonFacing(const Json& value, std::string_view sourceName, std::string_view path)
@@ -374,7 +382,6 @@ namespace simple_platformer
                  "surfaceClimb",
                  "senses",
                  "tactic",
-                 "machine",
                  "bite",
                  "contactDamage",
                  "ranged"},
@@ -394,7 +401,6 @@ namespace simple_platformer
                 value, "surfaceClimb", result.surfaceClimb, sourceName, path);
             readOptionalNpcSenses(value, "senses", result.senses, sourceName, path);
             readOptionalNpcTactic(value, "tactic", result.tactic, sourceName, path);
-            readOptionalText(value, "machine", result.machine, sourceName, path);
             readOptionalBite(value, "bite", result.bite, sourceName, path);
             readOptionalContactDamage(
                 value, "contactDamage", result.contactDamage, sourceName, path);
@@ -406,8 +412,7 @@ namespace simple_platformer
     ActorCatalog parseActorCatalog(
         std::string_view text,
         std::string_view sourceName,
-        const AnimationCatalog& animations,
-        const MachineCatalog& machines)
+        const AnimationCatalog& animations)
     {
         const auto root = parseContentRoot(text, sourceName);
         checkJsonFields(root, {"player", "actors"}, sourceName, "root");
@@ -429,14 +434,11 @@ namespace simple_platformer
                 entry.key(),
                 jsonActorDefinition(entry.value(), sourceName, fieldPath("actors", entry.key())));
         }
-        validateInFile(sourceName, [&] { validateActorCatalog(result, animations, machines); });
+        validateInFile(sourceName, [&] { validateActorCatalog(result, animations); });
         return result;
     }
 
-    void validateActorCatalog(
-        const ActorCatalog& catalog,
-        const AnimationCatalog& animations,
-        const MachineCatalog& machines)
+    void validateActorCatalog(const ActorCatalog& catalog, const AnimationCatalog& animations)
     {
         for (const auto& entry : catalog.definitions)
         {
@@ -446,7 +448,7 @@ namespace simple_platformer
             }
             try
             {
-                validateActorDefinition(entry.second, animations, machines);
+                validateActorDefinition(entry.second, animations);
             }
             catch (const std::invalid_argument& error)
             {
@@ -467,10 +469,9 @@ namespace simple_platformer
 
     ActorCatalog loadActorCatalog(
         const std::filesystem::path& path,
-        const AnimationCatalog& animations,
-        const MachineCatalog& machines)
+        const AnimationCatalog& animations)
     {
-        return parseActorCatalog(loadContentText(path), path.string(), animations, machines);
+        return parseActorCatalog(loadContentText(path), path.string(), animations);
     }
 
     const ActorDefinition& actorDefinition(const ActorCatalog& catalog, const std::string& name)

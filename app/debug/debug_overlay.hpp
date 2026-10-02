@@ -10,7 +10,6 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/navigation/traversal.hpp"
-#include "simple_platformer/npc/npc_state_machine.hpp"
 
 #include "debug/navigation_debug.hpp"
 
@@ -82,9 +81,7 @@ namespace simple_platformer
         std::optional<ActorSpriteDebugInfo> sprite;
         std::optional<AnimationName> animation;
         std::optional<NpcState> npcState;
-        // The tactic is not asked when a machine chooses the state.
         std::optional<NpcTactic> npcTactic;
-        std::optional<std::string> machineState;
         std::optional<PathFollowerDebugInfo> pathFollower;
         std::optional<SensorDebugInfo> sensor;
         std::optional<PatrolDebugInfo> patrol;
@@ -104,16 +101,6 @@ namespace simple_platformer
         std::string itemName;
     };
 
-    // The machine of the NPC the machine window follows: its definition to draw, which
-    // state is active and which transition fired last.
-    struct MachineDebugInfo
-    {
-        ActorId actor;
-        NpcStateMachine definition;
-        std::size_t active = 0;
-        std::optional<std::size_t> lastFired;
-    };
-
     // What the overlay shows of the world: only what the camera can see, a tile beyond
     // its edges, so a large level does not fill the text column with actors off screen.
     struct DebugOverlay
@@ -124,22 +111,18 @@ namespace simple_platformer
         std::optional<NavigationConnectionsDebugInfo> navigationConnections;
         // The cell under the cursor when its tile can break, for the hint that B breaks it.
         std::optional<Aabb> breakableCellUnderCursor;
-        // The locked machine, otherwise the one under the cursor or nearest the player.
-        std::optional<MachineDebugInfo> machine;
         Aabb cameraBounds;
         Aabb cameraDeadZone;
     };
 
     // simulationStepSeconds is the fixed step the world is simulated with; predicted jump
     // arcs are replayed at it so they match what the actor will do. The navigation view
-    // says which cell and which body the connections are shown for, and its cursor also picks
-    // the NPC whose machine is shown.
+    // says which cell and which body the connections are shown for.
     DebugOverlay makeDebugOverlay(
         const World& world,
         const TileMap& map,
         const CameraController& cameraController,
         float atlasWidth,
         float simulationStepSeconds,
-        const NavigationDebugView& navigation = {},
-        std::optional<ActorId> lockedMachineActor = std::nullopt);
+        const NavigationDebugView& navigation = {});
 }

@@ -27,7 +27,6 @@
 #include "simple_platformer/render/presentation.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/render/sprite.hpp"
-#include "lua_npc_scripts.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/level_validation.hpp"
 #include "simple_platformer/world/world_requests.hpp"
@@ -39,11 +38,9 @@ namespace simple_platformer
         int textureId,
         LevelCatalog levelCatalog,
         GameCatalogs gameCatalogs,
-        LuaNpcScripts npcScripts,
         float stepSeconds)
         : levelCatalog(std::move(levelCatalog)),
           gameCatalogs(std::move(gameCatalogs)),
-          npcScripts(std::move(npcScripts)),
           level(composeGameLevel(
               this->levelCatalog,
               this->levelCatalog.startLevel,
@@ -73,10 +70,6 @@ namespace simple_platformer
 
     void Game::replaceLevel(int levelNumber, Actor player)
     {
-        for (const Actor& actor : level.world.actors())
-        {
-            npcScripts.forget(actor.id);
-        }
         level = composeGameLevel(levelCatalog, levelNumber, atlasTextureId, gameCatalogs);
         startLevel(std::move(player));
     }
@@ -112,7 +105,7 @@ namespace simple_platformer
         }
 
         player->intentions = intentions;
-        updateWorldSimulation(level.map, level.world, deltaTime, profile, &npcScripts);
+        updateWorldSimulation(level.map, level.world, deltaTime, profile);
 
         if (level.world.levelComplete())
         {
@@ -173,8 +166,7 @@ namespace simple_platformer
     DebugOverlay Game::debugOverlay(
         float atlasWidth,
         std::optional<glm::vec2> internalCursor,
-        std::size_t navigationProfileIndex,
-        std::optional<ActorId> lockedMachineActor) const
+        std::size_t navigationProfileIndex) const
     {
         NavigationDebugView navigation;
         if (internalCursor.has_value())
@@ -201,8 +193,7 @@ namespace simple_platformer
             cameraControllerValue(),
             atlasWidth,
             simulationStepSeconds,
-            navigation,
-            lockedMachineActor);
+            navigation);
         for (ActorDebugInfo& actor : overlay.actors)
         {
             const auto definition = level.actorDefinitionNames.find(actor.id.value);
@@ -212,19 +203,6 @@ namespace simple_platformer
             }
         }
         return overlay;
-    }
-
-    std::optional<ActorId> Game::machineActorAt(glm::vec2 internalPosition) const
-    {
-        const glm::vec2 worldPosition = screenToWorld(currentCamera(), internalPosition);
-        for (const Actor& actor : level.world.actors())
-        {
-            if (actor.machine.has_value() && contains(actor.body.bounds, worldPosition))
-            {
-                return actor.id;
-            }
-        }
-        return std::nullopt;
     }
 
     Health Game::playerHealth() const

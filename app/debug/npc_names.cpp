@@ -1,10 +1,6 @@
 #include "npc_names.hpp"
 
-#include <string>
-#include <variant>
-
 #include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_activity.hpp"
 
 namespace simple_platformer
 {
@@ -12,6 +8,14 @@ namespace simple_platformer
     {
         switch (state)
         {
+        case NpcState::Flee:
+            return "Flee";
+        case NpcState::Sleep:
+            return "Sleep";
+        case NpcState::Charge:
+            return "Charge";
+        case NpcState::Stunned:
+            return "Stunned";
         case NpcState::Idle:
             return "Idle";
         case NpcState::Patrol:
@@ -37,6 +41,10 @@ namespace simple_platformer
     {
         switch (tactic)
         {
+        case NpcTactic::Coward:
+            return "Coward";
+        case NpcTactic::Charger:
+            return "Charger";
         case NpcTactic::Pursuer:
             return "Pursuer";
         case NpcTactic::KeepDistance:
@@ -46,13 +54,4 @@ namespace simple_platformer
         return "Unknown";
     }
 
-    std::string nameOf(const NpcActivity& activity)
-    {
-        if (const auto* builtIn = std::get_if<BuiltInNpcActivity>(&activity))
-        {
-            return "builtin: " + std::string(nameOf(builtIn->state));
-        }
-        const LuaNpcActivity& scripted = std::get<LuaNpcActivity>(activity);
-        return "lua: " + scripted.script + "." + scripted.activity;
-    }
 }

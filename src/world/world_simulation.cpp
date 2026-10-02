@@ -4,7 +4,6 @@
 #include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/projectile_system.hpp"
-#include "simple_platformer/npc/npc_scripted_activity.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
@@ -17,12 +16,7 @@
 
 namespace simple_platformer
 {
-    void updateWorldSimulation(
-        TileMap& map,
-        World& world,
-        float deltaTime,
-        FrameProfile* profile,
-        NpcActivityScripts* scripts)
+    void updateWorldSimulation(TileMap& map, World& world, float deltaTime, FrameProfile* profile)
     {
         if (world.levelComplete())
         {
@@ -45,10 +39,7 @@ namespace simple_platformer
             "Connection table",
             [&] { world.platformerConnections().applyRecordedTileBreaks(map, profile); });
         phase("NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
-        phase(
-            "NPC",
-            "NPC behaviour",
-            [&] { updateNpcBehaviour(map, world, deltaTime, scripts, profile); });
+        phase("NPC", "NPC behaviour", [&] { updateNpcBehaviour(map, world, deltaTime, profile); });
         phase("Movement", "Actor movement", [&] { updateActorMovement(map, world, deltaTime); });
         phase("Movement", "Pickup movement", [&] { updatePickupMovement(map, world, deltaTime); });
         WorldRequests requests;
@@ -60,17 +51,7 @@ namespace simple_platformer
             [&] { updateProjectileBursts(world, requests, deltaTime); });
         phase("World", "Life states", [&] { updateLifeState(world, requests, deltaTime); });
         phase("World", "Pickups", [&] { updatePickups(world, requests); });
-        phase(
-            "World",
-            "World requests",
-            [&]
-            {
-                if (scripts != nullptr)
-                {
-                    forgetScriptedActivities(requests.actorsToRemove(), *scripts);
-                }
-                applyWorldRequests(world, requests);
-            });
+        phase("World", "World requests", [&] { applyWorldRequests(world, requests); });
         phase("World", "Level exit", [&] { updateLevelExit(world); });
     }
 }

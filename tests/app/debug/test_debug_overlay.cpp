@@ -75,7 +75,6 @@ TEST_CASE("Game debug data retains actor definition names", "[app][debug]")
         0,
         levels,
         simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize),
-        simple_platformer::LuaNpcScripts{},
         tests::FixedStepSeconds);
 
     const simple_platformer::DebugOverlay debug = game.debugOverlay(128.0F, std::nullopt, 0);
@@ -193,7 +192,6 @@ TEST_CASE("Debug overlay data reports player presentation and NPC state", "[app]
     REQUIRE(npcDebug.kind == simple_platformer::ActorDebugKind::Npc);
     REQUIRE(npcDebug.npcState == simple_platformer::NpcState::Chase);
     REQUIRE(npcDebug.npcTactic == simple_platformer::NpcTactic::Pursuer);
-    REQUIRE_FALSE(npcDebug.machineState.has_value());
     REQUIRE(npcDebug.pathFollower.has_value());
     const simple_platformer::PathFollowerDebugInfo emptyPath =
         npcDebug.pathFollower.value_or(simple_platformer::PathFollowerDebugInfo{});

@@ -1,8 +1,6 @@
 find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
 find_program(PRETTIER_EXECUTABLE NAMES prettier)
 find_program(RUFF_EXECUTABLE NAMES ruff)
-find_program(STYLUA_EXECUTABLE NAMES stylua)
-find_program(LUACHECK_EXECUTABLE NAMES luacheck)
 find_program(
     CLANG_TIDY_EXECUTABLE
     NAMES clang-tidy
@@ -13,7 +11,6 @@ file(
     GLOB_RECURSE PROJECT_CPP_FILES
     CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/app/*.cpp
-    ${PROJECT_SOURCE_DIR}/scripting/*.cpp
     ${PROJECT_SOURCE_DIR}/src/*.cpp
     ${PROJECT_SOURCE_DIR}/tests/*.cpp
 )
@@ -23,7 +20,6 @@ file(
     CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/app/*.hpp
     ${PROJECT_SOURCE_DIR}/include/*.hpp
-    ${PROJECT_SOURCE_DIR}/scripting/*.hpp
     ${PROJECT_SOURCE_DIR}/tests/*.hpp
 )
 
@@ -32,9 +28,6 @@ file(
     CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/include/*.hpp
 )
-# The scripting target's interface. Its other headers use sol2, which is private to it.
-list(APPEND PROJECT_PUBLIC_HEADERS ${PROJECT_SOURCE_DIR}/scripting/lua_npc_scripts.hpp)
-
 file(
     GLOB_RECURSE PROJECT_JSON_FILES
     CONFIGURE_DEPENDS
@@ -67,13 +60,6 @@ file(
     GLOB_RECURSE PROJECT_PYTHON_FILES
     CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/tools/*.py
-)
-
-file(
-    GLOB_RECURSE PROJECT_LUA_FILES
-    CONFIGURE_DEPENDS
-    ${PROJECT_SOURCE_DIR}/assets/*.lua
-    ${PROJECT_SOURCE_DIR}/tests/fixtures/*.lua
 )
 
 if(CLANG_FORMAT_EXECUTABLE)
@@ -165,38 +151,6 @@ if(RUFF_EXECUTABLE)
     )
 else()
     message(STATUS "ruff not found; Python quality targets are unavailable")
-endif()
-
-if(STYLUA_EXECUTABLE)
-    add_custom_target(
-        format-lua
-        COMMAND ${STYLUA_EXECUTABLE} ${PROJECT_LUA_FILES}
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        COMMENT "Formatting first-party Lua source"
-        VERBATIM
-    )
-
-    add_custom_target(
-        format-lua-check
-        COMMAND ${STYLUA_EXECUTABLE} --check ${PROJECT_LUA_FILES}
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        COMMENT "Checking first-party Lua formatting"
-        VERBATIM
-    )
-else()
-    message(STATUS "stylua not found; Lua format targets are unavailable")
-endif()
-
-if(LUACHECK_EXECUTABLE)
-    add_custom_target(
-        lint-lua
-        COMMAND ${LUACHECK_EXECUTABLE} ${PROJECT_LUA_FILES}
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        COMMENT "Checking first-party Lua source with Luacheck"
-        VERBATIM
-    )
-else()
-    message(STATUS "luacheck not found; Lua lint target is unavailable")
 endif()
 
 set(CLANG_TIDY_EXTRA_ARGUMENTS)

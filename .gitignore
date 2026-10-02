@@ -8,4 +8,3 @@
 __pycache__/
 *.py[cod]
 imgui.ini
-machine_layout_*.json

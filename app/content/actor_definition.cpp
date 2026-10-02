@@ -14,8 +14,6 @@
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
-#include "simple_platformer/npc/npc_state_machine.hpp"
-#include "machine_catalog.hpp"
 
 namespace simple_platformer
 {
@@ -24,8 +22,7 @@ namespace simple_platformer
         const AnimationCatalog& animations,
         int textureId,
         glm::vec2 spawnFeet,
-        std::optional<Patrol> patrol,
-        const MachineCatalog& machines)
+        std::optional<Patrol> patrol)
     {
         Actor actor;
         actor.body.bounds = boxStandingOn(spawnFeet, definition.bodySize);
@@ -68,14 +65,6 @@ namespace simple_platformer
         {
             throw std::invalid_argument("A tactic requires senses");
         }
-        if (!definition.machine.empty())
-        {
-            if (!actor.brain)
-            {
-                throw std::invalid_argument("A state machine requires senses");
-            }
-            actor.machine = startNpcMachine(npcStateMachine(machines, definition.machine));
-        }
         actor.patrol = patrol;
         actor.bite = definition.bite;
         actor.contactDamage = definition.contactDamage;
@@ -114,10 +103,9 @@ namespace simple_platformer
 
     void validateActorDefinition(
         const ActorDefinition& definition,
-        const AnimationCatalog& animations,
-        const MachineCatalog& machines)
+        const AnimationCatalog& animations)
     {
         // Use the same composition and engine validation for loaded and C++ definitions.
-        composeActor(definition, animations, 0, {}, std::nullopt, machines);
+        composeActor(definition, animations, 0, {}, std::nullopt);
     }
 }

@@ -75,7 +75,7 @@ simulation tick, and inspect the result without needing a window or graphics con
 
 All third-party source is vendored under `external/` so the project builds offline and
 everyone works from the same releases. The current dependencies include GLFW, glad, GLM, ImGui,
-ImPlot for the debug overlay's plots, Catch2, stb image loading, and nlohmann/json.
+Catch2, stb image loading, and nlohmann/json.
 
 ### Application folders
 
@@ -603,8 +603,7 @@ search during play simulates movement. A search for a profile the table has not 
 such as one an NPC added later has, builds it then, in that step. The `World` owns the
 table for the map it is simulated with, since the world is replaced with its level,
 and the NPC system hands it to every platformer search. The search reads the table and
-charges each jump its penalty. Optional frame profiling counts searches, expanded
-cells, and the cells built and rebuilt.
+charges each jump its penalty.
 
 ### Breaks
 
@@ -859,22 +858,14 @@ built before the simulation and hands back what the player asked for as
 instead of firing a shot and building the interface never changes the game.
 The application owns `DebugToolVisibility`; all control mappings remain in
 [Debug overlay](../README.md#debug-overlay). `drawDebugTools` in
-`app/debug/debug_tools` orders the optional world and text layers before the
-frame panel. `DebugTools` owns the persistent profiling, selection and axes
-state, so the application needs one object and one draw call.
+`app/debug/debug_tools` draws the optional world and text layers from the game
+snapshot. Opening the tools shows the world and camera overlay by default.
 
 `Game::debugOverlay` builds a presentation-ready `DebugOverlay` snapshot without ImGui.
 It limits world diagnostics to the camera and a small margin, and carries actor,
 projectile, pickup, navigation and camera data. The UI only projects that data
 through `DisplayViewport`; it does not change simulation state. This separation keeps
-collection and selection logic testable without a window.
-
-Frame profiling is optional. The application owns each frame record and passes it to
-the simulation; work measures its own duration with nested scopes and adds named
-statistics at the point where it knows them. Parent phases exclude child time, so
-the phase totals do not double-count. `FrameHistory` retains completed records for
-the debug UI. See `timing/frame_profile` for the API and
-[Debug overlay](../README.md#debug-overlay) for its presentation.
+collection logic testable without a window.
 
 The inventory UI is an example presentation, not an engine rule. It derives its rows
 from the configured slot count, uses at most three columns, pauses simulation while

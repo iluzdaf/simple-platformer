@@ -2,22 +2,15 @@
 
 #include "debug_overlay.hpp"
 #include "debug_overlay_ui.hpp"
-#include "frame_profile_ui.hpp"
-#include "frame_selection.hpp"
 
 #include <optional>
 
-#include "simple_platformer/timing/frame_profile.hpp"
-
 namespace simple_platformer
 {
-    FramePlotRequest drawDebugTools(
-        DebugTools& tools,
-        const FrameProfile& profile,
+    void drawDebugTools(
         const DebugOverlay& overlay,
         const std::optional<WindowViewport>& viewport,
-        const DebugToolVisibility& visibility,
-        bool paused)
+        const DebugToolVisibility& visibility)
     {
         if (visibility.worldAndCameraOverlay || visibility.actorText ||
             visibility.navigationConnectionsText)
@@ -29,11 +22,5 @@ namespace simple_platformer
                 visibility.actorText,
                 visibility.navigationConnectionsText);
         }
-        recordFrameForPlot(tools.frameHistory, tools.frameSelection, profile, paused);
-        return drawFrameProfile(
-            tools.frameHistory,
-            tools.frameSelection,
-            tools.frameAxes,
-            visibility.frameProfileDetails);
     }
 }

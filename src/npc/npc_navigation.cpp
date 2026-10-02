@@ -13,7 +13,6 @@
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc_update.hpp"
-#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -65,17 +64,8 @@ namespace simple_platformer
                 return;
             }
 
-            std::optional<NavigationPathResult> pathResult;
-            {
-                const PhaseScope searchPhase(update.profile, "Navigation", "Path search");
-                pathResult = findActorPath(
-                    map,
-                    actor,
-                    goalFeet,
-                    update.deltaTime,
-                    update.world.platformerConnections(),
-                    update.profile);
-            }
+            std::optional<NavigationPathResult> pathResult = findActorPath(
+                map, actor, goalFeet, update.deltaTime, update.world.platformerConnections());
             if (!pathResult.has_value())
             {
                 return;

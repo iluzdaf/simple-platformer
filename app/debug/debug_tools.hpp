@@ -2,47 +2,23 @@
 
 #include <optional>
 
-#include "debug/frame_axes.hpp"
-#include "debug/frame_profile_ui.hpp"
-#include "debug/frame_selection.hpp"
-#include "simple_platformer/timing/frame_profile.hpp"
-
 namespace simple_platformer
 {
     struct DebugOverlay;
     struct WindowViewport;
 
-    // Independently visible parts of the debug tools. They start collapsed so opening
-    // the tools adds only the frame plot until the reader asks for another layer.
+    // Independently visible parts of the debug tools.
     struct DebugToolVisibility
     {
-        bool frameProfileDetails = false;
-        bool worldAndCameraOverlay = false;
+        bool worldAndCameraOverlay = true;
         bool actorText = false;
         bool navigationConnectionsText = false;
     };
 
-    // What the debug tools keep between frames: the frame history, the picked frame
-    // and axes.
-    struct DebugTools
-    {
-        FrameHistory frameHistory;
-        FrameSelection frameSelection;
-        FrameAxes frameAxes;
-    };
-
-    // The debug tools over the scene while the overlay is open, in a fixed order: the
-    // independently optional world and text layers, then the frame panel, which
-    // records only running or stepped frames while the overlay is open.
-    // It is the short list of what the overlay draws, as drawInterface is for what the
-    // player sees. It draws the overlay the game built and touches nothing else of the
-    // game; with no viewport only the text is drawn.
-    // Returns a pause or resume request from the plot.
-    FramePlotRequest drawDebugTools(
-        DebugTools& tools,
-        const FrameProfile& profile,
+    // Draws the independently optional world and text layers from the game's snapshot.
+    // With no viewport only the text is drawn.
+    void drawDebugTools(
         const DebugOverlay& overlay,
         const std::optional<WindowViewport>& viewport,
-        const DebugToolVisibility& visibility,
-        bool paused);
+        const DebugToolVisibility& visibility);
 }

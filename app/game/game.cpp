@@ -92,7 +92,7 @@ namespace simple_platformer
         prepareNavigation(level.map, level.world, simulationStepSeconds);
     }
 
-    void Game::update(const InputIntentions& intentions, float deltaTime, FrameProfile* profile)
+    void Game::update(const InputIntentions& intentions, float deltaTime)
     {
         if (gameComplete)
         {
@@ -105,7 +105,7 @@ namespace simple_platformer
         }
 
         player->intentions = intentions;
-        updateWorldSimulation(level.map, level.world, deltaTime, profile);
+        updateWorldSimulation(level.map, level.world, deltaTime);
 
         if (level.world.levelComplete())
         {

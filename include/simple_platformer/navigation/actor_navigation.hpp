@@ -11,7 +11,6 @@ namespace simple_platformer
 {
     struct Actor;
     class PlatformerConnectionTable;
-    struct FrameProfile;
     class TileMap;
     class World;
 
@@ -27,15 +26,13 @@ namespace simple_platformer
     // costs are counted in those ticks, and the step must be finite and positive. The
     // search itself never runs movement: it reads connections from the table, after
     // preparing the actor's profile there. That rebuilds what recent breaks touched, and
-    // builds the whole map for a profile the table has not met. An optional frame profile
-    // records the search's work.
+    // builds the whole map for a profile the table has not met.
     std::optional<NavigationPathResult> findActorPath(
         const TileMap& map,
         const Actor& actor,
         glm::vec2 goalFeet,
         float stepSeconds,
-        PlatformerConnectionTable& connections,
-        FrameProfile* frameProfile = nullptr);
+        PlatformerConnectionTable& connections);
 
     // Everything a platformer actor's connections depend on: its body size, movement,
     // climbing and the step.

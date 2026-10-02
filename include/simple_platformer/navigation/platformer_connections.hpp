@@ -15,8 +15,6 @@ namespace simple_platformer
         std::vector<RouteConnection> connections;
         // Conservative rectangle covering the tiles probed or swept by simulation.
         CellRange footprint;
-        // Movement ticks simulated for this build.
-        int simulatedTicks = 0;
     };
 
     // Simulates connections against the current map.
@@ -24,5 +22,4 @@ namespace simple_platformer
         const TileMap& map,
         Cell cell,
         const PlatformerTraversalProfile& profile);
-
 }

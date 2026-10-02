@@ -26,7 +26,6 @@
 #include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/navigation/traversal.hpp"
-#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 
@@ -157,15 +156,14 @@ namespace simple_platformer
         std::optional<NavigationPathResult> findFlyingPath(
             const TileMap& map,
             const Aabb& body,
-            glm::vec2 goalFeet,
-            FrameProfile* profile)
+            glm::vec2 goalFeet)
         {
             requireFinite(goalFeet, "A navigation goal");
             if (!isFinite(body.topLeft) || !isFinitePositive(body.size))
             {
                 throw std::invalid_argument("A flying body must be finite and positive-sized");
             }
-            addFrameStatistic(profile, "Navigation", "Path searches");
+
             const int tileSize = map.tileSize();
             const Cell start = cellAtFeet(tileSize, feetOf(body));
             if (!map.contains(start))
@@ -173,21 +171,12 @@ namespace simple_platformer
                 return std::nullopt;
             }
             const Cell goal = cellAtFeet(tileSize, goalFeet);
-            int cellsExpanded = 0;
-            const ConnectionFunction connections =
-                [&map, profile, &cellsExpanded](RouteLocation location)
-            {
-                const PhaseScope connectionPhase(profile, "Navigation", "Connection retrieval");
-                ++cellsExpanded;
-                return flyingConnections(map, location.cell);
-            };
-            RouteSearchResult result;
-            {
-                const PhaseScope algorithmPhase(profile, "Navigation", "Search algorithm");
-                result =
-                    findLowestCostRoute({start}, goal, map.size(), connections, manhattanHeuristic);
-            }
-            addFrameStatistic(profile, "Navigation", "Cells expanded", cellsExpanded);
+
+            const ConnectionFunction connections = [&map](RouteLocation location)
+            { return flyingConnections(map, location.cell); };
+            const RouteSearchResult result =
+                findLowestCostRoute({start}, goal, map.size(), connections, manhattanHeuristic);
+
             if (!result.route.has_value())
             {
                 return NavigationPathResult{};
@@ -264,16 +253,10 @@ namespace simple_platformer
             const Aabb& body,
             glm::vec2 goalFeet,
             const PlatformerTraversalProfile& profile,
-            PlatformerConnectionTable& table,
-            FrameProfile* frameProfile)
+            PlatformerConnectionTable& table)
         {
             requireValid(goalFeet, profile);
-            {
-                const PhaseScope tablePhase(frameProfile, "Navigation", "Connection table");
-                table.prepare(map, profile, frameProfile);
-            }
-
-            addFrameStatistic(frameProfile, "Navigation", "Path searches");
+            table.prepare(map, profile);
 
             const std::optional<RouteLocation> resting = restingLocationOf(map, body, profile);
             if (!resting.has_value())
@@ -285,15 +268,8 @@ namespace simple_platformer
             const int tileSize = map.tileSize();
             const Cell goal = cellAtFeet(tileSize, goalFeet);
 
-            int cellsExpanded = 0;
-            const ConnectionFunction connections =
-                [&table, &profile, frameProfile, &cellsExpanded](RouteLocation location)
+            const ConnectionFunction connections = [&table, &profile](RouteLocation location)
             {
-                const PhaseScope connectionPhase(
-                    frameProfile, "Navigation", "Connection retrieval");
-
-                ++cellsExpanded;
-
                 // Keep the connections that leave this location's surface. A floor
                 // expands with floor connections, a wall with that wall's climbs. The
                 // table holds the connections leaving every surface of the cell.
@@ -316,13 +292,8 @@ namespace simple_platformer
             const HeuristicFunction heuristic = [tileSize, &profile](Cell cell, Cell goalCell)
             { return platformerTickHeuristic(tileSize, cell, goalCell, profile); };
 
-            RouteSearchResult result;
-            {
-                const PhaseScope algorithmPhase(frameProfile, "Navigation", "Search algorithm");
-                result = findLowestCostRoute(start, goal, map.size(), connections, heuristic);
-            }
-
-            addFrameStatistic(frameProfile, "Navigation", "Cells expanded", cellsExpanded);
+            const RouteSearchResult result =
+                findLowestCostRoute(start, goal, map.size(), connections, heuristic);
 
             if (!result.route.has_value())
             {
@@ -353,12 +324,11 @@ namespace simple_platformer
         const Actor& actor,
         glm::vec2 goalFeet,
         float stepSeconds,
-        PlatformerConnectionTable& connections,
-        FrameProfile* frameProfile)
+        PlatformerConnectionTable& connections)
     {
         if (actor.flyingMovement.has_value())
         {
-            return findFlyingPath(map, actor.body.bounds, goalFeet, frameProfile);
+            return findFlyingPath(map, actor.body.bounds, goalFeet);
         }
         if (!actor.platformerMovement.has_value())
         {
@@ -369,8 +339,7 @@ namespace simple_platformer
             actor.body.bounds,
             goalFeet,
             platformerTraversalProfileFor(actor, stepSeconds),
-            connections,
-            frameProfile);
+            connections);
     }
 
     void prepareNavigation(const TileMap& map, World& world, float stepSeconds)

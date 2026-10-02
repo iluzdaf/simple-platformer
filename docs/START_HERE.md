@@ -30,7 +30,7 @@ Keep each change small enough to verify directly:
    [Running focused tests](../README.md#running-focused-tests) for commands.
 4. Launch the example game when the change affects interaction or presentation.
 5. When a change might cost time, such as more NPCs or a larger level, launch the release
-   build and open the frame panel with F1. See the
+   build and check gameplay responsiveness. See the
    [release build instructions](../README.md#macos-configure-build-and-test).
 
 The focused tests provide fast feedback about one rule. The complete suite checks its

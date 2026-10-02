@@ -11,7 +11,6 @@
 #include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
-#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer
@@ -27,8 +26,7 @@ namespace simple_platformer
 
     void PlatformerConnectionTable::prepare(
         const TileMap& map,
-        const PlatformerTraversalProfile& profile,
-        FrameProfile* frameProfile)
+        const PlatformerTraversalProfile& profile)
     {
         if (!isFinitePositive(profile.size) || !isFinitePositive(profile.stepSeconds))
         {
@@ -41,7 +39,7 @@ namespace simple_platformer
         {
             throw std::logic_error("A connection table belongs to one map");
         }
-        applyRecordedTileBreaks(map, frameProfile);
+        applyRecordedTileBreaks(map);
         if (isBuilt(profile))
         {
             return;
@@ -49,29 +47,21 @@ namespace simple_platformer
 
         ProfileTable table{profile, grid, {}};
         table.cells.reserve(static_cast<std::size_t>(grid.width) * grid.height);
-        int simulatedTicks = 0;
+
         for (int row = 0; row < grid.height; ++row)
         {
             for (int column = 0; column < grid.width; ++column)
             {
                 BuiltPlatformerConnections built =
                     buildPlatformerConnections(map, {column, row}, profile);
-                simulatedTicks += built.simulatedTicks;
+
                 table.cells.push_back({std::move(built.connections), built.footprint});
             }
         }
         profileTables.push_back(std::move(table));
-        addFrameStatistic(
-            frameProfile,
-            "Navigation",
-            "Cells built",
-            static_cast<int>(profileTables.back().cells.size()));
-        addFrameStatistic(frameProfile, "Navigation", "Build simulated ticks", simulatedTicks);
     }
 
-    void PlatformerConnectionTable::applyRecordedTileBreaks(
-        const TileMap& map,
-        FrameProfile* frameProfile)
+    void PlatformerConnectionTable::applyRecordedTileBreaks(const TileMap& map)
     {
         const std::vector<Cell>& broken = map.brokenCells();
         if (breaksSeen > broken.size())
@@ -83,8 +73,7 @@ namespace simple_platformer
             return;
         }
         const auto unseen = broken.begin() + static_cast<std::ptrdiff_t>(breaksSeen);
-        int cellsRebuilt = 0;
-        int simulatedTicks = 0;
+
         for (ProfileTable& table : profileTables)
         {
             for (int row = 0; row < table.grid.height; ++row)
@@ -104,19 +93,11 @@ namespace simple_platformer
                     }
                     BuiltPlatformerConnections built =
                         buildPlatformerConnections(map, cell, table.profile);
-                    simulatedTicks += built.simulatedTicks;
+
                     stored = {std::move(built.connections), built.footprint};
-                    ++cellsRebuilt;
                 }
             }
         }
-        addFrameStatistic(
-            frameProfile,
-            "Navigation",
-            "Tile breaks applied",
-            static_cast<int>(broken.size() - breaksSeen));
-        addFrameStatistic(frameProfile, "Navigation", "Cells rebuilt", cellsRebuilt);
-        addFrameStatistic(frameProfile, "Navigation", "Rebuild simulated ticks", simulatedTicks);
         breaksSeen = broken.size();
     }
 

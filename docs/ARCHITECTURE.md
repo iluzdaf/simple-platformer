@@ -823,6 +823,39 @@ therefore change without touching engine code.
 
 [CONTENT.md](CONTENT.md) is the field-by-field authoring reference for those files.
 
+The application loads the atlas, then the shared definitions with
+[`loadGameCatalogs`](../app/content/game_catalogs.cpp), which checks every sprite region
+against the atlas's size, then the Lua activities the machines name. `Game` reuses them
+across level transitions and restarts, and loads each level file when entering it.
+`level_data.cpp` parses a level into plain `LevelData`, expanding object-legend markers
+into ordinary placements; [`level_composition.cpp`](../app/game/level_composition.cpp)
+resolves its names and builds the `TileMap`, `World`, actors, pickups and exit. Runtime
+state, such as actor IDs, velocities, paths, attack timers and NPC decisions, is never
+loaded: it starts fresh with each level.
+
+[`content_diagnostics.cpp`](../app/content/content_diagnostics.cpp) builds every error
+message with `fieldPath`, `indexPath` and `failJson`; it has no JSON dependency, so the
+plain C++ validators use it too. [`content_json.cpp`](../app/content/content_json.cpp)
+reads JSON shapes on top of it. A `json...` function converts a value the caller already
+holds; a `read...` function finds one by key and fails when it is missing; a
+`readOptional...` function leaves the caller's value when the key is missing; and the
+`check...` functions assert a shape and return nothing. `parseContentRoot` is the one
+place a syntax error is reported with its line and column.
+
+Functions in `app/content` and `app/game` name what they do:
+
+| Verb          | Example                              | Meaning                                                                   |
+| ------------- | ------------------------------------ | ------------------------------------------------------------------------- |
+| `parse...`    | `parseItemCatalog(text, sourceName)` | Text to typed data. Never opens a file, so tests pass a string.           |
+| `load...`     | `loadItemCatalog(path)`              | Reads the file, then calls the matching `parse...`.                       |
+| `validate...` | `validateItemCatalog(catalog)`       | Authoring rules on typed data, whether it came from JSON or C++.          |
+| `compose...`  | `composeActor(definition, ...)`      | Authoring data and runtime context, such as a spawn position, to a value. |
+| `expand...`   | `expandObjectLegend(root, ...)`      | Rewrites object-legend markers as explicit placements before parsing.     |
+| a noun        | `itemDefinition(catalog, name)`      | A lookup that throws when the name is unknown.                            |
+
+Parser tests use JSON strings and the fixture campaign under `tests/fixtures`, laid out
+like `assets/`, never the example game's own files.
+
 ## Presentation
 
 ### Scene construction and rendering
@@ -856,13 +889,13 @@ Every other sprite in the same atlas chooses its world size independently.
 
 Matching sizes are assigned explicitly; the engine does not assume a sprite and body
 are equal. Actor sprites are normally positioned from the body's feet, which lets a
-tall image use a smaller collider. The bat additionally uses a centred sprite anchor so
-its smaller collider matches the creature in the middle of its frame.
+tall image use a smaller body. The bat additionally uses a centred sprite anchor so
+its smaller body matches the creature in the middle of its frame.
 
 A climber's art is drawn once, standing on a floor and facing right. `placeActorSprite`
 turns it so its feet rest on the surface it holds: a quarter turn onto a wall and a half
 turn onto a ceiling, with the sprite centred along the body's edge against that surface.
-The collider does not turn, so a climber whose body is square fits every surface the
+The body does not turn, so a climber whose body is square fits every surface the
 same way. The head leads the way the climber faces on a ceiling, and on a wall its
 `SurfaceClimb::wallHeading`: the way it last climbed, so it does not turn round when it
 stops. Like `facing`, the heading follows the intentions rather than the velocity.

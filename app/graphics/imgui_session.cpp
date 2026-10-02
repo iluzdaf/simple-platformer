@@ -5,7 +5,6 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <implot.h>
 
 namespace simple_platformer
 {
@@ -13,7 +12,6 @@ namespace simple_platformer
     {
         void destroyContexts()
         {
-            ImPlot::DestroyContext();
             ImGui::DestroyContext();
         }
     }
@@ -22,7 +20,6 @@ namespace simple_platformer
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImPlot::CreateContext();
         ImGui::StyleColorsDark();
 
         if (!ImGui_ImplGlfw_InitForOpenGL(window, true))

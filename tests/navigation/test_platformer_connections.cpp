@@ -137,7 +137,7 @@ TEST_CASE("A recorded jump replays to the landing it promised", "[navigation][pl
         jump.step.destination.cell);
 }
 
-TEST_CASE("Failed airborne attempts still count their simulated ticks", "[navigation][platformer]")
+TEST_CASE("Failed airborne attempts produce no connections", "[navigation][platformer]")
 {
     const simple_platformer::TileMap map = tests::TileMapBuilder({"##.##", "#####"});
     const PlatformerTraversalProfile profile{SmallBody, {}, tests::FixedStepSeconds};
@@ -146,7 +146,6 @@ TEST_CASE("Failed airborne attempts still count their simulated ticks", "[naviga
         simple_platformer::buildPlatformerConnections(map, {2, 0}, profile);
 
     REQUIRE(built.connections.empty());
-    REQUIRE(built.simulatedTicks > 0);
 }
 
 TEST_CASE("A walk connection costs the ticks its follower takes", "[navigation][platformer]")
@@ -264,7 +263,6 @@ TEST_CASE(
     REQUIRE_FALSE(climbs(ClimbSurface::LeftWall, {2, 5}, ClimbSurface::LeftWall));
     // The walks, falls, and jumps from the floor are the walker's.
     REQUIRE(hasConnection(climbing.connections, {3, 4}, Traversal::Walk));
-    REQUIRE(climbing.simulatedTicks > walking.simulatedTicks);
     REQUIRE(simple_platformer::contains(climbing.footprint, {1, 3}));
 
     // A cell in the air beside the wall holds climbs though nothing can stand in it.

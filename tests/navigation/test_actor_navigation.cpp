@@ -24,7 +24,6 @@
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/physics/body.hpp"
-#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/actor_builder.hpp"
 #include "support/fixed_step.hpp"
@@ -45,8 +44,6 @@ namespace
     using simple_platformer::feetOf;
     using simple_platformer::findActorPath;
     using simple_platformer::followPlatformerPath;
-    using simple_platformer::FrameProfile;
-    using simple_platformer::frameStatisticCount;
     using simple_platformer::InputIntentions;
     using simple_platformer::NavigationPath;
     using simple_platformer::NavigationPathResult;
@@ -124,12 +121,10 @@ namespace
         const Actor& actor,
         glm::vec2 goalFeet,
         float stepSeconds = tests::FixedStepSeconds,
-        FrameProfile* frameProfile = nullptr,
         PlatformerConnectionTable* table = nullptr)
     {
         PlatformerConnectionTable fresh;
-        return findActorPath(
-            map, actor, goalFeet, stepSeconds, table != nullptr ? *table : fresh, frameProfile);
+        return findActorPath(map, actor, goalFeet, stepSeconds, table != nullptr ? *table : fresh);
     }
 
     // The same, for an actor that rests somewhere: the result itself.
@@ -138,10 +133,9 @@ namespace
         const Actor& actor,
         glm::vec2 goalFeet,
         float stepSeconds = tests::FixedStepSeconds,
-        FrameProfile* frameProfile = nullptr,
         PlatformerConnectionTable* table = nullptr)
     {
-        return resultOf(searchForActor(map, actor, goalFeet, stepSeconds, frameProfile, table));
+        return resultOf(searchForActor(map, actor, goalFeet, stepSeconds, table));
     }
 
     // A search sharing a table with earlier ones, as an NPC's searches share its world's.
@@ -149,10 +143,9 @@ namespace
         PlatformerConnectionTable& table,
         const TileMap& map,
         const Actor& actor,
-        glm::vec2 goalFeet,
-        FrameProfile* frameProfile = nullptr)
+        glm::vec2 goalFeet)
     {
-        return findPath(map, actor, goalFeet, tests::FixedStepSeconds, frameProfile, &table);
+        return findPath(map, actor, goalFeet, tests::FixedStepSeconds, &table);
     }
 
     bool hasStep(const NavigationPath& path, Traversal traversal)
@@ -217,11 +210,10 @@ namespace
     std::optional<NavigationPathResult> findFlight(
         const TileMap& map,
         const Actor& flyer,
-        glm::vec2 goalFeet,
-        FrameProfile* frameProfile = nullptr)
+        glm::vec2 goalFeet)
     {
         PlatformerConnectionTable unused;
-        return findActorPath(map, flyer, goalFeet, tests::FixedStepSeconds, unused, frameProfile);
+        return findActorPath(map, flyer, goalFeet, tests::FixedStepSeconds, unused);
     }
 
     TileMap climbableWall()
@@ -320,8 +312,7 @@ TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying
     const TileMap map = tests::TileMapBuilder({"....", ".##.", "...."});
 
     const Actor flyer = tests::ActorBuilder::sized(FlyerSize).inCell({0, 1}).flying(60.0F);
-    FrameProfile profile;
-    const NavigationPathResult result = resultOf(findFlight(map, flyer, feetIn({3, 1}), &profile));
+    const NavigationPathResult result = resultOf(findFlight(map, flyer, feetIn({3, 1})));
 
     REQUIRE(result.status == NavigationPathStatus::Found);
     REQUIRE(result.path.has_value());
@@ -329,8 +320,6 @@ TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying
     REQUIRE(cellOf(path.startFeet) == Cell{0, 1});
     REQUIRE(cellOf(path.waypoints.back().feet) == Cell{3, 1});
     REQUIRE(path.waypoints.front().traversal == Traversal::Fly);
-    // A flying search expands cells without running any movement.
-    REQUIRE(frameStatisticCount(profile, "Cells expanded") >= 1);
 }
 
 TEST_CASE("A flyer whose feet are off the map gets no result", "[navigation][flying]")
@@ -471,21 +460,15 @@ TEST_CASE(
     const Actor actor = platformerAt({{0, 0}});
     PlatformerConnectionTable table;
 
-    FrameProfile first;
-    REQUIRE(
-        findPathWith(table, map, actor, feetIn({4, 0}), &first).status ==
-        NavigationPathStatus::Found);
-    REQUIRE(frameStatisticCount(first, "Cells built") == 10);
-    REQUIRE(frameStatisticCount(first, "Build simulated ticks") > 0);
+    const auto profile = platformerTraversalProfileFor(actor, tests::FixedStepSeconds);
+    REQUIRE_FALSE(table.isBuilt(profile));
+    REQUIRE(findPathWith(table, map, actor, feetIn({4, 0})).status == NavigationPathStatus::Found);
+    REQUIRE(table.isBuilt(profile));
+    const auto* stored = table.connections({0, 0}, profile).data();
+    REQUIRE_FALSE(table.connections({0, 0}, profile).empty());
 
-    FrameProfile second;
-    REQUIRE(
-        findPathWith(table, map, actor, feetIn({4, 0}), &second).status ==
-        NavigationPathStatus::Found);
-    REQUIRE(frameStatisticCount(second, "Path searches") == 1);
-    REQUIRE(frameStatisticCount(second, "Cells expanded") > 0);
-    REQUIRE(frameStatisticCount(second, "Cells built") == 0);
-    REQUIRE(frameStatisticCount(second, "Cells rebuilt") == 0);
+    REQUIRE(findPathWith(table, map, actor, feetIn({4, 0})).status == NavigationPathStatus::Found);
+    REQUIRE(table.connections({0, 0}, profile).data() == stored);
 }
 
 TEST_CASE("A new path search uses the map after a support tile breaks", "[navigation][actor]")

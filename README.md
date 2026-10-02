@@ -50,10 +50,9 @@ cd build/mac-debug
 ./simple_platformer
 ```
 
-Press F1 in the game to open the [debug overlay](#debug-overlay), which shows frame
-timings among other things. For performance numbers, build and run the release preset
-instead. The debug build has no optimisation, so its timings may not be an accurate
-representation of what players will experience.
+Press F1 in the game to open the [debug overlay](#debug-overlay). To check performance,
+build and run the release preset. The debug build has no optimisation, so it may not represent the performance
+players will experience.
 
 ```sh
 cmake --preset mac-release
@@ -134,22 +133,18 @@ one key; the third exit completes the example campaign.
 
 ## Debug overlay
 
-F1 opens the debug tools with only the frame plot visible. It shows the last two seconds
-against the 60 Hz budget, with simulation costs stacked by category.
+F1 opens the debug tools with the world-space and camera overlay visible. It shows
+actor bounds, paths, navigation connections, projectiles, pickups, and camera regions.
 
-| Action                                            | Controls                      |
-| ------------------------------------------------- | ----------------------------- |
-| Show or hide the frame details and legend         | 1                             |
-| Show or hide the world-space and camera overlay   | 2                             |
-| Show or hide actor text                           | 3                             |
-| Show or hide navigation-cache totals              | 4                             |
-| Pause and inspect a frame, or scrub across frames | Press or drag on the plot     |
-| Deselect and resume                               | Click the picked frame again  |
-| Show or hide a plotted series                     | Click it in the plot's legend |
-| Show the next navigation-cache profile            | N                             |
-| Break a labelled tile under the cursor            | B                             |
+| Action                                          | Controls |
+| ----------------------------------------------- | -------- |
+| Show or hide the world-space and camera overlay | 2        |
+| Show or hide actor text                         | 3        |
+| Show or hide navigation connection totals       | 4        |
+| Show the next navigation profile                | N        |
+| Break a labelled tile under the cursor          | B        |
 
-Timings are only meaningful from a release build.
+Use P to pause or resume the simulation and . to run one step while paused.
 
 ## Continuous integration
 

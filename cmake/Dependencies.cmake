@@ -40,8 +40,6 @@ add_library(
     ${PROJECT_SOURCE_DIR}/external/imgui/imgui_widgets.cpp
     ${PROJECT_SOURCE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
     ${PROJECT_SOURCE_DIR}/external/imgui/backends/imgui_impl_opengl3.cpp
-    ${PROJECT_SOURCE_DIR}/external/implot/implot.cpp
-    ${PROJECT_SOURCE_DIR}/external/implot/implot_items.cpp
 )
 target_compile_features(simple_platformer_imgui PUBLIC cxx_std_17)
 target_include_directories(
@@ -49,6 +47,5 @@ target_include_directories(
     SYSTEM PUBLIC
     ${PROJECT_SOURCE_DIR}/external/imgui
     ${PROJECT_SOURCE_DIR}/external/imgui/backends
-    ${PROJECT_SOURCE_DIR}/external/implot
 )
 target_link_libraries(simple_platformer_imgui PUBLIC glfw)

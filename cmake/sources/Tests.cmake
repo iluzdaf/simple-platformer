@@ -3,8 +3,6 @@ target_sources(
     simple_platformer_tests
     PRIVATE
     ${PROJECT_SOURCE_DIR}/app/debug/debug_overlay.cpp
-    ${PROJECT_SOURCE_DIR}/app/debug/frame_axes.cpp
-    ${PROJECT_SOURCE_DIR}/app/debug/frame_selection.cpp
     ${PROJECT_SOURCE_DIR}/app/debug/navigation_debug.cpp
     ${PROJECT_SOURCE_DIR}/app/content/actor_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/actor_definition.cpp
@@ -49,8 +47,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_tile_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_frame_axes.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_frame_selection.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/debug/test_game_debug.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/debug/test_navigation_debug.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/game/test_level_composition.cpp
@@ -90,7 +86,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/support/test_actor_builder.cpp
     ${PROJECT_SOURCE_DIR}/tests/support/test_tile_map_builder.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_fixed_step.cpp
-    ${PROJECT_SOURCE_DIR}/tests/timing/test_frame_history.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_stopwatch.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/ui/test_inventory_layout.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_level_exit.cpp

@@ -12,7 +12,6 @@
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
-#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "simple_platformer/world/world_requests.hpp"
@@ -123,16 +122,6 @@ namespace
     {
         return tests::ActorBuilder::sized({12.0F, 12.0F}).atFeet(feet).platforming();
     }
-
-    simple_platformer::FrameProfile profiledNpcUpdate(
-        const simple_platformer::TileMap& map,
-        simple_platformer::World& world)
-    {
-        simple_platformer::FrameProfile profile;
-        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &profile);
-        return profile;
-    }
-
 }
 
 TEST_CASE("An NPC plans its path again after a break", "[npc][navigation]")
@@ -151,18 +140,30 @@ TEST_CASE("An NPC plans its path again after a break", "[npc][navigation]")
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastKnownTargetFeet = {40.0F, 32.0F};
     tests::perception(world, npcId).targetVisible = false;
-    const simple_platformer::FrameProfile planned = profiledNpcUpdate(map, world);
-    REQUIRE(simple_platformer::frameStatisticCount(planned, "Path searches") == 1);
-    REQUIRE(pathFollower(world, npcId).path.has_value());
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
+    const auto& path = pathFollower(world, npcId).path;
+    if (!path.has_value())
+    {
+        FAIL("The NPC must have a planned path");
+        return;
+    }
 
-    // With the path planned and the map as it was, the next step searches nothing.
-    const simple_platformer::FrameProfile settled = profiledNpcUpdate(map, world);
-    REQUIRE(simple_platformer::frameStatisticCount(settled, "Path searches") == 0);
+    const auto* plannedWaypoints = path->waypoints.data();
+    REQUIRE_FALSE(path->waypoints.empty());
+
+    // With the path planned and the map as it was, the next step keeps it.
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
+
+    if (!path.has_value())
+    {
+        FAIL("The NPC must have a planned path");
+        return;
+    }
+    REQUIRE(path->waypoints.data() == plannedWaypoints);
 
     // A break may have cut the path, so it is planned again though the goal is the same.
     REQUIRE(map.breakTile({7, 2}));
-    const simple_platformer::FrameProfile broken = profiledNpcUpdate(map, world);
-    REQUIRE(simple_platformer::frameStatisticCount(broken, "Path searches") == 1);
+    simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
     REQUIRE(pathFollower(world, npcId).breaksWhenPlanned == 1);
 }
 

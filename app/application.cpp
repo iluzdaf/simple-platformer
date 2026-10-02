@@ -15,7 +15,6 @@
 #include "content/game_catalogs.hpp"
 #include "content/level_catalog.hpp"
 #include "debug/debug_tools.hpp"
-#include "debug/frame_profile_ui.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/game_window.hpp"
@@ -25,7 +24,6 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/render/render_scene.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
-#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/timing/stopwatch.hpp"
 
 namespace simple_platformer
@@ -109,12 +107,6 @@ namespace simple_platformer
             if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
             {
                 context->showDebugOverlay = !context->showDebugOverlay;
-                return;
-            }
-            if (key == GLFW_KEY_1 && action == GLFW_PRESS && context->showDebugOverlay)
-            {
-                context->debugToolVisibility.frameProfileDetails =
-                    !context->debugToolVisibility.frameProfileDetails;
                 return;
             }
             if (key == GLFW_KEY_2 && action == GLFW_PRESS && context->showDebugOverlay)
@@ -218,7 +210,6 @@ namespace simple_platformer
             std::move(levelCatalog),
             std::move(gameCatalogs),
             static_cast<float>(fixedStep.stepSeconds()));
-        DebugTools debugTools;
         Stopwatch frameClock;
 
         while (!window.shouldClose())
@@ -242,16 +233,14 @@ namespace simple_platformer
             const std::optional<WindowViewport> windowViewport =
                 makeWindowViewport(reading.size, reading.framebufferSize);
 
-            FrameProfile profile;
-            profile.frameSeconds = frameClock.lapSeconds();
-            const Stopwatch interfaceWatch;
+            const float frameSeconds = frameClock.lapSeconds();
             const InterfaceRequests interfaceRequests = drawInterface(
                 game,
                 atlasTexture,
                 windowViewport,
                 context.inventoryOpen,
                 context.simulationPaused);
-            profile.interfaceSeconds = interfaceWatch.elapsedSeconds();
+
             if (interfaceRequests.toggleInventory)
             {
                 context.inventoryOpen = !context.inventoryOpen;
@@ -294,7 +283,7 @@ namespace simple_platformer
             const auto step = [&](float deltaTime)
             {
                 const InputIntentions intentions = playerIntentions(context, game, gameCursor);
-                game.update(intentions, deltaTime, &profile);
+                game.update(intentions, deltaTime);
             };
             if (paused || context.playInterrupted)
             {
@@ -303,50 +292,28 @@ namespace simple_platformer
                 context.playInterrupted = false;
                 if (context.stepRequested && !context.inventoryOpen && !game.complete())
                 {
-                    const Stopwatch simulationWatch;
                     step(static_cast<float>(fixedStep.stepSeconds()));
-                    profile.simulationTicks = 1;
-                    profile.simulationSeconds = simulationWatch.elapsedSeconds();
                 }
             }
             else
             {
-                const Stopwatch simulationWatch;
-                const FixedStepResult stepped = fixedStep.advance(profile.frameSeconds, step);
-                profile.simulationTicks = static_cast<int>(stepped.updates);
-                profile.simulationSeconds = simulationWatch.elapsedSeconds();
+                fixedStep.advance(frameSeconds, step);
             }
             context.stepRequested = false;
 
-            const Stopwatch sceneWatch;
             const RenderScene scene = game.buildScene();
-            profile.sceneSeconds = sceneWatch.elapsedSeconds();
-            const Stopwatch renderWatch;
+
             renderer.render(scene, reading.framebufferSize.x, reading.framebufferSize.y);
-            profile.renderSeconds = renderWatch.elapsedSeconds();
 
             if (context.showDebugOverlay)
             {
-                const FramePlotRequest plotRequest = drawDebugTools(
-                    debugTools,
-                    profile,
+                drawDebugTools(
                     game.debugOverlay(
                         static_cast<float>(atlasTexture.width),
                         internalCursor,
                         context.debugBodyIndex),
                     windowViewport,
-                    context.debugToolVisibility,
-                    paused);
-                if (plotRequest != FramePlotRequest::None)
-                {
-                    const bool requestedPause = plotRequest == FramePlotRequest::Pause;
-                    if (context.simulationPaused != requestedPause)
-                    {
-                        context.simulationPaused = requestedPause;
-                        context.playInterrupted = true;
-                        context.input = {};
-                    }
-                }
+                    context.debugToolVisibility);
             }
             imgui.render();
             window.present();

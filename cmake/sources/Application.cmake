@@ -9,9 +9,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/debug/debug_tools.cpp
     ${PROJECT_SOURCE_DIR}/app/debug/navigation_debug.cpp
     ${PROJECT_SOURCE_DIR}/app/debug/navigation_debug_ui.cpp
-    ${PROJECT_SOURCE_DIR}/app/debug/frame_axes.cpp
-    ${PROJECT_SOURCE_DIR}/app/debug/frame_profile_ui.cpp
-    ${PROJECT_SOURCE_DIR}/app/debug/frame_selection.cpp
     ${PROJECT_SOURCE_DIR}/app/debug/npc_names.cpp
     ${PROJECT_SOURCE_DIR}/app/content/actor_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/actor_definition.cpp

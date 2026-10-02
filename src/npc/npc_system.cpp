@@ -63,14 +63,10 @@ namespace simple_platformer
         }
     }
 
-    void updateNpcBehaviour(
-        const TileMap& map,
-        World& world,
-        float deltaTime,
-        FrameProfile* profile)
+    void updateNpcBehaviour(const TileMap& map, World& world, float deltaTime)
     {
         requireSeconds(deltaTime, "NPC behaviour time step");
-        const NpcUpdate update{map, world, deltaTime, profile};
+        const NpcUpdate update{map, world, deltaTime};
 
         for (Actor& actor : world.actors())
         {

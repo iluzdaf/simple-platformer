@@ -43,7 +43,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/src/render/render_scene.cpp
     ${PROJECT_SOURCE_DIR}/src/render/sprite.cpp
     ${PROJECT_SOURCE_DIR}/src/timing/fixed_step.cpp
-    ${PROJECT_SOURCE_DIR}/src/timing/frame_profile.cpp
     ${PROJECT_SOURCE_DIR}/src/timing/stopwatch.cpp
     ${PROJECT_SOURCE_DIR}/src/world/tile_map.cpp
     ${PROJECT_SOURCE_DIR}/src/world/world.cpp

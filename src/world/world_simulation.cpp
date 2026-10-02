@@ -7,7 +7,6 @@
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
-#include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/level_exit.hpp"
 #include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/tile_map.hpp"
@@ -16,42 +15,34 @@
 
 namespace simple_platformer
 {
-    void updateWorldSimulation(TileMap& map, World& world, float deltaTime, FrameProfile* profile)
+    void updateWorldSimulation(TileMap& map, World& world, float deltaTime)
     {
         if (world.levelComplete())
         {
             return;
         }
         world.advanceSimulationTime(deltaTime);
-        const auto phase = [&](const char* category, const char* name, auto&& run)
-        { timePhase(profile, category, name, run); };
         // While the exit opens the game is paused: only the clock runs, so the door can
         // finish opening.
         if (exitOpening(world))
         {
-            phase("World", "Level exit", [&] { updateLevelExit(world); });
+            updateLevelExit(world);
             return;
         }
 
         // A tile broken last step rebuilds the connections it touched before NPCs plan.
-        phase(
-            "Navigation",
-            "Connection table",
-            [&] { world.platformerConnections().applyRecordedTileBreaks(map, profile); });
-        phase("NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
-        phase("NPC", "NPC behaviour", [&] { updateNpcBehaviour(map, world, deltaTime, profile); });
-        phase("Movement", "Actor movement", [&] { updateActorMovement(map, world, deltaTime); });
-        phase("Movement", "Pickup movement", [&] { updatePickupMovement(map, world, deltaTime); });
+        world.platformerConnections().applyRecordedTileBreaks(map);
+        updateNpcSenses(map, world, deltaTime);
+        updateNpcBehaviour(map, world, deltaTime);
+        updateActorMovement(map, world, deltaTime);
+        updatePickupMovement(map, world, deltaTime);
         WorldRequests requests;
-        phase("Combat", "Attacks", [&] { updateAttacks(world, requests, deltaTime); });
-        phase("Combat", "Projectiles", [&] { updateProjectiles(map, world, requests, deltaTime); });
-        phase(
-            "Combat",
-            "Projectile bursts",
-            [&] { updateProjectileBursts(world, requests, deltaTime); });
-        phase("World", "Life states", [&] { updateLifeState(world, requests, deltaTime); });
-        phase("World", "Pickups", [&] { updatePickups(world, requests); });
-        phase("World", "World requests", [&] { applyWorldRequests(world, requests); });
-        phase("World", "Level exit", [&] { updateLevelExit(world); });
+        updateAttacks(world, requests, deltaTime);
+        updateProjectiles(map, world, requests, deltaTime);
+        updateProjectileBursts(world, requests, deltaTime);
+        updateLifeState(world, requests, deltaTime);
+        updatePickups(world, requests);
+        applyWorldRequests(world, requests);
+        updateLevelExit(world);
     }
 }

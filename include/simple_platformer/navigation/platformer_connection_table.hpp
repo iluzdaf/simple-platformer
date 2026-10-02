@@ -9,7 +9,6 @@
 
 namespace simple_platformer
 {
-    struct FrameProfile;
     class TileMap;
 
     // Every cell's platformer connections for one map, kept per traversal profile. A
@@ -21,15 +20,12 @@ namespace simple_platformer
     public:
         // Applies the map's breaks to the built profiles, then builds this profile for
         // every cell if it is not built yet. The profile needs a finite, positive size and
-        // step. An optional frame profile counts the cells built and their simulated ticks.
-        void prepare(
-            const TileMap& map,
-            const PlatformerTraversalProfile& profile,
-            FrameProfile* frameProfile = nullptr);
+        // step.
+        void prepare(const TileMap& map, const PlatformerTraversalProfile& profile);
 
         // Rebuilds, in every built profile, the cells whose footprint holds a tile broken
         // since the last call. Their new footprints come from the map as it is now.
-        void applyRecordedTileBreaks(const TileMap& map, FrameProfile* frameProfile = nullptr);
+        void applyRecordedTileBreaks(const TileMap& map);
 
         bool isBuilt(const PlatformerTraversalProfile& profile) const;
 

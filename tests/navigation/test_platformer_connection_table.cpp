@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
+#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -10,7 +11,7 @@
 #include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/navigation/platformer_connections.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
-#include "simple_platformer/timing/frame_profile.hpp"
+#include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
@@ -21,8 +22,6 @@
 namespace
 {
     using simple_platformer::Cell;
-    using simple_platformer::FrameProfile;
-    using simple_platformer::frameStatisticCount;
     using simple_platformer::PlatformerConnectionTable;
     using simple_platformer::PlatformerTraversalProfile;
     using simple_platformer::TileMap;
@@ -84,17 +83,15 @@ TEST_CASE("Preparing a profile builds every cell once", "[navigation][table]")
     PlatformerConnectionTable table;
     REQUIRE_FALSE(table.isBuilt(Walker));
 
-    FrameProfile first;
-    table.prepare(map, Walker, &first);
+    table.prepare(map, Walker);
     REQUIRE(table.isBuilt(Walker));
     REQUIRE_FALSE(table.isBuilt(Climber));
-    REQUIRE(frameStatisticCount(first, "Cells built") == 24);
-    REQUIRE(frameStatisticCount(first, "Build simulated ticks") > 0);
     requireMatchesTheMap(table, map, Walker);
 
-    FrameProfile again;
-    table.prepare(map, Walker, &again);
-    REQUIRE(frameStatisticCount(again, "Cells built") == 0);
+    const auto* stored = table.connections({0, 1}, Walker).data();
+    REQUIRE_FALSE(table.connections({0, 1}, Walker).empty());
+    table.prepare(map, Walker);
+    REQUIRE(table.connections({0, 1}, Walker).data() == stored);
 }
 
 TEST_CASE("A break rebuilds only the cells whose footprint holds it", "[navigation][table]")
@@ -110,18 +107,47 @@ TEST_CASE("A break rebuilds only the cells whose footprint holds it", "[navigati
     REQUIRE(touched > 0);
     REQUIRE(touched < 2 * 40);
 
+    // Connections outside the break's footprint keep their storage.
+    struct UnaffectedCell
+    {
+        Cell cell;
+        PlatformerTraversalProfile profile;
+        const simple_platformer::RouteConnection* stored;
+    };
+
+    std::vector<UnaffectedCell> unaffected;
+    for (const auto& profile : {Walker, Climber})
+    {
+        for (int row = 0; row < map.height(); ++row)
+        {
+            for (int column = 0; column < map.width(); ++column)
+            {
+                const Cell cell{column, row};
+                const auto& connections = table.connections(cell, profile);
+                if (!connections.empty() &&
+                    !simple_platformer::contains(table.footprint(cell, profile), {4, 2}))
+                {
+                    unaffected.push_back({cell, profile, connections.data()});
+                }
+            }
+        }
+    }
+    REQUIRE_FALSE(unaffected.empty());
     REQUIRE(map.breakTile({4, 2}));
-    FrameProfile rebuild;
-    table.applyRecordedTileBreaks(map, &rebuild);
-    REQUIRE(frameStatisticCount(rebuild, "Tile breaks applied") == 1);
-    REQUIRE(frameStatisticCount(rebuild, "Cells rebuilt") == touched);
+    table.applyRecordedTileBreaks(map);
     requireMatchesTheMap(table, map, Walker);
     requireMatchesTheMap(table, map, Climber);
 
-    // Each break is applied once.
-    FrameProfile after;
-    table.applyRecordedTileBreaks(map, &after);
-    REQUIRE(frameStatisticCount(after, "Cells rebuilt") == 0);
+    for (const auto& entry : unaffected)
+    {
+        REQUIRE(table.connections(entry.cell, entry.profile).data() == entry.stored);
+    }
+
+    // Applying the same break again leaves the rebuilt connections in place.
+    const auto* rebuilt = table.connections({3, 2}, Walker).data();
+    REQUIRE_FALSE(table.connections({3, 2}, Walker).empty());
+    table.applyRecordedTileBreaks(map);
+    REQUIRE(table.connections({3, 2}, Walker).data() == rebuilt);
 }
 
 TEST_CASE("A profile prepared after a break is built on the broken map", "[navigation][table]")
@@ -132,9 +158,7 @@ TEST_CASE("A profile prepared after a break is built on the broken map", "[navig
     table.prepare(map, Walker);
     REQUIRE(map.breakTile({2, 2}));
 
-    FrameProfile frame;
-    table.prepare(map, Climber, &frame);
-    REQUIRE(frameStatisticCount(frame, "Tile breaks applied") == 1);
+    table.prepare(map, Climber);
     requireMatchesTheMap(table, map, Walker);
     requireMatchesTheMap(table, map, Climber);
 }

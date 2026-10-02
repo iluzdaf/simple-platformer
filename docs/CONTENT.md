@@ -163,7 +163,7 @@ no `senses`.
 
 | Field            | Meaning                                                                    |
 | ---------------- | -------------------------------------------------------------------------- |
-| `bodySize`       | Required. The collider.                                                    |
+| `bodySize`       | Required. The body's size.                                                 |
 | `team`           | `player`, `enemy` or `neutral` (default). Attacks need a non-neutral team. |
 | `facing`         | `left` or `right` (default).                                               |
 | `animations`     | A set in `animations.json`.                                                |
@@ -182,7 +182,7 @@ no `senses`.
 
 `bodySize` and the art are independent. The player's frames are 32 by 24 around a body
 of 12 by 20, so the gun and a jump do not change how it collides. The debug overlay (F1,
-then 2) outlines the collider in red and the art in grey.
+then 2) outlines the body in red and the art in grey.
 
 A component object may leave out any field to keep its default, so `{}` is all defaults.
 
@@ -341,7 +341,7 @@ Saves, if added, should store item names: item IDs are assigned at load and can 
 | ---------- | -------------------------------------------------------- |
 | `item`     | An item in `items.json`.                                 |
 | `quantity` | Positive.                                                |
-| `bodySize` | The collider the player touches to collect it.           |
+| `bodySize` | The body the player touches to collect it.               |
 | `sprite`   | Optional; without one, the pickup draws its item's icon. |
 
 ## Exits

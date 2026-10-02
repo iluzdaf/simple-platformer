@@ -889,13 +889,13 @@ Every other sprite in the same atlas chooses its world size independently.
 
 Matching sizes are assigned explicitly; the engine does not assume a sprite and body
 are equal. Actor sprites are normally positioned from the body's feet, which lets a
-tall image use a smaller collider. The bat additionally uses a centred sprite anchor so
-its smaller collider matches the creature in the middle of its frame.
+tall image use a smaller body. The bat additionally uses a centred sprite anchor so
+its smaller body matches the creature in the middle of its frame.
 
 A climber's art is drawn once, standing on a floor and facing right. `placeActorSprite`
 turns it so its feet rest on the surface it holds: a quarter turn onto a wall and a half
 turn onto a ceiling, with the sprite centred along the body's edge against that surface.
-The collider does not turn, so a climber whose body is square fits every surface the
+The body does not turn, so a climber whose body is square fits every surface the
 same way. The head leads the way the climber faces on a ceiling, and on a wall its
 `SurfaceClimb::wallHeading`: the way it last climbed, so it does not turn round when it
 stops. Like `facing`, the heading follows the intentions rather than the velocity.

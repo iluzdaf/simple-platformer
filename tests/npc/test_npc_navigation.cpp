@@ -7,6 +7,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"

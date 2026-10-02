@@ -291,7 +291,9 @@ TEST_CASE(
         tests::TileMapBuilder({".ccc.", "c...c", "c...c", "ccccc"})
             .where('c', tests::Tile{}.blocksMovement().climbable());
     const float side = static_cast<float>(map.tileSize());
-    const PlatformerTraversalProfile profile{{side, side}, {}, tests::FixedStepSeconds, {{60.0F}}};
+    const simple_platformer::SurfaceClimbConfig climbConfig{60.0F};
+    const PlatformerTraversalProfile profile{
+        {side, side}, {}, tests::FixedStepSeconds, climbConfig};
 
     for (const Cell cell : {Cell{1, 1}, Cell{3, 1}})
     {
@@ -316,7 +318,7 @@ TEST_CASE(
                 simple_platformer::boundsAtSurface(map.tileSize(), {cell, from}, profile.size);
             simple_platformer::Body body{bounds, {0.0F, 0.0F}};
             simple_platformer::PlatformerMovement movement{profile.movement};
-            simple_platformer::SurfaceClimb climb{*profile.climb, from};
+            simple_platformer::SurfaceClimb climb{climbConfig, from};
             const auto& inputs = connection->step.inputs;
             const long ticks =
                 std::lround(simple_platformer::durationOf(inputs) / profile.stepSeconds);

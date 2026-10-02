@@ -17,8 +17,8 @@ namespace simple_platformer
 
     // The one way into navigation. Finds the cheapest path for the actor, from where its
     // body rests to the cell holding the goal, using only the moves the actor has. If it
-    // cannot reach that cell, the path leads as close to the goal as possible, and the
-    // result says how far the path's end is from it. No result means the actor has
+    // cannot reach that cell, the result is Unreachable with no path. No result means
+    // the actor has
     // nowhere to start from yet, such as when it is in the air, or no movement to
     // navigate with.
     //

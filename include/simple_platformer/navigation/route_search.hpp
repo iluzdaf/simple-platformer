@@ -17,8 +17,7 @@ namespace simple_platformer
     using HeuristicFunction = std::function<int(Cell cell, Cell goal)>;
 
     // What a search ends with. A finished search has a route to the cheapest location in
-    // the goal cell. If it could not reach that cell, the route leads to a cell as close
-    // to it as possible, the first reached of any equally close.
+    // the goal cell. If it could not reach that cell, there is no route.
     struct RouteSearchResult
     {
         std::optional<Route> route;

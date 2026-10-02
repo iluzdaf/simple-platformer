@@ -239,24 +239,6 @@ namespace simple_platformer
             }
         }
 
-        // The frontier ran out before the goal cell was reached. Return a route leading to
-        // a cell as close to the goal as possible.
-        RouteSearchResult result;
-        std::size_t closest = 0;
-        long long closestDistance = std::numeric_limits<long long>::max();
-        for (std::size_t index = 0; index < nodes.size(); ++index)
-        {
-            const Cell cell = nodes[index].location.cell;
-            const long long dx = static_cast<long long>(cell.x) - goal.x;
-            const long long dy = static_cast<long long>(cell.y) - goal.y;
-            const long long distanceSquared = dx * dx + dy * dy;
-            if (distanceSquared < closestDistance)
-            {
-                closest = index;
-                closestDistance = distanceSquared;
-            }
-        }
-        result.route = reconstructRoute(nodes, closest);
-        return result;
+        return {};
     }
 }

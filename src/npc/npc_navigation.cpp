@@ -80,6 +80,10 @@ namespace simple_platformer
             {
                 return;
             }
+            if (!pathResult->path.has_value())
+            {
+                clearPath(follower);
+            }
             follower.goal = goalFeet;
             follower.breaksWhenPlanned = map.brokenCells().size();
             if (pathResult->path.has_value())

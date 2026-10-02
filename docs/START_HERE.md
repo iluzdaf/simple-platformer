@@ -212,8 +212,8 @@ and ordinary movement. Then read:
    finds the cheapest route;
 2. [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp) for `findActorPath`,
    the one entry point NPCs call. Read the flying search first, the simplest source of
-   connections, then the platformer search, which also leads as close as possible to a
-   goal out of reach;
+   connections, then the platformer search; both return no path for an unreachable
+   goal;
 3. [`path_follower.cpp`](../src/navigation/path_follower.cpp) for turning a path into
    intentions;
 4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for where a body

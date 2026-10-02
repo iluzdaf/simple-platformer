@@ -102,13 +102,12 @@ namespace
 }
 
 TEST_CASE(
-    "A search that cannot move or starts in the goal cell returns a route with no steps",
+    "A search without connections fails unless it starts in the goal cell",
     "[navigation][search]")
 {
     const RouteSearchResult unreachable =
         findLowestCostRoute(floorOf(0, 0), {1, 0}, TestGrid, noConnections, zeroHeuristic);
-    REQUIRE(unreachable.route.has_value());
-    REQUIRE(routeOf(unreachable).steps.empty());
+    REQUIRE_FALSE(unreachable.route.has_value());
 
     const RouteSearchResult alreadyThere =
         findLowestCostRoute(floorOf(2, 3), {2, 3}, TestGrid, noConnections, zeroHeuristic);
@@ -188,20 +187,18 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "A search that cannot reach the goal cell returns a route as close to it as possible",
+    "A search returns no route when connections cannot reach the goal cell",
     "[navigation][search]")
 {
     // A line of three cells. Nothing leads beyond the last.
     const ConnectionFunction line = lineUpTo(2);
 
-    // The goal is past the end of the line, so the route stops at the last cell.
+    // Reachable intermediate cells do not make an unreachable goal succeed.
     const RouteSearchResult outOfReach =
         findLowestCostRoute(floorOf(0, 0), {5, 0}, TestGrid, line, gridSteps);
-    REQUIRE(outOfReach.route.has_value());
-    REQUIRE(endOf(routeOf(outOfReach)) == floorOf(2, 0));
-    REQUIRE(routeOf(outOfReach).steps.size() == 2);
+    REQUIRE_FALSE(outOfReach.route.has_value());
 
-    // The same last cell as the goal is reached, and ends the route the same way.
+    // The last cell itself is still reachable.
     const RouteSearchResult inReach =
         findLowestCostRoute(floorOf(0, 0), {2, 0}, TestGrid, line, gridSteps);
     REQUIRE(inReach.route.has_value());
@@ -297,14 +294,11 @@ TEST_CASE("A search stops at the cheapest location in the goal cell", "[navigati
     REQUIRE(endOf(routeOf(result)) == goalWall);
 }
 
-TEST_CASE(
-    "A goal off the grid is never reached, so the route gets as close as it can",
-    "[navigation][search]")
+TEST_CASE("A goal off the grid returns no route", "[navigation][search]")
 {
     // A line along the top row to the grid's last column. The goal is past the grid's
-    // edge, so the route stops at the end of the line.
+    // edge, so the search fails.
     const RouteSearchResult offGrid =
         findLowestCostRoute(floorOf(0, 0), {20, 0}, TestGrid, lineUpTo(7), gridSteps);
-    REQUIRE(offGrid.route.has_value());
-    REQUIRE(endOf(routeOf(offGrid)) == floorOf(7, 0));
+    REQUIRE_FALSE(offGrid.route.has_value());
 }

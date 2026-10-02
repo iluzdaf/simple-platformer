@@ -466,21 +466,25 @@ TEST_CASE(
     REQUIRE(followsToTheEnd(map, pathOf(result), climber, 1000));
 }
 
-TEST_CASE("The first search for a profile builds it and later ones only read it", "[navigation][actor]")
+TEST_CASE(
+    "The first search for a profile builds it and later ones only read it",
+    "[navigation][actor]")
 {
     const TileMap map = tests::TileMapBuilder({".....", "#####"});
     const Actor actor = platformerAt({{0, 0}});
     PlatformerConnectionTable table;
 
     FrameProfile first;
-    REQUIRE(findPathWith(table, map, actor, feetIn({4, 0}), &first).status ==
-            NavigationPathStatus::Found);
+    REQUIRE(
+        findPathWith(table, map, actor, feetIn({4, 0}), &first).status ==
+        NavigationPathStatus::Found);
     REQUIRE(frameStatisticCount(first, "Cells built") == 10);
     REQUIRE(frameStatisticCount(first, "Build simulated ticks") > 0);
 
     FrameProfile second;
-    REQUIRE(findPathWith(table, map, actor, feetIn({4, 0}), &second).status ==
-            NavigationPathStatus::Found);
+    REQUIRE(
+        findPathWith(table, map, actor, feetIn({4, 0}), &second).status ==
+        NavigationPathStatus::Found);
     REQUIRE(frameStatisticCount(second, "Path searches") == 1);
     REQUIRE(frameStatisticCount(second, "Cells expanded") > 0);
     REQUIRE(frameStatisticCount(second, "Cells built") == 0);

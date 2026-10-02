@@ -29,7 +29,10 @@ namespace
 
     const PlatformerTraversalProfile Walker{{12.0F, 12.0F}, {}, tests::FixedStepSeconds};
     const PlatformerTraversalProfile Climber{
-        {12.0F, 12.0F}, {}, tests::FixedStepSeconds, simple_platformer::SurfaceClimbConfig{60.0F}};
+        {12.0F, 12.0F},
+        {},
+        tests::FixedStepSeconds,
+        simple_platformer::SurfaceClimbConfig{60.0F}};
 
     // Every cell of the table holds what simulating that cell on the map gives now.
     void requireMatchesTheMap(
@@ -43,7 +46,8 @@ namespace
             {
                 const Cell cell{column, row};
                 CAPTURE(column, row);
-                const auto fresh = simple_platformer::buildPlatformerConnections(map, cell, profile);
+                const auto fresh =
+                    simple_platformer::buildPlatformerConnections(map, cell, profile);
                 tests::requireSameRouteConnections(
                     table.connections(cell, profile), fresh.connections);
                 REQUIRE(table.footprint(cell, profile).first == fresh.footprint.first);
@@ -93,9 +97,7 @@ TEST_CASE("Preparing a profile builds every cell once", "[navigation][table]")
     REQUIRE(frameStatisticCount(again, "Cells built") == 0);
 }
 
-TEST_CASE(
-    "A break rebuilds only the cells whose footprint holds it",
-    "[navigation][table]")
+TEST_CASE("A break rebuilds only the cells whose footprint holds it", "[navigation][table]")
 {
     TileMap map = tests::TileMapBuilder({"..........", "c.........", "c...g.....", "##########"})
                       .where('c', tests::Tile{}.blocksMovement().climbable())
@@ -143,8 +145,7 @@ TEST_CASE("A connection table refuses what it does not hold", "[navigation][tabl
     PlatformerConnectionTable table;
     REQUIRE_THROWS_AS(table.connections({0, 0}, Walker), std::logic_error);
     REQUIRE_THROWS_AS(
-        table.prepare(map, {{0.0F, 12.0F}, {}, tests::FixedStepSeconds}),
-        std::invalid_argument);
+        table.prepare(map, {{0.0F, 12.0F}, {}, tests::FixedStepSeconds}), std::invalid_argument);
 
     table.prepare(map, Walker);
     REQUIRE_THROWS_AS(table.connections({4, 0}, Walker), std::out_of_range);

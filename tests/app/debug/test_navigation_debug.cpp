@@ -34,9 +34,7 @@ namespace
     }
 }
 
-TEST_CASE(
-    "Navigation debug data shows the connection table per cell",
-    "[app][debug][navigation]")
+TEST_CASE("Navigation debug data shows the connection table per cell", "[app][debug][navigation]")
 {
     simple_platformer::TileMap map =
         tests::TileMapBuilder({".....", ".....", "##g##"})

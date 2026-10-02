@@ -2,7 +2,6 @@
 
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/physics/body.hpp"
-#include "simple_platformer/physics/collision.hpp"
 
 namespace simple_platformer
 {

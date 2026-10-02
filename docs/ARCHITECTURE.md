@@ -370,8 +370,10 @@ The loader resolves names to runtime IDs, reserving zero for `empty`.
 Actors, pickups, spawns, and exits are separate level data, not special tile IDs.
 Object legend markers expand into these placements during loading; their terrain is empty.
 
-Collision moves an arbitrary-sized AABB along X, resolves it against nearby full-tile
-AABBs, then repeats along Y. The result reports left, right, ground, and ceiling
+`moveBody` in `body.cpp` moves the body's arbitrary-sized AABB along X, resolves
+it against blocking tiles with `sweepAxis`, then repeats along Y from the new position.
+A collision stops the velocity along that axis. The sweep scans columns for horizontal
+movement and rows for vertical movement, including every tile overlapped by the box. The result reports left, right, ground, and ceiling
 contacts. Actors do not physically collide with or push one another. The left, right,
 and bottom map boundaries block movement; the top remains open.
 

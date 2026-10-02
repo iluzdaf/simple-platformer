@@ -9,7 +9,7 @@
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/route.hpp"
-#include "simple_platformer/physics/collision.hpp"
+#include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer

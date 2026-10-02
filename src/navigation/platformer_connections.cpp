@@ -23,7 +23,6 @@
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/physics/body.hpp"
-#include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
 namespace simple_platformer

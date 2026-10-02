@@ -1,6 +1,6 @@
 #pragma once
 
-#include "simple_platformer/physics/collision.hpp"
+#include "simple_platformer/physics/body.hpp"
 
 namespace simple_platformer
 {

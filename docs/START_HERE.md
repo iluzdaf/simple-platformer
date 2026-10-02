@@ -79,7 +79,7 @@ keyboard and mouse
   -> Body
 ```
 
-- **Read** steps 3 and 4: the core data model and the player movement path. Read the
+- **Read** steps 3–5: the core data model, player movement, and physics. Read the
   tests for the variable-height jump, coyote time, and jump buffer before changing
   those rules.
 - **Tune** speed, acceleration, braking, gravity, and jump settings in
@@ -103,8 +103,9 @@ senses and memory
   -> the same movement and combat systems
 ```
 
-- **Read** steps 6 and 7: NPC behaviour and combat, then navigation. Enemies move through
-  the step 4 movement path, so return to it when one does not move as intended.
+- **Read** steps 7 and 8: NPC behaviour and combat, then navigation. Enemies move through
+  the movement and physics paths in steps 4 and 5, so return to those when one does not
+  move as intended.
 - **Tune** `noticeDistance`, `standoffDistance`, `targetMemoryDuration`, and
   `searchDuration` in an actor's `senses` in [`actors.json`](../assets/catalogs/actors.json).
   The [debug overlay](../README.md#debug-overlay) shows visible targets, remembered
@@ -160,16 +161,27 @@ system relevant to the feature you are studying.
 For the player movement path, a useful order is:
 
 1. [`input_state.cpp`](../src/input/input_state.cpp)
-2. [`platformer_movement.cpp`](../src/movement/platformer_movement.cpp)
-3. [`collision.cpp`](../src/physics/collision.cpp)
-4. [`tile_map.cpp`](../src/world/tile_map.cpp)
+2. [`actor_system.cpp`](../src/actor/actor_system.cpp), which dispatches actor movement
+3. [`platformer_movement.cpp`](../src/movement/platformer_movement.cpp)
 
-Read the matching files under `tests/` beside them. For example,
-[`test_platformer_movement.cpp`](../tests/movement/test_platformer_movement.cpp) isolates
-movement rules, while [`test_collision.cpp`](../tests/physics/test_collision.cpp)
-isolates collision rules.
+Read [`test_platformer_movement.cpp`](../tests/movement/test_platformer_movement.cpp)
+beside the movement implementation for examples of acceleration, jumping, and climbing.
 
-### 5. Follow presentation separately
+### 5. Understand physics and tile collision
+
+Follow the movement loop into physics:
+
+1. [`body.hpp`](../include/simple_platformer/physics/body.hpp) defines bounds and velocity;
+2. [`body.cpp`](../src/physics/body.cpp): read `applyGravity`, `moveBody`, then `sweepAxis`;
+3. [`tile_map.cpp`](../src/world/tile_map.cpp) defines which tiles block movement.
+
+`moveBody` moves horizontally, then vertically. Each sweep stops at the first blocking
+tile and clears velocity on that axis. Read
+[`test_body.cpp`](../tests/physics/test_body.cpp) beside the implementation.
+See [Tile map, collision, and validation](ARCHITECTURE.md#tile-map-collision-and-validation)
+for more detail.
+
+### 6. Follow presentation separately
 
 Read these after the movement loop:
 
@@ -186,7 +198,7 @@ Read these after the movement loop:
 
 The first three can be understood and tested without knowing OpenGL.
 
-### 6. Read NPC behaviour and combat
+### 7. Read NPC behaviour and combat
 
 NPCs use the same actor movement and attack systems as the player. Their brain produces
 intentions instead of reading a keyboard. Follow this route:
@@ -203,7 +215,7 @@ intentions instead of reading a keyboard. Follow this route:
 The enum-and-switch code teaches the built-in decision flow. Combat then applies the
 requested attacks and contact damage.
 
-### 7. Read navigation last
+### 8. Read navigation last
 
 Navigation is the most advanced part of the repository. First understand NPC decisions
 and ordinary movement. Then read:
@@ -225,7 +237,7 @@ Platformer connections are found by running the real movement and collision code
 planned move and the real one behave the same. [Navigation](ARCHITECTURE.md#navigation)
 explains how these pieces fit together.
 
-### 8. Complete the level loop
+### 9. Complete the level loop
 
 Finally, read the small inventory and world-object subjects:
 

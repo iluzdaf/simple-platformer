@@ -3,7 +3,6 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/physics/collision.hpp"
 
 namespace simple_platformer
 {
@@ -23,6 +22,22 @@ namespace simple_platformer
 
     void applyGravity(Body& body, float gravity, float maximumFallSpeed, float deltaTime);
 
-    // Moves the body by its velocity over the step and stops it along any axis that hit a tile.
+    struct CollisionContacts
+    {
+        bool left = false;
+        bool right = false;
+        bool ground = false;
+        bool ceiling = false;
+    };
+
+    // Moves X, then Y by velocity * deltaTime, stopping at blocking tiles
+    // and zeroing velocity on each axis that hits.
     CollisionContacts moveBody(const TileMap& map, Body& body, float deltaTime);
+
+    // Probes for surfaces touching a stationary box without moving it,
+    // allowing a small tolerance for floating-point positions.
+    CollisionContacts touchingSurfaces(const TileMap& map, const Aabb& bounds);
+
+    // Only marked solid tiles can hold a wall or ceiling climber.
+    CollisionContacts touchingClimbableSurfaces(const TileMap& map, const Aabb& bounds);
 }

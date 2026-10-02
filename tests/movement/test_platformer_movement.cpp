@@ -8,7 +8,6 @@
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/physics/body.hpp"
-#include "simple_platformer/physics/collision.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"

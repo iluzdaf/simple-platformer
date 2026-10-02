@@ -53,7 +53,6 @@ namespace
 TEST_CASE("Every catalog region lies inside the shipped atlas", "[app][content][atlas]")
 {
     const glm::ivec2 atlas = pngSize(ShippedAtlas);
-    REQUIRE(atlas == glm::ivec2{256, 256});
     REQUIRE_NOTHROW(simple_platformer::loadGameCatalogs("assets/catalogs", atlas));
 }
 

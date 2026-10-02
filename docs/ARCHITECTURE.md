@@ -168,8 +168,7 @@ iterators and pointers during a system update.
   world coordinates, usually as feet, described below.
 - The internal resolution is 320 by 180 pixels.
 - Tiles are square. `tiles.json` declares `tileSize` in world pixels, each `TileMap`
-  carries it, and every cell calculation takes that size rather than assuming one. The
-  game uses 16.
+  carries it, and every cell calculation uses that configured size.
 - Window output is an integer-scaled internal image with letterboxing when required.
 
 A body has two points that code places it by, so the code never uses a general
@@ -465,9 +464,8 @@ lost one leaves it, and shares every other transition. A Pursuer answers the fir
 the attack that reaches, a bite before a shot, or Chase, and the second with Search. A
 KeepDistance NPC answers Retreat while the target is nearer than its standoff and
 otherwise the same, and watches from where it stands rather than walk to where the
-target was. The zombie is a Pursuer. The zombie soldier keeps its distance through the
-`keep_distance` machine, the KeepDistance tactic written as data over the same states,
-facts and activities.
+target was. Content chooses the tactic or supplies a machine expressing a policy
+through the same states, facts and activities.
 
 A tactic chooses; it never adds behaviour. A state, its activity, the facts it decides on
 and any capability it uses exist first, so healing instead of attacking is a heal
@@ -494,9 +492,6 @@ boundary. Machine activities are not copied into `NpcBrain::state`. Loading reje
 machine with no states, a repeated state name, a transition
 from or to a state it lacks, a condition on a fact no row answers, or a hold that is
 not a finite, non-negative time, and names the transition.
-
-The zombie soldier runs built-in activities through the `keep_distance` machine, which
-expresses its KeepDistance policy as data.
 
 Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
 edge and loses its path, navigation can recover to a supported cell before repathing;
@@ -529,13 +524,12 @@ removals are applied, an NPC cleanup system discards their script-owned state. L
 and restart discard that state for every actor before replacing the world.
 
 Machine JSON keeps the short string form for built-in activities. A Lua activity uses
-`{"kind":"lua","script":"rat","activity":"flee"}`. The application loads referenced
-files from `assets/scripts` at startup and rejects missing scripts or activities.
-The rat uses Lua to choose a flee goal while C++ follows the path and handles
-biting. The spider's Lua patrol and pursuit route it over walls and ceilings the same
-way. The boar's Lua charge activity requests ordinary walking, ledge avoidance,
-and contact damage; its machine uses facts to choose wake and recovery transitions.
-Scripts cannot create noise events or apply damage directly.
+`{"kind":"lua","script":"enemy_policy","activity":"flee"}`, for example. The application
+loads referenced files from `assets/scripts` at startup and rejects missing scripts
+or activities. Lua activities can choose movement goals, request attacks and enable
+contact damage through intentions. C++ follows paths and applies movement and combat
+rules using the actor's configured capabilities. Scripts cannot create noise events
+or apply damage directly.
 
 ## Navigation
 
@@ -751,8 +745,8 @@ The aim vector supports the full 360-degree range.
 While the `contactDamage` intention is held, combat queues body-overlap damage once per
 opponent. Releasing it or dying disables damage and clears the hit history, so a later
 activation can hit again. It neither moves the actor nor selects an attack animation.
-The boar's Lua charge activity combines this request with fast ordinary walking; recovery
-requests neither movement nor contact damage.
+An activity can combine this request with movement to implement a charge, then
+release both intentions during recovery.
 
 ### Projectiles and deferred damage
 
@@ -887,10 +881,10 @@ you see in the atlas is what appears in the game. To draw something larger or sm
 change the art. A tile's region is the catalog's `tileSize` square, so `tiles.json`
 gives only where it starts.
 
-The engine does not assume a sprite and body are equal. Actor sprites are normally
-positioned from the body's feet, which lets a tall image use a smaller body. The bat
-additionally uses a centred sprite anchor so its smaller body matches the creature in
-the middle of its frame.
+The engine does not require a sprite and body to have equal dimensions, be square,
+or match the tile size. The configured sprite anchor places the region relative to
+the body's feet or centre; the default is feet. Sprite placement does not change the
+collision body's dimensions.
 
 A climber's art is drawn once, standing on a floor and facing right. `placeActorSprite`
 turns it so its feet rest on the surface it holds: a quarter turn onto a wall and a half
@@ -919,14 +913,15 @@ the actor's `Sprite`. Pickup bobbing, hit flashes, death fading, and projectile 
 are calculated during scene construction from gameplay state and timers; they do not
 all require animation clips.
 
-The supplied atlas is 256 by 256 pixels. The example character clips use fixed 32 by
-24 source frames, grouped into named animation sets in `animations.json`.
-Artwork sources and atlas tooling live outside this repository; what is here is
-the finished runtime atlas.
+Atlas dimensions, frame shapes, artwork effects and packing layout are content
+choices. Each source region must lie within the loaded texture, and catalog regions
+must be updated when the atlas layout changes. The engine reads the finished atlas
+and regions; it does not require a particular art workspace or export tool.
 
-Frames within a set must share one size. Each frame draws at its own size from the
-same anchor, so mixed sizes would make the actor jump about as it plays. Whatever form
-frames take, collision bodies must remain independent of their dimensions.
+The loader requires all frames within an animation set to share one size. Each frame
+draws at its region's dimensions from the configured anchor, so consistent dimensions
+keep its placement stable across clips. The dimensions can differ between sets and
+are independent of collision body dimensions.
 
 ### Camera and display viewport
 

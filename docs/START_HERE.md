@@ -200,19 +200,32 @@ The first three can be understood and tested without knowing OpenGL.
 ### 7. Read NPC behaviour and combat
 
 NPCs use the same actor movement and attack systems as the player. Their brain produces
-intentions instead of reading a keyboard. Follow this route:
+intentions instead of reading a keyboard. Start with
+[`npc.hpp`](../include/simple_platformer/npc/npc.hpp) for the brain, perception, and state
+data, then [`npc_system.cpp`](../src/npc/npc_system.cpp) for the decision order.
 
-1. [`npc_senses.cpp`](../src/npc/npc_senses.cpp)
-2. [`npc_facts.cpp`](../src/npc/npc_facts.cpp)
-3. [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp)
-4. [`npc_states.cpp`](../src/npc/npc_states.cpp)
-5. [`npc_system.cpp`](../src/npc/npc_system.cpp), which runs each NPC's decisions
-6. [`attack_system.cpp`](../src/combat/attack_system.cpp)
-7. [`projectile_system.cpp`](../src/combat/projectile_system.cpp)
-8. [`lifecycle.cpp`](../src/actor/lifecycle.cpp)
+Follow just one case: a `Pursuer` on patrol sees the player outside attack range and
+starts chasing.
 
-The enum-and-switch code teaches the built-in decision flow. Combat then applies the
-requested attacks and contact damage.
+```text
+Patrol -> sees player -> Chase -> movement intentions
+```
+
+1. [`npc_senses.cpp`](../src/npc/npc_senses.cpp): `observeTarget` records visibility and
+   remembers the player's position.
+2. [`npc_facts.cpp`](../src/npc/npc_facts.cpp): `gatherNpcFacts` records that the target is
+   known and visible.
+3. [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp): in `nextNpcState`, the
+   `Patrol` case uses `pursuit` to choose `Chase` when no attack can reach the target.
+4. [`npc_states.cpp`](../src/npc/npc_states.cpp): `enterNpcState` changes the state, then
+   `updateChaseState` asks for intentions to reach the remembered position.
+5. Return to [`actor_system.cpp`](../src/actor/actor_system.cpp): it sends those intentions
+   through the movement code from step 4. Step 8 explains how a path becomes intentions.
+
+Then skim [`attack_system.cpp`](../src/combat/attack_system.cpp) and
+[`projectile_system.cpp`](../src/combat/projectile_system.cpp) for how attack intentions
+produce hits. [`lifecycle.cpp`](../src/actor/lifecycle.cpp) applies their damage and
+handles death. Other NPC tactics and states can wait until this case makes sense.
 
 ### 8. Read navigation last
 

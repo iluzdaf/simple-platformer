@@ -164,7 +164,7 @@ For the player movement path, a useful order is:
 3. [`platformer_movement.cpp`](../src/movement/platformer_movement.cpp)
 
 Read [`test_platformer_movement.cpp`](../tests/movement/test_platformer_movement.cpp)
-beside the movement implementation for examples of acceleration, jumping, and climbing.
+beside the movement implementation for examples of acceleration and jumping.
 
 ### 5. Understand physics and tile collision
 

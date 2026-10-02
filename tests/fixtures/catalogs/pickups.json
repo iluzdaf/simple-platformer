@@ -8,7 +8,6 @@
       "sprite": {
         "position": [24, 0],
         "size": [12, 8],
-        "displaySize": [24, 16],
         "anchor": "center"
       }
     }

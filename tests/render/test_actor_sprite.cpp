@@ -28,7 +28,7 @@ namespace
                                              .at({16.0F, 32.0F})
                                              .platforming()
                                              .climbing()
-                                             .withSprite({0, {}, SpriteSize});
+                                             .withSprite({0, {{0.0F, 0.0F}, SpriteSize}});
         tests::surfaceClimb(actor).surface = surface;
         actor.facing = facing;
         return actor;

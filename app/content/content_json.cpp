@@ -336,11 +336,9 @@ namespace simple_platformer
         std::string_view sourceName,
         std::string_view path)
     {
-        checkJsonFields(value, {"position", "size", "displaySize", "anchor"}, sourceName, path);
+        checkJsonFields(value, {"position", "size", "anchor"}, sourceName, path);
         Sprite sprite;
         sprite.region = jsonSpriteRegion(value, sourceName, path);
-        sprite.size = sprite.region.size;
-        readOptionalVector(value, "displaySize", sprite.size, sourceName, path);
         readOptionalSpriteAnchor(value, "anchor", sprite.anchor, sourceName, path);
         return sprite;
     }

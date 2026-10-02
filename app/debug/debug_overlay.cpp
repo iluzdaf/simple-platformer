@@ -53,8 +53,7 @@ namespace simple_platformer
             float atlasWidth)
         {
             if (!isFiniteNonNegative(sprite.region.position) ||
-                !isFinitePositive(sprite.region.size) || !isFinitePositive(sprite.size) ||
-                atlasWidth < sprite.region.size.x)
+                !isFinitePositive(sprite.region.size) || atlasWidth < sprite.region.size.x)
             {
                 throw std::logic_error("Debug overlay requires a valid sprite region");
             }

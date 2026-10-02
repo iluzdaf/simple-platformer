@@ -24,12 +24,12 @@ namespace simple_platformer
         }
 
         const ImVec2 topLeft = {
-            viewport.topLeft.x + (doorTopCenter->x - icon->size.x * 0.5F) * viewport.scale.x,
+            viewport.topLeft.x + (doorTopCenter->x - icon->region.size.x * 0.5F) * viewport.scale.x,
             viewport.topLeft.y +
-                (doorTopCenter->y - GapAboveDoor - icon->size.y) * viewport.scale.y};
+                (doorTopCenter->y - GapAboveDoor - icon->region.size.y) * viewport.scale.y};
         const ImVec2 bottomRight = {
-            topLeft.x + icon->size.x * viewport.scale.x,
-            topLeft.y + icon->size.y * viewport.scale.y};
+            topLeft.x + icon->region.size.x * viewport.scale.x,
+            topLeft.y + icon->region.size.y * viewport.scale.y};
         drawAtlasRegion(*ImGui::GetBackgroundDrawList(), atlas, icon->region, topLeft, bottomRight);
     }
 }

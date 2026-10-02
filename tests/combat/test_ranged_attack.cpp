@@ -33,7 +33,7 @@ TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][
     simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
     actor.facing = simple_platformer::Facing::Right;
     actor.rangedWeapon = simple_platformer::RangedWeapon{};
-    tests::rangedWeapon(actor).projectileSprite.size = {8.0F, 6.0F};
+    tests::rangedWeapon(actor).projectileSprite.region.size = {8.0F, 6.0F};
     actor.intentions.aimDirection = {-1.0F, 0.0F};
     actor.intentions.primaryAttackPressed = true;
     const simple_platformer::ActorId shooter = world.addActor(actor);
@@ -59,7 +59,7 @@ TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][
     REQUIRE(projectile.velocity.x < 0.0F);
     REQUIRE(projectile.bounds.topLeft.x == 16.0F);
     REQUIRE(projectile.bounds.size.x == 4.0F);
-    REQUIRE(projectile.sprite.size.x == 8.0F);
+    REQUIRE(projectile.sprite.region.size.x == 8.0F);
 }
 
 TEST_CASE("A ranged weapon normalises a diagonal aim direction", "[combat][weapon]")

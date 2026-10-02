@@ -104,7 +104,7 @@ namespace simple_platformer
             animator.animationSet = animationSet(animations, definition.animations);
             validateAnimationSet(animator.animationSet);
             const auto& frame = clipFor(animator.animationSet, AnimationName::Idle).frames.front();
-            actor.sprite = Sprite{textureId, frame, frame.size};
+            actor.sprite = Sprite{textureId, frame};
             actor.sprite->anchor = definition.spriteAnchor;
             actor.animator = std::move(animator);
         }

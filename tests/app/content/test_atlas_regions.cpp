@@ -61,7 +61,7 @@ TEST_CASE("A region past the atlas is reported by its file and field", "[app][co
     SECTION("A pickup sprite")
     {
         auto& [name, definition] = *catalogs.pickups.begin();
-        definition.sprite = simple_platformer::Sprite{0, PastTheEdge, {16.0F, 16.0F}};
+        definition.sprite = simple_platformer::Sprite{0, PastTheEdge};
         expected = "pickups.json: pickups." + name + ".sprite";
     }
     SECTION("An exit sprite")

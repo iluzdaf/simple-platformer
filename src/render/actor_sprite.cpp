@@ -54,7 +54,7 @@ namespace simple_platformer
         const bool fromFeet = sprite.anchor == SpriteAnchor::BodyFeet;
         const glm::vec2 centre = centerOf(body);
         // Half the sprite's height: how far its centre sits from the edge its feet are on.
-        const float feetToCentre = sprite.size.y * 0.5F;
+        const float feetToCentre = sprite.region.size.y * 0.5F;
         // Unmirrored art heads right; a turn carries the head with it. A quarter turn
         // clockwise heads it down, one anticlockwise up, and a half turn left.
         switch (surface)
@@ -62,21 +62,21 @@ namespace simple_platformer
         case ClimbSurface::Ceiling:
             return turned(
                 fromFeet ? glm::vec2{centre.x, body.topLeft.y + feetToCentre} : centre,
-                sprite.size,
+                sprite.region.size,
                 glm::pi<float>(),
                 !facingLeft,
                 false);
         case ClimbSurface::LeftWall:
             return turned(
                 fromFeet ? glm::vec2{body.topLeft.x + feetToCentre, centre.y} : centre,
-                sprite.size,
+                sprite.region.size,
                 glm::half_pi<float>(),
                 headingUp,
                 true);
         case ClimbSurface::RightWall:
             return turned(
                 fromFeet ? glm::vec2{rightOf(body) - feetToCentre, centre.y} : centre,
-                sprite.size,
+                sprite.region.size,
                 -glm::half_pi<float>(),
                 !headingUp,
                 true);

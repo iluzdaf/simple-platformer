@@ -880,17 +880,17 @@ The engine keeps visual and physical dimensions separate:
 
 - texture size is the full atlas size in source-image pixels;
 - `SpriteRegion` is one source rectangle inside that texture;
-- `Sprite::size` is the rectangle drawn in world pixels;
 - `Body::bounds.size` is the collision rectangle in world pixels.
 
-A tile has only a `SpriteRegion` and no `Sprite::size`: it always fills one cell, so its
-region is the catalog's `tileSize` square and `tiles.json` gives only where it starts.
-Every other sprite in the same atlas chooses its world size independently.
+A sprite is drawn at its region's size: one atlas pixel is one world pixel, so what
+you see in the atlas is what appears in the game. To draw something larger or smaller,
+change the art. A tile's region is the catalog's `tileSize` square, so `tiles.json`
+gives only where it starts.
 
-Matching sizes are assigned explicitly; the engine does not assume a sprite and body
-are equal. Actor sprites are normally positioned from the body's feet, which lets a
-tall image use a smaller body. The bat additionally uses a centred sprite anchor so
-its smaller body matches the creature in the middle of its frame.
+The engine does not assume a sprite and body are equal. Actor sprites are normally
+positioned from the body's feet, which lets a tall image use a smaller body. The bat
+additionally uses a centred sprite anchor so its smaller body matches the creature in
+the middle of its frame.
 
 A climber's art is drawn once, standing on a floor and facing right. `placeActorSprite`
 turns it so its feet rest on the surface it holds: a quarter turn onto a wall and a half
@@ -924,12 +924,9 @@ The supplied atlas is 256 by 256 pixels. The example character clips use fixed 3
 Artwork sources and atlas tooling live outside this repository; what is here is
 the finished runtime atlas.
 
-Frames within a set must share one size. `SpriteRegion` supports arbitrary source
-rectangles, but playback changes only the region while `Sprite::size` and its anchor stay
-fixed, so mixed-size frames would stretch. Fixed-size example frames avoid this. A richer
-`AnimationFrame` carrying a display size and pivot is
-[future work](FUTURE_WORK.md); whatever form it takes, collision bodies must remain
-independent of animation frame dimensions.
+Frames within a set must share one size. Each frame draws at its own size from the
+same anchor, so mixed sizes would make the actor jump about as it plays. Whatever form
+frames take, collision bodies must remain independent of their dimensions.
 
 ### Camera and display viewport
 

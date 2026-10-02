@@ -35,7 +35,7 @@ namespace
         projectile.damage = 1;
         projectile.lifetimeRemaining = 2.0F;
         projectile.team = simple_platformer::Team::Player;
-        projectile.sprite.size = projectile.bounds.size;
+        projectile.sprite.region.size = projectile.bounds.size;
         return projectile;
     }
 

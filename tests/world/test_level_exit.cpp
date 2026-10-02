@@ -179,7 +179,7 @@ TEST_CASE(
     shot.team = simple_platformer::Team::Enemy;
     shot.bounds = {{60.0F, 4.0F}, {2.0F, 2.0F}};
     shot.velocity = {100.0F, 0.0F};
-    shot.sprite.size = {2.0F, 2.0F};
+    shot.sprite.region.size = {2.0F, 2.0F};
     world.addProjectile(shot);
     const auto position = tests::player(world).body.bounds.topLeft;
     for (int tick = 0; tick < 60 && !world.levelComplete(); ++tick)
@@ -204,7 +204,7 @@ TEST_CASE(
     simple_platformer::Projectile projectile;
     projectile.team = simple_platformer::Team::Enemy;
     projectile.bounds = {{20.0F, 20.0F}, {2.0F, 2.0F}};
-    projectile.sprite.size = {2.0F, 2.0F};
+    projectile.sprite.region.size = {2.0F, 2.0F};
     world.addProjectile(projectile);
     simple_platformer::TileMap map = tests::TileMapBuilder({"......", "......", "######"});
     simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);

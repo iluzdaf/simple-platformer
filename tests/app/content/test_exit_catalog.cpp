@@ -14,7 +14,7 @@ namespace
     nlohmann::json exitData()
     {
         return nlohmann::json::parse(R"({"exits":{"gate":{
-            "bodySize":[12,24],"sprite":{"position":[8,16],"size":[8,12],"displaySize":[16,24],"anchor":"center"}
+            "bodySize":[12,24],"sprite":{"position":[8,16],"size":[16,24],"anchor":"center"}
         }}})");
     }
 }
@@ -31,7 +31,7 @@ TEST_CASE("Exit definitions compose independent bounds and sprites", "[app][exit
         throw std::logic_error("Missing exit sprite");
     }
     REQUIRE(exit.sprite->textureId == 7);
-    REQUIRE(exit.sprite->size == glm::vec2{16, 24});
+    REQUIRE(exit.sprite->region.size == glm::vec2{16, 24});
     REQUIRE(exit.sprite->anchor == simple_platformer::SpriteAnchor::BodyCenter);
     REQUIRE_FALSE(exit.requirement.has_value());
     REQUIRE_FALSE(exit.nextLevel.has_value());

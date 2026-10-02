@@ -43,8 +43,8 @@ namespace simple_platformer
         float phaseTimeRemaining = 0.0F;
         // Simulation-clock stamp for presentation; hearing uses separate noise events.
         std::optional<double> lastFiredTimeSeconds;
-        // Its display size is independent of projectileSize, just like an actor sprite and body.
-        Sprite projectileSprite = {0, {}, {4.0F, 2.0F}};
+        // Its drawn size is independent of projectileSize, just like an actor sprite and body.
+        Sprite projectileSprite = {0, {{0.0F, 0.0F}, {4.0F, 2.0F}}};
     };
 
     enum class BitePhase

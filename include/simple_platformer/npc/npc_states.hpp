@@ -14,18 +14,13 @@ namespace simple_platformer
     // movement update turns it into a facing.
     void aimToward(Actor& actor, glm::vec2 targetFeet);
 
-    // Every activity change drops the old path, and a bite is asked for once as its
-    // activity is entered.
-    void enterBuiltInActivity(
-        Actor& actor,
-        NpcBrain& brain,
-        PathFollower& follower,
-        NpcState state);
+    // Entering a state resets its time and path. Charge commits its direction;
+    // Bite requests an attack once on entry.
+    void enterNpcState(Actor& actor, NpcBrain& brain, PathFollower& follower, NpcState state);
 
-    // This tick's intentions for one of the engine's own activities, the states the tactic
-    // switch uses. The target is the living remembered target, if any, and
-    // the activity has been running for stateElapsed.
-    void updateBuiltInActivity(
+    // This tick's intentions for the selected state. The target is the living
+    // remembered target, if any, and the state has been running for stateElapsed.
+    void updateNpcState(
         const NpcUpdate& update,
         Actor& actor,
         NpcBrain& brain,

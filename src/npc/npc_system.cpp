@@ -10,7 +10,7 @@
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_built_in_activity.hpp"
+#include "simple_platformer/npc/npc_states.hpp"
 #include "simple_platformer/npc/npc_facts.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
 #include "simple_platformer/npc/npc_transitions.hpp"
@@ -22,13 +22,6 @@ namespace simple_platformer
 {
     namespace
     {
-        void enterNpcState(Actor& actor, NpcBrain& brain, PathFollower& follower, NpcState state)
-        {
-            brain.state = state;
-            brain.stateElapsed = 0.0F;
-            enterBuiltInActivity(actor, brain, follower, state);
-        }
-
         void updateTacticState(
             const NpcUpdate& update,
             Actor& actor,
@@ -41,12 +34,11 @@ namespace simple_platformer
             {
                 enterNpcState(actor, brain, follower, *next);
             }
-            updateBuiltInActivity(
-                update, actor, brain, follower, target, brain.state, brain.stateElapsed);
+            updateNpcState(update, actor, brain, follower, target, brain.state, brain.stateElapsed);
         }
 
         // Which state comes next is decided once, from the facts, before the state acts.
-        void updateNpcState(const NpcUpdate& update, Actor& actor)
+        void updateNpcDecision(const NpcUpdate& update, Actor& actor)
         {
             if (!actor.brain.has_value() || !actor.perception.has_value() ||
                 !actor.pathFollower.has_value())
@@ -95,7 +87,7 @@ namespace simple_platformer
             NpcBrain& brain = *actor.brain;
             if (actor.life == LifeState::Alive)
             {
-                updateNpcState(update, actor);
+                updateNpcDecision(update, actor);
                 brain.stateElapsed += deltaTime;
             }
         }

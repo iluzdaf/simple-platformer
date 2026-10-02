@@ -73,7 +73,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_route_search.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_senses.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_system.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_built_in_activity.cpp
+    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_states.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_facts.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_navigation.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_transitions.cpp

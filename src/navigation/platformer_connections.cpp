@@ -400,6 +400,13 @@ namespace simple_platformer
                 {
                     intentions.direction.x = offset.x / distancePerTick;
                 }
+                else
+                {
+                    // Keep a direction for the follower's grip acquisition, even
+                    // when these simulated starting bounds already touch the wall.
+                    intentions.direction.x =
+                        destination.surface == ClimbSurface::LeftWall ? -1.0F : 1.0F;
+                }
             }
             else
             {
@@ -413,6 +420,21 @@ namespace simple_platformer
                 else if (std::abs(offset[acrossSurface]) > ClimbArrivalDistance)
                 {
                     intentions.direction[acrossSurface] = offset[acrossSurface] / distancePerTick;
+                }
+                else if (from.surface != destination.surface)
+                {
+                    // A tile-sized body has identical resting bounds on both sides
+                    // of an inside corner. Press into the supporting surface to
+                    // select the new grip without moving away from the target.
+                    if (destination.surface == ClimbSurface::Ceiling)
+                    {
+                        intentions.direction.x =
+                            from.surface == ClimbSurface::LeftWall ? -1.0F : 1.0F;
+                    }
+                    else
+                    {
+                        intentions.direction.y = -1.0F;
+                    }
                 }
             }
             intentions.direction = glm::clamp(intentions.direction, -1.0F, 1.0F);

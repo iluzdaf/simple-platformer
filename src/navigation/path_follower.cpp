@@ -230,6 +230,14 @@ namespace simple_platformer
                 {
                     return {false, approachAndBrake(body, movement, start)};
                 }
+                else if (
+                    waypoint.feet == start &&
+                    waypoint.inputs.front().intentions.climbGrip == ClimbGrip::Hold)
+                {
+                    // An in-place grab needs contact, but walking may stop short
+                    // within its arrival tolerance. Acquire the wall before replay.
+                    return {false, waypoint.inputs.front().intentions};
+                }
             }
 
             const float duration = durationOf(waypoint.inputs);

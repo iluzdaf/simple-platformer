@@ -14,7 +14,6 @@ namespace simple_platformer
 {
     namespace
     {
-        // Whether the contacts include the wall or ceiling.
         bool touchesSurface(ClimbSurface surface, const CollisionContacts& contacts)
         {
             switch (surface)
@@ -44,6 +43,8 @@ namespace simple_platformer
                 return ClimbSurface::None;
             }
 
+            // At a corner, the intended travel axis chooses the next surface. Without
+            // a stronger direction, keep the current grip if it still has contact.
             const float horizontal = std::abs(intentions.direction.x);
             const float vertical = std::abs(intentions.direction.y);
             if (contacts.ceiling && horizontal > vertical)

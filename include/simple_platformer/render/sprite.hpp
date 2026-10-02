@@ -24,8 +24,8 @@ namespace simple_platformer
         int textureId = 0;
         // Drawn at its size in the atlas: one texture pixel is one world pixel.
         SpriteRegion region;
-        // Ground actors align the sprite bottom with their feet. Flying actors can instead
-        // centre a smaller collision body within the sprite.
+        // BodyFeet aligns the sprite's bottom centre with the body's feet. BodyCenter
+        // aligns their centres. Neither changes the body's size.
         SpriteAnchor anchor = SpriteAnchor::BodyFeet;
     };
 

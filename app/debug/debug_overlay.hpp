@@ -51,7 +51,8 @@ namespace simple_platformer
         bool hasPath = false;
         std::size_t nextStep = 0;
         std::size_t stepCount = 0;
-        // Resolved to feet here, like the connections, so the UI draws without cell maths.
+        // The goal the path was planned for, in world pixels. It may differ from the
+        // path's final waypoint, which ends somewhere in the goal cell.
         std::optional<glm::vec2> goalFeet;
         std::vector<PathConnectionDebugInfo> connections;
     };
@@ -101,8 +102,8 @@ namespace simple_platformer
         std::string itemName;
     };
 
-    // What the overlay shows of the world: only what the camera can see, a tile beyond
-    // its edges, so a large level does not fill the text column with actors off screen.
+    // Plain diagnostics for the camera view plus a one-tile margin. Limiting the view
+    // keeps large levels from filling the overlay with off-screen objects.
     struct DebugOverlay
     {
         std::vector<ActorDebugInfo> actors;

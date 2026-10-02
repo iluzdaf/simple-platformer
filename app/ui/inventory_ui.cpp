@@ -26,7 +26,6 @@ namespace simple_platformer
         constexpr float IconPadding = 2.0F;
         constexpr float GridPadding = 2.0F;
 
-        // Inventory grid palette.
         constexpr ImU32 SlotColour = IM_COL32(40, 44, 52, 220);
         constexpr ImU32 HoveredSlotColour = IM_COL32(72, 76, 84, 240);
         constexpr ImU32 SlotBorderColour = IM_COL32(150, 156, 168, 220);

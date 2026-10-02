@@ -24,6 +24,7 @@ namespace simple_platformer
             throw std::invalid_argument("Life states require a finite, positive death duration");
         }
 
+        // Snapshot before applying damage so a newly dying actor keeps its full timer.
         std::vector<ActorId> actorsAlreadyDying;
         for (const Actor& actor : world.actors())
         {

@@ -213,7 +213,7 @@ TEST_CASE("A patrol goal that moves is planned for at once", "[npc][navigation]"
     const simple_platformer::PathFollower& follower = tests::pathFollower(world, npcId);
     REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
 
-    // A few pixels is not worth planning again; half a tile is.
+    // Moving the goal four pixels keeps the path; moving it two tiles replans.
     tests::patrol(world, npcId).secondFeet = {124.0F, 32.0F};
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));

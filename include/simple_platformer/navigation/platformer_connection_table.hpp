@@ -11,20 +11,18 @@ namespace simple_platformer
 {
     class TileMap;
 
-    // Every cell's platformer connections for one map, kept per traversal profile. A
-    // profile is built whole, for every cell, the first time it is prepared; a level
-    // prepares its NPCs' profiles when it starts. A tile broken after that rebuilds only
-    // the cells whose footprint holds it.
+    // Stores every cell's connections for one map, grouped by traversal profile.
+    // Preparing a new profile builds the whole map. A tile break rebuilds only cells
+    // whose simulation footprints include it.
     class PlatformerConnectionTable
     {
     public:
-        // Applies the map's breaks to the built profiles, then builds this profile for
-        // every cell if it is not built yet. The profile needs a finite, positive size and
-        // step.
+        // Applies new breaks to existing profiles, then builds this profile if needed.
+        // Body size and simulation step must be finite and positive.
         void prepare(const TileMap& map, const PlatformerTraversalProfile& profile);
 
-        // Rebuilds, in every built profile, the cells whose footprint holds a tile broken
-        // since the last call. Their new footprints come from the map as it is now.
+        // For every built profile, rebuilds cells whose footprints include a new break.
+        // The new connections and footprints use the map's current tiles.
         void applyRecordedTileBreaks(const TileMap& map);
 
         bool isBuilt(const PlatformerTraversalProfile& profile) const;
@@ -34,8 +32,9 @@ namespace simple_platformer
         const std::vector<RouteConnection>& connections(
             Cell cell,
             const PlatformerTraversalProfile& profile) const;
-        // The cells the cell's connections were simulated over. A break inside it rebuilds
-        // them. Throws as connections does.
+        // Tiles read or swept while simulating this cell, including a margin for support
+        // checks. A break inside this range rebuilds the connections. Throws if the profile
+        // is not built or the cell is off the map.
         const CellRange& footprint(Cell cell, const PlatformerTraversalProfile& profile) const;
 
     private:
@@ -49,7 +48,7 @@ namespace simple_platformer
         {
             PlatformerTraversalProfile profile;
             GridSize grid;
-            // Row by row, a cell at y * grid.width + x.
+            // Row-major storage: the cell at (x, y) is at y * grid.width + x.
             std::vector<CellConnections> cells;
         };
 

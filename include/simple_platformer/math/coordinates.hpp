@@ -58,10 +58,9 @@ namespace simple_platformer
     // The smallest range holding both.
     CellRange unionOf(const CellRange& left, const CellRange& right);
 
-    // Points within this of a tile edge count as on the side they visually belong to: feet
-    // resting on a tile's top edge stand in the cell above it, a box whose edge lies on a
-    // boundary covers only the cells inside it, and a body this close to the map's edge is
-    // touching it.
+    // In world pixels: tolerance used for tile-edge tests. Feet on a floor belong to the
+    // cell above it; box edges do not include the cell beyond them. Map-edge contact uses
+    // the same tolerance.
     constexpr float EdgeTolerance = 0.001F;
 
     // The cell containing the point. A point on a tile edge belongs to the cell to its right

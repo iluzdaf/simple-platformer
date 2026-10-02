@@ -96,11 +96,10 @@ namespace simple_platformer
             bool hitTile = false;
         };
 
-        // How far the box may move along one axis before a blocking tile stops it. The scan
-        // runs from the cell the leading edge is in to the cell it would end in. Arriving
-        // exactly at a map edge counts as reaching the cell beyond it: past the sides and
-        // bottom that cell blocks, and above the top it is open, so either way the answer
-        // is the map's.
+        // Returns how far the box can move along one axis before hitting the requested
+        // kind of surface. Scans from the leading edge to its proposed position, nearest
+        // tiles first. At a map edge it queries the outside cell too, so blocking boundaries
+        // stop the box and the open top lets it pass.
         SweepResult sweepAxis(
             const TileMap& map,
             Axis axis,

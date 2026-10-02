@@ -20,13 +20,12 @@ namespace simple_platformer
 {
     namespace
     {
-        // In pixels: a goal that moves less than this keeps its path, so a goal that
-        // follows a drifting target is not planned for every frame.
+        // In pixels: keep the path until the goal moves farther than this, so a drifting
+        // target does not trigger a search every update.
         constexpr float ReplanDistance = 8.0F;
 
-        // Whether the follower needs a path to this goal: it has none, or one planned
-        // for a goal that has since moved away, or has finished its path and been moved
-        // off its end since.
+        // Needs a path if none is stored, the planned goal has moved, or the actor has
+        // been displaced from the end of a finished path.
         bool needsPath(const PathFollower& follower, glm::vec2 feet, glm::vec2 goal)
         {
             if (!follower.path.has_value() || !follower.goal.has_value())
@@ -48,9 +47,8 @@ namespace simple_platformer
             return follower.breaksWhenPlanned != map.brokenCells().size();
         }
 
-        // Keeps the follower's path to the goal, or finds a new one when needsPath or a
-        // break says to. The search simulates at the update's step, which this actor is
-        // about to be moved with.
+        // Keeps a usable path or searches again after a goal change, displacement, or
+        // tile break. New connections use the same step as the actor's next movement.
         void planPathTo(
             const NpcUpdate& update,
             const Actor& actor,

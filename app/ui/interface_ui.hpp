@@ -9,8 +9,8 @@ namespace simple_platformer
     struct Texture;
     struct WindowViewport;
 
-    // What the player asked for through the interface. The loop applies them after the
-    // interface is built, so building it never changes the game.
+    // Requests collected while drawing the UI. The loop applies them afterward, so UI
+    // construction does not change game state.
     struct InterfaceRequests
     {
         bool toggleInventory = false;
@@ -18,11 +18,9 @@ namespace simple_platformer
         std::optional<std::size_t> useInventorySlot;
     };
 
-    // The player-facing interface over the scene, in a fixed order: the health HUD, the
-    // inventory bag, the locked exit hint, the completion message, the pause notice
-    // while the simulation is paused, and the inventory while it is open. With no
-    // viewport there is nothing to draw against. Build it before the simulation so a
-    // bag click pauses the same frame instead of firing a shot.
+    // Draws the player interface and returns requests. No viewport means nothing is drawn
+    // or requested. Call before simulation so opening the bag pauses that frame and the
+    // same mouse press cannot also fire a shot.
     InterfaceRequests drawInterface(
         const Game& game,
         const Texture& atlas,

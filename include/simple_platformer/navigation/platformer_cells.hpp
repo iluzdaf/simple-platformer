@@ -11,10 +11,10 @@ namespace simple_platformer
 {
     class TileMap;
 
-    // canOccupy for the cell's floor.
+    // Whether the body can stand with its feet in the cell: clearance and support below.
     bool canStandAt(const TileMap& map, Cell cell, glm::vec2 bodySize);
 
-    // canOccupy for any of the cell's walls or its ceiling.
+    // Whether the body fits against at least one climbable wall or ceiling in the cell.
     bool canClimbAt(const TileMap& map, Cell cell, glm::vec2 bodySize);
 
     // The body's resting bounds at a location: standing in the cell, flush against

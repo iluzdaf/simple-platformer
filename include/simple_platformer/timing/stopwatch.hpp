@@ -4,17 +4,16 @@
 
 namespace simple_platformer
 {
-    // Wall-clock seconds since it started. This is the one place the engine reads a
-    // clock, so everything else can be timed without owning one.
+    // Measures real elapsed seconds with a steady clock. Gameplay systems receive
+    // deltaTime instead, so tests can advance them without waiting.
     class Stopwatch
     {
     public:
-        // Starts now.
         Stopwatch();
 
         float elapsedSeconds() const noexcept;
-        // Restarts and returns the seconds since it last started: read once per frame,
-        // that is the frame's time.
+        // Returns seconds since construction or the last lap, then restarts the clock.
+        // The application calls this once per frame to measure frame time.
         float lapSeconds();
 
     private:

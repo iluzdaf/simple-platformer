@@ -32,7 +32,7 @@ namespace simple_platformer
         // A traversal must land and stop within this many updates to become a
         // connection. Its duration in seconds depends on the caller's step.
         constexpr int MaximumConnectionSimulationTicks = 120;
-        // A climb crosses at most one cell at the climb speed, which may be slow.
+        // Allow longer for climbs, which may move slowly around a corner or onto a floor.
         constexpr int MaximumClimbSimulationTicks = 240;
         // In pixels: a climb ends with the body this close to its destination's resting
         // bounds.
@@ -81,10 +81,9 @@ namespace simple_platformer
             CellRange sweep;
         };
 
-        // Simulates a complete start-to-stop walk using the real path follower, movement,
-        // and collision code. Returns its fixed-update cost, or no cost when the actor
-        // cannot reach and stop at the destination within the connection simulation
-        // limit, with the cells it swept as offsets from the start.
+        // Walks with the real follower and movement code. Returns the ticks needed to
+        // reach and stop at the destination, or no cost if the attempt times out. The
+        // footprint is reported even on failure, as cell offsets from the start.
         WalkSimulationResult simulateWalk(
             const TileMap& map,
             Cell start,
@@ -260,8 +259,8 @@ namespace simple_platformer
             CellRange footprint;
         };
 
-        // The policy decides which traversals to try; simulation later determines
-        // whether they succeed and where they end.
+        // Chooses floor traversals to try from the surrounding terrain. Simulation then
+        // decides whether each one succeeds and where it lands.
         ConnectionPlan planPlatformerConnections(const TileMap& map, Cell start, glm::vec2 bodySize)
         {
             const int tileSize = map.tileSize();
@@ -494,8 +493,8 @@ namespace simple_platformer
                         target,
                         climbConfig.speed * profile.stepSeconds);
                 }
-                // One step a tick. A climb ends at an exact position, and the summed
-                // duration of merged ticks can round to a tick more on replay.
+                // Keep one input step per tick. Merging durations can round replay up to
+                // an extra tick and carry the climber past its destination.
                 inputs.push_back({profile.stepSeconds, intentions});
                 updateSurfaceClimbMovement(
                     map, body, movement, climb, intentions, profile.stepSeconds);

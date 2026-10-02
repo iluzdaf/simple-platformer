@@ -21,9 +21,9 @@ namespace simple_platformer
 {
     namespace
     {
-        // The shares of a body's area in cover between which it fades: shown fully up to the
-        // first, hidden from the second. With the game's 16-pixel tiles, a 12 by 20 actor
-        // standing in one row of grass is 0.8 in cover, so it must be hidden by then.
+        // Cover is measured as a fraction of body area. Show fully up to the first limit
+        // and hide from the second. A 12 by 20 body in 16-pixel-tall grass is 80% covered,
+        // so these limits hide it without requiring the whole body to fit in grass.
         constexpr float ShownUpToCover = 0.5F;
         constexpr float HiddenFromCover = 0.75F;
 

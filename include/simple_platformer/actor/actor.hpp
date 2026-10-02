@@ -45,8 +45,8 @@ namespace simple_platformer
 
         std::optional<Sprite> sprite;
         std::optional<Animator> animator;
-        // How much of the actor the player's screen shows, eased towards what the player can
-        // see of it. Unset until first presented.
+        // Screen visibility from 0 to 1, eased by cover fading. The player uses it for
+        // shading; other actors use it for opacity. Unset until first presented.
         std::optional<float> screenVisibility;
         std::optional<Health> health;
         std::optional<Inventory> inventory;

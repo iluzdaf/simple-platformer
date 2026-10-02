@@ -293,8 +293,8 @@ namespace simple_platformer
             }
         }
 
-        // Turns each marked map cell into an explicit placement, so the shorthand and the
-        // written-out arrays reach the parse below in the same shape.
+        // Expands object markers into placements before parsing, so markers and explicit
+        // arrays use the same readers and validation.
         void expandMapSymbols(Json& root, const Json& legend, std::string_view sourceName)
         {
             for (const auto* key : {"actors", "pickups"})

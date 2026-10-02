@@ -31,12 +31,11 @@ namespace simple_platformer
         std::optional<char> marker;
     };
 
-    // Authoring rules shared by JSON loading and C++ content construction.
-    // These validators throw invalid_argument. A JSON loader passes sourceName so the
-    // filename appears in the message; C++ callers leave it off, which is why sourceName
-    // is the trailing argument here, unlike in content_json.
+    // Authoring checks shared by JSON loaders and C++ callers. Failures throw
+    // invalid_argument; optional sourceName adds a filename to the diagnostic.
 
-    // Checks positive quantity, not spatial placement or whether the item exists.
+    // Inline pickups require a positive quantity and body size. Named pickups use their
+    // catalog definition. Placement and item lookup are checked during composition.
     void validatePickupSettings(
         const PickupPlacement& placement,
         const std::string& path = "pickup",

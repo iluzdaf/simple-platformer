@@ -41,7 +41,8 @@ namespace simple_platformer
         // Collection can erase pickups. Do not retain references/indexes across request batches.
         std::vector<Pickup>& pickups();
         const std::vector<Pickup>& pickups() const;
-        // Used when applying queued pickup requests, after iteration has finished.
+        // Transfers what fits into the player's inventory and erases an emptied pickup.
+        // Call after pickup iteration, because erasing shifts the remaining indexes.
         void collectPickup(std::size_t index);
         void setExit(LevelExit exit);
         const std::optional<LevelExit>& exit() const;
@@ -49,11 +50,11 @@ namespace simple_platformer
         bool levelComplete() const;
         void completeLevel();
 
-        // Elapsed active fixed-step time for this world. A double, and so are the stamps
-        // taken from it, so a stamp keeps its precision however long a session runs.
+        // Elapsed simulation seconds. The clock and its stamps use double to preserve
+        // precision in long sessions.
         double simulationTimeSeconds() const;
-        // How long ago a stamp taken from this clock was, or nothing without a stamp. A
-        // stamp ahead of the clock is rejected. An age is small, so it is a float.
+        // Returns a stamp's age as float seconds, or nothing if unset. The stamp must be
+        // finite and between zero and this world's current time.
         std::optional<float> secondsSince(const std::optional<double>& timeSeconds) const;
         // The simulation loop calls this once at the start of each active update.
         void advanceSimulationTime(float deltaTime);
@@ -93,14 +94,12 @@ namespace simple_platformer
         glm::vec2 playerSpawnFeet() const;
         void respawnPlayer();
 
-        // Every cell's platformer connections for the map this world is simulated with.
-        // The world goes with its level, so a profile is built once for the whole level;
-        // a tile broken during play rebuilds only the cells it touched.
+        // Connections for this world's map, shared by actors with the same profile.
+        // New profiles build once; tile breaks rebuild only affected cells.
         PlatformerConnectionTable& platformerConnections();
         const PlatformerConnectionTable& platformerConnections() const;
 
     private:
-        // A stamp on the world clock may be unset, but never ahead of the clock.
         void requireWithinSimulationTime(const std::optional<double>& time, const char* what) const;
 
         std::vector<ItemDefinition> itemDefinitions;

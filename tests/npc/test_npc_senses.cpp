@@ -254,7 +254,7 @@ TEST_CASE("An NPC remembers where it heard a hidden player shoot", "[npc][senses
     const glm::vec2 shotFeet{40.0F, 30.0F};
     const auto secondNpc = world.addActor(makeNpc({16.0F, 30.0F}));
 
-    // A presentation stamp alone must never synthesize a hearing event.
+    // A shot stamp is for presentation; hearing requires a noise event.
     tests::rangedWeapon(world, playerId).lastFiredTimeSeconds = world.simulationTimeSeconds();
     simple_platformer::updateNpcSenses(map, world, 0.1F);
     REQUIRE_FALSE(brain(world, npcId).target.has_value());

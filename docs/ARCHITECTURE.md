@@ -421,7 +421,7 @@ the clock, and consuming noise does not affect the stamp. Hearing never polls th
 timestamp; no noise event needs to persist for the reveal or target-memory window.
 
 NPCs pass the last-known feet to navigation as a goal point. Navigation leads the
-pursuer as close to it as its own body and moves allow; see [goals](#goals). It never
+pursuer to its cell when its body and moves can reach it; see [goals](#goals). It never
 reads the hidden player's current position or moves either actor directly. Patrol
 endpoints are goals in the same way.
 
@@ -509,15 +509,9 @@ A goal is a point, and it need not be somewhere the actor can be. The search wor
 cells: it heads for the cell holding the point and stops at the cheapest place in that
 cell.
 
-The result's status says how it went:
-
-| Status        | When                                                                       | The path                                                                                                                                | Distance from its end to the goal |
-| ------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| `Found`       | The path reaches the goal's cell.                                          | Ends in the goal's cell.                                                                                                                | Yes                               |
-| `Unreachable` | The search tried everything reachable from the start, and never got there. | Ends in the reached cell nearest the goal, the first reached of any equally close. It has no waypoints when the actor is already there. | Yes                               |
-
-The distance lets a caller judge the outcome for itself, such as whether an
-unreachable goal is close enough.
+The result is `Found` with a path when the goal cell is reached, or `Unreachable`
+with no path when the search exhausts all reachable locations. A successful result
+also reports the distance from its final feet position to the requested goal point.
 
 A cell with more than one place to rest, such as a floor at the foot of a climbable
 wall, ends the path at whichever the actor reaches first. A climber arriving from the
@@ -539,15 +533,8 @@ The caller supplies three things:
   be more than the real cost. A heuristic that always guesses zero turns A* into
   Dijkstra's search.
 
-The search ends in one of three ways:
-
-- It reaches the goal cell, and returns a route to the cheapest location there.
-- It runs out of places to try, and returns a route to a cell as close to the goal as
-  possible, the first reached of any equally close. The caller tells which of these
-  two happened from where the route ends.
-- The caller's readiness check refuses a location, before the search asks for its
-  connections. The search pauses and returns no route, only that location, so the
-  caller can build its connections first.
+The search returns a route to the cheapest location in the goal cell when it reaches
+that cell. If it runs out of places to try, it returns no route.
 
 ### Flying paths
 

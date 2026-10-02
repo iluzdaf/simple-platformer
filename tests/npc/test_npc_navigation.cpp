@@ -8,7 +8,6 @@
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
-#include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
@@ -167,32 +166,37 @@ TEST_CASE("An NPC plans its path again after a break", "[npc][navigation]")
     REQUIRE(pathFollower(world, npcId).breaksWhenPlanned == 1);
 }
 
-TEST_CASE("An unreachable patrol heads as close as it can without retrying", "[npc][navigation]")
+TEST_CASE("An unreachable patrol stays still without a partial path", "[npc][navigation]")
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"....#....", "....#....", "#########"});
     simple_platformer::World world;
     tests::addPlayer(world, makePlayer({22.0F, 12.0F}));
-    const simple_platformer::ActorId npcId =
+    const auto npcId =
         world.addActor(makeNpc({24.0F, 32.0F}).patrolling({24.0F, 32.0F}, {120.0F, 32.0F}));
+    for (int tick = 0; tick < 2; ++tick)
+    {
+        simple_platformer::updateNpcBehaviour(map, world, 0.1F);
+        const auto& follower = tests::pathFollower(world, npcId);
+        REQUIRE_FALSE(follower.path.has_value());
+        REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
+        REQUIRE(tests::actor(world, npcId).intentions.direction == glm::vec2{});
+    }
+}
 
+TEST_CASE("An unreachable replacement goal clears the old path", "[npc][navigation]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"....#....", "....#....", "#########"});
+    simple_platformer::World world;
+    const auto npcId =
+        world.addActor(makeNpc({24.0F, 32.0F}).patrolling({24.0F, 32.0F}, {56.0F, 32.0F}));
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    const simple_platformer::PathFollower& follower = tests::pathFollower(world, npcId);
-    REQUIRE(follower.path.has_value());
-    const glm::vec2 closest = simple_platformer::feetInCell(tests::TileSize, {3, 1});
-    REQUIRE(
-        simple_platformer::endOf(follower.path.value_or(simple_platformer::NavigationPath{})) ==
-        closest);
-    REQUIRE(follower.goal == simple_platformer::feetInCell(tests::TileSize, {7, 1}));
-    REQUIRE(tests::actor(world, npcId).intentions.direction.x > 0.0F);
-
-    // The path still serves the same goal, so the NPC keeps following it.
+    REQUIRE(tests::pathFollower(world, npcId).path.has_value());
+    tests::patrol(world, npcId).secondFeet = {120.0F, 32.0F};
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
-    REQUIRE(follower.path.has_value());
-    REQUIRE(follower.nextStep == 0);
-    REQUIRE(
-        simple_platformer::endOf(follower.path.value_or(simple_platformer::NavigationPath{})) ==
-        closest);
+    REQUIRE_FALSE(tests::pathFollower(world, npcId).path.has_value());
+    REQUIRE(tests::actor(world, npcId).intentions.direction == glm::vec2{});
 }
 
 TEST_CASE("A patrol goal that moves is planned for at once", "[npc][navigation]")

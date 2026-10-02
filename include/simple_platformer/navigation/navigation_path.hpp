@@ -40,8 +40,7 @@ namespace simple_platformer
     };
 
     // Found carries a path that ends in the cell holding the goal. Unreachable
-    // carries a path to the reachable cell nearest it, without waypoints when the
-    // actor is already there.
+    // carries no path.
     struct NavigationPathResult
     {
         NavigationPathStatus status = NavigationPathStatus::Unreachable;

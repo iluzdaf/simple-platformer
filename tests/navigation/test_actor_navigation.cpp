@@ -198,11 +198,14 @@ namespace
 
     // Where navigation decides a search for this actor starts: the resting place it picked
     // from the body's position, which can differ from where the body's feet are. Nothing if
-    // the body rests nowhere. The goal is the body's own feet only to keep the search short.
-    std::optional<glm::vec2> startFeetOf(const TileMap& map, const Actor& actor)
+    // the body rests nowhere. A reachable goal keeps the search short.
+    std::optional<glm::vec2> startFeetOf(
+        const TileMap& map,
+        const Actor& actor,
+        std::optional<glm::vec2> goal = std::nullopt)
     {
         const std::optional<NavigationPathResult> result =
-            searchForActor(map, actor, feetOf(actor.body.bounds));
+            searchForActor(map, actor, goal.value_or(feetOf(actor.body.bounds)));
         if (!result.has_value() || !result->path.has_value())
         {
             return std::nullopt;
@@ -259,7 +262,7 @@ TEST_CASE("A platformer's path starts from the cell that holds it up", "[navigat
     const Actor atTheLedge =
         tests::ActorBuilder::sized(TallBody).atFeet({80.5F, 32.0F}).platforming();
     REQUIRE(cellOf(feetOf(atTheLedge.body.bounds)) == Cell{5, 1});
-    REQUIRE(startFeetOf(map, atTheLedge) == feetIn({4, 1}));
+    REQUIRE(startFeetOf(map, atTheLedge, feetIn({4, 1})) == feetIn({4, 1}));
 
     // In the air, or a little above the floor, it rests nowhere and gets no result.
     const Actor inTheAir = tests::ActorBuilder::sized(TallBody).inCell({0, 0}).platforming();
@@ -382,21 +385,16 @@ TEST_CASE(
     }
 }
 
-TEST_CASE(
-    "A goal out of reach reports how far the path's end is from it",
-    "[navigation][platformer]")
+TEST_CASE("A goal out of reach returns no path", "[navigation][platformer]")
 {
     const TileMap map = tests::TileMapBuilder({"........", "........", "........", "########"});
     const glm::vec2 midJump = feetIn({5, 1}) - glm::vec2{0.0F, 4.0F};
 
     const NavigationPathResult result = findPath(map, platformerAt({{1, 2}}), midJump);
 
-    // The goal is in the air, where no body can rest, so the path stops as close as it
-    // can: on the floor below.
+    // The goal is in the air, where no body can rest.
     REQUIRE(result.status == NavigationPathStatus::Unreachable);
-    REQUIRE(result.path.has_value());
-    REQUIRE(endOf(result) == feetAt({{5, 2}}));
-    REQUIRE(result.remainingDistance > 0.0F);
+    REQUIRE_FALSE(result.path.has_value());
 }
 
 // Climbing
@@ -500,8 +498,7 @@ TEST_CASE("A new path search uses the map after a support tile breaks", "[naviga
     REQUIRE(map.breakTile({2, 1}));
     const auto result = findPathWith(table, map, actor, feetIn({2, 0}));
     REQUIRE(result.status == NavigationPathStatus::Unreachable);
-    REQUIRE(result.path.has_value());
-    REQUIRE(endOf(result) != feetIn({2, 0}));
+    REQUIRE_FALSE(result.path.has_value());
 }
 
 TEST_CASE("A broken wall opens a route on the next search", "[navigation][actor]")
@@ -531,5 +528,5 @@ TEST_CASE(
     REQUIRE(map.breakTile({1, 2}));
     const auto result = findPathWith(table, map, actor, goal);
     REQUIRE(result.status == NavigationPathStatus::Unreachable);
-    REQUIRE(cellAtFeet(tests::TileSize, endOf(result)) == Cell{2, 3});
+    REQUIRE_FALSE(result.path.has_value());
 }

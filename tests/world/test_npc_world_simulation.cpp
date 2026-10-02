@@ -288,7 +288,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "A ground NPC pursues a remembered airborne position after losing sight of the player",
+    "A ground NPC waits when the remembered airborne goal is unreachable",
     "[world][simulation][platformer][regression]")
 {
     // The player jumps from the floor beside the raised platform. Its solid
@@ -351,8 +351,7 @@ TEST_CASE(
     const float startingDistance =
         glm::distance(simple_platformer::feetOf(rememberedZombie.body.bounds), lastKnownFeet);
 
-    // Then the zombie pursues the airborne remembered point until it sees the player
-    // again. Check progress without prescribing a goal cell.
+    // The remembered airborne cell is unreachable, so no partial path is followed.
     float distanceToRememberedPosition = startingDistance;
     for (int tick = 0; tick < RememberedChaseTicks; ++tick)
     {
@@ -364,16 +363,17 @@ TEST_CASE(
         }
         simple_platformer::Actor& storedZombie = requireUnseenChase();
         REQUIRE(tests::brain(storedZombie).lastKnownTargetFeet == lastKnownFeet);
+        REQUIRE_FALSE(tests::pathFollower(storedZombie).path.has_value());
+        REQUIRE(storedZombie.intentions.direction == glm::vec2{});
         distanceToRememberedPosition =
             glm::distance(simple_platformer::feetOf(storedZombie.body.bounds), lastKnownFeet);
     }
     CAPTURE(startingDistance, distanceToRememberedPosition);
-    constexpr float MinimumPursuitProgress = 0.5F * tests::TileSize;
-    REQUIRE(distanceToRememberedPosition < startingDistance - MinimumPursuitProgress);
+    REQUIRE(distanceToRememberedPosition == startingDistance);
 }
 
 TEST_CASE(
-    "A ground NPC approaches a visible player supported at a platform edge",
+    "A ground NPC approaches a visible player only when the goal cell is reachable",
     "[world][simulation][platformer][regression]")
 {
     simple_platformer::TileMap map = tests::TileMapBuilder(
@@ -431,7 +431,15 @@ TEST_CASE(
         distanceToPlayer = requireVisiblePlayerDistance();
     }
     CAPTURE(startingDistance, distanceToPlayer);
-    REQUIRE(distanceToPlayer <= CloseDistance);
+    if (feetOutsidePlatform)
+    {
+        REQUIRE_FALSE(tests::pathFollower(world, zombieId).path.has_value());
+        REQUIRE(distanceToPlayer == startingDistance);
+    }
+    else
+    {
+        REQUIRE(distanceToPlayer <= CloseDistance);
+    }
 }
 
 TEST_CASE(

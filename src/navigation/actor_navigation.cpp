@@ -120,15 +120,11 @@ namespace simple_platformer
             int tileSize,
             const Route& route,
             glm::vec2 bodySize,
-            Cell goal,
             glm::vec2 goalFeet)
         {
             NavigationPath path = waypointsOf(tileSize, route, bodySize);
             const float remaining = glm::distance(endOf(path), goalFeet);
-            const NavigationPathStatus status = endOf(route).cell == goal
-                                                    ? NavigationPathStatus::Found
-                                                    : NavigationPathStatus::Unreachable;
-            return {status, std::move(path), remaining};
+            return {NavigationPathStatus::Found, std::move(path), remaining};
         }
 
         // The number of cells between two cells along the grid. Each flight moves one cell
@@ -194,9 +190,9 @@ namespace simple_platformer
             addFrameStatistic(profile, "Navigation", "Cells expanded", cellsExpanded);
             if (!result.route.has_value())
             {
-                throw std::logic_error("A completed route search returned no route");
+                return NavigationPathResult{};
             }
-            return pathResultOf(tileSize, *result.route, body.size, goal, goalFeet);
+            return pathResultOf(tileSize, *result.route, body.size, goalFeet);
         }
 
         // Guesses the ticks left from a cell to the goal cell: the time to cross the whole
@@ -330,9 +326,9 @@ namespace simple_platformer
 
             if (!result.route.has_value())
             {
-                throw std::logic_error("A completed route search returned no route");
+                return NavigationPathResult{};
             }
-            return pathResultOf(tileSize, *result.route, profile.size, goal, goalFeet);
+            return pathResultOf(tileSize, *result.route, profile.size, goalFeet);
         }
     }
 

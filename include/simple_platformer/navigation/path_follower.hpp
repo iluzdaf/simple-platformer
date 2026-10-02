@@ -28,7 +28,7 @@ namespace simple_platformer
         // program has not started, so the follower is still getting to its takeoff.
         float programElapsed = 0.0F;
         // The goal the path was planned for, so asking for much the same goal again
-        // does not plan again. The path ends short of it when it cannot be reached.
+        // does not plan again while a path exists.
         std::optional<glm::vec2> goal;
         // How many tiles the map had broken when the path was planned, so a break after
         // that, which the path may run through, has it planned again.

@@ -23,7 +23,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/graphics/display_viewport.cpp
     ${PROJECT_SOURCE_DIR}/app/ui/inventory_layout.cpp
     ${PROJECT_SOURCE_DIR}/tests/actor/test_actor_system.cpp
-    ${PROJECT_SOURCE_DIR}/tests/actor/test_lifecycle.cpp
     ${PROJECT_SOURCE_DIR}/tests/combat/test_bite_attack.cpp
     ${PROJECT_SOURCE_DIR}/tests/combat/test_contact_damage.cpp
     ${PROJECT_SOURCE_DIR}/tests/combat/test_projectile_system.cpp
@@ -95,6 +94,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/world/test_tile_map.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_world.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_world_inventory.cpp
+    ${PROJECT_SOURCE_DIR}/tests/world/test_world_requests.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_world_simulation.cpp
     ${PROJECT_SOURCE_DIR}/tests/world/test_npc_world_simulation.cpp
 )

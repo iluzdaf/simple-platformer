@@ -3,8 +3,9 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
-#include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/input/input_state.hpp"
+#include "simple_platformer/inventory/inventory.hpp"
+#include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -23,7 +24,7 @@ namespace
     }
 }
 
-TEST_CASE("Damage is deferred until lifecycle requests are applied", "[actor][lifecycle]")
+TEST_CASE("Damage is deferred until world requests are applied", "[actor][lifecycle]")
 {
     simple_platformer::World world;
     const simple_platformer::ActorId id = world.addActor(makeActor());
@@ -33,7 +34,7 @@ TEST_CASE("Damage is deferred until lifecycle requests are applied", "[actor][li
     simple_platformer::Actor& undamaged = tests::actor(world, id);
     REQUIRE(tests::health(undamaged).current == 3);
 
-    simple_platformer::updateLifeState(world, requests, 0.1F);
+    simple_platformer::applyWorldRequests(world, requests, 0.1F);
 
     simple_platformer::Actor& damaged = tests::actor(world, id);
     REQUIRE(tests::health(damaged).current == 2);
@@ -49,7 +50,7 @@ TEST_CASE("Applied damage records the current simulation time", "[actor][lifecyc
     simple_platformer::WorldRequests requests;
     requests.damage(id, 1);
 
-    simple_platformer::updateLifeState(world, requests, 0.02F);
+    simple_platformer::applyWorldRequests(world, requests, 0.02F);
 
     simple_platformer::Actor& damaged = tests::actor(world, id);
     REQUIRE(damaged.lastDamageTimeSeconds == 2.0F);
@@ -64,7 +65,7 @@ TEST_CASE("Fatal damage begins a timed death", "[actor][lifecycle]")
     simple_platformer::WorldRequests requests;
     requests.damage(id, 1);
 
-    simple_platformer::updateLifeState(world, requests, 0.1F);
+    simple_platformer::applyWorldRequests(world, requests, 0.1F);
 
     simple_platformer::Actor& dying = tests::actor(world, id);
     REQUIRE(tests::health(dying).current == 0);
@@ -80,10 +81,10 @@ TEST_CASE("Dying actors cannot take further damage", "[actor][lifecycle]")
     const simple_platformer::ActorId id = world.addActor(makeActor(1));
     simple_platformer::WorldRequests requests;
     requests.damage(id, 1);
-    simple_platformer::updateLifeState(world, requests, 0.1F);
+    simple_platformer::applyWorldRequests(world, requests, 0.1F);
 
     requests.damage(id, 1);
-    simple_platformer::updateLifeState(world, requests, 0.1F);
+    simple_platformer::applyWorldRequests(world, requests, 0.1F);
 
     simple_platformer::Actor& dying = tests::actor(world, id);
     REQUIRE(tests::health(dying).current == 0);
@@ -96,12 +97,10 @@ TEST_CASE("An NPC is removed after its death timer", "[actor][lifecycle]")
     const simple_platformer::ActorId npc = world.addActor(makeActor(1));
     simple_platformer::WorldRequests requests;
     requests.damage(npc, 1);
-    simple_platformer::updateLifeState(world, requests, 0.1F);
+    simple_platformer::applyWorldRequests(world, requests, 0.1F);
 
-    simple_platformer::updateLifeState(world, requests, 0.4F);
+    simple_platformer::applyWorldRequests(world, requests, 0.4F);
 
-    REQUIRE(world.findActor(npc) != nullptr);
-    simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.findActor(npc) == nullptr);
 }
 
@@ -118,9 +117,9 @@ TEST_CASE("The player respawns with restored runtime state", "[actor][lifecycle]
     world.setPlayer(player, {40.0F, 48.0F});
     simple_platformer::WorldRequests requests;
     requests.damage(player, 1);
-    simple_platformer::updateLifeState(world, requests, 0.1F);
+    simple_platformer::applyWorldRequests(world, requests, 0.1F);
 
-    simple_platformer::updateLifeState(world, requests, 0.4F);
+    simple_platformer::applyWorldRequests(world, requests, 0.4F);
 
     simple_platformer::Actor& respawned = tests::actor(world, player);
     REQUIRE(respawned.life == simple_platformer::LifeState::Alive);
@@ -148,7 +147,7 @@ TEST_CASE("Explicit removals are deferred until world requests are applied", "[w
     REQUIRE(requests.empty());
 }
 
-TEST_CASE("Invalid lifecycle requests and timing are rejected", "[actor][lifecycle]")
+TEST_CASE("Invalid world requests and timing are rejected", "[actor][lifecycle]")
 {
     simple_platformer::WorldRequests requests;
     REQUIRE_THROWS_AS(requests.damage({}, 1), std::invalid_argument);
@@ -157,5 +156,51 @@ TEST_CASE("Invalid lifecycle requests and timing are rejected", "[actor][lifecyc
 
     simple_platformer::World world;
     REQUIRE_THROWS_AS(
-        simple_platformer::updateLifeState(world, requests, -1.0F), std::invalid_argument);
+        simple_platformer::applyWorldRequests(world, requests, -1.0F), std::invalid_argument);
+}
+
+TEST_CASE("Untimed requests apply damage without advancing death timers", "[world][requests]")
+{
+    simple_platformer::World world;
+    const auto id = world.addActor(makeActor(1));
+    simple_platformer::WorldRequests requests;
+    requests.damage(id, 1);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(tests::actor(world, id).deathTimeRemaining == simple_platformer::ActorDeathSeconds);
+
+    simple_platformer::applyWorldRequests(world, requests, 0.1F);
+    const float remaining = tests::actor(world, id).deathTimeRemaining;
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(tests::actor(world, id).deathTimeRemaining == remaining);
+}
+
+TEST_CASE(
+    "Simulation requests collect pickups after respawning but UI requests do not",
+    "[world][requests]")
+{
+    simple_platformer::World world({{1, "Coin", {}, 5}});
+    auto player = makeActor(1);
+    player.inventory = simple_platformer::Inventory(1);
+    const auto id = world.addActor(player);
+    world.setPlayer(id, simple_platformer::feetOf(player.body.bounds));
+    simple_platformer::Pickup pickup;
+    pickup.body.bounds = player.body.bounds;
+    pickup.stack = {1, 1};
+    world.addPickup(pickup);
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(world.pickups().size() == 1);
+    requests.damage(id, 1);
+    simple_platformer::applyWorldRequests(world, requests, 0.1F);
+    REQUIRE(world.pickups().size() == 1);
+
+    // Damage against an already dying player is ignored before it respawns.
+    requests.damage(id, 1);
+    simple_platformer::applyWorldRequests(world, requests, simple_platformer::ActorDeathSeconds);
+    REQUIRE(tests::actor(world, id).life == simple_platformer::LifeState::Alive);
+    REQUIRE(tests::health(world, id).current == 1);
+    REQUIRE(world.pickups().empty());
+    REQUIRE(tests::inventory(world, id).count(1) == 1);
+    REQUIRE(requests.empty());
 }

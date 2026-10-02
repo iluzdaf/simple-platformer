@@ -4,7 +4,6 @@
 
 #include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
-#include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
@@ -43,13 +42,11 @@ TEST_CASE("A bite uses windup active and recovery phases", "[combat][bite]")
     REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Windup);
 
     simple_platformer::updateAttacks(world, requests, 0.12F);
-    simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::health(world, target).current == 2);
     REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Active);
 
     simple_platformer::updateAttacks(world, requests, 0.04F);
-    simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::health(world, target).current == 2);
 

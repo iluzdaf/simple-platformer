@@ -6,9 +6,12 @@
 #include <stdexcept>
 #include <vector>
 
+#include "simple_platformer/actor/actor.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/inventory/item_use.hpp"
+#include "simple_platformer/math/validation.hpp"
+#include "simple_platformer/world/pickup.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
@@ -94,8 +97,78 @@ namespace simple_platformer
         }
     }
 
+    void WorldRequests::applyDamage(World& world)
+    {
+        for (const auto& request : damageRequests)
+        {
+            Actor* actor = world.findActor(request.target);
+            if (actor == nullptr || actor->life != LifeState::Alive || !actor->health.has_value())
+            {
+                continue;
+            }
+
+            actor->health->current = std::max(0, actor->health->current - request.amount);
+            actor->lastDamageTimeSeconds = world.simulationTimeSeconds();
+            if (actor->health->current == 0)
+            {
+                actor->life = LifeState::Dying;
+                actor->deathTimeRemaining = ActorDeathSeconds;
+                actor->intentions = {};
+            }
+        }
+        damageRequests.clear();
+    }
+
+    void WorldRequests::advanceLifeState(World& world, float deltaTime)
+    {
+        requireSeconds(deltaTime, "World requests time step");
+        // Only actors already dying lose time; a new death keeps its full duration.
+        std::vector<ActorId> actorsAlreadyDying;
+        for (const Actor& actor : world.actors())
+        {
+            if (actor.life == LifeState::Dying)
+            {
+                actorsAlreadyDying.push_back(actor.id);
+            }
+        }
+        applyDamage(world);
+
+        for (const ActorId id : actorsAlreadyDying)
+        {
+            Actor* actor = world.findActor(id);
+            if (actor == nullptr)
+            {
+                continue;
+            }
+
+            actor->deathTimeRemaining = std::max(0.0F, actor->deathTimeRemaining - deltaTime);
+            if (actor->deathTimeRemaining > 0.0F)
+            {
+                continue;
+            }
+
+            if (id == world.playerId())
+            {
+                world.respawnPlayer();
+            }
+            else
+            {
+                removalRequests.push_back(id);
+            }
+        }
+    }
+
+    void applyWorldRequests(World& world, WorldRequests& requests, float deltaTime)
+    {
+        requests.advanceLifeState(world, deltaTime);
+        // Detect collection after damage and respawning, before any lists are changed.
+        updatePickups(world, requests);
+        applyWorldRequests(world, requests);
+    }
+
     void applyWorldRequests(World& world, WorldRequests& requests)
     {
+        requests.applyDamage(world);
         for (const auto& use : requests.itemUses)
         {
             useItem(world, use.actor, use.slot);

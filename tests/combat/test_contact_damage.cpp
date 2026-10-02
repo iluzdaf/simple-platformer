@@ -3,7 +3,6 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
-#include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -36,12 +35,10 @@ TEST_CASE("Contact damage hits an opponent once per activation, not allies", "[c
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::health(world, targetId).current == 2);
     REQUIRE(tests::health(world, allyId).current == 3);
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::health(world, targetId).current == 2);
     REQUIRE(tests::contactDamage(world, chargerId).actorsHit.size() == 1);
@@ -56,7 +53,6 @@ TEST_CASE("Contact damage hits an opponent once per activation, not allies", "[c
 
     tests::actor(world, chargerId).intentions.contactDamage = true;
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    simple_platformer::updateLifeState(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::health(world, targetId).current == 1);
 }

@@ -5,7 +5,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/src/actor/actor_id.cpp
     ${PROJECT_SOURCE_DIR}/src/actor/actor_system.cpp
     ${PROJECT_SOURCE_DIR}/src/actor/actor_validation.cpp
-    ${PROJECT_SOURCE_DIR}/src/actor/lifecycle.cpp
     ${PROJECT_SOURCE_DIR}/src/combat/attack_system.cpp
     ${PROJECT_SOURCE_DIR}/src/combat/combat.cpp
     ${PROJECT_SOURCE_DIR}/src/combat/projectile_system.cpp

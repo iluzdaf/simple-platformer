@@ -224,8 +224,8 @@ Patrol -> sees player -> Chase -> movement intentions
 
 Then skim [`attack_system.cpp`](../src/combat/attack_system.cpp) and
 [`projectile_system.cpp`](../src/combat/projectile_system.cpp) for how attack intentions
-produce hits. [`lifecycle.cpp`](../src/actor/lifecycle.cpp) applies their damage and
-handles death. Other NPC tactics and states can wait until this case makes sense.
+produce hits. [`world_requests.cpp`](../src/world/world_requests.cpp) applies their damage and
+handles death together with queued removals and spawns. Other NPC tactics and states can wait until this case makes sense.
 
 ### 8. Read navigation last
 

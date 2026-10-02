@@ -44,21 +44,22 @@ together. Replacing it starts a fresh world.
 
 [`updateWorldSimulation`](../src/world/world_simulation.cpp) owns this order:
 
-| Order | Work                                                            |
-| ----- | --------------------------------------------------------------- |
-| 1     | Return if complete; otherwise advance the world clock           |
-| 2     | If the exit is opening, update only the exit and return         |
-| 3     | Rebuild navigation connections affected by recorded tile breaks |
-| 4     | Update NPC senses, memory, decisions, and intentions            |
-| 5     | Move actors, then pickups, resolving tile collision             |
-| 6     | Update attacks, projectiles, and existing projectile bursts     |
-| 7     | Apply damage and advance life states                            |
-| 8     | Detect pickups and apply queued world requests                  |
-| 9     | Check the exit                                                  |
+| Order | Work                                                                     |
+| ----- | ------------------------------------------------------------------------ |
+| 1     | Return if complete; otherwise advance the world clock                    |
+| 2     | If the exit is opening, update only the exit and return                  |
+| 3     | Rebuild navigation connections affected by recorded tile breaks          |
+| 4     | Update NPC senses, memory, decisions, and intentions                     |
+| 5     | Move actors, then pickups, resolving tile collision                      |
+| 6     | Update attacks, projectiles, and existing projectile bursts              |
+| 7     | Apply world requests: damage, death timers, pickups, then queued changes |
+| 8     | Check the exit                                                           |
 
 - Systems update existing objects while iterating. Spawns and removals go into
   `WorldRequests` and are applied after iteration.
-- Damage is consumed by the life-state system before structural requests are applied.
+- `applyWorldRequests(world, requests, deltaTime)` applies damage and advances existing
+  death timers before detecting pickups and applying structural changes. The untimed
+  overload handles UI requests without advancing timers or detecting new pickups.
 - Tile breaks change the map during projectile updates; navigation reads them before
   the next NPC decision or search.
 
@@ -240,7 +241,7 @@ and components before a tactic can select it.
 | Contact damage | While requested, body overlap damages each opponent once; releasing clears the hit history              |
 | Projectile     | Swept collision chooses the earliest blocking tile or eligible actor; a hit or expired lifetime ends it |
 | Burst          | A short visual effect queued when a projectile ends; no damage or collision                             |
-| Damage         | Queued by combat, consumed by `updateLifeState`, and stamped on the world clock                         |
+| Damage         | Queued by combat, applied by `applyWorldRequests`, and stamped on the world clock                       |
 | Death          | Health reaching zero enters Dying; an explicit timer ends in NPC removal or player respawn              |
 
 - Owner and team filtering prevent projectiles hitting the shooter or allies.

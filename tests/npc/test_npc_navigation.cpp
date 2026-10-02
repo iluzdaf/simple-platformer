@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <cstddef>
 #include <vector>
@@ -6,6 +7,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/actor/actor_system.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
+#include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
@@ -56,7 +58,8 @@ TEST_CASE("A climbing NPC patrols over a wall and ceiling", "[npc][navigation][c
     simple_platformer::World world;
     const glm::vec2 first = simple_platformer::feetInCell(tests::TileSize, {2, 5});
     const glm::vec2 second = simple_platformer::feetInCell(tests::TileSize, {11, 5});
-    simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 12.0F})
+    const float bodySide = GENERATE(12.0F, static_cast<float>(tests::TileSize));
+    simple_platformer::Actor npc = tests::ActorBuilder::sized({bodySide, bodySide})
                                        .atFeet(first)
                                        .platforming()
                                        .climbing({60.0F})
@@ -67,15 +70,21 @@ TEST_CASE("A climbing NPC patrols over a wall and ceiling", "[npc][navigation][c
 
     bool climbedCeiling = false;
     bool reachedSecondFloor = false;
-    for (int tick = 0; tick < 2000 && !reachedSecondFloor; ++tick)
+    bool returnedToFirstFloor = false;
+    for (int tick = 0; tick < 4000 && !returnedToFirstFloor; ++tick)
     {
         simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
         climbedCeiling = climbedCeiling || tests::surfaceClimb(world, npcId).surface ==
                                                simple_platformer::ClimbSurface::Ceiling;
-        reachedSecondFloor = !tests::patrol(world, npcId).headingToSecond;
+        const auto cell = simple_platformer::cellAtFeet(
+            tests::TileSize, simple_platformer::feetOf(tests::actor(world, npcId).body.bounds));
+        reachedSecondFloor = reachedSecondFloor || cell == simple_platformer::Cell{11, 5};
+        returnedToFirstFloor = reachedSecondFloor && cell == simple_platformer::Cell{2, 5};
     }
+    CAPTURE(bodySide, reachedSecondFloor, returnedToFirstFloor);
     REQUIRE(climbedCeiling);
     REQUIRE(reachedSecondFloor);
+    REQUIRE(returnedToFirstFloor);
 }
 
 TEST_CASE("A climbing NPC holds the ceiling at the end of its patrol", "[npc][navigation][climb]")

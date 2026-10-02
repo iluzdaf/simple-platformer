@@ -3,39 +3,39 @@
     "player": {
       "idle": {
         "frames": [
-          { "position": [0, 0], "size": [32, 24] },
-          { "position": [32, 0], "size": [32, 24] }
+          { "position": [0, 0], "size": [16, 16] },
+          { "position": [16, 0], "size": [16, 16] }
         ],
         "frameDuration": 0.3,
         "looping": true
       },
       "move": {
         "frames": [
-          { "position": [64, 0], "size": [32, 24] },
-          { "position": [128, 0], "size": [32, 24] },
-          { "position": [96, 0], "size": [32, 24] },
-          { "position": [128, 0], "size": [32, 24] }
+          { "position": [48, 0], "size": [16, 16] },
+          { "position": [64, 0], "size": [16, 16] },
+          { "position": [80, 0], "size": [16, 16] },
+          { "position": [64, 0], "size": [16, 16] }
         ],
         "frameDuration": 0.16,
         "looping": true
       },
       "jump": {
-        "frames": [{ "position": [0, 24], "size": [32, 24] }],
+        "frames": [{ "position": [96, 0], "size": [16, 16] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "fall": {
-        "frames": [{ "position": [32, 24], "size": [32, 24] }],
+        "frames": [{ "position": [112, 0], "size": [16, 16] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "attack": {
-        "frames": [{ "position": [64, 24], "size": [32, 24] }],
+        "frames": [{ "position": [32, 0], "size": [16, 16] }],
         "frameDuration": 0.1,
         "looping": true
       },
       "death": {
-        "frames": [{ "position": [96, 24], "size": [32, 24] }],
+        "frames": [{ "position": [0, 16], "size": [16, 16] }],
         "frameDuration": 0.4,
         "looping": false
       }
@@ -43,39 +43,39 @@
     "zombie": {
       "idle": {
         "frames": [
-          { "position": [0, 48], "size": [32, 24] },
-          { "position": [32, 48], "size": [32, 24] }
+          { "position": [16, 16], "size": [16, 16] },
+          { "position": [32, 16], "size": [16, 16] }
         ],
         "frameDuration": 0.3,
         "looping": true
       },
       "move": {
         "frames": [
-          { "position": [64, 48], "size": [32, 24] },
-          { "position": [128, 48], "size": [32, 24] },
-          { "position": [96, 48], "size": [32, 24] },
-          { "position": [128, 48], "size": [32, 24] }
+          { "position": [64, 16], "size": [16, 16] },
+          { "position": [80, 16], "size": [16, 16] },
+          { "position": [96, 16], "size": [16, 16] },
+          { "position": [80, 16], "size": [16, 16] }
         ],
         "frameDuration": 0.2,
         "looping": true
       },
       "jump": {
-        "frames": [{ "position": [0, 72], "size": [32, 24] }],
+        "frames": [{ "position": [112, 16], "size": [16, 16] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "fall": {
-        "frames": [{ "position": [32, 72], "size": [32, 24] }],
+        "frames": [{ "position": [0, 32], "size": [16, 16] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "attack": {
-        "frames": [{ "position": [64, 72], "size": [32, 24] }],
+        "frames": [{ "position": [48, 16], "size": [16, 16] }],
         "frameDuration": 0.1,
         "looping": true
       },
       "death": {
-        "frames": [{ "position": [96, 72], "size": [32, 24] }],
+        "frames": [{ "position": [16, 32], "size": [16, 16] }],
         "frameDuration": 0.4,
         "looping": false
       }
@@ -83,39 +83,39 @@
     "bat": {
       "idle": {
         "frames": [
-          { "position": [0, 96], "size": [32, 24] },
-          { "position": [32, 96], "size": [32, 24] }
+          { "position": [60, 112], "size": [12, 12] },
+          { "position": [72, 112], "size": [12, 12] }
         ],
         "frameDuration": 0.3,
         "looping": true
       },
       "move": {
         "frames": [
-          { "position": [64, 96], "size": [32, 24] },
-          { "position": [128, 96], "size": [32, 24] },
-          { "position": [96, 96], "size": [32, 24] },
-          { "position": [128, 120], "size": [32, 24] }
+          { "position": [108, 120], "size": [12, 12] },
+          { "position": [120, 120], "size": [12, 12] },
+          { "position": [0, 124], "size": [12, 12] },
+          { "position": [12, 124], "size": [12, 12] }
         ],
         "frameDuration": 0.1,
         "looping": true
       },
       "jump": {
-        "frames": [{ "position": [0, 120], "size": [32, 24] }],
+        "frames": [{ "position": [24, 124], "size": [12, 12] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "fall": {
-        "frames": [{ "position": [32, 120], "size": [32, 24] }],
+        "frames": [{ "position": [36, 124], "size": [12, 12] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "attack": {
-        "frames": [{ "position": [64, 120], "size": [32, 24] }],
+        "frames": [{ "position": [84, 112], "size": [12, 12] }],
         "frameDuration": 0.1,
         "looping": true
       },
       "death": {
-        "frames": [{ "position": [96, 120], "size": [32, 24] }],
+        "frames": [{ "position": [96, 112], "size": [12, 12] }],
         "frameDuration": 0.4,
         "looping": false
       }
@@ -123,90 +123,90 @@
     "rat": {
       "idle": {
         "frames": [
-          { "position": [160, 0], "size": [32, 24] },
-          { "position": [192, 0], "size": [32, 24] }
+          { "position": [112, 96], "size": [12, 12] },
+          { "position": [124, 96], "size": [12, 12] }
         ],
         "frameDuration": 0.3,
         "looping": true
       },
       "move": {
         "frames": [
-          { "position": [160, 24], "size": [32, 24] },
-          { "position": [192, 24], "size": [32, 24] },
-          { "position": [224, 24], "size": [32, 24] },
-          { "position": [192, 24], "size": [32, 24] }
+          { "position": [124, 108], "size": [12, 12] },
+          { "position": [0, 112], "size": [12, 12] },
+          { "position": [12, 112], "size": [12, 12] },
+          { "position": [0, 112], "size": [12, 12] }
         ],
         "frameDuration": 0.1,
         "looping": true
       },
       "jump": {
-        "frames": [{ "position": [160, 48], "size": [32, 24] }],
+        "frames": [{ "position": [24, 112], "size": [12, 12] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "fall": {
-        "frames": [{ "position": [192, 48], "size": [32, 24] }],
+        "frames": [{ "position": [36, 112], "size": [12, 12] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "attack": {
-        "frames": [{ "position": [224, 0], "size": [32, 24] }],
+        "frames": [{ "position": [112, 108], "size": [12, 12] }],
         "frameDuration": 0.1,
         "looping": true
       },
       "death": {
-        "frames": [{ "position": [224, 48], "size": [32, 24] }],
+        "frames": [{ "position": [48, 112], "size": [12, 12] }],
         "frameDuration": 0.4,
         "looping": false
       }
     },
     "spider": {
       "idle": {
-        "frames": [{ "position": [160, 144], "size": [32, 30] }],
+        "frames": [{ "position": [64, 64], "size": [16, 16] }],
         "frameDuration": 0.4,
         "looping": true
       },
       "move": {
         "frames": [
-          { "position": [192, 144], "size": [32, 30] },
-          { "position": [224, 144], "size": [32, 30] },
-          { "position": [160, 176], "size": [32, 30] },
-          { "position": [192, 176], "size": [32, 30] }
+          { "position": [80, 64], "size": [16, 16] },
+          { "position": [96, 64], "size": [16, 16] },
+          { "position": [112, 64], "size": [16, 16] },
+          { "position": [0, 80], "size": [16, 16] }
         ],
         "frameDuration": 0.1,
         "looping": true
       },
       "jump": {
         "frames": [
-          { "position": [192, 144], "size": [32, 30] },
-          { "position": [224, 144], "size": [32, 30] },
-          { "position": [160, 176], "size": [32, 30] },
-          { "position": [192, 176], "size": [32, 30] }
+          { "position": [80, 64], "size": [16, 16] },
+          { "position": [96, 64], "size": [16, 16] },
+          { "position": [112, 64], "size": [16, 16] },
+          { "position": [0, 80], "size": [16, 16] }
         ],
         "frameDuration": 0.1,
         "looping": true
       },
       "fall": {
         "frames": [
-          { "position": [192, 144], "size": [32, 30] },
-          { "position": [224, 144], "size": [32, 30] },
-          { "position": [160, 176], "size": [32, 30] },
-          { "position": [192, 176], "size": [32, 30] }
+          { "position": [80, 64], "size": [16, 16] },
+          { "position": [96, 64], "size": [16, 16] },
+          { "position": [112, 64], "size": [16, 16] },
+          { "position": [0, 80], "size": [16, 16] }
         ],
         "frameDuration": 0.1,
         "looping": true
       },
       "attack": {
         "frames": [
-          { "position": [224, 176], "size": [32, 30] },
-          { "position": [160, 208], "size": [32, 30] },
-          { "position": [192, 208], "size": [32, 30] }
+          { "position": [16, 80], "size": [16, 16] },
+          { "position": [32, 80], "size": [16, 16] },
+          { "position": [48, 80], "size": [16, 16] }
         ],
         "frameDuration": 0.12,
         "looping": false
       },
       "death": {
-        "frames": [{ "position": [224, 208], "size": [32, 30] }],
+        "frames": [{ "position": [64, 80], "size": [16, 16] }],
         "frameDuration": 0.4,
         "looping": false
       }
@@ -214,39 +214,39 @@
     "boar": {
       "idle": {
         "frames": [
-          { "position": [160, 72], "size": [32, 24] },
-          { "position": [192, 72], "size": [32, 24] }
+          { "position": [48, 48], "size": [16, 16] },
+          { "position": [64, 48], "size": [16, 16] }
         ],
         "frameDuration": 0.4,
         "looping": true
       },
       "move": {
         "frames": [
-          { "position": [160, 96], "size": [32, 24] },
-          { "position": [192, 96], "size": [32, 24] },
-          { "position": [224, 96], "size": [32, 24] },
-          { "position": [192, 96], "size": [32, 24] }
+          { "position": [96, 48], "size": [16, 16] },
+          { "position": [112, 48], "size": [16, 16] },
+          { "position": [0, 64], "size": [16, 16] },
+          { "position": [112, 48], "size": [16, 16] }
         ],
         "frameDuration": 0.09,
         "looping": true
       },
       "jump": {
-        "frames": [{ "position": [160, 120], "size": [32, 24] }],
+        "frames": [{ "position": [16, 64], "size": [16, 16] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "fall": {
-        "frames": [{ "position": [192, 120], "size": [32, 24] }],
+        "frames": [{ "position": [32, 64], "size": [16, 16] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "attack": {
-        "frames": [{ "position": [224, 72], "size": [32, 24] }],
+        "frames": [{ "position": [80, 48], "size": [16, 16] }],
         "frameDuration": 0.1,
         "looping": true
       },
       "death": {
-        "frames": [{ "position": [224, 120], "size": [32, 24] }],
+        "frames": [{ "position": [48, 64], "size": [16, 16] }],
         "frameDuration": 0.4,
         "looping": false
       }
@@ -254,39 +254,39 @@
     "zombie_soldier": {
       "idle": {
         "frames": [
-          { "position": [0, 144], "size": [32, 24] },
-          { "position": [32, 144], "size": [32, 24] }
+          { "position": [32, 32], "size": [16, 16] },
+          { "position": [48, 32], "size": [16, 16] }
         ],
         "frameDuration": 0.3,
         "looping": true
       },
       "move": {
         "frames": [
-          { "position": [64, 144], "size": [32, 24] },
-          { "position": [128, 144], "size": [32, 24] },
-          { "position": [96, 144], "size": [32, 24] },
-          { "position": [128, 144], "size": [32, 24] }
+          { "position": [80, 32], "size": [16, 16] },
+          { "position": [96, 32], "size": [16, 16] },
+          { "position": [112, 32], "size": [16, 16] },
+          { "position": [96, 32], "size": [16, 16] }
         ],
         "frameDuration": 0.16,
         "looping": true
       },
       "jump": {
-        "frames": [{ "position": [0, 168], "size": [32, 24] }],
+        "frames": [{ "position": [0, 48], "size": [16, 16] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "fall": {
-        "frames": [{ "position": [32, 168], "size": [32, 24] }],
+        "frames": [{ "position": [16, 48], "size": [16, 16] }],
         "frameDuration": 0.15,
         "looping": true
       },
       "attack": {
-        "frames": [{ "position": [64, 168], "size": [32, 24] }],
+        "frames": [{ "position": [64, 32], "size": [16, 16] }],
         "frameDuration": 0.1,
         "looping": true
       },
       "death": {
-        "frames": [{ "position": [96, 168], "size": [32, 24] }],
+        "frames": [{ "position": [32, 48], "size": [16, 16] }],
         "frameDuration": 0.4,
         "looping": false
       }

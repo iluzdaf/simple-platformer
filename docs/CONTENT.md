@@ -34,6 +34,13 @@ turn these files into the game.
 Every catalog is required, even when empty. A Lua script loads only when a machine
 names it. Every sprite region, frame and icon must lie inside the atlas.
 
+Atlas dimensions and artwork layout come from the asset files. Catalog regions
+must match that layout; repacking an atlas requires updating the affected regions.
+Collision body sizes and animation timings are configured independently of the art.
+
+Dimensions and coordinates in the examples below are illustrative, not required
+asset sizes. Choose them for your content within the constraints of each field.
+
 ## Level catalog
 
 ```json
@@ -117,7 +124,7 @@ no other fields.
 
 ## Tiles
 
-`tiles.json` has `tileSize`, the side of a tile in world pixels (16), and `tiles`, by name.
+`tiles.json` has `tileSize`, the side of a tile in world pixels, and `tiles`, by name.
 
 | Field            | Required | Meaning                                                                                |
 | ---------------- | -------- | -------------------------------------------------------------------------------------- |
@@ -127,8 +134,7 @@ no other fields.
 | `climbable`      | No       | A climber can grip its walls and underside. Map edges never are.                       |
 | `breaksInto`     | No       | The tile it becomes when a `breaksTiles` shot hits it. Chain tiles to break in stages. |
 
-\* Required on every tile but `empty`, which must allow movement and sight. Speeds and
-jump heights are tuned for 16-pixel tiles.
+\* Required on every tile but `empty`, which must allow movement and sight.
 
 ## Actors
 
@@ -145,7 +151,7 @@ jump heights are tuned for 16-pixel tiles.
       "platformer": {}
     },
     "bat": {
-      "bodySize": [12, 8],
+      "bodySize": [10, 8],
       "team": "enemy",
       "health": 1,
       "animations": "bat",
@@ -180,9 +186,10 @@ no `senses`.
 | `ranged`         | A projectile attack.                                                       |
 | `contactDamage`  | Damage on touch, when a script asks for it. Works with either attack.      |
 
-`bodySize` and the art are independent. The player's frames are 32 by 24 around a body
-of 12 by 20, so the gun and a jump do not change how it collides. The debug overlay (F1,
-then 2) outlines the body in red and the art in grey.
+`bodySize` defines the collision body's width and height independently of sprite
+frame dimensions. Neither the body nor the frames need to be square or match the
+tile size. Changing animation poses does not change the body's dimensions. The
+debug overlay (F1, then 2) outlines the body in red and the art in grey.
 
 A component object may leave out any field to keep its default, so `{}` is all defaults.
 
@@ -313,7 +320,7 @@ How the engine picks a clip is in [Animation](ARCHITECTURE.md#animation).
 ```json
 "health_potion": {
   "name": "Health potion",
-  "icon": { "position": [16, 216], "size": [16, 16] },
+  "icon": { "position": [80, 84], "size": [16, 16] },
   "maximumStack": 5,
   "effect": "heal",
   "effectAmount": 2
@@ -346,7 +353,7 @@ Saves, if added, should store item names: item IDs are assigned at load and can 
 ## Exits
 
 ```json
-"bunker_door": { "bodySize": [16, 32], "sprite": { "position": [48, 216], "size": [16, 32] } }
+"bunker_door": { "bodySize": [16, 16], "sprite": { "position": [112, 96], "size": [16, 16] } }
 ```
 
 `bodySize` and `sprite` are required. The requirement, consumption and next level belong

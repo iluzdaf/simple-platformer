@@ -2,7 +2,7 @@
   "player": "player",
   "actors": {
     "player": {
-      "bodySize": [12, 20],
+      "bodySize": [16, 16],
       "team": "player",
       "animations": "player",
       "health": 3,
@@ -11,11 +11,11 @@
       "ranged": {
         "projectileLifetime": 0.9,
         "breaksTiles": true,
-        "sprite": { "position": [32, 192], "size": [8, 4] }
+        "sprite": { "position": [128, 0], "size": [8, 8] }
       }
     },
     "zombie": {
-      "bodySize": [12, 20],
+      "bodySize": [16, 16],
       "team": "enemy",
       "facing": "left",
       "animations": "zombie",
@@ -25,7 +25,7 @@
       "bite": { "windupDuration": 0.3, "activeDuration": 0.1, "recoveryDuration": 0.6 }
     },
     "bat": {
-      "bodySize": [12, 8],
+      "bodySize": [12.0, 12.0],
       "team": "enemy",
       "facing": "left",
       "animations": "bat",
@@ -36,18 +36,14 @@
       "bite": {}
     },
     "rat": {
-      "bodySize": [8, 8],
+      "bodySize": [12.0, 12.0],
       "team": "enemy",
       "facing": "left",
       "animations": "rat",
       "spriteAnchor": "feet",
       "health": 1,
       "platformer": { "maximumSpeed": 60 },
-      "senses": {
-        "noticeDistance": 80,
-        "targetMemoryDuration": 1.5,
-        "standoffDistance": 40
-      },
+      "senses": { "noticeDistance": 80, "targetMemoryDuration": 1.5, "standoffDistance": 40 },
       "bite": {
         "damage": 1,
         "windupDuration": 0.12,
@@ -57,7 +53,7 @@
       "machine": "rat"
     },
     "spider": {
-      "bodySize": [12, 12],
+      "bodySize": [16, 16],
       "team": "enemy",
       "facing": "left",
       "animations": "spider",
@@ -75,7 +71,7 @@
       }
     },
     "boar": {
-      "bodySize": [16, 12],
+      "bodySize": [16, 16],
       "team": "enemy",
       "facing": "left",
       "animations": "boar",
@@ -87,7 +83,7 @@
       "machine": "boar"
     },
     "zombie_soldier": {
-      "bodySize": [12, 20],
+      "bodySize": [16, 16],
       "team": "enemy",
       "facing": "left",
       "animations": "zombie_soldier",
@@ -99,7 +95,7 @@
         "projectileLifetime": 0.75,
         "shootDuration": 0.3,
         "recoveryDuration": 0.8,
-        "sprite": { "position": [64, 192], "size": [8, 4] }
+        "sprite": { "position": [128, 8], "size": [8, 8] }
       },
       "machine": "keep_distance"
     }

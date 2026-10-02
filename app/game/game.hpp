@@ -30,8 +30,8 @@ namespace simple_platformer
     class Game
     {
     public:
-        // Catalogs and scripts arrive loaded. Each level queues navigation work for
-        // the caller's fixed simulation step; later updates fill the cache.
+        // Catalogs and scripts arrive loaded. Each level builds its NPCs' navigation
+        // connections at the caller's fixed simulation step when it starts.
         Game(
             int textureId,
             LevelCatalog levelCatalog,

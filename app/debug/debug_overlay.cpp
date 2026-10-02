@@ -357,8 +357,8 @@ namespace simple_platformer
                 followed->id, machine.definition, machine.active, machine.lastFired};
         }
 
-        scene.navigationCache =
-            makeNavigationCacheDebugInfo(world, map, simulationStepSeconds, navigation, view);
+        scene.navigationConnections =
+            makeNavigationConnectionsDebugInfo(world, map, simulationStepSeconds, navigation, view);
         scene.breakableCellUnderCursor = breakableCellUnderCursor(map, navigation.cursorWorld);
         return scene;
     }

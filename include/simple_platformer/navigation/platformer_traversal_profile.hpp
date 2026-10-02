@@ -10,7 +10,7 @@
 namespace simple_platformer
 {
     // Static movement capabilities and the fixed simulation step. This is not live
-    // actor state; matching profiles share cached connections.
+    // actor state; it supplies the parameters used to simulate connections.
     struct PlatformerTraversalProfile
     {
         PlatformerTraversalProfile() = default;

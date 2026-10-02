@@ -9,8 +9,6 @@
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
-#include "simple_platformer/navigation/platformer_connection_cache.hpp"
-#include "simple_platformer/navigation/navigation_fill.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
@@ -23,7 +21,6 @@
 #include "support/actor_components.hpp"
 #include "support/add_player.hpp"
 #include "support/fixed_step.hpp"
-#include "support/prepare_navigation_cache.hpp"
 
 using tests::actor;
 using tests::bite;
@@ -168,7 +165,6 @@ TEST_CASE(
     brain(world, npcId).target = playerId;
     brain(world, npcId).lastKnownTargetFeet = lastKnownFeet;
     tests::perception(world, npcId).targetVisible = false;
-    tests::prepareNavigationCache(map, world);
 
     simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds);
 

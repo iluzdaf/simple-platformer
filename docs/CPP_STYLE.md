@@ -47,7 +47,7 @@ Most code is plain data and free functions, not classes with behaviour:
   `updatePlatformerMovement(map, body, movement, intentions, deltaTime)`. They have no
   hidden state, so a test calls one with exactly the data it wants.
 - **Classes are kept for things with rules to protect**, such as `World`, `TileMap` and
-  `PlatformerConnectionCache`. Their data is private, and their functions keep it valid.
+  `PlatformerConnectionTable`. Their data is private, and their functions keep it valid.
 - **Inheritance is rare.** An actor's role comes from the components it has, not from a
   subclass. An interface with virtual functions appears only at a real boundary, such as
   `NpcActivityScripts`, which tests replace with a fake.
@@ -116,8 +116,8 @@ words of the [glossary](GLOSSARY.md).
 - **A test file for each source file,** under `tests/` in the same folder structure, such
   as `tests/movement/test_platformer_movement.cpp`. A large subject may have more than
   one.
-- **Test names are sentences** that say what should happen, such as "A search waits for
-  a cell the cache does not hold yet, even when a costlier path exists".
+- **Test names are sentences** that say what should happen, such as "A break rebuilds
+  only the cells whose footprint holds it".
 - **Builders in [`tests/support/`](../tests/support)** make test data readable:
   `ActorBuilder`, `TileMapBuilder` and `NpcMachineBuilder`. Each explains its own rules
   at the top of its header.

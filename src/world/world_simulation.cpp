@@ -6,7 +6,7 @@
 #include "simple_platformer/combat/projectile_system.hpp"
 #include "simple_platformer/npc/npc_scripted_activity.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
-#include "simple_platformer/navigation/navigation_fill.hpp"
+#include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/npc/npc_system.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/level_exit.hpp"
@@ -39,14 +39,11 @@ namespace simple_platformer
             return;
         }
 
+        // A tile broken last step rebuilds the connections it touched before NPCs plan.
         phase(
             "Navigation",
-            "Navigation fill",
-            [&]
-            {
-                advanceNavigationFill(
-                    map, world.platformerConnections(), NavigationFillTicksPerStep, profile);
-            });
+            "Connection table",
+            [&] { world.platformerConnections().applyRecordedTileBreaks(map, profile); });
         phase("NPC", "NPC senses", [&] { updateNpcSenses(map, world, deltaTime); });
         phase(
             "NPC",

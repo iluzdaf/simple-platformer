@@ -20,9 +20,9 @@ namespace simple_platformer
 {
     namespace
     {
-        constexpr ImU32 NavigationCachedColour = IM_COL32(64, 160, 255, 90);
+        constexpr ImU32 NavigationConnectedColour = IM_COL32(64, 160, 255, 90);
         // A cell with connections that a climber can only hold a wall or the ceiling in.
-        constexpr ImU32 NavigationClimbCachedColour = IM_COL32(176, 96, 255, 90);
+        constexpr ImU32 NavigationClimbConnectedColour = IM_COL32(176, 96, 255, 90);
         constexpr ImU32 NavigationEmptyColour = IM_COL32(128, 128, 128, 70);
         constexpr ImU32 NavigationMissingColour = IM_COL32(255, 96, 32, 220);
         constexpr ImU32 NavigationFootprintColour = IM_COL32(255, 224, 64, 200);
@@ -60,9 +60,9 @@ namespace simple_platformer
                 drawList.AddRect(minimum, maximum, NavigationMissingColour, 0.0F, 0, 2.0F);
                 return;
             }
-            const ImU32 cachedColour =
-                cell.standable ? NavigationCachedColour : NavigationClimbCachedColour;
-            const ImU32 colour = *cell.connections == 0 ? NavigationEmptyColour : cachedColour;
+            const ImU32 connectedColour =
+                cell.standable ? NavigationConnectedColour : NavigationClimbConnectedColour;
+            const ImU32 colour = *cell.connections == 0 ? NavigationEmptyColour : connectedColour;
             drawList.AddRectFilled(minimum, maximum, colour);
         }
 
@@ -97,7 +97,7 @@ namespace simple_platformer
                     viewport,
                     NavigationFootprintColour);
             }
-            for (const CachedConnectionDebugInfo& connection : cell.connections)
+            for (const ConnectionDebugInfo& connection : cell.connections)
             {
                 const ImU32 colour = traversalColour(connection.traversal);
                 if (connection.sampledFeet.size() < 2)
@@ -122,23 +122,23 @@ namespace simple_platformer
         }
     }
 
-    void drawNavigationCache(
+    void drawNavigationConnections(
         ImDrawList& drawList,
-        const NavigationCacheDebugInfo& cache,
+        const NavigationConnectionsDebugInfo& navigation,
         const Aabb& cameraBounds,
         const WindowViewport& viewport)
     {
-        const CursorCellDebugInfo cursor = cache.cursorCell.value_or(CursorCellDebugInfo{});
+        const CursorCellDebugInfo cursor = navigation.cursorCell.value_or(CursorCellDebugInfo{});
         const NavigationCellDebugInfo* cellUnderCursor = nullptr;
-        for (const NavigationCellDebugInfo& cell : cache.cells)
+        for (const NavigationCellDebugInfo& cell : navigation.cells)
         {
             drawNavigationCell(drawList, cell, cameraBounds, viewport);
-            if (cache.cursorCell.has_value() && cell.bounds.topLeft == cursor.bounds.topLeft)
+            if (navigation.cursorCell.has_value() && cell.bounds.topLeft == cursor.bounds.topLeft)
             {
                 cellUnderCursor = &cell;
             }
         }
-        if (cache.cursorCell.has_value())
+        if (navigation.cursorCell.has_value())
         {
             drawCursorCell(drawList, cursor, cameraBounds, viewport);
         }
@@ -150,39 +150,40 @@ namespace simple_platformer
 
     void drawNavigationTotals(
         ImDrawList& drawList,
-        const NavigationCacheDebugInfo& cache,
+        const NavigationConnectionsDebugInfo& navigation,
         ImVec2& position)
     {
         constexpr float Indentation = 12.0F;
-        drawTextLine(drawList, position, "navigation cache", TextHeadingColour);
+        drawTextLine(drawList, position, "navigation connections", TextHeadingColour);
         char text[48];
-        const auto line = [&](const char* key, std::size_t value)
-        {
-            std::snprintf(text, sizeof(text), "%-8s%zu", key, value);
-            drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        };
-        if (cache.actorName.empty())
+        if (navigation.actorName.empty())
         {
             std::snprintf(
                 text,
                 sizeof(text),
                 "body:   %gx%g",
-                static_cast<double>(cache.bodySize.x),
-                static_cast<double>(cache.bodySize.y));
+                static_cast<double>(navigation.bodySize.x),
+                static_cast<double>(navigation.bodySize.y));
         }
         else
         {
-            std::snprintf(text, sizeof(text), "body:   %s", cache.actorName.c_str());
+            std::snprintf(text, sizeof(text), "body:   %s", navigation.actorName.c_str());
         }
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
         std::snprintf(
-            text, sizeof(text), "shown:  %zu/%zu (N)", cache.profileIndex + 1, cache.profileCount);
+            text,
+            sizeof(text),
+            "shown:  %zu/%zu (N)",
+            navigation.profileIndex + 1,
+            navigation.profileCount);
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        // Cells with connections, over every cached cell.
+        // Cells with connections, over every displayed cell.
         std::snprintf(
-            text, sizeof(text), "cells:  %zu/%zu", cache.cellsConnected, cache.cachedCellCount);
+            text,
+            sizeof(text),
+            "cells:  %zu/%zu",
+            navigation.cellsConnected,
+            navigation.cells.size());
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        line("pending:", cache.cellsPending);
-        line("walks:", cache.cachedWalkCount);
     }
 }

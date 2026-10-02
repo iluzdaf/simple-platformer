@@ -19,15 +19,16 @@
 #include "simple_platformer/math/validation.hpp"
 #include "simple_platformer/movement/platformer_movement.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
-#include "simple_platformer/navigation/platformer_connection_cache.hpp"
 #include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/navigation/navigation_path.hpp"
 #include "simple_platformer/navigation/route_search.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
+#include "simple_platformer/navigation/platformer_connection_table.hpp"
 #include "simple_platformer/navigation/platformer_traversal_profile.hpp"
 #include "simple_platformer/navigation/traversal.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/world/tile_map.hpp"
+#include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
 {
@@ -232,7 +233,7 @@ namespace simple_platformer
         }
 
         // Adds the penalty to each jump in this search's copy of the connections. The
-        // cached costs stay the simulated ticks.
+        // table's costs stay the simulated ticks.
         void applyJumpStartPenalty(std::vector<RouteConnection>& connections, int penaltyTicks)
         {
             for (RouteConnection& connection : connections)
@@ -260,19 +261,21 @@ namespace simple_platformer
         }
 
         // The cheapest path over floors, and for a climber walls and ceilings, from where
-        // the body rests to the goal cell. It only reads the cache and never runs movement.
-        // If the cache does not hold a cell the search needs yet, that cell goes to the
-        // front of the fill and the result is Deferred. No result if the body rests
-        // nowhere.
+        // the body rests to the goal cell. It prepares the profile in the table, then only
+        // reads it. No result if the body rests nowhere.
         std::optional<NavigationPathResult> findPlatformerPath(
             const TileMap& map,
             const Aabb& body,
             glm::vec2 goalFeet,
             const PlatformerTraversalProfile& profile,
-            PlatformerConnectionCache& cache,
+            PlatformerConnectionTable& table,
             FrameProfile* frameProfile)
         {
             requireValid(goalFeet, profile);
+            {
+                const PhaseScope tablePhase(frameProfile, "Navigation", "Connection table");
+                table.prepare(map, profile, frameProfile);
+            }
 
             addFrameStatistic(frameProfile, "Navigation", "Path searches");
 
@@ -285,34 +288,21 @@ namespace simple_platformer
             const RouteLocation start = *resting;
             const int tileSize = map.tileSize();
             const Cell goal = cellAtFeet(tileSize, goalFeet);
-            {
-                const PhaseScope cachePhase(frameProfile, "Navigation", "Path cache");
-                cache.applyRecordedTileBreaks(map, frameProfile);
-            }
 
             int cellsExpanded = 0;
             const ConnectionFunction connections =
-                [&profile, &cache, frameProfile, &cellsExpanded](RouteLocation location)
+                [&table, &profile, frameProfile, &cellsExpanded](RouteLocation location)
             {
                 const PhaseScope connectionPhase(
                     frameProfile, "Navigation", "Connection retrieval");
 
                 ++cellsExpanded;
 
-                // 1. Read the cell's connections from the cache. One entry holds the
-                //    connections leaving every surface of the cell. The search only
-                //    expands cells the cache holds, so this never misses.
-                const std::vector<RouteConnection>* cellConnections =
-                    cache.cachedConnections(location.cell, profile);
-                if (cellConnections == nullptr)
-                {
-                    throw std::logic_error("The search expanded a cell the cache does not hold");
-                }
-
-                // 2. Keep the connections that leave this location's surface. A floor
-                //    expands with floor connections, a wall with that wall's climbs.
+                // Keep the connections that leave this location's surface. A floor
+                // expands with floor connections, a wall with that wall's climbs. The
+                // table holds the connections leaving every surface of the cell.
                 std::vector<RouteConnection> leaving;
-                for (const RouteConnection& connection : *cellConnections)
+                for (const RouteConnection& connection : table.connections(location.cell, profile))
                 {
                     if (connection.sourceSurface == location.surface)
                     {
@@ -320,8 +310,8 @@ namespace simple_platformer
                     }
                 }
 
-                // 3. Charge each jump the start penalty. This changes the search's copy
-                //    only; the cached costs stay the simulated ticks.
+                // Charge each jump the start penalty. This changes the search's copy
+                // only; the table's costs stay the simulated ticks.
                 applyJumpStartPenalty(leaving, JumpStartPenaltyTicks);
 
                 return leaving;
@@ -330,30 +320,13 @@ namespace simple_platformer
             const HeuristicFunction heuristic = [tileSize, &profile](Cell cell, Cell goalCell)
             { return platformerTickHeuristic(tileSize, cell, goalCell, profile); };
 
-            // The search pauses at a cell the cache does not hold yet, until the fill
-            // builds it.
-            const ExpansionReady canExpand = [&cache, &profile](RouteLocation location)
-            { return cache.cachedConnections(location.cell, profile) != nullptr; };
-
             RouteSearchResult result;
             {
                 const PhaseScope algorithmPhase(frameProfile, "Navigation", "Search algorithm");
-                result =
-                    findLowestCostRoute(start, goal, map.size(), connections, heuristic, canExpand);
+                result = findLowestCostRoute(start, goal, map.size(), connections, heuristic);
             }
 
             addFrameStatistic(frameProfile, "Navigation", "Cells expanded", cellsExpanded);
-
-            if (result.unexpandedLocation.has_value())
-            {
-                {
-                    const PhaseScope cachePhase(frameProfile, "Navigation", "Path cache");
-                    cache.queue(result.unexpandedLocation->cell, profile);
-                    cache.prioritise(result.unexpandedLocation->cell, profile);
-                }
-                addFrameStatistic(frameProfile, "Navigation", "Paths deferred");
-                return NavigationPathResult{NavigationPathStatus::Deferred, std::nullopt};
-            }
 
             if (!result.route.has_value())
             {
@@ -384,7 +357,7 @@ namespace simple_platformer
         const Actor& actor,
         glm::vec2 goalFeet,
         float stepSeconds,
-        PlatformerConnectionCache& cache,
+        PlatformerConnectionTable& connections,
         FrameProfile* frameProfile)
     {
         if (actor.flyingMovement.has_value())
@@ -400,7 +373,20 @@ namespace simple_platformer
             actor.body.bounds,
             goalFeet,
             platformerTraversalProfileFor(actor, stepSeconds),
-            cache,
+            connections,
             frameProfile);
+    }
+
+    void prepareNavigation(const TileMap& map, World& world, float stepSeconds)
+    {
+        requirePositiveSeconds(stepSeconds, "Navigation step");
+        PlatformerConnectionTable& table = world.platformerConnections();
+        for (const Actor& actor : world.actors())
+        {
+            if (actor.pathFollower.has_value() && actor.platformerMovement.has_value())
+            {
+                table.prepare(map, platformerTraversalProfileFor(actor, stepSeconds));
+            }
+        }
     }
 }

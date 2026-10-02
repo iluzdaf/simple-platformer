@@ -71,9 +71,7 @@ belong to.
 | Find              | To produce a path for an actor, with `findActorPath`. Finding runs a search.                                                                 |
 | Follow            | To turn a path into intentions, step by step, with the path follower.                                                                        |
 | Traversal profile | Everything a platformer's connections depend on: body size, movement, climbing and the step. Actors with the same profile share connections. |
-| Connection cache  | Where the connections for each cell and profile are kept between searches.                                                                   |
-| Fill              | The background work that builds the cache a little at a time, each step.                                                                     |
-| Deferred          | A search that stopped because the cache did not hold a cell it needed yet. The caller tries again later.                                     |
+| Connection table  | Every cell's connections for each profile, built when a level starts and rebuilt where a tile breaks.                                        |
 
 ## Presentation and content
 

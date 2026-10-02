@@ -10,9 +10,10 @@
 namespace simple_platformer
 {
     struct Actor;
-    class PlatformerConnectionCache;
+    class PlatformerConnectionTable;
     struct FrameProfile;
     class TileMap;
+    class World;
 
     // The one way into navigation. Finds the cheapest path for the actor, from where its
     // body rests to the cell holding the goal, using only the moves the actor has. If it
@@ -24,20 +25,23 @@ namespace simple_platformer
     // A platformer's connections come from running its movement at stepSeconds, the
     // fixed step it moves at, so a planned jump and the real one behave the same. Their
     // costs are counted in those ticks, and the step must be finite and positive. The
-    // search itself never runs movement: it reads connections from the cache, which the
-    // navigation fill builds. If the cache does not hold a cell the search needs yet,
-    // that cell goes to the front of the fill and the result is Deferred. An optional
-    // frame profile records the search's work.
+    // search itself never runs movement: it reads connections from the table, after
+    // preparing the actor's profile there. That rebuilds what recent breaks touched, and
+    // builds the whole map for a profile the table has not met. An optional frame profile
+    // records the search's work.
     std::optional<NavigationPathResult> findActorPath(
         const TileMap& map,
         const Actor& actor,
         glm::vec2 goalFeet,
         float stepSeconds,
-        PlatformerConnectionCache& cache,
+        PlatformerConnectionTable& connections,
         FrameProfile* frameProfile = nullptr);
 
     // Everything a platformer actor's connections depend on: its body size, movement,
-    // climbing and the step. The navigation fill uses it to build the same cache entries
-    // a search reads.
+    // climbing and the step.
     PlatformerTraversalProfile platformerTraversalProfileFor(const Actor& actor, float stepSeconds);
+
+    // Builds the world's connection table for every platformer NPC's profile, so no
+    // search during play has to. Call once when the level starts.
+    void prepareNavigation(const TileMap& map, World& world, float stepSeconds);
 }

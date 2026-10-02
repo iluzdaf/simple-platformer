@@ -26,14 +26,14 @@ namespace simple_platformer
             tools.machineActor.reset();
         }
         if (visibility.worldAndCameraOverlay || visibility.actorText ||
-            visibility.navigationCacheText)
+            visibility.navigationConnectionsText)
         {
             drawDebugOverlay(
                 overlay,
                 viewport,
                 visibility.worldAndCameraOverlay,
                 visibility.actorText,
-                visibility.navigationCacheText,
+                visibility.navigationConnectionsText,
                 visibility.stateMachine);
         }
         if (visibility.stateMachine)

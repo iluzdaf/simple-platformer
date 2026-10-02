@@ -248,8 +248,8 @@ It is safe to return later to:
   [Lua activity boundary](ARCHITECTURE.md#lua-activity-boundary));
 - cover fading, which fades NPCs and pickups standing in grass on the player's screen
   ([Tile map, collision, and validation](ARCHITECTURE.md#tile-map-collision-and-validation));
-- the connection cache, which keeps platformer connections between searches and fills
-  in the background ([The connection cache](ARCHITECTURE.md#the-connection-cache));
+- the connection table, which builds platformer connections when a level starts and
+  rebuilds them where a tile breaks ([The connection table](ARCHITECTURE.md#the-connection-table));
 - atlas coordinates and clip timings in `assets/catalogs/animations.json`;
 - CI, formatting, and static-analysis targets.
 

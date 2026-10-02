@@ -20,7 +20,7 @@ Use this as a reference when working on a particular feature:
 | Gameplay systems          | [Input and movement](#input-and-movement)                                 | Intentions, platformer and flying movement.                                                                                                   |
 |                           | [Tile map, collision, and validation](#tile-map-collision-and-validation) | Terrain and sweeps.                                                                                                                           |
 |                           | [NPC behaviour](#npc-behaviour)                                           | Sensing, memory, machines, and Lua activities.                                                                                                |
-|                           | [Navigation](#navigation)                                                 | Path search, following, simulated traversals, and the connection cache.                                                                       |
+|                           | [Navigation](#navigation)                                                 | Path search, following, simulated traversals, and the connection table.                                                                       |
 |                           | [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle) | Attacks and death.                                                                                                                            |
 |                           | [Inventory, pickups, and levels](#inventory-pickups-and-levels)           | The level loop and the [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the file-by-file authoring reference. |
 | Presentation and practice | [Presentation](#presentation)                                             | Animation, rendering, camera, and UI.                                                                                                         |
@@ -225,7 +225,7 @@ small.
 ## World ownership and identity
 
 `World` owns actors, projectiles, their short-lived burst effects, pickups, item
-definitions, the current exit, and the level's platformer connection cache. An actor has a
+definitions, the current exit, and the level's platformer connection table. An actor has a
 typed, monotonically increasing
 [`ActorId`](../include/simple_platformer/actor/actor_id.hpp) rather than exposing its
 vector index. Zero is invalid. IDs are not reused within a world. `World::findActor` performs a
@@ -536,8 +536,8 @@ or apply damage directly.
 Navigation is the most advanced part of the engine. It keeps the search, which finds the cheapest route, apart from the code
 that says how places connect for each kind of movement. It never moves an actor itself:
 the path follower turns a path into intentions, and the ordinary movement systems do the
-moving. This section covers the search and the connections first, then the cache and
-the fill that builds it.
+moving. This section covers the search and the connections first, then the table that
+holds them.
 
 `findActorPath` is the one way into navigation. An NPC passes it the actor and a goal
 point. It looks only at the actor's body and the moves it has, never at what the actor
@@ -570,7 +570,6 @@ The result's status says how it went:
 | ------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | `Found`       | The path reaches the goal's cell.                                          | Ends in the goal's cell.                                                                                                                | Yes                               |
 | `Unreachable` | The search tried everything reachable from the start, and never got there. | Ends in the reached cell nearest the goal, the first reached of any equally close. It has no waypoints when the actor is already there. | Yes                               |
-| `Deferred`    | The cache is missing a cell the search needs. Flying paths never defer.    | None. The caller tries again once the fill has built the cell.                                                                          | No                                |
 
 The distance lets a caller judge the outcome for itself, such as whether an
 unreachable goal is close enough.
@@ -654,53 +653,36 @@ its config to the traversal profile. The search itself does not change.
 A climber whose feet end a climb off its waypoint drops the path, and the NPC plans
 again.
 
-### The connection cache
+### The connection table
 
 A cell's connections depend only on the map, the cell, and a
 `PlatformerTraversalProfile` (body size, movement configuration, simulation step,
 and optional climb capability), so actors with the same profile can share them
 while the map stands.
-`PlatformerConnectionCache` in `navigation/platformer_connection_cache` stores, per profile:
+`PlatformerConnectionTable` in `navigation/platformer_connection_table` holds, per
+profile, the connections leaving every cell of the map, from every surface of it, with
+the footprint their simulation swept.
 
-- the connections leaving each cell, from every surface of it, with the footprint
-  their simulation swept, built by searches or background fill;
-- walk results by length, including failed attempts; successful flat-ground walks
-  start and end at rest, so their costs can be reused from any cell of any floor.
-
-The `World` owns the cache for the map it is simulated with, since the world is
-replaced with its level, and the NPC system hands it to every platformer search.
-The platformer search requires the cache and charges each jump its penalty. It only
-reads the cache and never simulates or stores connections; the fill is the one thing
-that builds them. Optional frame profiling counts searches, expanded cells, and
-deferred searches.
-
-### Filling the cache
-
-Background filling uses a queue per profile in `navigation/navigation_fill`. When a
-level starts, `queueNavigationFill`
-gathers the world's distinct platformer NPC profiles and queues every map cell for
-each. Every simulation step begins with a fill phase, `advanceNavigationFill`, that builds and
-stores connections for queued cells. Its budget counts simulation ticks plus
-a fixed charge per cell, even for cells with no connections. The budget is shared among
-profiles with pending cells. A cell is filled as one unit, so its cost can take a
-profile past its share of the budget. Filling continues over subsequent steps without
-delaying level startup. When a search reaches a cell the cache does not hold yet, it
-stops before expanding that cell, queues it if it is not already queued, moves it to
-the front, and returns `Deferred`. The NPC asks again next step.
-Tests can fill the queue to completion when they need a full cache.
+A profile is built whole, every cell at once. When a level starts,
+`prepareNavigation` builds the profile of each platformer NPC in the world, so no
+search during play simulates movement. A search for a profile the table has not met,
+such as one an NPC added later has, builds it then, in that step. The `World` owns the
+table for the map it is simulated with, since the world is replaced with its level,
+and the NPC system hands it to every platformer search. The search reads the table and
+charges each jump its penalty. Optional frame profiling counts searches, expanded
+cells, and the cells built and rebuilt.
 
 ### Breaks
 
-When a projectile breaks a tile, the cache drops only what the break can have
-changed. Each cell's connections are cached with a footprint, the rectangle of cells
+When a projectile breaks a tile, the table rebuilds only what the break can have
+changed. Each cell's connections are kept with a footprint, the rectangle of cells
 their simulation swept or read, grown a tile all round for the tiles collision and
-support look at beside the body; a broken tile inside a footprint drops that cell.
-Walks stay, since no tile decided them.
-The map logs the cells it breaks. Searches and fills apply recorded breaks to the cache
-before using it, so no separate break notification is needed. The cells a break drops
-join the fill queue, and searches that need them wait as they do at a level start. An
-NPC also plans again after any break, since its path may have run through the broken
-tile.
+support look at beside the body; a broken tile inside a footprint rebuilds that cell
+at once, against the map as it is now. The map logs the cells it breaks. Each
+simulation step applies recorded breaks to the table before NPCs think, and a search
+does too, so no separate break notification is needed. The rebuild takes its step's
+time; the game accepts that cost when a tile breaks. An NPC also plans again after any
+break, since its path may have run through the broken tile.
 
 ### Following a path
 
@@ -1115,7 +1097,7 @@ implementation. Important coverage includes:
 - camera dead-zone following, clamping, centring, and pixel rounding;
 - NPC sensing, memory, FSM transitions, continuous patrol, and edge recovery;
 - lowest-cost search, heuristics, flying paths, standability, falls, replayed jump
-  programs, the connection cache, breaks and the fill;
+  programs, the connection table and breaks;
 - bite and ranged attack phases;
 - swept projectiles, teams, damage, death, removal, and respawn;
 - inventory stacking and capacity, automatic pickup, item use, exit requirements, and

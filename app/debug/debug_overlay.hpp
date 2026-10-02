@@ -121,7 +121,7 @@ namespace simple_platformer
         std::vector<ActorDebugInfo> actors;
         std::vector<ProjectileDebugInfo> projectiles;
         std::vector<PickupDebugInfo> pickups;
-        std::optional<NavigationCacheDebugInfo> navigationCache;
+        std::optional<NavigationConnectionsDebugInfo> navigationConnections;
         // The cell under the cursor when its tile can break, for the hint that B breaks it.
         std::optional<Aabb> breakableCellUnderCursor;
         // The locked machine, otherwise the one under the cursor or nearest the player.
@@ -132,7 +132,7 @@ namespace simple_platformer
 
     // simulationStepSeconds is the fixed step the world is simulated with; predicted jump
     // arcs are replayed at it so they match what the actor will do. The navigation view
-    // says which cell and which body the cache is shown for, and its cursor also picks
+    // says which cell and which body the connections are shown for, and its cursor also picks
     // the NPC whose machine is shown.
     DebugOverlay makeDebugOverlay(
         const World& world,

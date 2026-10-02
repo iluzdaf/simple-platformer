@@ -19,7 +19,6 @@ namespace
     using simple_platformer::ClimbSurface;
     using simple_platformer::ConnectionFunction;
     using simple_platformer::endOf;
-    using simple_platformer::ExpansionReady;
     using simple_platformer::findLowestCostRoute;
     using simple_platformer::GridSize;
     using simple_platformer::HeuristicFunction;
@@ -280,30 +279,6 @@ TEST_CASE(
     REQUIRE_THROWS_AS(
         findLowestCostRoute(floorOf(0, 0), {1, 0}, TestGrid, costsNothing, zeroHeuristic),
         std::invalid_argument);
-}
-
-TEST_CASE(
-    "A search pauses at a location it may not expand yet, before asking for its connections",
-    "[navigation][search]")
-{
-    // The start leads to (1, 0), which the readiness check refuses. The search expands
-    // the start, reaches (1, 0) and pauses there: no route, only the location, and it
-    // never asks for (1, 0)'s connections.
-    const ConnectionFunction line = lineUpTo(2);
-    int connectionQueries = 0;
-    const ConnectionFunction countedLine = [&](RouteLocation location)
-    {
-        ++connectionQueries;
-        return line(location);
-    };
-    const simple_platformer::ExpansionReady canExpand = [](RouteLocation location)
-    { return location.cell != Cell{1, 0}; };
-
-    const RouteSearchResult paused =
-        findLowestCostRoute(floorOf(0, 0), {2, 0}, TestGrid, countedLine, gridSteps, canExpand);
-    REQUIRE_FALSE(paused.route.has_value());
-    REQUIRE(paused.unexpandedLocation == floorOf(1, 0));
-    REQUIRE(connectionQueries == 1);
 }
 
 TEST_CASE("A search stops at the cheapest location in the goal cell", "[navigation][search]")

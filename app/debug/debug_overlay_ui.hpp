@@ -13,6 +13,5 @@ namespace simple_platformer
         const std::optional<WindowViewport>& viewport,
         bool showWorldAndCamera,
         bool showActorText,
-        bool showNavigationConnectionsText,
-        bool showStateMachine);
+        bool showNavigationConnectionsText);
 }

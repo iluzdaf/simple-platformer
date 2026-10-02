@@ -9,9 +9,7 @@
 #include "content/actor_catalog.hpp"
 #include "content/actor_definition.hpp"
 #include "content/animation_catalog.hpp"
-#include "content/machine_catalog.hpp"
 #include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "support/actor_components.hpp"
@@ -20,33 +18,19 @@ TEST_CASE("Actor JSON accepts custom names and configures component choices", "[
 {
     const auto animations =
         simple_platformer::loadAnimationCatalog("tests/fixtures/catalogs/animations.json");
-    const auto machines =
-        simple_platformer::loadMachineCatalog("tests/fixtures/catalogs/machines.json");
     const auto catalog = simple_platformer::parseActorCatalog(
         R"({
         "player":"hero", "actors":{
           "hero":{"bodySize":[12,20],"platformer":{"jumpSpeed":210},"health":5,"inventorySlots":3},
           "scout":{"flying":{"speed":25},"team":"enemy","senses":{"noticeDistance":40,"searchDuration":3,"standoffDistance":30},
                    "tactic":"keepDistance",
-                   "machine":"test_machine",
                    "bodySize":[8,6],"animations":"test_actor","spriteAnchor":"center","bite":{"damage":2}}
         }})",
         "test actors",
-        animations,
-        machines);
+        animations);
     REQUIRE(catalog.player == "hero");
     auto actor = simple_platformer::composeActor(
-        simple_platformer::actorDefinition(catalog, "scout"),
-        animations,
-        7,
-        {},
-        std::nullopt,
-        machines);
-    REQUIRE(actor.machine.has_value());
-    REQUIRE(
-        simple_platformer::activeNpcMachineState(
-            actor.machine.value_or(simple_platformer::NpcMachine{}))
-            .name == "rest");
+        simple_platformer::actorDefinition(catalog, "scout"), animations, 7, {}, std::nullopt);
     REQUIRE(tests::flyingMovement(actor).speed == 25);
     REQUIRE(tests::bite(actor).damage == 2);
     REQUIRE(tests::senses(actor).searchDuration == 3);
@@ -130,6 +114,10 @@ TEST_CASE(
     SECTION("Unknown field")
     {
         actorJson["actors"]["hero"]["heath"] = 3;
+    }
+    SECTION("Removed machine field")
+    {
+        actorJson["actors"]["hero"]["machine"] = "old_machine";
     }
     SECTION("Runtime state")
     {

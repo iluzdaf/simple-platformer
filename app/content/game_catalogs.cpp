@@ -8,7 +8,6 @@
 #include "pickup_catalog.hpp"
 #include "exit_catalog.hpp"
 #include "hud_catalog.hpp"
-#include "machine_catalog.hpp"
 
 namespace simple_platformer
 {
@@ -19,10 +18,8 @@ namespace simple_platformer
         GameCatalogs catalogs;
         catalogs.tiles = loadTileCatalog(catalogDirectory / "tiles.json");
         catalogs.animations = loadAnimationCatalog(catalogDirectory / "animations.json");
-        catalogs.machines = loadMachineCatalog(catalogDirectory / "machines.json");
-        // Actor definitions reference the animation sets and machines loaded above.
-        catalogs.actors = loadActorCatalog(
-            catalogDirectory / "actors.json", catalogs.animations, catalogs.machines);
+        // Actor definitions reference the animation sets loaded above.
+        catalogs.actors = loadActorCatalog(catalogDirectory / "actors.json", catalogs.animations);
         catalogs.items = loadItemCatalog(catalogDirectory / "items.json");
         // Pickup stacks refer to the item definitions loaded above.
         catalogs.pickups = loadPickupCatalog(catalogDirectory / "pickups.json", catalogs.items);

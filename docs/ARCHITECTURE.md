@@ -19,7 +19,7 @@ Use this as a reference when working on a particular feature:
 |                           | [Actor composition](#actor-composition)                                   | How capabilities fit together.                                                                                                                |
 | Gameplay systems          | [Input and movement](#input-and-movement)                                 | Intentions, platformer and flying movement.                                                                                                   |
 |                           | [Tile map, collision, and validation](#tile-map-collision-and-validation) | Terrain and sweeps.                                                                                                                           |
-|                           | [NPC behaviour](#npc-behaviour)                                           | Sensing, memory, machines, and Lua activities.                                                                                                |
+|                           | [NPC behaviour](#npc-behaviour)                                           | Sensing, memory, switch-case states, and enum tactics.                                                                                        |
 |                           | [Navigation](#navigation)                                                 | Path search, following, simulated traversals, and the connection table.                                                                       |
 |                           | [Combat, projectiles, and life cycle](#combat-projectiles-and-life-cycle) | Attacks and death.                                                                                                                            |
 |                           | [Inventory, pickups, and levels](#inventory-pickups-and-levels)           | The level loop and the [data-driven boundary](#data-driven-level-boundary). [CONTENT.md](CONTENT.md) is the file-by-file authoring reference. |
@@ -47,11 +47,9 @@ The current example includes:
 - 360-degree projectiles and a timed bite attack
 - health, death, respawning, pickups, inventory, and three connected levels
 - sprite animation, an ImGui HUD, and an optional debug overlay
-- data-driven NPC machines which can run protected Lua activities through a copied
-  snapshot-and-command boundary
 
 The project deliberately does not try to provide slopes, one-way or moving platforms,
-dynamic rigid-body physics, actor pushing, multiplayer, general gameplay scripting beyond
+dynamic rigid-body physics, actor pushing, multiplayer, general gameplay scripting,
 NPC activities, save games, an
 editor, an animation graph, a general ECS, or advanced projectile modifiers such as
 homing and piercing. OpenGL submission is checked manually rather than with automated
@@ -67,10 +65,6 @@ The project has four main CMake targets:
 
 - `simple_platformer_core` contains simulation and render-scene construction. It has
   no dependency on GLFW, OpenGL, ImGui, or JSON parsing.
-- `simple_platformer_scripting` owns the Lua VM and implements the NPC activity scripting
-  boundary without exposing Lua types to the core. It lives on its own in `scripting/`,
-  as the application does in `app/`. `lua_npc_scripts.hpp` is its interface; its other
-  headers use sol2 and are private to it.
 - `simple_platformer` contains the executable, window, input adapter, OpenGL renderer,
   and ImGui presentation.
 - `simple_platformer_tests` contains Catch2 tests for the core and for the application
@@ -81,9 +75,7 @@ simulation tick, and inspect the result without needing a window or graphics con
 
 All third-party source is vendored under `external/` so the project builds offline and
 everyone works from the same releases. The current dependencies include GLFW, glad, GLM, ImGui,
-ImPlot for the debug overlay's plots, imgui-node-editor for its machine window, Catch2,
-stb image loading, nlohmann/json, Lua, and sol2. Lua and sol2 are private to the scripting
-target rather than leaking through public headers.
+ImPlot for the debug overlay's plots, Catch2, stb image loading, and nlohmann/json.
 
 ### Application folders
 
@@ -249,15 +241,14 @@ components supply its capabilities.
 
 ### Composition recipe
 
-| Capability     | Components                                               | Rule                                                                    |
-| -------------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Movement       | `PlatformerMovement` or `FlyingMovement`                 | Exactly one is required.                                                |
-| Climbing       | `SurfaceClimb`                                           | Optional; requires `PlatformerMovement`.                                |
-| NPC control    | `NpcBrain`, `NpcPerception`, `NpcSenses`, `PathFollower` | Add these together; a `Patrol` is optional.                             |
-| Machine policy | `NpcMachine`                                             | Requires NPC control; chooses activities instead of the brain's tactic. |
-| Primary attack | `BiteAttack` or `RangedWeapon`                           | At most one is configured.                                              |
-| Contact attack | `ContactDamage`                                          | Can coexist with either primary attack and is requested separately.     |
-| Presentation   | `Sprite` and `Animator`                                  | An animator needs a sprite and a complete animation set.                |
+| Capability     | Components                                               | Rule                                                                |
+| -------------- | -------------------------------------------------------- | ------------------------------------------------------------------- |
+| Movement       | `PlatformerMovement` or `FlyingMovement`                 | Exactly one is required.                                            |
+| Climbing       | `SurfaceClimb`                                           | Optional; requires `PlatformerMovement`.                            |
+| NPC control    | `NpcBrain`, `NpcPerception`, `NpcSenses`, `PathFollower` | Add these together; a `Patrol` is optional.                         |
+| Primary attack | `BiteAttack` or `RangedWeapon`                           | At most one is configured.                                          |
+| Contact attack | `ContactDamage`                                          | Can coexist with either primary attack and is requested separately. |
+| Presentation   | `Sprite` and `Animator`                                  | An animator needs a sprite and a complete animation set.            |
 
 The application writes player intentions; NPC activities write the same structure.
 An attacking actor needs a non-neutral team for opponent filtering. Health and
@@ -440,11 +431,10 @@ or shoot. This keeps perception and decisions separately testable.
 ### Explicit state machine
 
 Built-in states are declared in [`npc.hpp`](../include/simple_platformer/npc/npc.hpp).
-`NpcTactic` selects Pursuer or KeepDistance policy. An update has three steps:
+`NpcTactic` selects Pursuer, KeepDistance, Coward or Charger policy. An update has three steps:
 
 1. `gatherNpcFacts` in `npc_facts.cpp` collects sensing, target memory, movement,
-   attacks, and state time into `NpcFacts`. [CONTENT.md](CONTENT.md#state-machines) defines the machine-visible
-   facts and their timing.
+   attacks, and state time into `NpcFacts`.
 2. `nextNpcState` in `npc_transitions.cpp` is the transition table: a switch over the
    current state that returns the state to enter, or nothing to stay. It reads only the
    tactic and the facts, so a test hands it those and expects a state. An NPC makes at
@@ -458,78 +448,33 @@ Built-in states are declared in [`npc.hpp`](../include/simple_platformer/npc/npc
 
 ### Tactics
 
-`NpcTactic` is one named policy on the brain: Pursuer or KeepDistance. The transition
-table asks it two questions, what to do about a target the NPC knows of and where a
-lost one leaves it, and shares every other transition. A Pursuer answers the first with
+`NpcTactic` is one named policy on the brain. Pursuer and KeepDistance share their
+transition switch. Coward and Charger have their own explicit switches. For Pursuer
+and KeepDistance the shared table asks two questions: what to do about a known
+target, and where a lost one leaves the NPC. A Pursuer answers the first with
 the attack that reaches, a bite before a shot, or Chase, and the second with Search. A
 KeepDistance NPC answers Retreat while the target is nearer than its standoff and
 otherwise the same, and watches from where it stands rather than walk to where the
-target was. Content chooses the tactic or supplies a machine expressing a policy
-through the same states, facts and activities.
+target was. Content chooses the tactic.
+
+Coward patrols until a visible threat comes inside its standoff distance, then enters
+Flee. Flee routes to the patrol endpoint on the side away from the remembered threat.
+At that endpoint it stops and faces the threat, allowing a directional bite when the
+threat reaches it. A completed bite returns to Flee, or to patrol/idle if the target is
+lost. Otherwise fleeing ends after 1.5 continuous seconds without a living target.
+
+Charger sleeps until it hears a landing from a target within notice distance on the
+same ground run. Charge commits to the horizontal direction chosen on entry, avoids
+ledges and requests contact damage. A blocked movement enters Stunned, stopping both
+movement and contact damage. After 1.5 seconds it charges again if the target is still
+nearby on its run, otherwise it sleeps. Rat uses Coward and boar uses Charger in the
+shipped actor catalog.
 
 A tactic chooses; it never adds behaviour. A state, its activity, the facts it decides on
 and any capability it uses exist first, so healing instead of attacking is a heal
 component, a hurt fact and a Heal state before it is a tactic that answers Heal. Adding
-a tactic is an enum value and a branch in each question it answers differently, plus
-whatever it needs, added once for every tactic to use.
-
-### Data-driven state machine
-
-An NPC may carry an `NpcMachine` beside its brain, built from a machine in
-`machines.json`. When it does, the machine chooses the activity and the tactic is not
-asked. A named state runs either a built-in C++ activity or a named Lua activity, and
-transitions have a `from`, a `to`, a `when` and an `after`. `when` is a map of fact
-names to the value each must hold, answered by the rows in `npc_fact_rows.cpp` over the
-same `NpcFacts` the enum brain reads. `after` is how long every condition must hold
-before the transition fires; the hold restarts when a condition drops.
-
-`advanceNpcMachine` runs once an update. Among the transitions from the active state,
-the first whose conditions have held long enough fires, so a transition's position in
-the data is its priority, and at most one fires an update. The machine owns the active
-state's elapsed time and calls its activity's exit and enter hooks around a transition.
-Built-in values dispatch the existing C++ activity switch; Lua values use the scripting
-boundary. Machine activities are not copied into `NpcBrain::state`. Loading rejects a
-machine with no states, a repeated state name, a transition
-from or to a state it lacks, a condition on a fact no row answers, or a hold that is
-not a finite, non-negative time, and names the transition.
-
-Behaviour does not move the body directly. If a ground NPC reaches an awkward platform
-edge and loses its path, navigation can recover to a supported cell before repathing;
-regression tests cover this case.
-
-### Lua activity boundary
-
-The scripting target provides the protected Lua runtime used by scripted machine activities.
-The core-facing boundary contains no Lua types. `NpcActivitySnapshot` is a copied,
-read-only-in-effect view of position, target, patrol endpoints, facts, state time, route
-completion, and tuning.
-`NpcActivityCommand` carries only intentions and requests to aim, route, or clear a route.
-Applying those requests, including pathfinding, remains engine work.
-
-`LuaNpcScripts` loads each script into its own environment and requires it to return named
-activities with an `update` function; `enter` and `exit` are optional. Only the base, math,
-string, and table libraries are available, with dynamic loading and filesystem functions
-removed. Snapshots become fresh Lua tables whose positions are `glm::vec2` bound as the
-Lua value type `vec2`, so scripts do vector arithmetic with the engine's own glm maths
-instead of copying helpers they cannot share. A `vec2` is copied in and out, and scripts
-reach its constructor through a read-only global, so no script can change the type for
-another. Returned command tables reject unknown fields and wrong types, and their vectors,
-a `vec2` or an `{x, y}` table, must be finite.
-
-Every visit has a `self` table keyed by stable `ActorId`, script, and activity. Calls are
-protected and have an instruction budget. A hook error or invalid command records its source,
-script, activity, hook, and actor, then produces no command instead of escaping into the
-simulation. A failed script replacement leaves the previous script in place. Before queued actor
-removals are applied, an NPC cleanup system discards their script-owned state. Level replacement
-and restart discard that state for every actor before replacing the world.
-
-Machine JSON keeps the short string form for built-in activities. A Lua activity uses
-`{"kind":"lua","script":"enemy_policy","activity":"flee"}`, for example. The application
-loads referenced files from `assets/scripts` at startup and rejects missing scripts
-or activities. Lua activities can choose movement goals, request attacks and enable
-contact damage through intentions. C++ follows paths and applies movement and combat
-rules using the actor's configured capabilities. Scripts cannot create noise events
-or apply damage directly.
+a tactic is an enum value and explicit transition branches, plus whatever facts or
+states it needs.
 
 ## Navigation
 
@@ -801,7 +746,7 @@ therefore change without touching engine code.
 
 The application loads the atlas, then the shared definitions with
 [`loadGameCatalogs`](../app/content/game_catalogs.cpp), which checks every sprite region
-against the atlas's size, then the Lua activities the machines name. `Game` reuses them
+against the atlas's size. `Game` reuses them
 across level transitions and restarts, and loads each level file when entering it.
 `level_data.cpp` parses a level into plain `LevelData`, expanding object-legend markers
 into ordinary placements; [`level_composition.cpp`](../app/game/level_composition.cpp)
@@ -925,18 +870,15 @@ built before the simulation and hands back what the player asked for as
 instead of firing a shot and building the interface never changes the game.
 The application owns `DebugToolVisibility`; all control mappings remain in
 [Debug overlay](../README.md#debug-overlay). `drawDebugTools` in
-`app/debug/debug_tools` orders the optional world, text and machine layers before the
-frame panel. `DebugTools` owns the persistent profiling, selection and graph-editor
+`app/debug/debug_tools` orders the optional world and text layers before the
+frame panel. `DebugTools` owns the persistent profiling, selection and axes
 state, so the application needs one object and one draw call.
 
 `Game::debugOverlay` builds a presentation-ready `DebugOverlay` snapshot without ImGui.
 It limits world diagnostics to the camera and a small margin, and carries actor,
-projectile, pickup, navigation, camera and machine data. The UI only projects that data
+projectile, pickup, navigation and camera data. The UI only projects that data
 through `DisplayViewport`; it does not change simulation state. This separation keeps
 collection and selection logic testable without a window.
-
-`app/debug/machine_graph_ui` presents the selected NPC's `NpcMachine` from that snapshot
-without editing it.
 
 Frame profiling is optional. The application owns each frame record and passes it to
 the simulation; work measures its own duration with nested scopes and adds named
@@ -981,9 +923,7 @@ when the actor holds no surface. Follow it for further abilities instead of fill
 
 ### Adding an NPC state
 
-To arrange existing activities differently, add named states and transitions to a
-machine; this needs no new C++ enum value. For a new built-in activity that multiple
-NPCs can use, extend the C++ state path:
+To add behaviour, extend the C++ state path:
 
 1. Add the state to the enum.
 2. Add any fact its transitions decide on to `NpcFacts`, and gather it in
@@ -997,37 +937,19 @@ NPCs can use, extend the C++ state path:
 6. Test its transitions with facts alone, then its sustained behaviour and the most
    important interaction with sensing or target memory through `updateNpcBehaviour`.
 7. Add the state name to the debug presentation so it can be inspected while playing.
-8. Name the activity in the machine loader, so a machine in `machines.json` can run it,
-   and give any new fact a row in `npc_fact_rows.cpp`, so a transition can ask for it.
 
 Keep the enum and explicit state branches while the number of states is small. A
 behaviour tree, virtual brain hierarchy, or callback registry would make transitions
 and state ownership harder to follow without solving a current requirement.
 A reusable change to how built-in states are chosen can extend a
-[tactic](#tactics); an enemy-specific sequence can stay in its machine.
+[tactic](#tactics).
 
 ### Creating a new enemy
 
 First check whether existing components and activities express the enemy. If they do,
-add a named definition in `actors.json` and place it in a level. For an enemy whose
-policy needs a custom activity, the advanced route is a machine with Lua. Extend the
-engine only where that policy needs facts or capabilities it does not already expose:
-
-1. a machine in `machines.json` for new states and transitions;
-2. a Lua activity in `assets/scripts` for policy that existing activities cannot express;
-3. a C++ fact when the policy needs an observation the engine does not yet supply;
-4. a C++ component or system when the engine lacks a movement or combat capability;
-5. animation frames and an animation set when the enemy needs new presentation;
-6. focused tests for new engine rules and interactions, while content-integrity tests
-   check that shipped references resolve.
-
-Take only the steps the enemy needs. They are alternatives, not stages: a machine can
-run built-in activities without Lua, and a new fact does not need a script.
-
-Species, capabilities, and decisions are separate concerns. Artwork does not determine
-the brain, and a ranged weapon needs no `Shooter` subclass. The decision policy is
-the brain's [tactic](#tactics) or its machine. Add a new tactic only for a policy shared
-by multiple actors; it may need new facts or built-in states.
+add a named definition in `actors.json` and place it in a level. Otherwise add the
+C++ facts, states or capabilities it needs and test their behavior. Select its policy
+with the brain's [tactic](#tactics).
 
 ### Choosing the layer
 

@@ -18,8 +18,6 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/content/item_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/level_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/level_data.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/machine_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/npc_script_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/pickup_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/content/tile_catalog.cpp
     ${PROJECT_SOURCE_DIR}/app/game/game.cpp
@@ -47,12 +45,9 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data_diagnostics.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data_object_validation.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_machine_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_npc_script_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_pickup_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/content/test_tile_catalog.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay_machine.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay_navigation.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/debug/test_frame_axes.cpp
     ${PROJECT_SOURCE_DIR}/tests/app/debug/test_frame_selection.cpp
@@ -77,12 +72,10 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_platformer_connections.cpp
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_route_search.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_senses.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_state_machine.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_system.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_built_in_activity.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_facts.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_scripted_activity.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_transitions.cpp
     ${PROJECT_SOURCE_DIR}/tests/physics/test_body.cpp
     ${PROJECT_SOURCE_DIR}/tests/physics/test_collision.cpp
@@ -95,13 +88,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/render/test_level_object_render.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_presentation.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_render_scene.cpp
-    ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_npc_script_loading.cpp
-    ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_npc_script_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_npc_scripts.cpp
-    ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_vec2.cpp
-    ${PROJECT_SOURCE_DIR}/tests/scripting/test_lua_npc_world_integration.cpp
     ${PROJECT_SOURCE_DIR}/tests/support/test_actor_builder.cpp
-    ${PROJECT_SOURCE_DIR}/tests/support/test_npc_machine_builder.cpp
     ${PROJECT_SOURCE_DIR}/tests/support/test_tile_map_builder.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_fixed_step.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_frame_history.cpp

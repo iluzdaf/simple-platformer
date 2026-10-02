@@ -11,7 +11,6 @@
 #include "simple_platformer/movement/surface_climb.hpp"
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/physics/body.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
@@ -57,8 +56,6 @@ namespace simple_platformer
         std::optional<ContactDamage> contactDamage;
         std::optional<NpcBrain> brain;
         std::optional<NpcPerception> perception;
-        // A data-driven machine that chooses the activity instead of asking the tactic.
-        std::optional<NpcMachine> machine;
         std::optional<NpcSenses> senses;
         std::optional<Patrol> patrol;
         std::optional<PathFollower> pathFollower;

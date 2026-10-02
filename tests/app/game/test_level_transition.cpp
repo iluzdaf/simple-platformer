@@ -62,7 +62,6 @@ TEST_CASE(
         0,
         simple_platformer::loadLevelCatalog("tests/fixtures/levels/levels.json"),
         simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize),
-        simple_platformer::LuaNpcScripts{},
         tests::FixedStepSeconds);
     const auto initialHealth = game.playerHealth();
     const auto initialInventory = game.playerInventory();
@@ -108,7 +107,6 @@ TEST_CASE(
         0,
         simple_platformer::loadLevelCatalog("tests/fixtures/levels/locked_levels.json"),
         simple_platformer::loadGameCatalogs("tests/fixtures/catalogs", tests::AtlasSize),
-        simple_platformer::LuaNpcScripts{},
         tests::FixedStepSeconds);
     REQUIRE_FALSE(game.lockedExitHintIcon().has_value());
 

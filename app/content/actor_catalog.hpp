@@ -6,7 +6,6 @@
 #include <glm/vec2.hpp>
 #include "actor_definition.hpp"
 #include "animation_catalog.hpp"
-#include "machine_catalog.hpp"
 
 namespace simple_platformer
 {
@@ -19,8 +18,7 @@ namespace simple_platformer
     ActorCatalog parseActorCatalog(
         std::string_view text,
         std::string_view sourceName,
-        const AnimationCatalog& animations,
-        const MachineCatalog& machines = {});
+        const AnimationCatalog& animations);
 
     // Rejects the first projectile sprite that runs past an atlas of this size, naming its
     // field. Actors' own sprites are animation frames, which the animation catalog checks.
@@ -31,13 +29,9 @@ namespace simple_platformer
 
     ActorCatalog loadActorCatalog(
         const std::filesystem::path& path,
-        const AnimationCatalog& animations,
-        const MachineCatalog& machines = {});
+        const AnimationCatalog& animations);
 
-    void validateActorCatalog(
-        const ActorCatalog& catalog,
-        const AnimationCatalog& animations,
-        const MachineCatalog& machines = {});
+    void validateActorCatalog(const ActorCatalog& catalog, const AnimationCatalog& animations);
 
     const ActorDefinition& actorDefinition(const ActorCatalog& catalog, const std::string& name);
 }

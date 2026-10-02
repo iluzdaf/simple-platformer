@@ -4,7 +4,6 @@
 #include "debug_overlay_ui.hpp"
 #include "frame_profile_ui.hpp"
 #include "frame_selection.hpp"
-#include "machine_graph_ui.hpp"
 
 #include <optional>
 
@@ -20,11 +19,6 @@ namespace simple_platformer
         const DebugToolVisibility& visibility,
         bool paused)
     {
-        if (tools.machineActor.has_value() &&
-            (!overlay.machine.has_value() || overlay.machine->actor != *tools.machineActor))
-        {
-            tools.machineActor.reset();
-        }
         if (visibility.worldAndCameraOverlay || visibility.actorText ||
             visibility.navigationConnectionsText)
         {
@@ -33,12 +27,7 @@ namespace simple_platformer
                 viewport,
                 visibility.worldAndCameraOverlay,
                 visibility.actorText,
-                visibility.navigationConnectionsText,
-                visibility.stateMachine);
-        }
-        if (visibility.stateMachine)
-        {
-            drawMachineGraph(tools.machineEditors, overlay.machine, tools.machineActor.has_value());
+                visibility.navigationConnectionsText);
         }
         recordFrameForPlot(tools.frameHistory, tools.frameSelection, profile, paused);
         return drawFrameProfile(

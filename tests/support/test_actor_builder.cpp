@@ -6,14 +6,12 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/npc/npc.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/math/aabb.hpp"
-#include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
-#include "support/npc_machine_builder.hpp"
 #include "support/actor_components.hpp"
 
 namespace
@@ -90,20 +88,4 @@ TEST_CASE("An NPC from the actor builder is one World accepts", "[support][actor
     REQUIRE(tests::patrol(npc).firstFeet == glm::vec2{8.0F, 32.0F});
     REQUIRE(tests::patrol(npc).secondFeet == glm::vec2{56.0F, 32.0F});
     REQUIRE(npc.bite.has_value());
-}
-
-TEST_CASE("A thinking actor from the builder can run a machine", "[support][actor-builder]")
-{
-    simple_platformer::World world;
-    const simple_platformer::ActorId id =
-        world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                           .at({8.0F, 8.0F})
-                           .platforming()
-                           .thinking({})
-                           .running(tests::NpcMachineBuilder::named("test").state(
-                               "rest", simple_platformer::NpcState::Idle)));
-    REQUIRE(
-        simple_platformer::activeNpcMachineState(
-            tests::actor(world, id).machine.value_or(simple_platformer::NpcMachine{}))
-            .name == "rest");
 }

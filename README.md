@@ -2,7 +2,7 @@
 
 Simple Platformer is a C++17 teaching engine and example game built from independently
 testable systems. The current implementation includes platformer movement, tile collision,
-scrolling, composed actors, NPC state machines with Lua activities, flying and platformer
+scrolling, composed actors, NPC states with enum tactics, flying and platformer
 pathfinding, projectiles, animation, inventory, automatic pickups, a three-level game
 loop, and ImGui debugging tools.
 
@@ -12,7 +12,7 @@ loop, and ImGui debugging tools.
 | --------------------------------------- | --------------------------------------------------------------------------------- |
 | [START_HERE.md](docs/START_HERE.md)     | A recommended route through the code, and which details can wait until later.     |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design, ownership rules, runtime flow, and the reasons behind the main decisions. |
-| [CONTENT.md](docs/CONTENT.md)           | How to author levels, definitions, machines, and NPC scripts under `assets`.      |
+| [CONTENT.md](docs/CONTENT.md)           | How to author levels and definitions under `assets`.                              |
 | [GLOSSARY.md](docs/GLOSSARY.md)         | The words the code and documents use, each with one meaning.                      |
 | [CPP_STYLE.md](docs/CPP_STYLE.md)       | How the C++ is written, and the language features to know before reading it.      |
 | [FUTURE_WORK.md](docs/FUTURE_WORK.md)   | Proposed features that are not implemented yet.                                   |
@@ -137,22 +137,17 @@ one key; the third exit completes the example campaign.
 F1 opens the debug tools with only the frame plot visible. It shows the last two seconds
 against the 60 Hz budget, with simulation costs stacked by category.
 
-| Action                                            | Controls                              |
-| ------------------------------------------------- | ------------------------------------- |
-| Show or hide the frame details and legend         | 1                                     |
-| Show or hide the world-space and camera overlay   | 2                                     |
-| Show or hide actor text                           | 3                                     |
-| Show or hide navigation-cache totals              | 4                                     |
-| Show or hide the state-machine window             | 5                                     |
-| Lock or unlock the machine window to an NPC       | Click the NPC                         |
-| Pause and inspect a frame, or scrub across frames | Press or drag on the plot             |
-| Deselect and resume                               | Click the picked frame again          |
-| Show or hide a plotted series                     | Click it in the plot's legend         |
-| Show the next navigation-cache profile            | N                                     |
-| Break a labelled tile under the cursor            | B                                     |
-| Move a state in the machine window                | Drag it                               |
-| Pan or zoom the machine window                    | Drag with the right button, or scroll |
-| Fit the machine window to its graph               | F, with the cursor over it            |
+| Action                                            | Controls                      |
+| ------------------------------------------------- | ----------------------------- |
+| Show or hide the frame details and legend         | 1                             |
+| Show or hide the world-space and camera overlay   | 2                             |
+| Show or hide actor text                           | 3                             |
+| Show or hide navigation-cache totals              | 4                             |
+| Pause and inspect a frame, or scrub across frames | Press or drag on the plot     |
+| Deselect and resume                               | Click the picked frame again  |
+| Show or hide a plotted series                     | Click it in the plot's legend |
+| Show the next navigation-cache profile            | N                             |
+| Break a labelled tile under the cursor            | B                             |
 
 Timings are only meaningful from a release build.
 
@@ -164,7 +159,7 @@ GitHub Actions runs the jobs below. The names are the ones shown on a pull reque
 | ---------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | macOS / Apple Clang          | `macos-latest` | Configures, builds, and runs the whole test suite.                                                                                                                  | pushes to `main` and pull requests |
 | Windows / Visual Studio 2022 | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds it with MSBuild, and runs the tests through `run_tests`, then again from where the debugger starts them. | pushes to `main` and pull requests |
-| Formatting                   | `ubuntu-24.04` | Checks the formatting of C++, JSON, YAML, Markdown, Python, and Lua, lints the Python and Lua, and runs the tests for the repository's tools.                       | pull requests only                 |
+| Formatting                   | `ubuntu-24.04` | Checks the formatting of C++, JSON, YAML, Markdown, and Python, lints the Python, and runs the tests for the repository's tools.                                    | pull requests only                 |
 | Headers stand alone          | `ubuntu-24.04` | Compiles every public header on its own.                                                                                                                            | pull requests only                 |
 | Static analysis (1/3 to 3/3) | `ubuntu-24.04` | Runs clang-tidy, with warnings as errors, on the files the pull request affects (see [Static analysis](#static-analysis)), split across three shards.               | pull requests only                 |
 | Static analysis              | `ubuntu-24.04` | Passes only if every static analysis shard passed. This is the check branch protection requires.                                                                    | pull requests only                 |
@@ -180,29 +175,20 @@ built as generated. None of this affects local builds.
 ## Formatting
 
 `.clang-format` defines the C and C++ style; `.prettierrc` covers JSON, YAML, and
-Markdown. Ruff formats and checks first-party Python. `.stylua.toml` formats Lua 5.4,
-while `.luacheckrc` limits linted globals to the libraries exposed by the protected
-runtime. `.luarc.json` configures LuaLS for Lua 5.4 and leaves formatting to StyLua.
+Markdown. Ruff formats and checks first-party Python.
 `.editorconfig` supplies shared whitespace rules.
 
-|           | Config          | Tool                            | VS Code                                 | Visual Studio                            |
-| --------- | --------------- | ------------------------------- | --------------------------------------- | ---------------------------------------- |
-| C and C++ | `.clang-format` | clang-format 18                 | on save, through clangd                 | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
-| JSON      | `.prettierrc`   | Prettier 3.9.8                  | on save, through the Prettier extension | not supported, use the command line      |
-| YAML      | `.prettierrc`   | Prettier 3.9.8                  | on save, through the Prettier extension | not supported, use the command line      |
-| Markdown  | `.prettierrc`   | Prettier 3.9.8                  | on save, through the Prettier extension | not supported, use the command line      |
-| Python    | Ruff defaults   | Ruff 0.16.8                     | on save, through the Ruff extension     | not supported, use the command line      |
-| Lua       | `.stylua.toml`  | StyLua 2.5.2 and Luacheck 1.2.0 | on save, through the StyLua extension   | not supported, use the command line      |
+|           | Config          | Tool            | VS Code                                 | Visual Studio                            |
+| --------- | --------------- | --------------- | --------------------------------------- | ---------------------------------------- |
+| C and C++ | `.clang-format` | clang-format 18 | on save, through clangd                 | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
+| JSON      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
+| YAML      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
+| Markdown  | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
+| Python    | Ruff defaults   | Ruff 0.16.8     | on save, through the Ruff extension     | not supported, use the command line      |
 
 Both editors read `.clang-format` and `.editorconfig` without an extension. Visual
 Studio does not read the other formatter configs, so those files are formatted from
-the command line or caught by CI. VS Code also recommends LuaLS for Lua diagnostics.
-
-On macOS, install the Lua command-line tools with:
-
-```sh
-brew install stylua luacheck
-```
+the command line or caught by CI.
 
 Format first-party C++, or check it without changing files:
 
@@ -245,27 +231,13 @@ Run the tests for the scripts in `tools/`, as CI does:
 python3 -m unittest discover -s tools -p 'test_*.py'
 ```
 
-Format first-party Lua, or check its formatting and lint findings:
-
-```sh
-cmake --build --preset mac-debug --target format-lua
-cmake --build --preset mac-debug --target format-lua-check lint-lua
-```
-
-Luacheck only allows what scripts can use in the game. [`.luacheckrc`](.luacheckrc)
-lists the allowed globals, and `openSandbox` in
-[`scripting/lua_sandbox.cpp`](scripting/lua_sandbox.cpp) opens the same libraries at run
-time. Keep the two in step.
-
 The C++ targets skip `external/`; the JSON targets cover `assets/` and
 `tests/fixtures/`; the YAML targets cover `.github/`; the Markdown targets cover the
-root documentation and `docs/`; the Python targets cover `tools/`; and the Lua targets
-cover `assets/` and `tests/fixtures/`. CMake reports any unavailable tool while
+root documentation and `docs/`; the Python targets cover `tools/`. CMake reports any unavailable tool while
 configuring and omits only its targets. Use `-DCLANG_FORMAT_EXECUTABLE=`,
-`-DPRETTIER_EXECUTABLE=`, `-DRUFF_EXECUTABLE=`, `-DSTYLUA_EXECUTABLE=`, or
-`-DLUACHECK_EXECUTABLE=` to choose a specific one.
+`-DPRETTIER_EXECUTABLE=`, or `-DRUFF_EXECUTABLE=` to choose a specific one.
 
-CI runs clang-format 18, Prettier 3.9.8, Ruff 0.16.8, StyLua 2.5.2, and Luacheck 1.2.0,
+CI runs clang-format 18, Prettier 3.9.8, and Ruff 0.16.8,
 and a pull request cannot merge until their checks pass. Local versions do not have to
 match. If yours formats differently, CI fails and you reformat with the commands above.
 
@@ -321,15 +293,13 @@ app/           application shell, graphics, UI, and debug tools
 assets/        runtime game content
   catalogs/    shared JSON definitions
   levels/      level catalog and maps
-  scripts/     Lua NPC activities
   textures/    runtime sprite atlas
 cmake/         dependencies, quality rules, and explicit target source manifests
 include/       public core headers
-scripting/     Lua scripting target: the NPC activity runtime and its sol2 bindings
 src/           core implementations
 tests/         Catch2 tests for core systems and testable application code
   app/         application tests grouped like app/ (content, debug, game, graphics, UI)
-  fixtures/    example content mirroring assets/levels, catalogs, and scripts
+  fixtures/    example content mirroring assets/levels, and catalogs
   support/     test-only builders and simulation helpers
 tools/         repository quality and maintenance scripts
 docs/          reading route, architecture, content format, and future work

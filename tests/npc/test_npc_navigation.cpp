@@ -130,8 +130,7 @@ namespace
         simple_platformer::World& world)
     {
         simple_platformer::FrameProfile profile;
-        simple_platformer::updateNpcBehaviour(
-            map, world, tests::FixedStepSeconds, nullptr, &profile);
+        simple_platformer::updateNpcBehaviour(map, world, tests::FixedStepSeconds, &profile);
         return profile;
     }
 

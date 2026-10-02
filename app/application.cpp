@@ -14,7 +14,6 @@
 
 #include "content/game_catalogs.hpp"
 #include "content/level_catalog.hpp"
-#include "content/npc_script_catalog.hpp"
 #include "debug/debug_tools.hpp"
 #include "debug/frame_profile_ui.hpp"
 #include "game/game.hpp"
@@ -23,10 +22,8 @@
 #include "graphics/imgui_session.hpp"
 #include "graphics/sprite_renderer.hpp"
 #include "ui/interface_ui.hpp"
-#include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/render/render_scene.hpp"
-#include "lua_npc_scripts.hpp"
 #include "simple_platformer/timing/fixed_step.hpp"
 #include "simple_platformer/timing/frame_profile.hpp"
 #include "simple_platformer/timing/stopwatch.hpp"
@@ -137,12 +134,6 @@ namespace simple_platformer
                     !context->debugToolVisibility.navigationConnectionsText;
                 return;
             }
-            if (key == GLFW_KEY_5 && action == GLFW_PRESS && context->showDebugOverlay)
-            {
-                context->debugToolVisibility.stateMachine =
-                    !context->debugToolVisibility.stateMachine;
-                return;
-            }
             if (key == GLFW_KEY_N && action == GLFW_PRESS)
             {
                 ++context->debugBodyIndex;
@@ -222,13 +213,10 @@ namespace simple_platformer
         LevelCatalog levelCatalog = loadLevelCatalog("assets/levels/levels.json");
         GameCatalogs gameCatalogs =
             loadGameCatalogs("assets/catalogs", {atlasTexture.width, atlasTexture.height});
-        LuaNpcScripts npcScripts;
-        loadNpcActivityScripts(npcScripts, gameCatalogs.machines, "assets/scripts");
         Game game(
             atlas,
             std::move(levelCatalog),
             std::move(gameCatalogs),
-            std::move(npcScripts),
             static_cast<float>(fixedStep.stepSeconds()));
         DebugTools debugTools;
         Stopwatch frameClock;
@@ -282,24 +270,6 @@ namespace simple_platformer
                     game.breakTileAt(*internalCursor);
                 }
                 context.breakTileRequested = false;
-            }
-            if (context.showDebugOverlay && context.debugToolVisibility.stateMachine &&
-                internalCursor.has_value() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
-                !ImGui::GetIO().WantCaptureMouse)
-            {
-                const std::optional<ActorId> clicked = game.machineActorAt(*internalCursor);
-                if (clicked.has_value())
-                {
-                    if (debugTools.machineActor == clicked)
-                    {
-                        debugTools.machineActor.reset();
-                    }
-                    else
-                    {
-                        debugTools.machineActor = clicked;
-                    }
-                    context.input.clearButton(InputButton::PrimaryAttack);
-                }
             }
             // The game has the cursor while it is over the image and no UI wants the mouse.
             std::optional<glm::vec2> gameCursor = internalCursor;
@@ -363,8 +333,7 @@ namespace simple_platformer
                     game.debugOverlay(
                         static_cast<float>(atlasTexture.width),
                         internalCursor,
-                        context.debugBodyIndex,
-                        debugTools.machineActor),
+                        context.debugBodyIndex),
                     windowViewport,
                     context.debugToolVisibility,
                     paused);

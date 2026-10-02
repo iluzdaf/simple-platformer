@@ -50,7 +50,7 @@ belong to.
 | Fact       | A yes-or-no answer about an NPC this update, such as `targetVisible` or `hasPatrol`, that its transitions test.   |
 | State      | What an NPC is doing, such as Patrol, Chase or Bite.                                                              |
 | Tactic     | The built-in policy for choosing states: Pursuer closes in, KeepDistance keeps its range.                         |
-| Activity   | What a state does each step. A built-in activity is written in C++; a scripted activity is written in Lua.        |
+| Activity   | What a built-in state does each step, written in C++.                                                             |
 | Patrol     | Two points an NPC walks or flies between while it has no target.                                                  |
 | Noise      | An event other actors can hear, such as a landing or a shot.                                                      |
 

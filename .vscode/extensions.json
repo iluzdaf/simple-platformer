@@ -3,8 +3,6 @@
     "llvm-vs-code-extensions.vscode-clangd",
     "ms-vscode.cmake-tools",
     "esbenp.prettier-vscode",
-    "charliermarsh.ruff",
-    "JohnnyMorganz.stylua",
-    "sumneko.lua"
+    "charliermarsh.ruff"
   ]
 }

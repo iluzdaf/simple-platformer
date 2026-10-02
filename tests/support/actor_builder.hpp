@@ -16,7 +16,6 @@
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/navigation/route.hpp"
 #include "simple_platformer/npc/npc.hpp"
-#include "simple_platformer/npc/npc_state_machine.hpp"
 #include "simple_platformer/render/animation.hpp"
 #include "simple_platformer/render/sprite.hpp"
 #include "support/tile_size.hpp"
@@ -31,7 +30,6 @@ namespace tests
     //       .platforming()
     //       .climbing({60.0F})
     //       .thinking({64.0F, 1.0F})
-    //       .running(machine)
     //
     // The build rules, which the chain enforces at compile time:
     //
@@ -41,8 +39,7 @@ namespace tests
     //    exactly one, which World requires.
     // 3. After the movement, the optional components may come in any order.
     // 4. thinking() makes the actor an NPC, adding its brain, perception, senses and path
-    //    follower together. Only then can running() give it a state machine, which is
-    //    started and validated as it is added.
+    //    follower together.
     //
     // The chain converts to an Actor wherever one is expected. It checks nothing beyond
     // its order: World validates the result when the actor is added, so climbing() on a
@@ -133,16 +130,10 @@ namespace tests
         simple_platformer::Actor built;
     };
 
-    // An NPC: everything an ActorBuilder offers, and running().
+    // An NPC with its behaviour components.
     class ActorBuilder::Thinking : public ActorBuilder
     {
     public:
-        Thinking running(simple_platformer::NpcStateMachine machine) &&
-        {
-            built.machine = simple_platformer::startNpcMachine(std::move(machine));
-            return std::move(*this);
-        }
-
     private:
         friend class ActorBuilder;
 

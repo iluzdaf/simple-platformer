@@ -168,15 +168,6 @@ TEST_CASE("Actor definitions reuse engine component validation", "[app][actors]"
         definition.senses = simple_platformer::NpcSenses{};
         definition.senses->standoffDistance = -1.0F;
     }
-    SECTION("A machine without senses")
-    {
-        definition.machine = "test_machine";
-    }
-    SECTION("A machine the catalog lacks")
-    {
-        definition.senses = simple_platformer::NpcSenses{};
-        definition.machine = "missing";
-    }
     REQUIRE_THROWS_AS(
         simple_platformer::validateActorDefinition(definition, {}), std::invalid_argument);
 }

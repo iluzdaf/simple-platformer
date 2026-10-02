@@ -324,12 +324,6 @@ namespace simple_platformer
                 drawShadowedText(
                     drawList, labelPosition, WorldLabelColour, nameOf(actor.npcState.value()));
             }
-            if (actor.machineState.has_value())
-            {
-                labelPosition.y += lineHeight;
-                drawShadowedText(
-                    drawList, labelPosition, WorldLabelColour, actor.machineState->c_str());
-            }
         }
 
         void drawProjectile(
@@ -375,20 +369,6 @@ namespace simple_platformer
                 {above.x, above.y - ImGui::GetTextLineHeight()},
                 WorldLabelColour,
                 "B to break");
-        }
-
-        // A second box round the NPC whose machine the machine window shows.
-        void drawFollowedOutline(
-            ImDrawList& drawList,
-            const ActorDebugInfo& actor,
-            const DebugOverlay& scene,
-            const WindowViewport& viewport)
-        {
-            constexpr float Gap = 2.0F;
-            const Aabb outline{
-                actor.collider.topLeft - glm::vec2{Gap, Gap},
-                actor.collider.size + glm::vec2{Gap, Gap} * 2.0F};
-            drawWorldBounds(drawList, outline, scene.cameraBounds, viewport, FollowedActorColour);
         }
 
         void drawActorText(ImDrawList& drawList, const ActorDebugInfo& actor, ImVec2& position)
@@ -483,8 +463,7 @@ namespace simple_platformer
         const std::optional<WindowViewport>& viewport,
         bool showWorldAndCamera,
         bool showActorText,
-        bool showNavigationConnectionsText,
-        bool showStateMachine)
+        bool showNavigationConnectionsText)
     {
         ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 
@@ -538,10 +517,6 @@ namespace simple_platformer
             drawActorWorldLabel(*drawList, actor, scene, *viewport);
             drawWorldBounds(
                 *drawList, actor.collider, scene.cameraBounds, *viewport, ColliderBoundsColour);
-            if (showStateMachine && scene.machine.has_value() && scene.machine->actor == actor.id)
-            {
-                drawFollowedOutline(*drawList, actor, scene, *viewport);
-            }
         }
 
         if (showWorldAndCamera && viewport.has_value())

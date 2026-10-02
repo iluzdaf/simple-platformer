@@ -1,7 +1,5 @@
 #include "simple_platformer/actor/actor_validation.hpp"
 
-#include "simple_platformer/npc/npc_state_machine.hpp"
-
 #include <stdexcept>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -134,23 +132,14 @@ namespace simple_platformer
                 throw std::invalid_argument(
                     "NPC actors require a brain, perception, senses, and path follower");
             }
-            if (actor.machine.has_value())
-            {
-                if (!actor.brain.has_value())
-                {
-                    throw std::invalid_argument("An NPC state machine requires a brain");
-                }
-                validateNpcStateMachine(actor.machine->definition);
-                if (actor.machine->active >= actor.machine->definition.states.size() ||
-                    actor.machine->heldFor.size() != actor.machine->definition.transitions.size())
-                {
-                    throw std::invalid_argument("An NPC state machine must be started");
-                }
-                requireSeconds(actor.machine->stateElapsed, "NPC machine state elapsed");
-            }
             if (actor.brain.has_value())
             {
                 requireSeconds(actor.brain->stateElapsed, "NPC state elapsed");
+                requireSeconds(actor.brain->targetLostElapsed, "NPC target lost elapsed");
+                if (actor.brain->chargeDirection != -1.0F && actor.brain->chargeDirection != 1.0F)
+                {
+                    throw std::invalid_argument("NPC charge direction must be left or right");
+                }
                 requireSeconds(actor.brain->targetMemoryRemaining, "NPC target memory remaining");
                 if (!isFinite(actor.brain->lastKnownTargetFeet))
                 {

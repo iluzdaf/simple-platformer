@@ -17,7 +17,11 @@ namespace simple_platformer
         Shoot,
         Search,
         Retreat,
-        Watch
+        Watch,
+        Flee,
+        Sleep,
+        Charge,
+        Stunned
     };
 
     // The brain's policy, asked wherever the transition table makes a choice: what to do
@@ -25,11 +29,14 @@ namespace simple_platformer
     // attacks with what reaches, and searches where it lost its target. A KeepDistance
     // NPC backs away from a target nearer than its standoff, so a ranged NPC keeps its
     // range, and watches from where it stands rather than walk to where the target was.
-    // A tactic chooses between states that exist; it never adds behaviour.
+    // Coward flees and bites when cornered. Charger wakes on a landing, commits to
+    // a charge, and recovers after being blocked. Tactics select built-in states.
     enum class NpcTactic
     {
         Pursuer,
-        KeepDistance
+        KeepDistance,
+        Coward,
+        Charger
     };
 
     // Decision state and persistent knowledge, retained between sensing updates.
@@ -38,6 +45,10 @@ namespace simple_platformer
         NpcTactic tactic = NpcTactic::Pursuer;
         NpcState state = NpcState::Idle;
         float stateElapsed = 0.0F;
+        // Continuous time without a remembered living target, used when fleeing.
+        float targetLostElapsed = 0.0F;
+        // Chosen on entering Charge and retained until the charge ends.
+        float chargeDirection = 1.0F;
         std::optional<ActorId> target;
         // Last observed target feet, refreshed by sight or an eligible noise.
         glm::vec2 lastKnownTargetFeet = {0.0F, 0.0F};
@@ -60,7 +71,7 @@ namespace simple_platformer
         // How long a lost target is searched for before the NPC returns to its routine.
         // Zero sends it straight back.
         float searchDuration = 2.0F;
-        // Threshold for targetWithinStandoffDistance; tactics and machines decide
+        // Threshold for targetWithinStandoffDistance; tactics decide
         // what to do when the target crosses it.
         float standoffDistance = 48.0F;
     };

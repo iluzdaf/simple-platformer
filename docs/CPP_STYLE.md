@@ -19,8 +19,7 @@ The project uses C++17. Before reading the engine, it helps to be comfortable wi
   such as `for (const auto& [name, value] : map)`.
 
 Positions, sizes and velocities are [GLM](https://github.com/g-truc/glm) `glm::vec2`.
-Tests use [Catch2](https://github.com/catchorg/Catch2). Lua scripting goes through
-[sol2](https://github.com/ThePhD/sol2), only in `scripting/`.
+Tests use [Catch2](https://github.com/catchorg/Catch2).
 
 ## Names
 
@@ -90,8 +89,7 @@ where each kind of check belongs.
 ## Files and headers
 
 - **Engine code** is in `include/simple_platformer/<area>/` for public headers and
-  `src/<area>/` for their sources. **The game** is in `app/`, and **Lua scripting** in
-  `scripting/`.
+  `src/<area>/` for their sources. **The game** is in `app/`.
 - **A header declares only what other files use.** Helpers used by one source file go in
   an anonymous namespace in that file.
 - **Every header compiles on its own,** and every file includes the headers for what it
@@ -119,7 +117,7 @@ words of the [glossary](GLOSSARY.md).
 - **Test names are sentences** that say what should happen, such as "A break rebuilds
   only the cells whose footprint holds it".
 - **Builders in [`tests/support/`](../tests/support)** make test data readable:
-  `ActorBuilder`, `TileMapBuilder` and `NpcMachineBuilder`. Each explains its own rules
+  `ActorBuilder` and `TileMapBuilder`. Each explains its own rules
   at the top of its header.
 - **Helpers stay in the test file that uses them.** Only helpers several files share go
   in `tests/support/`.

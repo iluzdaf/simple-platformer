@@ -23,21 +23,6 @@ target_compile_features(simple_platformer_core PUBLIC cxx_std_17)
 target_link_libraries(simple_platformer_core PUBLIC simple_platformer_glm)
 enable_project_warnings(simple_platformer_core)
 
-add_library(simple_platformer_scripting)
-include(cmake/sources/Scripting.cmake)
-target_include_directories(
-    simple_platformer_scripting
-    PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/scripting
-)
-target_compile_features(simple_platformer_scripting PUBLIC cxx_std_17)
-target_link_libraries(
-    simple_platformer_scripting
-    PUBLIC simple_platformer_core
-    PRIVATE simple_platformer_sol2
-)
-enable_project_warnings(simple_platformer_scripting)
-
 add_executable(simple_platformer)
 include(cmake/sources/Application.cmake)
 target_compile_features(simple_platformer PRIVATE cxx_std_17)
@@ -45,7 +30,7 @@ target_include_directories(simple_platformer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 target_link_libraries(
     simple_platformer
     PRIVATE
-    simple_platformer_scripting
+    simple_platformer_core
     simple_platformer_glad
     simple_platformer_imgui
     simple_platformer_json
@@ -93,7 +78,7 @@ if(BUILD_TESTING)
     target_link_libraries(
         simple_platformer_tests
         PRIVATE
-        simple_platformer_scripting
+        simple_platformer_core
         simple_platformer_json
         Catch2::Catch2WithMain
     )

@@ -1,7 +1,6 @@
 function(verify_project_source_registration)
     set(project_targets
         simple_platformer_core
-        simple_platformer_scripting
         simple_platformer
     )
     set(project_source_patterns

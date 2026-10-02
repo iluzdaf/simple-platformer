@@ -15,7 +15,6 @@ loop, and ImGui debugging tools.
 | [CONTENT.md](docs/CONTENT.md)           | How to author levels and definitions under `assets`.                              |
 | [GLOSSARY.md](docs/GLOSSARY.md)         | The words the code and documents use, each with one meaning.                      |
 | [CPP_STYLE.md](docs/CPP_STYLE.md)       | How the C++ is written, and the language features to know before reading it.      |
-| [FUTURE_WORK.md](docs/FUTURE_WORK.md)   | Proposed features that are not implemented yet.                                   |
 
 New to the project? Start with [START_HERE.md](docs/START_HERE.md).
 
@@ -297,7 +296,7 @@ tests/         Catch2 tests for core systems and testable application code
   fixtures/    example content mirroring assets/levels, and catalogs
   support/     test-only builders and simulation helpers
 tools/         repository quality and maintenance scripts
-docs/          reading route, architecture, content format, and future work
+docs/          reading route, architecture, content format, glossary, and C++ style
 external/      fixed third-party source releases
 .github/       continuous-integration workflow
 ```

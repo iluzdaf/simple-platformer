@@ -15,7 +15,7 @@ belong to.
 | Step, tick    | One fixed update of the simulation, 1/60 of a second. The two words mean the same thing.                                                                                                                                        |
 | `deltaTime`   | The length of the step a system is running, in seconds.                                                                                                                                                                         |
 | Intentions    | What an actor wants to do this step: move, jump, attack, aim, climb. The player's come from the keyboard and mouse, an NPC's from its brain. Movement and combat read only intentions. See `InputIntentions`.                   |
-| Body          | An actor's box in the world and its velocity. Usually smaller than its art, which changes shape as it animates. See [`body.hpp`](../include/simple_platformer/physics/body.hpp).                                                |
+| Body          | A box in the world and its velocity, used by actors and pickups. Its size is independent of its art. See [`body.hpp`](../include/simple_platformer/physics/body.hpp).                                                           |
 | AABB          | An axis-aligned bounding box: a rectangle placed by its top-left corner, used for every body and for collision.                                                                                                                 |
 | Feet          | The middle of a body's bottom edge, where it stands. Levels place actors by their feet.                                                                                                                                         |
 | Tile, cell    | A tile is a square of the map with its own rules (blocks movement, blocks sight, climbable, breakable). A cell is a tile's position on the grid, written `{column, row}`.                                                       |
@@ -40,19 +40,18 @@ belong to.
 
 ## NPC behaviour
 
-| Term       | Meaning                                                                                                           |
-| ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| NPC        | An actor with a brain, which decides its intentions instead of a player.                                          |
-| Senses     | How far an NPC notices and how long it remembers. Tuned in content.                                               |
-| Perception | What an NPC saw or heard in the latest sensing update. Replaced every update.                                     |
-| Brain      | What an NPC knows and decides with between updates: its state, its target and its memory of where the target was. |
-| Target     | The actor an NPC is after, usually the player. Not the same as a goal.                                            |
-| Fact       | A yes-or-no answer about an NPC this update, such as `targetVisible` or `hasPatrol`, that its transitions test.   |
-| State      | What an NPC is doing, such as Patrol, Chase or Bite.                                                              |
-| Tactic     | The built-in policy for choosing states: Pursuer closes in, KeepDistance keeps its range.                         |
-| Activity   | What a built-in state does each step, written in C++.                                                             |
-| Patrol     | Two points an NPC walks or flies between while it has no target.                                                  |
-| Noise      | An event other actors can hear, such as a landing or a shot.                                                      |
+| Term       | Meaning                                                                                                                |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| NPC        | An actor with a brain, which decides its intentions instead of a player.                                               |
+| Senses     | How far an NPC notices and how long it remembers. Tuned in content.                                                    |
+| Perception | What an NPC saw or heard in the latest sensing update. Replaced every update.                                          |
+| Brain      | What an NPC knows and decides with between updates: its state, its target and its memory of where the target was.      |
+| Target     | The actor an NPC is after, usually the player. Not the same as a goal.                                                 |
+| Fact       | A value about an NPC this update that its transitions test, such as `targetVisible` or `stateElapsed`. See `NpcFacts`. |
+| State      | What an NPC is doing, such as Patrol, Chase or Bite.                                                                   |
+| Tactic     | A built-in policy for choosing states: Pursuer closes in, KeepDistance backs away, Coward flees, and Charger charges.  |
+| Patrol     | Two points an NPC walks or flies between while it has no target.                                                       |
+| Noise      | An event other actors can hear, such as a landing or a shot.                                                           |
 
 ## Navigation
 
@@ -71,16 +70,16 @@ belong to.
 | Find              | To produce a path for an actor, with `findActorPath`. Finding runs a search.                                                                 |
 | Follow            | To turn a path into intentions, step by step, with the path follower.                                                                        |
 | Traversal profile | Everything a platformer's connections depend on: body size, movement, climbing and the step. Actors with the same profile share connections. |
-| Connection table  | Every cell's connections for each profile, built when a level starts and rebuilt where a tile breaks.                                        |
+| Connection table  | Every cell's connections per profile. Profiles build at level startup or on first search; tile breaks rebuild affected cells.                |
 
 ## Presentation and content
 
-| Term                | Meaning                                                                                                                  |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Render scene        | The list of plain draw commands built from the world each frame, before anything touches OpenGL.                         |
-| Internal resolution | The 320 by 180 image the game draws, scaled to fit the window.                                                           |
-| Atlas               | The one image every sprite is cut from.                                                                                  |
-| Cover               | Tiles that block sight but can be walked into, such as grass. Whatever stands in cover is hidden from anyone outside it. |
-| Catalog             | A JSON file of named definitions, such as `actors.json` or `items.json`.                                                 |
-| Definition          | One named entry in a catalog, which levels refer to by name.                                                             |
-| Legend              | The part of a level file that says what each character in its map rows means.                                            |
+| Term                | Meaning                                                                                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Render scene        | The list of plain draw commands built from the world each frame, before anything touches OpenGL.                                                                 |
+| Internal resolution | The 320 by 180 image the game draws, scaled to fit the window.                                                                                                   |
+| Atlas               | The one image every sprite is cut from.                                                                                                                          |
+| Cover               | Walkable tiles that block sight, such as grass. Screen visibility depends on line of sight and body coverage; a concealed player darkens rather than disappears. |
+| Catalog             | A JSON file of named definitions, such as `actors.json` or `items.json`.                                                                                         |
+| Definition          | One named entry in a catalog, which levels refer to by name.                                                                                                     |
+| Legend              | The part of a level file that says what each character in its map rows means.                                                                                    |

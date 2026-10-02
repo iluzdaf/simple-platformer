@@ -11,7 +11,7 @@ The project uses C++17. Before reading the engine, it helps to be comfortable wi
 - [`std::optional`](https://en.cppreference.com/w/cpp/utility/optional), for a value
   that may be absent, such as an actor's optional components.
 - [`std::variant`](https://en.cppreference.com/w/cpp/utility/variant), for a value that
-  is one of a few types, such as an NPC activity that is either built in or scripted.
+  is one of a few types, such as `LevelPosition`: a tile cell or world-space feet.
 - [`std::function`](https://en.cppreference.com/w/cpp/utility/functional/function) and
   [lambdas](https://en.cppreference.com/w/cpp/language/lambda), for callbacks such as
   the connections a search asks for.
@@ -47,9 +47,8 @@ Most code is plain data and free functions, not classes with behaviour:
   hidden state, so a test calls one with exactly the data it wants.
 - **Classes are kept for things with rules to protect**, such as `World`, `TileMap` and
   `PlatformerConnectionTable`. Their data is private, and their functions keep it valid.
-- **Inheritance is rare.** An actor's role comes from the components it has, not from a
-  subclass. An interface with virtual functions appears only at a real boundary, such as
-  `NpcActivityScripts`, which tests replace with a fake.
+- **Actors use composition.** An actor's role comes from the components it has, not
+  from a subclass.
 
 ## Optional components
 

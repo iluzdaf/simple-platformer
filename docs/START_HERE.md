@@ -130,12 +130,11 @@ and the engine: it passes input into the simulation, updates presentation state,
 levels, and builds a scene for rendering. What it and `GameLevel` own is listed under
 [Application folders](ARCHITECTURE.md#application-folders).
 
-Then open [`assets/levels/levels.json`](../assets/levels/levels.json), which selects the starting
-level and maps IDs to files. Follow its first entry into
-[`level_1.json`](../assets/levels/level_1.json), then read
-[`level_data.cpp`](../app/content/level_data.cpp) for parsing and
-[`level_composition.cpp`](../app/game/level_composition.cpp) for building a `GameLevel`.
-Use [CONTENT.md](CONTENT.md) when you need the JSON fields or shared catalogs.
+Then open [`assets/levels/levels.json`](../assets/levels/levels.json), which selects the
+starting level and maps IDs to files. Follow its first entry into
+[`level_1.json`](../assets/levels/level_1.json). For now, notice the terrain, player spawn,
+and actor placements: level data becomes a tile map and a world of actors. Return to
+parsing and composition in step 9, after learning the data they build.
 
 ### 3. Learn the core data model
 
@@ -248,6 +247,12 @@ Finally, read the small inventory and world-object subjects:
 - [`world_requests.cpp`](../src/world/world_requests.cpp)
 
 These show automatic pickup, deferred world changes, item use, and level completion.
+
+Now return to [`level_composition.cpp`](../app/game/level_composition.cpp):
+`composeGameLevel` builds the map and world from level data and catalog definitions.
+Read [`level_data.cpp`](../app/content/level_data.cpp) afterward, starting with
+`loadLevelData` and `parseLevelData`, to see how JSON becomes that data. Use
+[CONTENT.md](CONTENT.md) for the JSON fields and shared catalogs.
 
 ## What to skip on a first reading
 

@@ -229,27 +229,37 @@ Then skim [`attack_system.cpp`](../src/combat/attack_system.cpp) and
 produce hits. [`world_requests.cpp`](../src/world/world_requests.cpp) applies their damage and
 handles death together with queued removals and spawns. Other NPC tactics and states can wait until this case makes sense.
 
-### 8. Read navigation last
+### 8. Follow basic navigation
 
-Navigation is the most advanced part of the repository. First understand NPC decisions
-and ordinary movement. Then read:
+First understand NPC decisions and ordinary movement. Keep this introduction to A* and
+platformer walking, falling, and jumping:
 
-1. [`route_search.cpp`](../src/navigation/route_search.cpp) for the A* search that
-   finds the cheapest route;
-2. [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp) for `findActorPath`,
-   the one entry point NPCs call. Read the flying search first, the simplest source of
-   connections, then the platformer search; both return no path for an unreachable
-   goal;
-3. [`path_follower.cpp`](../src/navigation/path_follower.cpp) for turning a path into
-   intentions;
-4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for where a body
-   can stand or hold a surface;
-5. [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp) for
-   simulated traversals.
+1. [`route.hpp`](../include/simple_platformer/navigation/route.hpp) names the search's
+   locations and connections. For this reading, each location is a cell's floor.
+   [`navigation_path.hpp`](../include/simple_platformer/navigation/navigation_path.hpp)
+   shows the waypoints an actor follows in world coordinates.
+2. [`route_search.cpp`](../src/navigation/route_search.cpp): start at
+   `findLowestCostRoute`. A* takes the location with the cheapest estimated total cost,
+   checks whether it reached the goal, then considers its outgoing connections. The
+   estimate combines the cost so far and a heuristic that never overestimates the
+   remaining cost. Follow the main loop, then `relax`, then `reconstructRoute`.
+3. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp): follow `canStandAt`
+   for where the body fits with floor support.
+4. [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp): follow
+   `findActorPath` into `findPlatformerPath`. It searches the available connections and
+   turns a successful route into waypoints; an unreachable goal has no path.
+5. [`path_follower.cpp`](../src/navigation/path_follower.cpp): start at
+   `followPlatformerPath`, then `followWalkStep` and `followAirborneStep`. Walking
+   approaches and brakes at a waypoint. Falling and jumping first reach their takeoff
+   point, then replay recorded intentions and wait for landing.
+6. [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp): follow
+   `buildPlatformerConnections`, `planPlatformerConnections`, `simulateWalk`, and
+   `simulateAirborneTraversal` to see where those connections and recorded inputs come
+   from. Leave climbing branches for a later reading.
 
-Platformer connections are found by running the real movement and collision code, so a
-planned move and the real one behave the same. [Navigation](ARCHITECTURE.md#navigation)
-explains how these pieces fit together.
+Connections are found by running the real movement and collision code. The follower
+produces intentions; the movement system still moves the body. [Navigation](ARCHITECTURE.md#navigation)
+is the detailed reference when you need more than this basic route.
 
 ### 9. Complete the level loop
 
@@ -273,6 +283,7 @@ Read [`level_data.cpp`](../app/content/level_data.cpp) afterward, starting with
 
 It is safe to return later to:
 
+- climbing and flying navigation;
 - OpenGL setup and shader details in `app/graphics`;
 - ImGui layout code in `app/ui` and `app/debug`;
 - cover fading, which fades NPCs and pickups standing in grass on the player's screen

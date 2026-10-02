@@ -182,7 +182,9 @@ for more detail.
 
 ### 6. Follow presentation separately
 
-Read these after the movement loop:
+Read [`render_scene.hpp`](../include/simple_platformer/render/render_scene.hpp) first:
+`SpriteDrawCommand` names each piece of draw data, such as position, rotation, and
+opacity. Then read these after the movement loop:
 
 1. [`render_scene.cpp`](../src/render/render_scene.cpp) converts world state into plain
    sprite draw commands, including pickup bobbing and timed feedback such as hit flashes;

@@ -123,12 +123,13 @@ namespace simple_platformer
                     const glm::vec2 worldPosition = {
                         static_cast<float>(column * map.tileSize()),
                         static_cast<float>(row * map.tileSize())};
-                    scene.sprites.push_back(
-                        {tileTextureId,
-                         worldToScreen(camera, worldPosition),
-                         {tileSize, tileSize},
-                         map.definitionAt(cell).sprite,
-                         false});
+                    SpriteDrawCommand command;
+                    command.textureId = tileTextureId;
+                    command.position = worldToScreen(camera, worldPosition);
+                    command.size = {tileSize, tileSize};
+                    command.source = map.definitionAt(cell).sprite;
+                    command.flipHorizontal = false;
+                    scene.sprites.push_back(command);
                 }
             }
         }
@@ -152,14 +153,15 @@ namespace simple_platformer
                 bounds.topLeft.y += pickupVerticalOffset(
                     static_cast<float>(world.simulationTimeSeconds()) +
                     pickupPhaseOffset(map.tileSize(), pickup.body.bounds));
-                scene.sprites.push_back(
-                    {sprite.textureId,
-                     worldToScreen(camera, bounds.topLeft),
-                     bounds.size,
-                     sprite.region,
-                     false,
-                     0.0F,
-                     pickupVisibility});
+                SpriteDrawCommand command;
+                command.textureId = sprite.textureId;
+                command.position = worldToScreen(camera, bounds.topLeft);
+                command.size = bounds.size;
+                command.source = sprite.region;
+                command.flipHorizontal = false;
+                command.rotationRadians = 0.0F;
+                command.opacity = pickupVisibility;
+                scene.sprites.push_back(command);
             }
         }
 
@@ -182,15 +184,16 @@ namespace simple_platformer
             const float flash = levelExit.openedTimeSeconds.has_value()
                                     ? (1.0F - exitOpenProgress(world)) * ExitOpenFlashAmount
                                     : 0.0F;
-            scene.sprites.push_back(
-                {sprite.textureId,
-                 worldToScreen(camera, bounds.topLeft),
-                 bounds.size,
-                 sprite.region,
-                 false,
-                 0.0F,
-                 1.0F,
-                 flash});
+            SpriteDrawCommand command;
+            command.textureId = sprite.textureId;
+            command.position = worldToScreen(camera, bounds.topLeft);
+            command.size = bounds.size;
+            command.source = sprite.region;
+            command.flipHorizontal = false;
+            command.rotationRadians = 0.0F;
+            command.opacity = 1.0F;
+            command.whiteFlashAmount = flash;
+            scene.sprites.push_back(command);
         }
 
         void appendActors(RenderScene& scene, const World& world, const Camera& camera)
@@ -210,16 +213,19 @@ namespace simple_platformer
                 }
 
                 const ActorSpritePlacement placement = placeActorSprite(actor);
-                scene.sprites.push_back(
-                    {actor.sprite->textureId,
-                     worldToScreen(camera, placement.drawn.topLeft),
-                     placement.drawn.size,
-                     actor.sprite->region,
-                     placement.flipHorizontal,
-                     placement.rotationRadians,
-                     actorOpacity(actor) * (isPlayer ? playerOpacity : actorVisibility),
-                     actorWhiteFlashAmount(world, actor),
-                     isPlayer ? (1.0F - actorVisibility) * PlayerConcealedShade : 0.0F});
+                SpriteDrawCommand command;
+                command.textureId = actor.sprite->textureId;
+                command.position = worldToScreen(camera, placement.drawn.topLeft);
+                command.size = placement.drawn.size;
+                command.source = actor.sprite->region;
+                command.flipHorizontal = placement.flipHorizontal;
+                command.rotationRadians = placement.rotationRadians;
+                command.opacity =
+                    actorOpacity(actor) * (isPlayer ? playerOpacity : actorVisibility);
+                command.whiteFlashAmount = actorWhiteFlashAmount(world, actor);
+                command.shadeAmount =
+                    isPlayer ? (1.0F - actorVisibility) * PlayerConcealedShade : 0.0F;
+                scene.sprites.push_back(command);
             }
         }
 
@@ -232,13 +238,14 @@ namespace simple_platformer
                     projectileCenter - projectile.sprite.region.size * 0.5F;
                 const float rotationRadians =
                     std::atan2(projectile.velocity.y, projectile.velocity.x);
-                scene.sprites.push_back(
-                    {projectile.sprite.textureId,
-                     worldToScreen(camera, spritePosition),
-                     projectile.sprite.region.size,
-                     projectile.sprite.region,
-                     false,
-                     rotationRadians});
+                SpriteDrawCommand command;
+                command.textureId = projectile.sprite.textureId;
+                command.position = worldToScreen(camera, spritePosition);
+                command.size = projectile.sprite.region.size;
+                command.source = projectile.sprite.region;
+                command.flipHorizontal = false;
+                command.rotationRadians = rotationRadians;
+                scene.sprites.push_back(command);
             }
         }
 
@@ -253,14 +260,15 @@ namespace simple_platformer
                 const glm::vec2 size = burst.sprite.region.size * scale;
                 const glm::vec2 position = burst.center - size * 0.5F;
                 const float rotationRadians = std::atan2(burst.direction.y, burst.direction.x);
-                scene.sprites.push_back(
-                    {burst.sprite.textureId,
-                     worldToScreen(camera, position),
-                     size,
-                     burst.sprite.region,
-                     false,
-                     rotationRadians,
-                     remainingFraction});
+                SpriteDrawCommand command;
+                command.textureId = burst.sprite.textureId;
+                command.position = worldToScreen(camera, position);
+                command.size = size;
+                command.source = burst.sprite.region;
+                command.flipHorizontal = false;
+                command.rotationRadians = rotationRadians;
+                command.opacity = remainingFraction;
+                scene.sprites.push_back(command);
             }
         }
     }

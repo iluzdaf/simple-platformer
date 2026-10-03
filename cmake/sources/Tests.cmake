@@ -22,6 +22,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/game/level_composition.cpp
     ${PROJECT_SOURCE_DIR}/app/graphics/display_viewport.cpp
     ${PROJECT_SOURCE_DIR}/app/ui/inventory_layout.cpp
+    ${PROJECT_SOURCE_DIR}/tests/actor/test_actor_lifecycle.cpp
     ${PROJECT_SOURCE_DIR}/tests/actor/test_actor_system.cpp
     ${PROJECT_SOURCE_DIR}/tests/combat/test_bite_attack.cpp
     ${PROJECT_SOURCE_DIR}/tests/combat/test_contact_damage.cpp

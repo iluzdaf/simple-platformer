@@ -10,8 +10,6 @@ namespace simple_platformer
 {
     class World;
 
-    constexpr float ActorDeathSeconds = 0.4F;
-
     class WorldRequests
     {
     public:
@@ -40,10 +38,7 @@ namespace simple_platformer
             std::size_t slot = 0;
         };
 
-        void applyDamage(World& world);
-        void advanceLifeState(World& world, float deltaTime);
-
-        friend void applyWorldRequests(World&, WorldRequests&, float);
+        friend void applyDamageRequests(World&, WorldRequests&);
         friend void applyWorldRequests(World&, WorldRequests&);
 
         std::vector<DamageRequest> damageRequests;
@@ -59,9 +54,4 @@ namespace simple_platformer
     // Applies damage, item use, collection and structural changes without advancing time.
     // Use this for UI requests while paused.
     void applyWorldRequests(World& world, WorldRequests& requests);
-
-    // Ends a simulation step: applies damage, advances existing death timers, detects
-    // pickups after any respawn, then applies queued changes. New deaths keep their full
-    // timer. Expired deaths remove NPCs or respawn the player.
-    void applyWorldRequests(World& world, WorldRequests& requests, float deltaTime);
 }

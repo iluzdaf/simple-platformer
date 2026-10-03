@@ -29,8 +29,7 @@ New to the project? Start with [START_HERE.md](docs/START_HERE.md).
 All third-party source required by the project is vendored under `external/`.
 
 The supported development platforms are macOS and Windows, where development and
-graphical testing take place. Linux is used solely for CI quality checks and is not a
-supported local development workflow.
+graphical testing take place.
 
 ## macOS: configure, build, and test
 
@@ -59,10 +58,6 @@ cmake --build --preset mac-release
 build/mac-release/simple_platformer
 ```
 
-On Windows, choose the **Release** configuration in Visual Studio, or run
-`cmake --build --preset windows-release` after `setup-windows.bat` has generated the
-solution. The game is then at `build\windows-vs\Release\simple_platformer.exe`.
-
 ## Windows: create and use the Visual Studio solution
 
 Install Visual Studio 2022 with **Desktop development with C++** and **C++ CMake
@@ -74,11 +69,13 @@ setup-windows.bat
 
 The script finds CMake, generates `build/windows-vs/SimplePlatformer.sln`, and opens
 the solution. The `simple_platformer` project is already selected as the startup
-project, so build the solution and press **F5** to run the game.
+project. Choose **Build > Build Solution** (`Ctrl+Shift+B`), then press **F5** to run
+the game.
 
-To run the tests, build the `run_tests` project; the results appear in the Output
-window. To debug them, set `simple_platformer_tests` as the startup project and press
-**F5**, then set `simple_platformer` back to run the game.
+To run the tests, right-click `run_tests` in **Solution Explorer** and choose **Build**;
+the results appear in the **Output** window. To debug them, right-click
+`simple_platformer_tests` and choose **Set as Startup Project**, then press **F5**.
+Afterward, set `simple_platformer` as the startup project to run the game.
 
 The solution is generated from `CMakeLists.txt` and `CMakePresets.json`. It belongs in
 the ignored `build/` directory and should not be committed. Run `setup-windows.bat`
@@ -90,14 +87,19 @@ The Windows executable is:
 build\windows-vs\Debug\simple_platformer.exe
 ```
 
+To check performance, select **Release** in Visual Studio's **Solution Configurations**
+drop-down, choose **Build > Build Solution**, then press **F5**. The game is then at
+`build\windows-vs\Release\simple_platformer.exe`. Switch back to **Debug** for
+everyday development.
+
 `CMakePresets.json` contains the shared macOS and Windows configurations.
 `CMakeUserPresets.json` is ignored and is available for personal configuration that
 should not be shared with version control.
 
 ## Running focused tests
 
-Build before running CTest so the test executable includes your changes. On macOS,
-list test names or run only tests whose names contain `Pickup` with:
+On macOS, build before running CTest so the test executable includes your changes.
+List test names or run only tests whose names contain `Pickup` with:
 
 ```sh
 ctest --preset mac-debug -N
@@ -105,8 +107,9 @@ ctest --preset mac-debug -N
 ctest --preset mac-debug -R "Pickup" --output-on-failure
 ```
 
-On Windows, use the `windows-debug` test preset. Use your personal preset name if
-configured.
+On Windows, use Visual Studio: build `run_tests` to run the full suite, or set
+`simple_platformer_tests` as the startup project and press **F5** to debug tests, as
+described in the [Windows instructions](#windows-create-and-use-the-visual-studio-solution).
 
 ## Playing the example game
 
@@ -132,39 +135,33 @@ one key; the third exit completes the example campaign.
 
 ## Debug overlay
 
-F1 opens the debug tools with the world-space and camera overlay visible. It shows
-actor bounds, paths, navigation connections, projectiles, pickups, and camera regions.
+F1 shows or hides all debug overlays together: actor bounds and text, paths, navigation
+connections and totals, projectiles, pickups, and camera regions.
 
-| Action                                          | Controls |
-| ----------------------------------------------- | -------- |
-| Show or hide the world-space and camera overlay | 2        |
-| Show or hide actor text                         | 3        |
-| Show or hide navigation connection totals       | 4        |
-| Show the next navigation profile                | N        |
-| Break a labelled tile under the cursor          | B        |
-
-Use P to pause or resume the simulation and . to run one step while paused.
+| Action                                 | Controls |
+| -------------------------------------- | -------- |
+| Show or hide all debug overlays        | F1       |
+| Show the next navigation profile       | N        |
+| Break a labelled tile under the cursor | B        |
 
 ## Continuous integration
 
 GitHub Actions runs the jobs below. The names are the ones shown on a pull request.
+The [CI workflow](.github/workflows/ci.yml) defines the pinned tool versions and
+compiler-cache setup; [Quality.cmake](cmake/Quality.cmake) defines the quality targets.
 
 | Job                          | Runner         | What it does                                                                                                                                                        | Runs on                            |
 | ---------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | macOS / Apple Clang          | `macos-latest` | Configures, builds, and runs the whole test suite.                                                                                                                  | pushes to `main` and pull requests |
 | Windows / Visual Studio 2022 | `windows-2022` | Generates the same solution as `setup-windows.bat`, builds it with MSBuild, and runs the tests through `run_tests`, then again from where the debugger starts them. | pushes to `main` and pull requests |
-| Formatting                   | `ubuntu-24.04` | Checks the formatting of C++, JSON, YAML, Markdown, and Python, lints the Python, and runs the tests for the repository's tools.                                    | pull requests only                 |
-| Headers stand alone          | `ubuntu-24.04` | Compiles every public header on its own.                                                                                                                            | pull requests only                 |
-| Static analysis (1/3 to 3/3) | `ubuntu-24.04` | Runs clang-tidy, with warnings as errors, on the files the pull request affects (see [Static analysis](#static-analysis)), split across three shards.               | pull requests only                 |
+| Formatting                   | `ubuntu-24.04` | Runs the [formatting checks](#formatting), Python lint, and tests for the repository's tools.                                                                       | pull requests only                 |
+| Headers stand alone          | `ubuntu-24.04` | Compiles every public header on its own using `header_self_containment`.                                                                                            | pull requests only                 |
+| Static analysis (1/3 to 3/3) | `ubuntu-24.04` | Runs clang-tidy with warnings as errors on affected files (see [Static analysis](#static-analysis)), split across three shards.                                     | pull requests only                 |
 | Static analysis              | `ubuntu-24.04` | Passes only if every static analysis shard passed. This is the check branch protection requires.                                                                    | pull requests only                 |
 
-The Linux jobs are skipped on pushes because branch protection already ran them on the
-pull request.
-
-The macOS and Windows jobs use a pinned `sccache` release backed by GitHub Actions'
-cache service. Only compiler outputs are cached; generated build directories are not.
-On Windows, only `cl.exe` is replaced with a cache wrapper; the solution itself is still
-built as generated. None of this affects local builds.
+Linux is used solely for CI quality checks and is not a supported local development
+workflow. Branch protection requires the quality checks before merging, so they run
+only on pull requests. Compiler caching applies only to CI builds.
 
 ## Formatting
 
@@ -172,68 +169,38 @@ built as generated. None of this affects local builds.
 Markdown. Ruff formats and checks first-party Python.
 `.editorconfig` supplies shared whitespace rules.
 
-|           | Config          | Tool            | VS Code                                 | Visual Studio                            |
-| --------- | --------------- | --------------- | --------------------------------------- | ---------------------------------------- |
-| C and C++ | `.clang-format` | clang-format 18 | on save, through clangd                 | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
-| JSON      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
-| YAML      | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
-| Markdown  | `.prettierrc`   | Prettier 3.9.8  | on save, through the Prettier extension | not supported, use the command line      |
-| Python    | Ruff defaults   | Ruff 0.16.8     | on save, through the Ruff extension     | not supported, use the command line      |
+|           | Config          | Tool         | VS Code                                 | Visual Studio                            |
+| --------- | --------------- | ------------ | --------------------------------------- | ---------------------------------------- |
+| C and C++ | `.clang-format` | clang-format | on save, through clangd                 | **Format Document** (`Ctrl+K`, `Ctrl+D`) |
+| JSON      | `.prettierrc`   | Prettier     | on save, through the Prettier extension | not supported, use the command line      |
+| YAML      | `.prettierrc`   | Prettier     | on save, through the Prettier extension | not supported, use the command line      |
+| Markdown  | `.prettierrc`   | Prettier     | on save, through the Prettier extension | not supported, use the command line      |
+| Python    | Ruff defaults   | Ruff         | on save, through the Ruff extension     | not supported, use the command line      |
 
 Both editors read `.clang-format` and `.editorconfig` without an extension. Visual
-Studio does not read the other formatter configs, so those files are formatted from
-the command line or caught by CI.
+Studio does not read the other formatter configs, so use the command below.
 
-Format first-party C++, or check it without changing files:
-
-```sh
-cmake --build --preset mac-debug --target format
-cmake --build --preset mac-debug --target format-check
-```
-
-Format first-party JSON, or check it without changing files:
+Install clang-format, Prettier, and Ruff on PATH, then format all first-party files
+or check them without edits (including Python lint):
 
 ```sh
-cmake --build --preset mac-debug --target format-json
-cmake --build --preset mac-debug --target format-json-check
+python3 tools/format.py
+python3 tools/format.py --check
 ```
 
-Format first-party YAML, or check it without changing files:
+Use `--only cpp`, `json`, `yaml`, `markdown`, or `python` to select file kinds; see
+`python3 tools/format.py --help` for executable overrides. On Windows, use `py -3`
+in place of `python3`. No CMake configuration is needed.
 
-```sh
-cmake --build --preset mac-debug --target format-yaml
-cmake --build --preset mac-debug --target format-yaml-check
-```
+[format.py](tools/format.py) defines the first-party file scope and excludes vendored
+sources and build files. The existing CMake formatting targets also call this tool.
+To match CI, use the versions pinned in the [workflow](.github/workflows/ci.yml).
 
-Format first-party Markdown, or check it without changing files:
-
-```sh
-cmake --build --preset mac-debug --target format-markdown
-cmake --build --preset mac-debug --target format-markdown-check
-```
-
-Format first-party Python, or check its formatting and lint findings:
-
-```sh
-cmake --build --preset mac-debug --target format-python
-cmake --build --preset mac-debug --target format-python-check lint-python
-```
-
-Run the tests for the scripts in `tools/`, as CI does:
+Run the tests for the repository tools with:
 
 ```sh
 python3 -m unittest discover -s tools -p 'test_*.py'
 ```
-
-The C++ targets skip `external/`; the JSON targets cover `assets/` and
-`tests/fixtures/`; the YAML targets cover `.github/`; the Markdown targets cover the
-root documentation and `docs/`; the Python targets cover `tools/`. CMake reports any unavailable tool while
-configuring and omits only its targets. Use `-DCLANG_FORMAT_EXECUTABLE=`,
-`-DPRETTIER_EXECUTABLE=`, or `-DRUFF_EXECUTABLE=` to choose a specific one.
-
-CI runs clang-format 18, Prettier 3.9.8, and Ruff 0.16.8,
-and a pull request cannot merge until their checks pass. Local versions do not have to
-match. If yours formats differently, CI fails and you reformat with the commands above.
 
 ## Static analysis
 
@@ -242,34 +209,27 @@ and performance mistakes. VS Code's recommended clangd extension reports unused 
 missing includes while editing. Treat include-cleaner suggestions as findings to
 review; do not automatically remove headers without rebuilding and running the tests.
 
-Static analysis is enforced by CI using LLVM 18, but remains optional for local
-builds. Developers with clang-tidy installed can run it with:
+Static analysis is optional for local builds. Developers with clang-tidy installed
+can run it with:
 
 ```sh
 cmake --build --preset mac-debug --target tidy
 ```
 
-Pull-request CI checks each changed C++ file, and every first-party file that includes
-a changed header, directly or through other headers. Adding a new `.cpp` file and
-listing it in its manifest under `cmake/sources/` checks only the new code, but
-changing only a manifest checks the whole tree. So do changes to the analysis rules,
-the CI workflow, the global build configuration, or `tools/tidy_targets.py`, which
-picks the files. Local `tidy` builds always check the whole tree. CMake configuration
-fails with a focused error if an `app/`, `src/`, or enabled `tests/` source is missing
-from its target's manifest.
-
-To see which files CI will check for your branch, run the same script:
+Local `tidy` builds check the whole tree. CI selects changed C++ files and the files
+that include changed headers, with full-tree fallbacks defined in
+[tidy_targets.py](tools/tidy_targets.py). Preview the selection for your branch with:
 
 ```sh
 python3 tools/tidy_targets.py --since origin/main
 ```
 
-For matching local quality tools, set `CLANG_FORMAT_EXECUTABLE` and
-`CLANG_TIDY_EXECUTABLE` to LLVM 18 executables in a personal `CMakeUserPresets.json`
-preset, then configure and build using that preset. These variables select quality
-tools, not the C++ compiler. A personal preset such as `mac-debug-llvm18` is not part
-of the shared checkout. Compiler and SDK differences can still produce different
-diagnostics from CI.
+To use CI's clang-tidy version locally, set `CLANG_TIDY_EXECUTABLE` in a personal
+`CMakeUserPresets.json` preset, then configure and build with that preset. This selects
+the analysis tool; compiler and SDK differences can still affect diagnostics.
+
+[SourceRegistration.cmake](cmake/SourceRegistration.cmake) validates source manifests
+and reports any unlisted `app/`, `src/`, or enabled `tests/` source during configuration.
 
 The `header_self_containment` target verifies that public headers include everything
 they need themselves:

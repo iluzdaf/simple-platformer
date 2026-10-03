@@ -185,7 +185,7 @@ no `senses`.
 `bodySize` defines the collision body's width and height independently of sprite
 frame dimensions. Neither the body nor the frames need to be square or match the
 tile size. Changing animation poses does not change the body's dimensions. The
-debug overlay (F1, then 2) outlines the body in red and the art in grey.
+debug overlay (F1) outlines the body in red and the art in grey.
 
 A component object may leave out any field to keep its default, so `{}` is all defaults.
 

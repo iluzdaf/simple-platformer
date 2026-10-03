@@ -28,129 +28,45 @@ file(
     CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/include/*.hpp
 )
-file(
-    GLOB_RECURSE PROJECT_JSON_FILES
-    CONFIGURE_DEPENDS
-    ${PROJECT_SOURCE_DIR}/assets/*.json
-    ${PROJECT_SOURCE_DIR}/tests/fixtures/*.json
-)
+# File selection lives in tools/format.py for both standalone and CMake use.
+find_package(Python3 COMPONENTS Interpreter QUIET)
 
-file(
-    GLOB_RECURSE PROJECT_YAML_FILES
-    CONFIGURE_DEPENDS
-    ${PROJECT_SOURCE_DIR}/.github/*.yml
-    ${PROJECT_SOURCE_DIR}/.github/*.yaml
-)
+if(Python3_Interpreter_FOUND)
+    function(add_format_targets kind tool option target)
+        if(${tool})
+            add_custom_target(
+                ${target}
+                COMMAND
+                    ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/format.py
+                    --only ${kind} ${option} "${${tool}}"
+                COMMENT "Formatting first-party ${kind} files"
+                VERBATIM
+            )
+            add_custom_target(
+                ${target}-check
+                COMMAND
+                    ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/format.py
+                    --check --only ${kind} ${option} "${${tool}}"
+                COMMENT "Checking first-party ${kind} files"
+                VERBATIM
+            )
+        else()
+            message(STATUS "${tool} not found; ${target} targets are unavailable")
+        endif()
+    endfunction()
 
-file(
-    GLOB PROJECT_ROOT_MARKDOWN_FILES
-    CONFIGURE_DEPENDS
-    ${PROJECT_SOURCE_DIR}/*.md
-)
+    add_format_targets(cpp CLANG_FORMAT_EXECUTABLE --clang-format format)
+    add_format_targets(json PRETTIER_EXECUTABLE --prettier format-json)
+    add_format_targets(yaml PRETTIER_EXECUTABLE --prettier format-yaml)
+    add_format_targets(markdown PRETTIER_EXECUTABLE --prettier format-markdown)
+    add_format_targets(python RUFF_EXECUTABLE --ruff format-python)
 
-file(
-    GLOB_RECURSE PROJECT_DOC_MARKDOWN_FILES
-    CONFIGURE_DEPENDS
-    ${PROJECT_SOURCE_DIR}/docs/*.md
-)
-
-set(PROJECT_MARKDOWN_FILES ${PROJECT_ROOT_MARKDOWN_FILES} ${PROJECT_DOC_MARKDOWN_FILES})
-
-file(
-    GLOB_RECURSE PROJECT_PYTHON_FILES
-    CONFIGURE_DEPENDS
-    ${PROJECT_SOURCE_DIR}/tools/*.py
-)
-
-if(CLANG_FORMAT_EXECUTABLE)
-    add_custom_target(
-        format
-        COMMAND ${CLANG_FORMAT_EXECUTABLE} -i ${PROJECT_CPP_FILES} ${PROJECT_HEADERS}
-        COMMENT "Formatting first-party C++ source"
-        VERBATIM
-    )
-
-    add_custom_target(
-        format-check
-        COMMAND
-            ${CLANG_FORMAT_EXECUTABLE} --dry-run --Werror ${PROJECT_CPP_FILES}
-            ${PROJECT_HEADERS}
-        COMMENT "Checking first-party C++ formatting"
-        VERBATIM
-    )
+    if(RUFF_EXECUTABLE)
+        # Keep the existing target name; the Python check also runs lint.
+        add_custom_target(lint-python DEPENDS format-python-check)
+    endif()
 else()
-    message(STATUS "clang-format not found; format targets are unavailable")
-endif()
-
-if(PRETTIER_EXECUTABLE)
-    add_custom_target(
-        format-json
-        COMMAND ${PRETTIER_EXECUTABLE} --write --log-level warn ${PROJECT_JSON_FILES}
-        COMMENT "Formatting first-party JSON"
-        VERBATIM
-    )
-
-    add_custom_target(
-        format-json-check
-        COMMAND ${PRETTIER_EXECUTABLE} --check --log-level warn ${PROJECT_JSON_FILES}
-        COMMENT "Checking first-party JSON formatting"
-        VERBATIM
-    )
-
-    add_custom_target(
-        format-yaml
-        COMMAND ${PRETTIER_EXECUTABLE} --write --log-level warn ${PROJECT_YAML_FILES}
-        COMMENT "Formatting first-party YAML"
-        VERBATIM
-    )
-
-    add_custom_target(
-        format-yaml-check
-        COMMAND ${PRETTIER_EXECUTABLE} --check --log-level warn ${PROJECT_YAML_FILES}
-        COMMENT "Checking first-party YAML formatting"
-        VERBATIM
-    )
-
-    add_custom_target(
-        format-markdown
-        COMMAND ${PRETTIER_EXECUTABLE} --write --log-level warn ${PROJECT_MARKDOWN_FILES}
-        COMMENT "Formatting first-party Markdown"
-        VERBATIM
-    )
-
-    add_custom_target(
-        format-markdown-check
-        COMMAND ${PRETTIER_EXECUTABLE} --check --log-level warn ${PROJECT_MARKDOWN_FILES}
-        COMMENT "Checking first-party Markdown formatting"
-        VERBATIM
-    )
-else()
-    message(STATUS "prettier not found; JSON, YAML, and Markdown format targets are unavailable")
-endif()
-
-if(RUFF_EXECUTABLE)
-    add_custom_target(
-        format-python
-        COMMAND ${RUFF_EXECUTABLE} format ${PROJECT_PYTHON_FILES}
-        COMMENT "Formatting first-party Python source"
-        VERBATIM
-    )
-
-    add_custom_target(
-        format-python-check
-        COMMAND ${RUFF_EXECUTABLE} format --check ${PROJECT_PYTHON_FILES}
-        COMMENT "Checking first-party Python formatting"
-        VERBATIM
-    )
-
-    add_custom_target(
-        lint-python
-        COMMAND ${RUFF_EXECUTABLE} check ${PROJECT_PYTHON_FILES}
-        COMMENT "Checking first-party Python source with Ruff"
-        VERBATIM
-    )
-else()
-    message(STATUS "ruff not found; Python quality targets are unavailable")
+    message(STATUS "Python3 not found; formatting and Python lint targets are unavailable")
 endif()
 
 set(CLANG_TIDY_EXTRA_ARGUMENTS)

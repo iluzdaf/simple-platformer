@@ -69,10 +69,13 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/navigation/test_route_search.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_senses.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_system.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_states.cpp
+    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_behaviour.cpp
+    ${PROJECT_SOURCE_DIR}/tests/npc/test_pursuer.cpp
+    ${PROJECT_SOURCE_DIR}/tests/npc/test_keep_distance.cpp
+    ${PROJECT_SOURCE_DIR}/tests/npc/test_coward.cpp
+    ${PROJECT_SOURCE_DIR}/tests/npc/test_charger.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_facts.cpp
     ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_transitions.cpp
     ${PROJECT_SOURCE_DIR}/tests/physics/test_body.cpp
     ${PROJECT_SOURCE_DIR}/tests/physics/test_segment_cast.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_actor_sprite.cpp

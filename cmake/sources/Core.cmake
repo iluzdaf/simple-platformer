@@ -26,12 +26,15 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/src/navigation/platformer_connection_table.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/platformer_connections.cpp
     ${PROJECT_SOURCE_DIR}/src/navigation/route_search.cpp
-    ${PROJECT_SOURCE_DIR}/src/npc/npc_states.cpp
+    ${PROJECT_SOURCE_DIR}/src/npc/charger.cpp
+    ${PROJECT_SOURCE_DIR}/src/npc/coward.cpp
+    ${PROJECT_SOURCE_DIR}/src/npc/keep_distance.cpp
+    ${PROJECT_SOURCE_DIR}/src/npc/pursuer.cpp
+    ${PROJECT_SOURCE_DIR}/src/npc/npc_behaviour.cpp
     ${PROJECT_SOURCE_DIR}/src/npc/npc_senses.cpp
     ${PROJECT_SOURCE_DIR}/src/npc/npc_system.cpp
     ${PROJECT_SOURCE_DIR}/src/npc/npc_facts.cpp
     ${PROJECT_SOURCE_DIR}/src/npc/npc_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/src/npc/npc_transitions.cpp
     ${PROJECT_SOURCE_DIR}/src/physics/body.cpp
     ${PROJECT_SOURCE_DIR}/src/physics/segment_cast.cpp
     ${PROJECT_SOURCE_DIR}/src/render/actor_sprite.cpp

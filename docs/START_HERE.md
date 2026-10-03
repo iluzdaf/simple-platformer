@@ -181,14 +181,35 @@ senses and memory
   and collision contacts.
 - In [`body.cpp`](../src/physics/body.cpp), read `applyGravity`, `moveBody`, then
   `sweepAxis`.
-- Trace the horizontal move, then the vertical move. Each sweep stops at the first
-  blocking tile and clears velocity on that axis.
+- Trace the horizontal move, then the vertical move. Each sweep finds how far the body
+  can move before a blocking tile; `moveBody` applies that distance and clears velocity
+  on the blocked axis.
 - In [`tile_map.cpp`](../src/world/tile_map.cpp), read `blocksMovement` for tile and map
   boundary rules.
 - **Starting tests:** "Horizontal movement stops on either side of a solid tile", then
   "Collision resolves X before Y at a corner" in
   [`test_body.cpp`](../tests/physics/test_body.cpp).
 - **Check:** Where does the body stop, and what happens to its velocity?
+
+#### Worked example: moving right into a wall
+
+With 16-pixel tiles, a 12-pixel-wide body starts at `x = 20` and requests a
+20-pixel move right. In its row, column 2 is empty and column 3 is solid.
+
+```text
+x (pixels)      20          32  36  40      48  52          64
+Before          [===========]               |################
+Requested                           [=======|XXX]############
+Stopped                         [===========|################
+```
+
+- `|` marks the wall at 48; `X` shows the overlap the requested move would cause.
+- For a horizontal sweep, `along` means column and `across` means row.
+- `sweepAxis` starts at the body's right edge (`leadingEdge = 32`), skips empty
+  column 2, and finds the wall in column 3.
+- The allowed distance is `candidate = 3 * 16 - 32 = 16` pixels.
+- `moveBody` moves the body to `x = 36`, sets `contacts.right`, clears horizontal
+  velocity, then sweeps vertically.
 
 ### 6. Follow presentation separately
 

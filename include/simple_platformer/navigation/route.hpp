@@ -12,7 +12,7 @@ namespace simple_platformer
     // The search's nodes and edges. They stay inside navigation; a caller receives a
     // NavigationPath of waypoints instead.
 
-    // A cell can hold several distinct places for a climber. None is the floor.
+    // A cell and the surface the body rests on. ClimbSurface::None means the floor.
     struct RouteLocation
     {
         Cell cell;
@@ -33,8 +33,8 @@ namespace simple_platformer
         InputProgram inputs;
     };
 
-    // A traversable edge leaving a cell. Its destination is a neighbor; search uses
-    // its cost, and a selected route keeps its step.
+    // One move from a cell's sourceSurface to the step's destination. It may cross several
+    // cells. The search uses its cost; the route keeps its step.
     struct RouteConnection
     {
         RouteStep step;
@@ -45,8 +45,8 @@ namespace simple_platformer
         ClimbSurface sourceSurface = ClimbSurface::None;
     };
 
-    // The route a search found, as nodes: where it begins and the steps that lead
-    // from there, in the order travelled. No steps means the start is the end.
+    // Where the route begins and the steps in travel order. No steps means the start is
+    // already the end.
     struct Route
     {
         RouteLocation start;

@@ -132,8 +132,8 @@ namespace simple_platformer
             actor.intentions.primaryAttackPressed = true;
         }
 
-        // Retreat aims at the last known target feet and requests a primary attack.
-        // A walker stops at a ledge instead of stepping off it.
+        // Back away while aiming at the remembered target and requesting an attack.
+        // A walker refuses a direction whose next cell cannot support its body.
         void updateRetreatState(const NpcUpdate& update, Actor& actor, const NpcBrain& brain)
         {
             const glm::vec2 feet = feetOf(actor.body.bounds);

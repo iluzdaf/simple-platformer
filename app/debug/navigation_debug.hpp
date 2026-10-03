@@ -37,7 +37,7 @@ namespace simple_platformer
         glm::vec2 toFeet = {0.0F, 0.0F};
         Traversal traversal = Traversal::Walk;
         int cost = 0;
-        // The arc of a jump or a fall; empty for a walk.
+        // Feet sampled along a jump or fall; empty for other traversals.
         std::vector<glm::vec2> sampledFeet;
     };
 
@@ -51,9 +51,8 @@ namespace simple_platformer
         std::vector<ConnectionDebugInfo> connections;
     };
 
-    // One cell the body can rest in, as the connection table holds it: its connection
-    // count, or no count before the table builds the profile. The count covers every
-    // place in the cell: its floor, and its walls and ceiling for a climber.
+    // One cell where the body can rest. Its count includes connections from every usable
+    // surface; no count means the profile has not been built yet.
     struct NavigationCellDebugInfo
     {
         Aabb bounds;
@@ -68,9 +67,8 @@ namespace simple_platformer
         PlatformerTraversalProfile profile;
     };
 
-    // What the overlay is asked to show of navigation: which cell the cursor is over, in
-    // world coordinates; which profile, by an index that wraps; and names supplied by
-    // whoever knows the actor definitions.
+    // Selects a navigation view: a world-space cursor, a profile index that wraps,
+    // and actor-definition names supplied by the application.
     struct NavigationDebugView
     {
         std::optional<glm::vec2> cursorWorld;
@@ -92,10 +90,10 @@ namespace simple_platformer
         std::optional<CursorCellDebugInfo> cursorCell;
     };
 
-    // Built from the map and the world's connection table, without ImGui, so it can be
-    // tested. It never simulates movement except to sample the cursor cell's jump arcs.
-    // The step is the one the world is simulated with, which is part of the profile the
-    // table keys on. When visibleBounds is present, only cells overlapping it are included.
+    // Builds plain diagnostics from the map and connection table. Only sampling the
+    // cursor cell's jump and fall arcs runs movement; collecting counts does not.
+    // simulationStepSeconds must match the world's step, because profiles include it.
+    // visibleBounds limits both the cells listed and the connected-cell count.
     std::optional<NavigationConnectionsDebugInfo> makeNavigationConnectionsDebugInfo(
         const World& world,
         const TileMap& map,

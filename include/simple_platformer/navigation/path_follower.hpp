@@ -16,9 +16,8 @@ namespace simple_platformer
     struct PlatformerMovement;
     struct SurfaceClimb;
 
-    // Where an actor is along the path it is following. An NPC actor keeps one; the NPC
-    // system asks it for the intentions that move the actor, and the ordinary movement
-    // systems do the moving.
+    // Progress along an actor's path. Following produces intentions; ordinary movement
+    // changes the body.
     struct PathFollower
     {
         std::optional<NavigationPath> path;
@@ -30,8 +29,8 @@ namespace simple_platformer
         // The goal the path was planned for, so asking for much the same goal again
         // does not plan again while a path exists.
         std::optional<glm::vec2> goal;
-        // How many tiles the map had broken when the path was planned, so a break after
-        // that, which the path may run through, has it planned again.
+        // Length of the map's break log when planned. A later break makes the NPC replan,
+        // because this path may depend on the changed tile.
         std::size_t breaksWhenPlanned = 0;
     };
 

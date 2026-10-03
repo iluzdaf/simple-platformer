@@ -7,8 +7,8 @@ namespace simple_platformer
     struct NpcBrain;
     struct NpcPerception;
 
-    // The policy's snapshot for this update, gathered from perception, brain memory,
-    // and other actor components, so transitions read nothing else.
+    // What transitions know this update: observations, remembered targets, movement,
+    // attacks, and elapsed times. Gathering these first keeps state decisions testable.
     struct NpcFacts
     {
         // A living target is remembered, seen or not.
@@ -23,13 +23,13 @@ namespace simple_platformer
         // standoff distance of the NPC's current feet.
         bool targetWithinStandoffDistance = false;
         bool heardLanding = false;
-        // Current geometry of the living remembered target, even when it is not visible.
-        // Range and shared ground are independent; policy chooses how to combine them.
+        // These two facts use the living target's current bounds, even without sight.
+        // Charger uses them to decide whether another charge is possible.
         bool targetOnSameRun = false;
         bool targetWithinNoticeDistance = false;
         bool movementBlocked = false;
         bool hasPatrol = false;
-        // The NPC searches for a lost target at all, and its search has run its time.
+        // Whether searching is enabled, and whether its configured duration has elapsed.
         bool searches = false;
         bool searchTimeUp = false;
         float stateElapsed = 0.0F;

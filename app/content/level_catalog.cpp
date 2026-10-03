@@ -139,7 +139,7 @@ namespace simple_platformer
         {
             return jsonLevelCatalog(root, sourceName, levelDirectory);
         }
-        // Raw member access in the catalog reader can still raise a nlohmann error of its own.
+        // Add the filename to JSON-library errors, as well as our own validation errors.
         catch (const Json::exception& exception)
         {
             failJson(sourceName, {}, std::string("invalid JSON: ") + exception.what());

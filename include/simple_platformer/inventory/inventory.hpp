@@ -21,8 +21,10 @@ namespace simple_platformer
         explicit Inventory(std::size_t slotCount = 8);
         const std::vector<std::optional<ItemStack>>& slots() const;
         int count(ItemId item) const;
+        // Fills matching stacks, then empty slots; reports what was added and what remains.
         AddItemResult add(const ItemDefinition& definition, int quantity);
-        // Removal is all-or-nothing. Slot indexes are stable while the inventory is used.
+        // Removes the full quantity or returns false without changing slots. Emptying a
+        // slot does not shift other slots, so their indexes stay stable.
         bool remove(ItemId item, int quantity);
         bool removeFromSlot(std::size_t slot, int quantity);
 

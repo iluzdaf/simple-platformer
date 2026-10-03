@@ -91,7 +91,6 @@ namespace tests
             return std::move(*this);
         }
 
-        // Only a platforming actor can climb. World rejects a climbing flyer.
         ActorBuilder climbing(simple_platformer::SurfaceClimbConfig config = {}) &&
         {
             built.surfaceClimb = simple_platformer::SurfaceClimb{config};

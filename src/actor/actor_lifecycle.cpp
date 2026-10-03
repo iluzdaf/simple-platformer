@@ -36,7 +36,7 @@ namespace simple_platformer
     void updateActorLifecycle(World& world, WorldRequests& requests, float deltaTime)
     {
         requireSeconds(deltaTime, "Actor lifecycle time step");
-        // Only actors already dying lose time; a new death keeps its full duration.
+        // Snapshot before applying damage so a newly dying actor keeps its full timer.
         std::vector<ActorId> actorsAlreadyDying;
         for (const Actor& actor : world.actors())
         {

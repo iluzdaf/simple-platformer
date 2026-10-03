@@ -133,6 +133,8 @@ namespace simple_platformer
             }
         }
 
+        // Reports whether the bite was active at any point in this update. A large step
+        // may pass through Active into Recovery; it must still get its hit check.
         bool advanceBite(BiteAttack& bite, float deltaTime)
         {
             bool activeDuringUpdate = bite.phase == BitePhase::Active;
@@ -204,6 +206,7 @@ namespace simple_platformer
                 weapon.phase == RangedPhase::Ready && actor.intentions.primaryAttackPressed &&
                 hasAimDirection(actor))
             {
+                // Keep the new Shoot phase's full duration; advance it on later updates.
                 beginShot(actor, weapon, requests, world);
             }
             else
@@ -235,6 +238,7 @@ namespace simple_platformer
             bool activeDuringUpdate = false;
             if (bite.phase == BitePhase::Ready && actor.intentions.primaryAttackPressed)
             {
+                // Keep the new Windup phase's full duration, even on a large update.
                 beginBite(bite);
             }
             else

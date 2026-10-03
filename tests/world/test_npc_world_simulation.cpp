@@ -247,8 +247,7 @@ TEST_CASE(
         simple_platformer::feetInCell(tests::TileSize, RightPatrolCell);
 
     constexpr float PlatformRightEdge = 80.0F;
-    // Its feet have crossed into the unsupported cell, but the left side of its
-    // collider still overlaps the platform and remains grounded.
+    // The feet are past the ledge, but the body's left side still rests on the platform.
     simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
                                           .atFeet({PlatformRightEdge + 0.5F, 32.0F})
                                           .platforming()
@@ -381,8 +380,8 @@ TEST_CASE(
     constexpr int MaximumChaseTicks = 180;
     const glm::vec2 upperPlatformFeet = simple_platformer::feetInCell(tests::TileSize, {2, 1});
     const float platformLeftEdge = simple_platformer::cellCorner(tests::TileSize, {2, 2}).x;
-    // Control: feet at the first cell's centre. Regression: feet just outside
-    // the platform, while part of the player's collider is still supported.
+    // Compare feet centred in the first cell with feet just past the ledge, where
+    // part of the player's body is still supported.
     const bool feetOutsidePlatform = GENERATE(false, true);
     const glm::vec2 playerFeet{
         feetOutsidePlatform ? platformLeftEdge - 0.5F : upperPlatformFeet.x, upperPlatformFeet.y};

@@ -21,7 +21,10 @@ namespace simple_platformer
         glm::vec2 scale = {1.0F, 1.0F};
     };
 
+    // Fits an integer-scaled internal image into framebuffer pixels, centred with
+    // letterboxing. Returns nothing if the framebuffer cannot fit one internal image.
     std::optional<DisplayViewport> makeDisplayViewport(glm::ivec2 framebufferSize);
+    // The same image in window points, for UI and high-DPI coordinate conversion.
     std::optional<WindowViewport> makeWindowViewport(
         glm::ivec2 windowSize,
         glm::ivec2 framebufferSize);

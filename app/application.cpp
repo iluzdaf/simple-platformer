@@ -163,9 +163,8 @@ namespace simple_platformer
             context->input.setButton(InputButton::PrimaryAttack, action == GLFW_PRESS);
         }
 
-        // What the player asks of one simulation step: the buttons pressed since the last
-        // one, aimed at the cursor while the game has it. Without the cursor the last aim
-        // holds and no shot fires.
+        // Consumes held buttons and pending edges for one simulation step. A gameplay
+        // cursor updates aim; without one, keep the last aim and suppress firing.
         InputIntentions playerIntentions(
             ApplicationContext& context,
             const Game& game,

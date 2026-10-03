@@ -114,7 +114,6 @@ TEST_CASE(
     actor.body.velocity = {60.0F, 0.0F};
     REQUIRE(animate() == simple_platformer::AnimationName::Move);
 
-    // Letting go, it falls.
     tests::surfaceClimb(actor).surface = simple_platformer::ClimbSurface::None;
     actor.body.velocity = {0.0F, 60.0F};
     REQUIRE(animate() == simple_platformer::AnimationName::Fall);

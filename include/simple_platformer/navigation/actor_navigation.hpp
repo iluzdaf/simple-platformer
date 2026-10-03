@@ -14,19 +14,14 @@ namespace simple_platformer
     class TileMap;
     class World;
 
-    // The one way into navigation. Finds the cheapest path for the actor, from where its
-    // body rests to the cell holding the goal, using only the moves the actor has. If it
-    // cannot reach that cell, the result is Unreachable with no path. No result means
-    // the actor has
-    // nowhere to start from yet, such as when it is in the air, or no movement to
-    // navigate with.
+    // Finds the cheapest path to the cell holding goalFeet, using the actor's movement.
+    // A flyer starts in its feet cell; a platformer starts where its body rests. Returns
+    // Unreachable with no path if the goal cell cannot be reached. Returns no result if
+    // there is no starting location or movement component.
     //
-    // A platformer's connections come from running its movement at stepSeconds, the
-    // fixed step it moves at, so a planned jump and the real one behave the same. Their
-    // costs are counted in those ticks, and the step must be finite and positive. The
-    // search itself never runs movement: it reads connections from the table, after
-    // preparing the actor's profile there. That rebuilds what recent breaks touched, and
-    // builds the whole map for a profile the table has not met.
+    // Platformer connections are simulated at stepSeconds, which must be finite, positive,
+    // and match the actor's update step. The search reads them from the table. Preparing
+    // the profile first rebuilds cells affected by breaks and builds any new profile.
     std::optional<NavigationPathResult> findActorPath(
         const TileMap& map,
         const Actor& actor,
@@ -38,7 +33,7 @@ namespace simple_platformer
     // climbing and the step.
     PlatformerTraversalProfile platformerTraversalProfileFor(const Actor& actor, float stepSeconds);
 
-    // Builds the world's connection table for every platformer NPC's profile, so no
-    // search during play has to. Call once when the level starts.
+    // Builds the profiles of the world's platformer NPCs at level startup. Their later
+    // searches can read the table without simulating connections again.
     void prepareNavigation(const TileMap& map, World& world, float stepSeconds);
 }

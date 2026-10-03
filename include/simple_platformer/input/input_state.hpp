@@ -18,10 +18,8 @@ namespace simple_platformer
         Count
     };
 
-    // What an actor with a climb component does with its grip this tick. Keep, the
-    // default, leaves it as it is: an actor holding a wall or ceiling stays on, and one
-    // that is not holding does not grab. Code with nothing to say about climbing, such as
-    // a path follower between steps, leaves it at Keep.
+    // How this tick changes a climber's grip. Keep requests neither a grab nor a release,
+    // so callers can leave it unchanged between movement requests.
     enum class ClimbGrip
     {
         Keep,

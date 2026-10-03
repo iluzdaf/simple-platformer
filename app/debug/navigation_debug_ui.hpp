@@ -8,15 +8,16 @@ namespace simple_platformer
     struct NavigationConnectionsDebugInfo;
     struct WindowViewport;
 
-    // The current map's connections, and for the cell under the cursor its
-    // footprint and its connections.
+    // Draws connection counts for visible cells, then the cursor cell's footprint and
+    // outgoing connections.
     void drawNavigationConnections(
         ImDrawList& drawList,
         const NavigationConnectionsDebugInfo& navigation,
         const Aabb& cameraBounds,
         const WindowViewport& viewport);
 
-    // Draws selected-profile and navigation-wide totals, then advances the text position.
+    // Draws the selected profile and connected-cell count for the displayed view,
+    // then advances the text position.
     void drawNavigationTotals(
         ImDrawList& drawList,
         const NavigationConnectionsDebugInfo& navigation,

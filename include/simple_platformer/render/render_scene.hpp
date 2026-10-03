@@ -30,8 +30,7 @@ namespace simple_platformer
         float shadeAmount = 0.0F;
     };
 
-    // How dark the player is drawn when nothing in the world can see them. The player is
-    // shaded rather than faded, so they never look like a fading NPC.
+    // Shade at full concealment. The player's sprite darkens instead of disappearing.
     constexpr float PlayerConcealedShade = 0.6F;
 
     struct RenderScene

@@ -237,11 +237,17 @@ Patrol -> sees player -> Chase -> movement intentions
 - Skim [`attack_system.cpp`](../src/combat/attack_system.cpp) and
   [`projectile_system.cpp`](../src/combat/projectile_system.cpp): attack intentions produce
   hits and queue damage.
-- Read [`world_requests.cpp`](../src/world/world_requests.cpp): it applies damage and
-  handles death together with queued removals and spawns.
-- **Combat test:** "Damage is deferred until world requests are applied" in
-  [`test_world_requests.cpp`](../tests/world/test_world_requests.cpp).
-- **Check:** When does a hit actually reduce health?
+- Read [`actor_lifecycle.cpp`](../src/actor/actor_lifecycle.cpp): `applyDamageRequests`
+  reduces health and starts fatal deaths. `updateActorLifecycle` also advances existing
+  death timers, respawns the player, and queues NPC removal.
+- Read [`world_requests.cpp`](../src/world/world_requests.cpp) for applying queued
+  removals and spawns. It also applies damage without advancing death timers, so requests
+  can be applied while paused.
+- **Combat tests:** "Damage is deferred until world requests are applied" in
+  [`test_world_requests.cpp`](../tests/world/test_world_requests.cpp), then "Fatal damage
+  begins a timed death" in
+  [`test_actor_lifecycle.cpp`](../tests/actor/test_actor_lifecycle.cpp).
+- **Check:** When does a hit reduce health, and when does a dying actor's timer advance?
 
 ### 8. Follow basic navigation
 

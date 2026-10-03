@@ -215,6 +215,27 @@ namespace simple_platformer
             }
         }
 
+        void applyBiteHits(
+            const Actor& actor,
+            BiteAttack& bite,
+            const World& world,
+            WorldRequests& requests)
+        {
+            const Aabb hitbox = biteHitbox(actor.body.bounds, bite, actor.facing);
+            for (const Actor& target : world.actors())
+            {
+                if (target.id == actor.id || target.life != LifeState::Alive ||
+                    !target.health.has_value() || !areOpponents(actor.team, target.team) ||
+                    hasHit(bite, target.id) || !overlaps(hitbox, target.body.bounds))
+                {
+                    continue;
+                }
+
+                requests.damage(target.id, bite.damage);
+                bite.actorsHit.push_back(target.id);
+            }
+        }
+
         void updateBiteAttack(
             Actor& actor,
             const World& world,
@@ -235,34 +256,19 @@ namespace simple_platformer
                 return;
             }
 
-            bool activeDuringUpdate = false;
             if (bite.phase == BitePhase::Ready && actor.intentions.primaryAttackPressed)
             {
                 // Keep the new Windup phase's full duration, even on a large update.
                 beginBite(bite);
-            }
-            else
-            {
-                activeDuringUpdate = advanceBite(bite, deltaTime);
-            }
-
-            if (!activeDuringUpdate)
-            {
                 return;
             }
 
-            const Aabb hitbox = biteHitbox(actor.body.bounds, bite, actor.facing);
-            for (const Actor& target : world.actors())
+            // Advance phases first, then check hits if Active was visited. The final
+            // phase alone cannot tell us whether a large update crossed the hit window.
+            const bool activeDuringUpdate = advanceBite(bite, deltaTime);
+            if (activeDuringUpdate)
             {
-                if (target.id == actor.id || target.life != LifeState::Alive ||
-                    !target.health.has_value() || !areOpponents(actor.team, target.team) ||
-                    hasHit(bite, target.id) || !overlaps(hitbox, target.body.bounds))
-                {
-                    continue;
-                }
-
-                requests.damage(target.id, bite.damage);
-                bite.actorsHit.push_back(target.id);
+                applyBiteHits(actor, bite, world, requests);
             }
         }
     }

@@ -12,6 +12,7 @@
 #include "simple_platformer/world/world_requests.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
+#include "support/require_near.hpp"
 
 namespace
 {
@@ -54,6 +55,49 @@ TEST_CASE("A bite uses windup active and recovery phases", "[combat][bite]")
     REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Recovery);
     simple_platformer::updateAttacks(world, requests, 0.30F);
     REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Ready);
+}
+
+TEST_CASE("A large update preserves a new bite and hits when crossing Active", "[combat][bite]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor attacker = makeActor({10.0F, 10.0F}, simple_platformer::Team::Enemy);
+    attacker.bite = simple_platformer::BiteAttack{};
+    tests::bite(attacker).reach = 0.0F;
+    attacker.intentions.primaryAttackPressed = true;
+    const auto attackerId = world.addActor(attacker);
+    const auto targetId =
+        world.addActor(makeActor({22.0F, 10.0F}, simple_platformer::Team::Player));
+    simple_platformer::WorldRequests requests;
+
+    // Starting an attack does not spend this update's time on its new Windup.
+    simple_platformer::updateAttacks(world, requests, 1.0F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Windup);
+    REQUIRE_NEAR(tests::bite(world, attackerId).phaseTimeRemaining, 0.12F);
+    REQUIRE(tests::health(world, targetId).current == 3);
+
+    SECTION("The update crosses Active and ends in Recovery")
+    {
+        simple_platformer::updateAttacks(world, requests, 0.25F);
+        REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Recovery);
+        REQUIRE_NEAR(tests::bite(world, attackerId).phaseTimeRemaining, 0.25F);
+    }
+    SECTION("The update crosses all phases and ends Ready")
+    {
+        simple_platformer::updateAttacks(world, requests, 0.51F);
+        REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Ready);
+        REQUIRE(tests::bite(world, attackerId).phaseTimeRemaining == 0.0F);
+    }
+
+    // Both updates must check hits, even though neither ends in Active.
+    REQUIRE(tests::bite(world, attackerId).actorsHit.size() == 1);
+    REQUIRE(tests::bite(world, attackerId).actorsHit.front() == targetId);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(tests::health(world, targetId).current == 2);
+    tests::actor(world, attackerId).intentions.primaryAttackPressed = false;
+    simple_platformer::updateAttacks(world, requests, 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(tests::health(world, targetId).current == 2);
 }
 
 TEST_CASE("A ready bite is harmless and never lunges", "[combat][bite]")

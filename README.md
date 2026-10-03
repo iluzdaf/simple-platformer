@@ -31,33 +31,6 @@ All third-party source required by the project is vendored under `external/`.
 The supported development platforms are macOS and Windows, where development and
 graphical testing take place.
 
-## macOS: configure, build, and test
-
-The shared macOS preset uses the build tools supplied with Xcode.
-
-```sh
-cmake --preset mac-debug
-cmake --build --preset mac-debug
-ctest --preset mac-debug
-```
-
-Run the example game:
-
-```sh
-cd build/mac-debug
-./simple_platformer
-```
-
-Press F1 in the game to open the [debug overlay](#debug-overlay). To check performance,
-build and run the release preset. The debug build has no optimisation, so it may not represent the performance
-players will experience.
-
-```sh
-cmake --preset mac-release
-cmake --build --preset mac-release
-build/mac-release/simple_platformer
-```
-
 ## Windows: create and use the Visual Studio solution
 
 Install Visual Studio 2022 with **Desktop development with C++** and **C++ CMake
@@ -96,7 +69,41 @@ everyday development.
 `CMakeUserPresets.json` is ignored and is available for personal configuration that
 should not be shared with version control.
 
+## macOS: configure, build, and test
+
+The shared macOS preset uses the build tools supplied with Xcode.
+
+```sh
+cmake --preset mac-debug
+cmake --build --preset mac-debug
+ctest --preset mac-debug
+```
+
+Run the example game:
+
+```sh
+cd build/mac-debug
+./simple_platformer
+```
+
+Press F1 in the game to open the [debug overlay](#debug-overlay). To check performance,
+build and run the release preset. The debug build has no optimisation, so it may not represent the performance
+players will experience.
+
+```sh
+cmake --preset mac-release
+cmake --build --preset mac-release
+build/mac-release/simple_platformer
+```
+
 ## Running focused tests
+
+On Windows, set `simple_platformer_tests` as the startup project in Visual Studio.
+Open its **Properties > Configuration Properties > Debugging** and set **Command
+Arguments** to `"*Pickup*"` to select tests whose names contain `Pickup`, or
+`[lifecycle]` to select a test tag. Press **F5** to debug or **Ctrl+F5** to run without
+debugging. Clear the arguments to run the full suite again. See Visual Studio's
+[debugging properties documentation](https://learn.microsoft.com/en-us/visualstudio/debugger/project-settings-for-a-cpp-debug-configuration?view=vs-2022).
 
 On macOS, build before running CTest so the test executable includes your changes.
 List test names or run only tests whose names contain `Pickup` with:
@@ -106,10 +113,6 @@ ctest --preset mac-debug -N
 # Omit -R "Pickup" to run the complete suite.
 ctest --preset mac-debug -R "Pickup" --output-on-failure
 ```
-
-On Windows, use Visual Studio: build `run_tests` to run the full suite, or set
-`simple_platformer_tests` as the startup project and press **F5** to debug tests, as
-described in the [Windows instructions](#windows-create-and-use-the-visual-studio-solution).
 
 ## Playing the example game
 

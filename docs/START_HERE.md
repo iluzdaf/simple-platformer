@@ -7,6 +7,7 @@ the renderer. You do not need to understand every subsystem before changing the 
 Build and run the project using the instructions in [README.md](../README.md) before
 starting the tour. Keep a matching test file open beside each implementation file;
 the tests often provide the smallest examples of how a subject is meant to be used.
+Each step below names a starting test and a question to answer before moving on.
 
 Two short references help while reading. The [glossary](GLOSSARY.md) gives the meaning
 of the words the code uses, and [C++ style](CPP_STYLE.md) explains how the code is
@@ -118,141 +119,189 @@ senses and memory
 
 ### 1. Find the outside of the program
 
-Start with [`app/main.cpp`](../app/main.cpp), then skim
-[`app/application.cpp`](../app/application.cpp). The application owns the window, input,
-fixed-step loop, UI, and graphics setup. Do not worry about the OpenGL details yet.
+- Read [`app/main.cpp`](../app/main.cpp).
+- Skim [`app/application.cpp`](../app/application.cpp), starting at `runApplication`.
+  Find the fixed-step callback that calls `game.update`.
+- Notice what the application owns: the window, input, fixed-step loop, UI, and graphics
+  setup.
+- **Starting test:** "Elapsed time is simulated in fixed 60 Hz updates" in
+  [`test_fixed_step.cpp`](../tests/timing/test_fixed_step.cpp).
+- **Check:** How many simulation updates can happen during one rendered frame?
 
 ### 2. See what the game coordinates
 
-Read [`app/game/game.hpp`](../app/game/game.hpp) and
-[`app/game/game.cpp`](../app/game/game.cpp). `Game` is the seam between the application
-and the engine: it passes input into the simulation, updates presentation state, changes
-levels, and builds a scene for rendering. What it and `GameLevel` own is listed under
-[Application folders](ARCHITECTURE.md#application-folders).
-
-Then open [`assets/levels/levels.json`](../assets/levels/levels.json), which selects the starting
-level and maps IDs to files. Follow its first entry into
-[`level_1.json`](../assets/levels/level_1.json), then read
-[`level_data.cpp`](../app/content/level_data.cpp) for parsing and
-[`level_composition.cpp`](../app/game/level_composition.cpp) for building a `GameLevel`.
-Use [CONTENT.md](CONTENT.md) when you need the JSON fields or shared catalogs.
+- Read [`app/game/game.hpp`](../app/game/game.hpp).
+- In [`app/game/game.cpp`](../app/game/game.cpp), read `Game::update` and
+  `Game::buildScene`. Notice how `Game` passes input into simulation, updates presentation,
+  changes levels, and builds draw data.
+- Open [`levels.json`](../assets/levels/levels.json): it selects the starting level and
+  maps level IDs to files.
+- Open [`level_1.json`](../assets/levels/level_1.json): identify the terrain, player spawn,
+  and actor placements.
+- **Starting test:** "World simulation advances its shared clock once per update" in
+  [`test_world_simulation.cpp`](../tests/world/test_world_simulation.cpp).
+- **Check:** Which call in `Game` advances gameplay, and which builds the draw data?
 
 ### 3. Learn the core data model
 
-Read these headers first:
-
-- [`actor.hpp`](../include/simple_platformer/actor/actor.hpp) shows an actor assembled
-  from optional components;
-- [`world.hpp`](../include/simple_platformer/world/world.hpp) shows what the world owns;
-- [`body.hpp`](../include/simple_platformer/physics/body.hpp) shows the physical state;
-- [`input_state.hpp`](../include/simple_platformer/input/input_state.hpp) shows the common
-  intentions used by the player and NPCs.
-
-The important idea is composition: gameplay roles are not represented by different
-actor subclasses. Each actor is assembled from a different combination of data. The
-full recipe is in [Actor composition](ARCHITECTURE.md#actor-composition).
+- Read [`actor.hpp`](../include/simple_platformer/actor/actor.hpp): an actor is assembled
+  from components. Its role comes from the data it has.
+- Read [`world.hpp`](../include/simple_platformer/world/world.hpp): the world owns the
+  actors and other objects in a level.
+- Read [`body.hpp`](../include/simple_platformer/physics/body.hpp): bounds and velocity
+  describe physical state.
+- Read [`input_state.hpp`](../include/simple_platformer/input/input_state.hpp): the player
+  and NPCs produce the same `InputIntentions`.
+- **Starting test:** "The actor builder gives exactly one movement component" in
+  [`test_actor_builder.cpp`](../tests/support/test_actor_builder.cpp).
+- **Check:** Which data does a platformer have that a flyer does not?
 
 ### 4. Follow one simulation tick
 
-Read [`world_simulation.cpp`](../src/world/world_simulation.cpp). It is the short,
-authoritative list of gameplay systems and their order. From there, follow only the
-system relevant to the feature you are studying.
-
-For the player movement path, a useful order is:
-
-1. [`input_state.cpp`](../src/input/input_state.cpp)
-2. [`actor_system.cpp`](../src/actor/actor_system.cpp), which dispatches actor movement
-3. [`platformer_movement.cpp`](../src/movement/platformer_movement.cpp)
-
-Read [`test_platformer_movement.cpp`](../tests/movement/test_platformer_movement.cpp)
-beside the movement implementation for examples of acceleration, jumping, and climbing.
+- Read [`world_simulation.cpp`](../src/world/world_simulation.cpp) for the systems and
+  their execution order.
+- Read [`input_state.cpp`](../src/input/input_state.cpp): held buttons and pending presses
+  become intentions for one tick.
+- Read [`actor_system.cpp`](../src/actor/actor_system.cpp): each actor's movement component
+  selects the movement function.
+- Read [`platformer_movement.cpp`](../src/movement/platformer_movement.cpp), starting at
+  `updatePlatformerMovement`. Follow acceleration, jump timing, and gravity into body
+  movement.
+- **Starting test:** "A pressed edge is consumed by only one fixed update" in
+  [`test_input_state.cpp`](../tests/input/test_input_state.cpp).
+- **Movement tests:** "Ground movement accelerates and decelerates", then "Grounded actors
+  can jump" in
+  [`test_platformer_movement.cpp`](../tests/movement/test_platformer_movement.cpp).
+- **Check:** How does holding a button differ from pressing it this tick? Which intention
+  starts a jump, and which body field changes?
 
 ### 5. Understand physics and tile collision
 
-Follow the movement loop into physics:
-
-1. [`body.hpp`](../include/simple_platformer/physics/body.hpp) defines bounds and velocity;
-2. [`body.cpp`](../src/physics/body.cpp): read `applyGravity`, `moveBody`, then `sweepAxis`;
-3. [`tile_map.cpp`](../src/world/tile_map.cpp) defines which tiles block movement.
-
-`moveBody` moves horizontally, then vertically. Each sweep stops at the first blocking
-tile and clears velocity on that axis. Read
-[`test_body.cpp`](../tests/physics/test_body.cpp) beside the implementation.
-See [Tile map, collision, and validation](ARCHITECTURE.md#tile-map-collision-and-validation)
-for more detail.
+- Read [`body.hpp`](../include/simple_platformer/physics/body.hpp) for bounds, velocity,
+  and collision contacts.
+- In [`body.cpp`](../src/physics/body.cpp), read `applyGravity`, `moveBody`, then
+  `sweepAxis`.
+- Trace the horizontal move, then the vertical move. Each sweep stops at the first
+  blocking tile and clears velocity on that axis.
+- In [`tile_map.cpp`](../src/world/tile_map.cpp), read `blocksMovement` for tile and map
+  boundary rules.
+- **Starting tests:** "Horizontal movement stops on either side of a solid tile", then
+  "Collision resolves X before Y at a corner" in
+  [`test_body.cpp`](../tests/physics/test_body.cpp).
+- **Check:** Where does the body stop, and what happens to its velocity?
 
 ### 6. Follow presentation separately
 
-Read these after the movement loop:
-
-1. [`render_scene.cpp`](../src/render/render_scene.cpp) converts world state into plain
-   sprite draw commands, including pickup bobbing and timed feedback such as hit flashes;
-2. [`camera.cpp`](../src/render/camera.cpp) follows the player and converts world space to
-   screen space;
-3. [`presentation.cpp`](../src/render/presentation.cpp) runs the presentation systems
-   after the simulation, such as
-   [`animation_system.cpp`](../src/render/animation_system.cpp), which selects and
-   advances actor animation clips;
-4. [`sprite_renderer.cpp`](../app/graphics/sprite_renderer.cpp) submits the finished draw
-   commands to OpenGL.
-
-The first three can be understood and tested without knowing OpenGL.
+- Read [`render_scene.hpp`](../include/simple_platformer/render/render_scene.hpp):
+  `SpriteDrawCommand` names draw data such as position, rotation, and opacity.
+- Read [`render_scene.cpp`](../src/render/render_scene.cpp), starting at `buildRenderScene`.
+  Follow how world objects become sprite draw commands.
+- Read [`camera.cpp`](../src/render/camera.cpp): the camera follows the player and converts
+  world positions to screen positions.
+- Read [`presentation.cpp`](../src/render/presentation.cpp), then
+  [`animation_system.cpp`](../src/render/animation_system.cpp): presentation selects and
+  advances animation after simulation.
+- Skim [`sprite_renderer.cpp`](../app/graphics/sprite_renderer.cpp) for where finished draw
+  commands are submitted to OpenGL.
+- **Starting test:** "A render scene contains visible tiles followed by the player" in
+  [`test_render_scene.cpp`](../tests/render/test_render_scene.cpp).
+- **Check:** Which fields place the player on screen, and where does draw order come from?
 
 ### 7. Read NPC behaviour and combat
 
-NPCs use the same actor movement and attack systems as the player. Their brain produces
-intentions instead of reading a keyboard. Follow this route:
+Trace one case: a `Pursuer` on patrol sees the player outside attack range and chases.
 
-1. [`npc_senses.cpp`](../src/npc/npc_senses.cpp)
-2. [`npc_facts.cpp`](../src/npc/npc_facts.cpp)
-3. [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp)
-4. [`npc_states.cpp`](../src/npc/npc_states.cpp)
-5. [`npc_system.cpp`](../src/npc/npc_system.cpp), which runs each NPC's decisions
-6. [`attack_system.cpp`](../src/combat/attack_system.cpp)
-7. [`projectile_system.cpp`](../src/combat/projectile_system.cpp)
-8. [`lifecycle.cpp`](../src/actor/lifecycle.cpp)
+```text
+Patrol -> sees player -> Chase -> movement intentions
+```
 
-The enum-and-switch code teaches the built-in decision flow. Combat then applies the
-requested attacks and contact damage.
+- Read [`npc.hpp`](../include/simple_platformer/npc/npc.hpp) for brain, perception, and
+  state data.
+- Read [`npc_system.cpp`](../src/npc/npc_system.cpp) for the decision order.
+- In [`npc_senses.cpp`](../src/npc/npc_senses.cpp), read `observeTarget`: it records
+  visibility and remembers the player's position.
+- In [`npc_facts.cpp`](../src/npc/npc_facts.cpp), read `gatherNpcFacts`: the target is
+  known and visible.
+- In [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp), follow the `Patrol` case in
+  `nextNpcState`. `pursuit` chooses `Chase` when no attack can reach the target.
+- In [`npc_states.cpp`](../src/npc/npc_states.cpp), read `enterNpcState` and
+  `updateChaseState`: the state changes and requests intentions to reach the remembered
+  position.
+- In [`actor_system.cpp`](../src/actor/actor_system.cpp), follow those intentions into
+  the same movement functions used by the player.
+- **Starting tests:** "NPC sight observes distance and solid tiles" in
+  [`test_npc_senses.cpp`](../tests/npc/test_npc_senses.cpp), then "A known target is chased
+  from idle and from patrol" in
+  [`test_npc_transitions.cpp`](../tests/npc/test_npc_transitions.cpp).
+- **Check:** What observation becomes a fact, and how does that fact change Patrol to Chase?
+- Skim [`attack_system.cpp`](../src/combat/attack_system.cpp) and
+  [`projectile_system.cpp`](../src/combat/projectile_system.cpp): attack intentions produce
+  hits and queue damage.
+- Read [`world_requests.cpp`](../src/world/world_requests.cpp): it applies damage and
+  handles death together with queued removals and spawns.
+- **Combat test:** "Damage is deferred until world requests are applied" in
+  [`test_world_requests.cpp`](../tests/world/test_world_requests.cpp).
+- **Check:** When does a hit actually reduce health?
 
-### 8. Read navigation last
+### 8. Follow basic navigation
 
-Navigation is the most advanced part of the repository. First understand NPC decisions
-and ordinary movement. Then read:
-
-1. [`route_search.cpp`](../src/navigation/route_search.cpp) for the A* search that
-   finds the cheapest route;
-2. [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp) for `findActorPath`,
-   the one entry point NPCs call. Read the flying search first, the simplest source of
-   connections, then the platformer search; both return no path for an unreachable
-   goal;
-3. [`path_follower.cpp`](../src/navigation/path_follower.cpp) for turning a path into
-   intentions;
-4. [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp) for where a body
-   can stand or hold a surface;
-5. [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp) for
-   simulated traversals.
-
-Platformer connections are found by running the real movement and collision code, so a
-planned move and the real one behave the same. [Navigation](ARCHITECTURE.md#navigation)
-explains how these pieces fit together.
+- Read [`route.hpp`](../include/simple_platformer/navigation/route.hpp) for search
+  locations and connections. Focus on locations on a cell's floor.
+- Read [`navigation_path.hpp`](../include/simple_platformer/navigation/navigation_path.hpp)
+  for the waypoints an actor follows in world coordinates.
+- In [`route_search.cpp`](../src/navigation/route_search.cpp), start at
+  `findLowestCostRoute`. Follow the main loop, then `relax`, then `reconstructRoute`.
+- Trace A*: take the location with the cheapest estimated total cost, check for the goal,
+  then consider outgoing connections. The estimate combines cost so far with a heuristic
+  that never overestimates remaining cost.
+- **Search test:** "A search chooses by the connections' costs, not by how many steps a
+  route takes" in [`test_route_search.cpp`](../tests/navigation/test_route_search.cpp).
+- **Check:** Why can a longer route be cheaper?
+- In [`platformer_cells.cpp`](../src/navigation/platformer_cells.cpp), read `canStandAt`
+  for where the body fits with floor support.
+- In [`actor_navigation.cpp`](../src/navigation/actor_navigation.cpp), follow
+  `findActorPath` into `findPlatformerPath`: search connections and turn a successful
+  route into waypoints. An unreachable goal has no path.
+- In [`path_follower.cpp`](../src/navigation/path_follower.cpp), read
+  `followPlatformerPath`, then `followWalkStep` and `followAirborneStep`.
+- Trace walking: approach and brake at a waypoint. Trace falling and jumping: reach the
+  takeoff point, replay recorded intentions, then wait for landing.
+- In [`platformer_connections.cpp`](../src/navigation/platformer_connections.cpp), read
+  `buildPlatformerConnections`, `planPlatformerConnections`, `simulateWalk`, and
+  `simulateAirborneTraversal`. These run real movement and collision to build connections
+  and record inputs for falling and jumping.
+- **Following tests:** "A platformer path follower approaches and brakes without moving
+  the body directly", then "A platformer path follower executes a generated jump through
+  movement and collision" in
+  [`test_path_follower.cpp`](../tests/navigation/test_path_follower.cpp).
+- **Check:** Which part chooses intentions, and which part changes the body's position?
 
 ### 9. Complete the level loop
 
-Finally, read the small inventory and world-object subjects:
-
-- [`inventory.cpp`](../src/inventory/inventory.cpp)
-- [`item_use.cpp`](../src/inventory/item_use.cpp)
-- [`pickup.cpp`](../src/world/pickup.cpp)
-- [`level_exit.cpp`](../src/world/level_exit.cpp)
-- [`world_requests.cpp`](../src/world/world_requests.cpp)
-
-These show automatic pickup, deferred world changes, item use, and level completion.
+- Read [`inventory.cpp`](../src/inventory/inventory.cpp) for adding and removing item
+  stacks.
+- Read [`item_use.cpp`](../src/inventory/item_use.cpp) for applying an item's effect.
+- Read [`pickup.cpp`](../src/world/pickup.cpp) for automatic collection.
+- Read [`level_exit.cpp`](../src/world/level_exit.cpp) for unlocking, opening, and
+  completing an exit.
+- Read [`world_requests.cpp`](../src/world/world_requests.cpp) for applying collection,
+  item use, and queued world changes.
+- **Exit test:** "An entered exit completes only once it has had time to open" in
+  [`test_level_exit.cpp`](../tests/world/test_level_exit.cpp).
+- **Check:** What starts opening the door, and what completes the level?
+- In [`level_composition.cpp`](../app/game/level_composition.cpp), read `composeGameLevel`:
+  level data and catalog definitions become a map and world.
+- In [`level_data.cpp`](../app/content/level_data.cpp), start with `loadLevelData` and
+  `parseLevelData`: JSON becomes the data used by composition.
+- **Composition test:** "A level composes an actor from its catalog definition" in
+  [`test_level_composition.cpp`](../tests/app/game/test_level_composition.cpp).
+- **Check:** Which data comes from the catalog, and which comes from the level placement?
 
 ## What to skip on a first reading
 
 It is safe to return later to:
 
+- climbing and flying navigation;
 - OpenGL setup and shader details in `app/graphics`;
 - ImGui layout code in `app/ui` and `app/debug`;
 - cover fading, which fades NPCs and pickups standing in grass on the player's screen

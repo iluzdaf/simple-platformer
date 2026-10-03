@@ -1,7 +1,7 @@
 #include "simple_platformer/world/world_simulation.hpp"
 
+#include "simple_platformer/actor/actor_lifecycle.hpp"
 #include "simple_platformer/actor/actor_system.hpp"
-#include "simple_platformer/actor/lifecycle.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/projectile_system.hpp"
 #include "simple_platformer/npc/npc_senses.hpp"
@@ -40,7 +40,8 @@ namespace simple_platformer
         updateAttacks(world, requests, deltaTime);
         updateProjectiles(map, world, requests, deltaTime);
         updateProjectileBursts(world, requests, deltaTime);
-        updateLifeState(world, requests, deltaTime);
+        updateActorLifecycle(world, requests, deltaTime);
+        // Detect collection after damage and respawning, before any lists are changed.
         updatePickups(world, requests);
         applyWorldRequests(world, requests);
         updateLevelExit(world);

@@ -1,7 +1,6 @@
-#include "simple_platformer/actor/lifecycle.hpp"
+#include "simple_platformer/actor/actor_lifecycle.hpp"
 
 #include <algorithm>
-#include <stdexcept>
 #include <vector>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -12,28 +11,8 @@
 
 namespace simple_platformer
 {
-    void updateLifeState(
-        World& world,
-        WorldRequests& requests,
-        float deltaTime,
-        float deathDuration)
+    void applyDamageRequests(World& world, WorldRequests& requests)
     {
-        requireSeconds(deltaTime, "Life states time step");
-        if (!isFinitePositive(deathDuration))
-        {
-            throw std::invalid_argument("Life states require a finite, positive death duration");
-        }
-
-        // Snapshot before applying damage so a newly dying actor keeps its full timer.
-        std::vector<ActorId> actorsAlreadyDying;
-        for (const Actor& actor : world.actors())
-        {
-            if (actor.life == LifeState::Dying)
-            {
-                actorsAlreadyDying.push_back(actor.id);
-            }
-        }
-
         for (const auto& request : requests.damageRequests)
         {
             Actor* actor = world.findActor(request.target);
@@ -47,11 +26,26 @@ namespace simple_platformer
             if (actor->health->current == 0)
             {
                 actor->life = LifeState::Dying;
-                actor->deathTimeRemaining = deathDuration;
+                actor->deathTimeRemaining = ActorDeathSeconds;
                 actor->intentions = {};
             }
         }
         requests.damageRequests.clear();
+    }
+
+    void updateActorLifecycle(World& world, WorldRequests& requests, float deltaTime)
+    {
+        requireSeconds(deltaTime, "Actor lifecycle time step");
+        // Snapshot before applying damage so a newly dying actor keeps its full timer.
+        std::vector<ActorId> actorsAlreadyDying;
+        for (const Actor& actor : world.actors())
+        {
+            if (actor.life == LifeState::Dying)
+            {
+                actorsAlreadyDying.push_back(actor.id);
+            }
+        }
+        applyDamageRequests(world, requests);
 
         for (const ActorId id : actorsAlreadyDying)
         {
@@ -73,7 +67,7 @@ namespace simple_platformer
             }
             else
             {
-                requests.removalRequests.push_back(id);
+                requests.remove(id);
             }
         }
     }

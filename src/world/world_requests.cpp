@@ -9,6 +9,7 @@
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/inventory/item_use.hpp"
+#include "simple_platformer/actor/actor_lifecycle.hpp"
 #include "simple_platformer/world/world.hpp"
 
 namespace simple_platformer
@@ -96,6 +97,7 @@ namespace simple_platformer
 
     void applyWorldRequests(World& world, WorldRequests& requests)
     {
+        applyDamageRequests(world, requests);
         for (const auto& use : requests.itemUses)
         {
             useItem(world, use.actor, use.slot);

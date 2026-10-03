@@ -35,7 +35,6 @@ namespace simple_platformer
             InputState input;
             glm::vec2 aimDirection = {1.0F, 0.0F};
             bool showDebugOverlay = false;
-            DebugToolVisibility debugToolVisibility;
             // Which NPC body's navigation the overlay shows; N moves to the next.
             std::size_t debugBodyIndex = 0;
             // B with the overlay open breaks the tile under the cursor, as a shot would.
@@ -107,23 +106,6 @@ namespace simple_platformer
             if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
             {
                 context->showDebugOverlay = !context->showDebugOverlay;
-                return;
-            }
-            if (key == GLFW_KEY_2 && action == GLFW_PRESS && context->showDebugOverlay)
-            {
-                context->debugToolVisibility.worldAndCameraOverlay =
-                    !context->debugToolVisibility.worldAndCameraOverlay;
-                return;
-            }
-            if (key == GLFW_KEY_3 && action == GLFW_PRESS && context->showDebugOverlay)
-            {
-                context->debugToolVisibility.actorText = !context->debugToolVisibility.actorText;
-                return;
-            }
-            if (key == GLFW_KEY_4 && action == GLFW_PRESS && context->showDebugOverlay)
-            {
-                context->debugToolVisibility.navigationConnectionsText =
-                    !context->debugToolVisibility.navigationConnectionsText;
                 return;
             }
             if (key == GLFW_KEY_N && action == GLFW_PRESS)
@@ -311,8 +293,7 @@ namespace simple_platformer
                         static_cast<float>(atlasTexture.width),
                         internalCursor,
                         context.debugBodyIndex),
-                    windowViewport,
-                    context.debugToolVisibility);
+                    windowViewport);
             }
             imgui.render();
             window.present();

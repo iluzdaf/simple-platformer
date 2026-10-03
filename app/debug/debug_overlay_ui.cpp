@@ -410,14 +410,10 @@ namespace simple_platformer
         // Actor and navigation text share a transparent, full-height panel at the right.
         // Its custom-drawn lines reserve matching ImGui content height, so the mouse wheel
         // can scroll a long list without showing a scrollbar.
-        void drawDebugTextPanel(
-            const DebugOverlay& scene,
-            bool showActorText,
-            bool showNavigationConnectionsText)
+        void drawDebugTextPanel(const DebugOverlay& scene)
         {
-            const bool hasActorText = showActorText && !scene.actors.empty();
-            const bool hasNavigationText =
-                showNavigationConnectionsText && scene.navigationConnections.has_value();
+            const bool hasActorText = !scene.actors.empty();
+            const bool hasNavigationText = scene.navigationConnections.has_value();
             if (!hasActorText && !hasNavigationText)
             {
                 return;
@@ -441,12 +437,9 @@ namespace simple_platformer
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
                 ImVec2 position = ImGui::GetCursorScreenPos();
                 const float contentTop = position.y;
-                if (showActorText)
+                for (const ActorDebugInfo& actor : scene.actors)
                 {
-                    for (const ActorDebugInfo& actor : scene.actors)
-                    {
-                        drawActorText(*drawList, actor, position);
-                    }
+                    drawActorText(*drawList, actor, position);
                 }
                 if (hasNavigationText)
                 {
@@ -458,16 +451,11 @@ namespace simple_platformer
         }
     }
 
-    void drawDebugOverlay(
-        const DebugOverlay& scene,
-        const std::optional<WindowViewport>& viewport,
-        bool showWorldAndCamera,
-        bool showActorText,
-        bool showNavigationConnectionsText)
+    void drawDebugOverlay(const DebugOverlay& scene, const std::optional<WindowViewport>& viewport)
     {
         ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 
-        if (showWorldAndCamera && viewport.has_value())
+        if (viewport.has_value())
         {
             drawWorldBounds(
                 *drawList, scene.cameraBounds, scene.cameraBounds, *viewport, CameraBoundsColour);
@@ -486,7 +474,7 @@ namespace simple_platformer
 
         for (const ActorDebugInfo& actor : scene.actors)
         {
-            if (!showWorldAndCamera || !viewport.has_value())
+            if (!viewport.has_value())
             {
                 continue;
             }
@@ -519,7 +507,7 @@ namespace simple_platformer
                 *drawList, actor.collider, scene.cameraBounds, *viewport, ColliderBoundsColour);
         }
 
-        if (showWorldAndCamera && viewport.has_value())
+        if (viewport.has_value())
         {
             for (const ProjectileDebugInfo& projectile : scene.projectiles)
             {
@@ -549,6 +537,6 @@ namespace simple_platformer
                     pickup.itemName.c_str());
             }
         }
-        drawDebugTextPanel(scene, showActorText, showNavigationConnectionsText);
+        drawDebugTextPanel(scene);
     }
 }

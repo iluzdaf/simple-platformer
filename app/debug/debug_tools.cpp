@@ -7,20 +7,8 @@
 
 namespace simple_platformer
 {
-    void drawDebugTools(
-        const DebugOverlay& overlay,
-        const std::optional<WindowViewport>& viewport,
-        const DebugToolVisibility& visibility)
+    void drawDebugTools(const DebugOverlay& overlay, const std::optional<WindowViewport>& viewport)
     {
-        if (visibility.worldAndCameraOverlay || visibility.actorText ||
-            visibility.navigationConnectionsText)
-        {
-            drawDebugOverlay(
-                overlay,
-                viewport,
-                visibility.worldAndCameraOverlay,
-                visibility.actorText,
-                visibility.navigationConnectionsText);
-        }
+        drawDebugOverlay(overlay, viewport);
     }
 }

@@ -162,6 +162,26 @@ facing, team, and life state. Players and NPCs use the same type.
 - Spawn and respawn positions need body clearance; platformers also need ground support.
   Patrol points need clearance and, for platformers without climbing, support.
 
+### Worked example: moving right into a wall
+
+With 16-pixel tiles, a 12-pixel-wide body starts at `x = 20` and requests a
+20-pixel move right. In its row, column 2 is empty and column 3 is solid.
+
+```text
+x (pixels)      20          32  36  40      48  52          64
+Before          [===========]               |################
+Requested                           [=======|XXX]############
+Stopped                         [===========|################
+```
+
+- `|` marks the wall at 48; `X` shows the overlap the requested move would cause.
+- For a horizontal sweep, `along` means column and `across` means row.
+- `sweepAxis` starts at the body's right edge (`leadingEdge = 32`), skips empty
+  column 2, and finds the wall in column 3.
+- The allowed distance is `candidate = 3 * 16 - 32 = 16` pixels.
+- `moveBody` moves the body to `x = 36`, sets `contacts.right`, clears horizontal
+  velocity, then sweeps vertically.
+
 ## NPC behaviour
 
 | Part                | What it holds or does                                                    |
@@ -256,6 +276,29 @@ transitions and behaviour. Sensing, facts, and system validation have separate t
 - Dying actors receive no gameplay intentions or further damage; movement and collision continue.
 - Respawn restores player health and movement state at the stored spawn feet. Inventory persists.
 - Death timing is independent of animation length.
+
+### Attack timing example
+
+In [`attack_system.cpp`](../src/combat/attack_system.cpp), `advanceBite` advances
+existing phases, then `applyBiteHits` queues damage if Active occurred during the update.
+Starting a bite or shot keeps its full initial timer; it advances on later updates.
+
+For a bite with 0.12 s Windup, 0.08 s Active, and 0.30 s Recovery:
+
+```text
+Time since start   0          0.12       0.20                  0.50 s
+Phase             | Windup   | Active   | Recovery            | Ready
+Later update      |--------------------------> 0.25 s
+```
+
+- The starting update leaves the full 0.12 s Windup, regardless of its step size.
+- A later 0.25 s update ends in Recovery with 0.25 s left, but still checks for a hit.
+- A later 0.51 s update ends Ready and still checks for a hit, once per opponent.
+- NPC decisions run before attacks. A newly entered Bite waits for combat to process
+  its request before Ready can mean the bite finished.
+
+See [`test_bite_attack.cpp`](../tests/combat/test_bite_attack.cpp) and
+[`test_ranged_attack.cpp`](../tests/combat/test_ranged_attack.cpp) for large-step cases.
 
 ## Inventory, pickups, and levels
 

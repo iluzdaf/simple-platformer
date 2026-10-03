@@ -136,6 +136,32 @@ TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
     REQUIRE(world.projectiles().size() == 2);
 }
 
+TEST_CASE("A large update preserves a new shot and later crosses its phases", "[combat][weapon]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
+    actor.rangedWeapon = simple_platformer::RangedWeapon{};
+    actor.intentions.aimDirection = {1.0F, 0.0F};
+    actor.intentions.primaryAttackPressed = true;
+    const auto shooter = world.addActor(actor);
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateAttacks(world, requests, 1.0F);
+    REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Shoot);
+    REQUIRE_NEAR(
+        tests::rangedWeapon(world, shooter).phaseTimeRemaining,
+        tests::rangedWeapon(world, shooter).shootDuration);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(world.projectiles().size() == 1);
+
+    // Finishing the old shot does not also begin another, even with the button held.
+    simple_platformer::updateAttacks(world, requests, 1.0F);
+    REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Ready);
+    REQUIRE(tests::rangedWeapon(world, shooter).phaseTimeRemaining == 0.0F);
+    simple_platformer::applyWorldRequests(world, requests);
+    REQUIRE(world.projectiles().size() == 1);
+}
+
 TEST_CASE("Dying actors cannot begin ranged attacks", "[combat][weapon][lifecycle]")
 {
     simple_platformer::World world;

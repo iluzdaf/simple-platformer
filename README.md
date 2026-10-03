@@ -31,6 +31,9 @@ All third-party source required by the project is vendored under `external/`.
 The supported development platforms are macOS and Windows, where development and
 graphical testing take place.
 
+`CMakePresets.json` defines the shared Windows and macOS build configurations.
+Use the ignored `CMakeUserPresets.json` for personal overrides.
+
 ## Windows: create and use the Visual Studio solution
 
 Install Visual Studio 2022 with **Desktop development with C++** and **C++ CMake
@@ -65,10 +68,6 @@ drop-down, choose **Build > Build Solution**, then press **F5**. The game is the
 `build\windows-vs\Release\simple_platformer.exe`. Switch back to **Debug** for
 everyday development.
 
-`CMakePresets.json` contains the shared macOS and Windows configurations.
-`CMakeUserPresets.json` is ignored and is available for personal configuration that
-should not be shared with version control.
-
 ## macOS: configure, build, and test
 
 The shared macOS preset uses the build tools supplied with Xcode.
@@ -86,7 +85,7 @@ cd build/mac-debug
 ./simple_platformer
 ```
 
-Press F1 in the game to open the [debug overlay](#debug-overlay). To check performance,
+To check performance,
 build and run the release preset. The debug build has no optimisation, so it may not represent the performance
 players will experience.
 

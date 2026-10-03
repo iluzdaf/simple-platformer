@@ -164,14 +164,14 @@ facing, team, and life state. Players and NPCs use the same type.
 
 ## NPC behaviour
 
-| Part             | What it holds or does                                                    |
-| ---------------- | ------------------------------------------------------------------------ |
-| `NpcSenses`      | Notice distance, standoff distance, memory duration, and search duration |
-| `NpcPerception`  | Visibility and heard-landing results, replaced each sensing update       |
-| `NpcBrain`       | State, tactic, timing, and remembered target ID and feet                 |
-| `NpcFacts`       | A snapshot gathered from perception, memory, movement, and attacks       |
-| `nextNpcState`   | Chooses at most one transition from the tactic, state, and facts         |
-| `npc_states.cpp` | Requests goals, aim, and attacks through intentions                      |
+| Part                | What it holds or does                                                    |
+| ------------------- | ------------------------------------------------------------------------ |
+| `NpcSenses`         | Notice distance, standoff distance, memory duration, and search duration |
+| `NpcPerception`     | Visibility and heard-landing results, replaced each sensing update       |
+| `NpcBrain`          | State, tactic, timing, and remembered target ID and feet                 |
+| `NpcFacts`          | A snapshot gathered from perception, memory, movement, and attacks       |
+| `npc_behaviour.cpp` | Dispatches transitions and actions; resets time and path on state entry  |
+| Tactic files        | Transitions, entry actions, and state updates for one tactic             |
 
 - Sight detects the living opponent player within notice distance and with clear line of sight.
 - Shots and landings emit noise with the source's feet at emission. The next sensing
@@ -181,15 +181,19 @@ facing, team, and life state. Players and NPCs use the same type.
 - Fresh sight takes priority over heard positions. Without either, target memory counts down.
 - Entering a state resets its time and path. Movement and combat execute its intentions later.
 
-| Tactic       | Choice                                                                              |
-| ------------ | ----------------------------------------------------------------------------------- |
-| Pursuer      | Chase, attack when able, then search where the target was lost                      |
-| KeepDistance | Back away inside standoff distance; watch from its position after losing the target |
-| Coward       | Flee from a nearby visible threat and bite when it reaches the forward hitbox       |
-| Charger      | Wake on a landing, charge in a fixed direction, then recover when blocked           |
+| Tactic                                       | Choice                                                                              |
+| -------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [Pursuer](../src/npc/pursuer.cpp)            | Chase, attack when able, then search where the target was lost                      |
+| [KeepDistance](../src/npc/keep_distance.cpp) | Back away inside standoff distance; watch from its position after losing the target |
+| [Coward](../src/npc/coward.cpp)              | Flee from a nearby visible threat and bite when it reaches the forward hitbox       |
+| [Charger](../src/npc/charger.cpp)            | Wake on a landing, charge in a fixed direction, then recover when blocked           |
 
 Tactics choose built-in states. New behaviour needs the corresponding facts, state,
 and components before a tactic can select it.
+
+Each tactic has a matching test file, such as `test_pursuer.cpp`, covering its
+transitions and behaviour. Sensing, facts, and system validation have separate tests.
+`test_npc_behaviour.cpp` covers the shared state-entry resets.
 
 ## Navigation
 
@@ -327,7 +331,7 @@ paths, and timers start fresh. [CONTENT.md](CONTENT.md) describes the stored fie
 ### Adding an NPC state
 
 - Add the enum value and facts its decisions need.
-- Add transitions in `nextNpcState` and behaviour in `npc_states.cpp`.
+- Add decisions and actions in the tactic's file, such as `pursuer.cpp`.
 - Request movement and attacks through intentions; add its name to debug presentation.
 - Test transitions with facts, then behaviour through the NPC update.
 

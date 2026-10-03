@@ -1,9 +1,9 @@
-#include "simple_platformer/npc/npc_states.hpp"
+#include "simple_platformer/npc/keep_distance.hpp"
 
+#include <optional>
 #include <stdexcept>
 
 #include <glm/geometric.hpp>
-
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -13,8 +13,9 @@
 #include "simple_platformer/navigation/path_follower.hpp"
 #include "simple_platformer/navigation/platformer_cells.hpp"
 #include "simple_platformer/npc/npc.hpp"
+#include "simple_platformer/npc/npc_facts.hpp"
 #include "simple_platformer/npc/npc_navigation.hpp"
-#include "simple_platformer/npc/npc_senses.hpp"
+#include "simple_platformer/npc/npc_behaviour.hpp"
 #include "simple_platformer/npc/npc_update.hpp"
 #include "simple_platformer/world/tile_map.hpp"
 
@@ -22,7 +23,40 @@ namespace simple_platformer
 {
     namespace
     {
-        constexpr float SearchTurnSeconds = 0.5F;
+        NpcState patrolOrIdle(const NpcFacts& facts)
+        {
+            return facts.hasPatrol ? NpcState::Patrol : NpcState::Idle;
+        }
+
+        NpcState lostTarget(const NpcFacts& facts)
+        {
+            if (!facts.searches)
+            {
+                return patrolOrIdle(facts);
+            }
+            return NpcState::Watch;
+        }
+
+        std::optional<NpcState> pursuit(const NpcFacts& facts)
+        {
+            if (!facts.targetKnown)
+            {
+                return std::nullopt;
+            }
+            if (facts.targetWithinStandoffDistance)
+            {
+                return NpcState::Retreat;
+            }
+            if (facts.targetInBiteRange)
+            {
+                return NpcState::Bite;
+            }
+            if (facts.targetInSights)
+            {
+                return NpcState::Shoot;
+            }
+            return NpcState::Chase;
+        }
 
         glm::vec2 patrolGoal(const Patrol& patrol)
         {
@@ -44,34 +78,6 @@ namespace simple_platformer
             }
         }
 
-        void updateFleeState(
-            const NpcUpdate& update,
-            Actor& actor,
-            const NpcBrain& brain,
-            PathFollower& follower,
-            const Actor* target)
-        {
-            if (target == nullptr || !actor.patrol.has_value())
-            {
-                clearPath(follower);
-                return;
-            }
-            const Patrol& patrol = *actor.patrol;
-            const glm::vec2 left =
-                patrol.firstFeet.x < patrol.secondFeet.x ? patrol.firstFeet : patrol.secondFeet;
-            const glm::vec2 right =
-                patrol.firstFeet.x < patrol.secondFeet.x ? patrol.secondFeet : patrol.firstFeet;
-            const glm::vec2 feet = feetOf(actor.body.bounds);
-            const glm::vec2 refuge = feet.x < brain.lastKnownTargetFeet.x ? left : right;
-            if (glm::distance(feet, refuge) <= 1.0F)
-            {
-                clearPath(follower);
-                aimToward(actor, brain.lastKnownTargetFeet);
-                return;
-            }
-            actor.intentions = intentionsToReach(update, actor, follower, refuge);
-        }
-
         void updateChaseState(
             const NpcUpdate& update,
             Actor& actor,
@@ -89,22 +95,19 @@ namespace simple_platformer
             aimToward(actor, brain.lastKnownTargetFeet);
         }
 
-        // Looking about is an aim that turns every SearchTurnSeconds, first towards where
-        // the target was last known to be.
-        void lookAbout(Actor& actor, const NpcBrain& brain, float stateElapsed)
+        // The tactic leaves Shoot when sight is lost.
+        void updateShootState(Actor& actor, const Actor* target)
         {
-            const float toward = brain.lastKnownTargetFeet.x - feetOf(actor.body.bounds).x;
-            float side = toward < 0.0F ? -1.0F : 1.0F;
-            const int turns = static_cast<int>(stateElapsed / SearchTurnSeconds);
-            if (turns % 2 == 1)
+            if (target == nullptr)
             {
-                side = -side;
+                throw std::logic_error("A shooting NPC has no target");
             }
-            actor.intentions.aimDirection = {side, 0.0F};
+            actor.intentions.aimDirection =
+                centerOf(target->body.bounds) - centerOf(actor.body.bounds);
+            actor.intentions.primaryAttackPressed = true;
         }
 
-        // A search finishes the walk to where the target was last known to be, and looks about
-        // once it is there or cannot get there.
+        // Walk to the remembered position, then look about if there or unreachable.
         void updateSearchState(
             const NpcUpdate& update,
             Actor& actor,
@@ -120,20 +123,7 @@ namespace simple_platformer
             }
         }
 
-        // The tactic leaves Shoot when sight is lost.
-        void updateShootState(Actor& actor, const Actor* target)
-        {
-            if (target == nullptr)
-            {
-                throw std::logic_error("A shooting NPC has no target");
-            }
-            actor.intentions.aimDirection =
-                centerOf(target->body.bounds) - centerOf(actor.body.bounds);
-            actor.intentions.primaryAttackPressed = true;
-        }
-
-        // Back away while aiming at the remembered target and requesting an attack.
-        // A walker refuses a direction whose next cell cannot support its body.
+        // Back away while aiming and attacking; walkers avoid unsupported cells.
         void updateRetreatState(const NpcUpdate& update, Actor& actor, const NpcBrain& brain)
         {
             const glm::vec2 feet = feetOf(actor.body.bounds);
@@ -155,31 +145,66 @@ namespace simple_platformer
         }
     }
 
-    void aimToward(Actor& actor, glm::vec2 targetFeet)
+    std::optional<NpcState> nextKeepDistanceState(NpcState state, const NpcFacts& facts)
     {
-        actor.intentions.aimDirection = targetFeet - feetOf(actor.body.bounds);
+        const std::optional<NpcState> pursuing = pursuit(facts);
+        switch (state)
+        {
+        case NpcState::Flee:
+        case NpcState::Sleep:
+        case NpcState::Charge:
+        case NpcState::Stunned:
+        case NpcState::Idle:
+            if (pursuing.has_value())
+            {
+                return pursuing;
+            }
+            if (facts.hasPatrol)
+            {
+                return NpcState::Patrol;
+            }
+            return std::nullopt;
+        case NpcState::Patrol:
+            return pursuing;
+        case NpcState::Chase:
+        case NpcState::Shoot:
+        case NpcState::Retreat:
+            if (!pursuing.has_value())
+            {
+                return lostTarget(facts);
+            }
+            return *pursuing != state ? pursuing : std::nullopt;
+        case NpcState::Search:
+        case NpcState::Watch:
+            if (pursuing.has_value())
+            {
+                return pursuing;
+            }
+            return facts.searchTimeUp ? std::optional(patrolOrIdle(facts)) : std::nullopt;
+        case NpcState::Bite:
+            // Ready on entry means combat has not seen the request yet. Wait for a later
+            // decision before treating Ready as a finished bite. Chase before biting again.
+            if (!facts.biteReady || facts.stateElapsed <= 0.0F)
+            {
+                return std::nullopt;
+            }
+            return facts.targetKnown ? NpcState::Chase : lostTarget(facts);
+        }
+        return std::nullopt;
     }
 
-    void enterNpcState(Actor& actor, NpcBrain& brain, PathFollower& follower, NpcState state)
+    void enterKeepDistanceState(Actor& actor, NpcState state)
     {
-        brain.state = state;
-        brain.stateElapsed = 0.0F;
-        clearPath(follower);
-        if (state == NpcState::Charge)
-        {
-            brain.chargeDirection =
-                brain.lastKnownTargetFeet.x < feetOf(actor.body.bounds).x ? -1.0F : 1.0F;
-        }
         if (state == NpcState::Bite)
         {
             actor.intentions.primaryAttackPressed = true;
         }
     }
 
-    void updateNpcState(
+    void updateKeepDistanceState(
         const NpcUpdate& update,
         Actor& actor,
-        NpcBrain& brain,
+        const NpcBrain& brain,
         PathFollower& follower,
         const Actor* target,
         NpcState state,
@@ -187,30 +212,6 @@ namespace simple_platformer
     {
         switch (state)
         {
-        case NpcState::Flee:
-            updateFleeState(update, actor, brain, follower, target);
-            break;
-        case NpcState::Sleep:
-            break;
-        case NpcState::Charge:
-            actor.intentions.direction = {brain.chargeDirection, 0.0F};
-            actor.intentions.avoidLedges = true;
-            actor.intentions.contactDamage = true;
-            break;
-        case NpcState::Stunned:
-            if (target != nullptr && actor.platformerMovement.has_value() &&
-                actor.platformerMovement->grounded && target->platformerMovement.has_value() &&
-                target->platformerMovement->grounded &&
-                onSameGroundRun(update.map, actor.body.bounds, target->body.bounds) &&
-                actor.senses.has_value() &&
-                glm::distance(feetOf(actor.body.bounds), feetOf(target->body.bounds)) <=
-                    actor.senses->noticeDistance)
-            {
-                aimToward(actor, brain.lastKnownTargetFeet);
-            }
-            break;
-        case NpcState::Idle:
-            break;
         case NpcState::Patrol:
             updatePatrolState(update, actor, follower);
             break;
@@ -226,11 +227,13 @@ namespace simple_platformer
         case NpcState::Search:
             updateSearchState(update, actor, brain, follower, stateElapsed);
             break;
+        case NpcState::Watch:
+            lookAbout(actor, brain, stateElapsed);
+            break;
         case NpcState::Retreat:
             updateRetreatState(update, actor, brain);
             break;
-        case NpcState::Watch:
-            lookAbout(actor, brain, stateElapsed);
+        default:
             break;
         }
     }

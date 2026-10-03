@@ -230,7 +230,8 @@ Stopped                         [===========|################
 
 ### 7. Read NPC behaviour and combat
 
-Trace one case: a `Pursuer` on patrol sees the player outside attack range and chases.
+Trace one case: a `Pursuer` on patrol, with no ranged weapon, sees the player
+outside bite range and chases.
 
 ```text
 Patrol -> sees player -> Chase -> movement intentions
@@ -240,20 +241,20 @@ Patrol -> sees player -> Chase -> movement intentions
   state data.
 - Read [`npc_system.cpp`](../src/npc/npc_system.cpp) for the decision order.
 - In [`npc_senses.cpp`](../src/npc/npc_senses.cpp), read `observeTarget`: it records
-  visibility and remembers the player's position.
+  `targetVisible = true` and remembers the player's position and ID.
 - In [`npc_facts.cpp`](../src/npc/npc_facts.cpp), read `gatherNpcFacts`: the target is
-  known and visible.
-- In [`npc_transitions.cpp`](../src/npc/npc_transitions.cpp), follow the `Patrol` case in
-  `nextNpcState`. `pursuit` chooses `Chase` when no attack can reach the target.
-- In [`npc_states.cpp`](../src/npc/npc_states.cpp), read `enterNpcState` and
-  `updateChaseState`: the state changes and requests intentions to reach the remembered
-  position.
+  known and visible, but neither in bite range nor in sights for a ranged attack.
+- In [`pursuer.cpp`](../src/npc/pursuer.cpp), follow the `Patrol` case in
+  `nextPursuerState`. `pursuit` chooses `Chase` when no attack can reach the target.
+- In [`npc_behaviour.cpp`](../src/npc/npc_behaviour.cpp), `enterNpcState` resets the state
+  timer and clears the old path. Back in `pursuer.cpp`, follow `updatePursuerState`
+  into `updateChaseState`: it requests movement intentions to reach the remembered position.
 - In [`actor_system.cpp`](../src/actor/actor_system.cpp), follow those intentions into
   the same movement functions used by the player.
 - **Starting tests:** "NPC sight observes distance and solid tiles" in
   [`test_npc_senses.cpp`](../tests/npc/test_npc_senses.cpp), then "A known target is chased
   from idle and from patrol" in
-  [`test_npc_transitions.cpp`](../tests/npc/test_npc_transitions.cpp).
+  [`test_pursuer.cpp`](../tests/npc/test_pursuer.cpp).
 - **Check:** What observation becomes a fact, and how does that fact change Patrol to Chase?
 - Skim [`attack_system.cpp`](../src/combat/attack_system.cpp) and
   [`projectile_system.cpp`](../src/combat/projectile_system.cpp): attack intentions produce

@@ -10,7 +10,7 @@ namespace simple_platformer
     struct NpcUpdate;
     struct PathFollower;
 
-    // KeepDistance's decisions and actions are grouped in keep_distance.cpp.
+    // KeepDistance normally chooses Idle, Patrol, Chase, Shoot, Bite, Retreat, or Watch.
     std::optional<NpcState> nextKeepDistanceState(NpcState state, const NpcFacts& facts);
     void enterKeepDistanceState(Actor& actor, NpcState state);
     void updateKeepDistanceState(

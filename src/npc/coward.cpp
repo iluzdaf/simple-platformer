@@ -97,6 +97,9 @@ namespace simple_platformer
             }
             return facts.targetKnown ? NpcState::Flee : patrolOrIdle(facts);
         default:
+            // Idle and Patrol share these decisions. Other tactics' states also come
+            // here if supplied: flee from a nearby visible threat, otherwise return
+            // to Patrol or Idle.
             if (facts.targetVisible && facts.targetWithinStandoffDistance)
             {
                 return NpcState::Flee;

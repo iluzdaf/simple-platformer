@@ -48,6 +48,8 @@ namespace simple_platformer
             }
             return canCharge ? NpcState::Charge : NpcState::Sleep;
         default:
+            // Sleep and any supplied state from another tactic use the same wake
+            // decision: Charge on an eligible landing, otherwise settle into Sleep.
             if (facts.heardLanding && canCharge)
             {
                 return NpcState::Charge;

@@ -10,7 +10,7 @@ namespace simple_platformer
     struct NpcUpdate;
     struct PathFollower;
 
-    // Pursuer's decisions and actions are grouped in pursuer.cpp.
+    // Pursuer normally chooses Idle, Patrol, Chase, Shoot, Bite, or Search.
     std::optional<NpcState> nextPursuerState(NpcState state, const NpcFacts& facts);
     void enterPursuerState(Actor& actor, NpcState state);
     void updatePursuerState(

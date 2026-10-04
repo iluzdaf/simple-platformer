@@ -20,8 +20,9 @@ namespace simple_platformer
     // Turns aim periodically, starting towards the remembered target.
     void lookAbout(Actor& actor, const NpcBrain& brain, float stateElapsed);
 
-    // Returns the state to enter, or nothing to stay. Uses only the tactic, current state,
-    // and facts; it does not change the actor or issue intentions.
+    // Returns the state to enter, or std::nullopt to stay in the current state without
+    // resetting its time or path. Uses only the tactic, current state, and facts; it
+    // does not change the actor or issue intentions.
     std::optional<NpcState> nextNpcState(NpcTactic tactic, NpcState state, const NpcFacts& facts);
 
     // Entering a state resets its time and path. Charge commits its direction;

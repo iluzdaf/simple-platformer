@@ -121,7 +121,8 @@ senses and memory
 
 - Read [`app/main.cpp`](../app/main.cpp).
 - Skim [`app/application.cpp`](../app/application.cpp), starting at `runApplication`.
-  Find the fixed-step callback that calls `game.update`.
+  Follow `preparePlayerInput`, then `runGameUpdates` to the callback that calls
+  `game.update`. Clearing buttons and resetting accumulated time are separate steps.
 - Notice what the application owns: the window, input, fixed-step loop, UI, and graphics
   setup.
 - **Starting test:** "Elapsed time is simulated in fixed 60 Hz updates" in

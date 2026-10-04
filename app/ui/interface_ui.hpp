@@ -25,6 +25,5 @@ namespace simple_platformer
         const Game& game,
         const Texture& atlas,
         const std::optional<WindowViewport>& viewport,
-        bool inventoryOpen,
-        bool simulationPaused);
+        bool inventoryOpen);
 }

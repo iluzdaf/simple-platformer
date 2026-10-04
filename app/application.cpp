@@ -40,12 +40,9 @@ namespace simple_platformer
             // B with the overlay open breaks the tile under the cursor, as a shot would.
             bool breakTileRequested = false;
             bool inventoryOpen = false;
-            // P pauses the simulation; . runs one fixed step while paused.
-            bool simulationPaused = false;
-            bool stepRequested = false;
-            // Set when the inventory opens or closes, the simulation pauses or resumes,
-            // or the game restarts, so the next step discards the time and input edges
-            // that built up across the change.
+            // Set when the inventory opens or closes, or the game restarts.
+            // The next frame clears gameplay input and discards
+            // accumulated time before simulation can continue.
             bool playInterrupted = false;
             bool restartRequested = false;
         };
@@ -86,18 +83,6 @@ namespace simple_platformer
                 context->restartRequested = true;
                 return;
             }
-            if (key == GLFW_KEY_P && action == GLFW_PRESS)
-            {
-                context->simulationPaused = !context->simulationPaused;
-                context->playInterrupted = true;
-                return;
-            }
-            if (key == GLFW_KEY_PERIOD && action == GLFW_PRESS && context->simulationPaused)
-            {
-                context->stepRequested = true;
-                return;
-            }
-
             if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
             {
                 glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -145,6 +130,85 @@ namespace simple_platformer
             context->input.setButton(InputButton::PrimaryAttack, action == GLFW_PRESS);
         }
 
+        void restartIfRequested(ApplicationContext& context, Game& game)
+        {
+            if (!context.restartRequested)
+            {
+                return;
+            }
+            if (game.complete())
+            {
+                game.restart();
+                context.inventoryOpen = false;
+                context.aimDirection = {1.0F, 0.0F};
+                context.playInterrupted = true;
+            }
+            context.restartRequested = false;
+        }
+
+        void applyInterfaceRequests(
+            ApplicationContext& context,
+            Game& game,
+            const InterfaceRequests& interfaceRequests)
+        {
+            if (interfaceRequests.toggleInventory)
+            {
+                context.inventoryOpen = !context.inventoryOpen;
+                context.playInterrupted = true;
+            }
+            if (interfaceRequests.useInventorySlot.has_value())
+            {
+                game.useInventoryItem(*interfaceRequests.useInventorySlot);
+            }
+        }
+
+        void breakTileIfRequested(
+            ApplicationContext& context,
+            Game& game,
+            const std::optional<glm::vec2>& internalCursor)
+        {
+            if (!context.breakTileRequested)
+            {
+                return;
+            }
+            if (internalCursor.has_value())
+            {
+                game.breakTileAt(*internalCursor);
+            }
+            context.breakTileRequested = false;
+        }
+
+        // UI mouse capture changes gameplay aim and firing, not simulation time.
+        std::optional<glm::vec2> gameplayCursor(
+            const ApplicationContext& context,
+            const std::optional<glm::vec2>& internalCursor,
+            bool mouseCaptured)
+        {
+            if (mouseCaptured || context.inventoryOpen)
+            {
+                return std::nullopt;
+            }
+            return internalCursor;
+        }
+
+        // Clear buttons and pending edges when gameplay cannot use them. Keyboard
+        // capture blocks input, but does not pause simulation or reset accumulated time.
+        void preparePlayerInput(
+            ApplicationContext& context,
+            bool simulationBlocked,
+            const std::optional<glm::vec2>& gameCursor,
+            bool keyboardCaptured)
+        {
+            if (simulationBlocked || context.playInterrupted || keyboardCaptured)
+            {
+                context.input = {};
+            }
+            else if (!gameCursor.has_value())
+            {
+                context.input.clearButton(InputButton::PrimaryAttack);
+            }
+        }
+
         // Consumes held buttons and pending edges for one simulation step. A gameplay
         // cursor updates aim; without one, keep the last aim and suppress firing.
         InputIntentions playerIntentions(
@@ -167,6 +231,31 @@ namespace simple_platformer
             }
             intentions.aimDirection = context.aimDirection;
             return intentions;
+        }
+
+        void runGameUpdates(
+            ApplicationContext& context,
+            Game& game,
+            FixedStep& fixedStep,
+            float frameSeconds,
+            bool simulationBlocked,
+            const std::optional<glm::vec2>& gameCursor)
+        {
+            if (simulationBlocked || context.playInterrupted)
+            {
+                // Time that built up would otherwise be simulated in a burst on resuming.
+                fixedStep.reset();
+                context.playInterrupted = false;
+                return;
+            }
+
+            fixedStep.advance(
+                frameSeconds,
+                [&](float deltaTime)
+                {
+                    const InputIntentions intentions = playerIntentions(context, game, gameCursor);
+                    game.update(intentions, deltaTime);
+                });
         }
     }
 
@@ -198,89 +287,30 @@ namespace simple_platformer
             glfwPollEvents();
             imgui.beginFrame();
 
-            if (context.restartRequested)
-            {
-                if (game.complete())
-                {
-                    game.restart();
-                    context.inventoryOpen = false;
-                    context.aimDirection = {1.0F, 0.0F};
-                    context.playInterrupted = true;
-                }
-                context.restartRequested = false;
-            }
+            restartIfRequested(context, game);
 
             const WindowReading reading = window.read();
             const std::optional<WindowViewport> windowViewport =
                 makeWindowViewport(reading.size, reading.framebufferSize);
 
             const float frameSeconds = frameClock.lapSeconds();
-            const InterfaceRequests interfaceRequests = drawInterface(
-                game,
-                atlasTexture,
-                windowViewport,
-                context.inventoryOpen,
-                context.simulationPaused);
+            const InterfaceRequests interfaceRequests =
+                drawInterface(game, atlasTexture, windowViewport, context.inventoryOpen);
 
-            if (interfaceRequests.toggleInventory)
-            {
-                context.inventoryOpen = !context.inventoryOpen;
-                context.playInterrupted = true;
-            }
-            if (interfaceRequests.useInventorySlot.has_value())
-            {
-                game.useInventoryItem(*interfaceRequests.useInventorySlot);
-            }
+            applyInterfaceRequests(context, game, interfaceRequests);
+
             const std::optional<glm::vec2> internalCursor =
                 windowToInternal(reading.cursor, reading.size, reading.framebufferSize);
-            if (context.breakTileRequested)
-            {
-                if (internalCursor.has_value())
-                {
-                    game.breakTileAt(*internalCursor);
-                }
-                context.breakTileRequested = false;
-            }
-            // The game has the cursor while it is over the image and no UI wants the mouse.
-            std::optional<glm::vec2> gameCursor = internalCursor;
-            if (ImGui::GetIO().WantCaptureMouse || context.inventoryOpen)
-            {
-                gameCursor.reset();
-            }
+            breakTileIfRequested(context, game, internalCursor);
 
-            // What input survives into the step: nothing while paused, across an
-            // interruption, or while ImGui has the keyboard; no attack without the cursor.
-            const bool paused =
-                context.inventoryOpen || game.complete() || context.simulationPaused;
-            if (paused || context.playInterrupted || ImGui::GetIO().WantCaptureKeyboard)
-            {
-                context.input = {};
-            }
-            else if (!gameCursor.has_value())
-            {
-                context.input.clearButton(InputButton::PrimaryAttack);
-            }
+            const std::optional<glm::vec2> gameCursor =
+                gameplayCursor(context, internalCursor, ImGui::GetIO().WantCaptureMouse);
 
-            const auto step = [&](float deltaTime)
-            {
-                const InputIntentions intentions = playerIntentions(context, game, gameCursor);
-                game.update(intentions, deltaTime);
-            };
-            if (paused || context.playInterrupted)
-            {
-                // Time that built up would otherwise be simulated in a burst on resuming.
-                fixedStep.reset();
-                context.playInterrupted = false;
-                if (context.stepRequested && !context.inventoryOpen && !game.complete())
-                {
-                    step(static_cast<float>(fixedStep.stepSeconds()));
-                }
-            }
-            else
-            {
-                fixedStep.advance(frameSeconds, step);
-            }
-            context.stepRequested = false;
+            const bool simulationBlocked = context.inventoryOpen || game.complete();
+            preparePlayerInput(
+                context, simulationBlocked, gameCursor, ImGui::GetIO().WantCaptureKeyboard);
+
+            runGameUpdates(context, game, fixedStep, frameSeconds, simulationBlocked, gameCursor);
 
             const RenderScene scene = game.buildScene();
 

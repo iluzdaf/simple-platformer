@@ -38,5 +38,4 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/ui/interface_ui.cpp
     ${PROJECT_SOURCE_DIR}/app/ui/inventory_layout.cpp
     ${PROJECT_SOURCE_DIR}/app/ui/inventory_ui.cpp
-    ${PROJECT_SOURCE_DIR}/app/ui/pause_ui.cpp
 )

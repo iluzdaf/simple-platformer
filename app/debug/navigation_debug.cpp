@@ -175,10 +175,6 @@ namespace simple_platformer
                 }
                 const std::size_t connections = table.connections(cell, profile).size();
                 info.cells.push_back({bounds, connections, standable});
-                if (connections > 0)
-                {
-                    ++info.cellsConnected;
-                }
             }
         }
         if (view.cursorWorld.has_value())

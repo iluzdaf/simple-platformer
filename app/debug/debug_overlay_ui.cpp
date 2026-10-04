@@ -451,7 +451,7 @@ namespace simple_platformer
                 }
                 if (hasNavigationText)
                 {
-                    drawNavigationTotals(*drawList, *scene.navigationConnections, position);
+                    drawNavigationProfile(*drawList, *scene.navigationConnections, position);
                 }
                 ImGui::Dummy({DebugTextContentWidth, position.y - contentTop});
             }

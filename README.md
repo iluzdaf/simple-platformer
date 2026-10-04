@@ -136,7 +136,7 @@ one key; the third exit completes the example campaign.
 ## Debug overlay
 
 F1 shows or hides all debug overlays together: actor bounds and text, paths, navigation
-connections and totals, projectiles, pickups, and camera regions.
+connections and profiles, projectiles, pickups, and camera regions.
 
 | Action                                 | Controls |
 | -------------------------------------- | -------- |

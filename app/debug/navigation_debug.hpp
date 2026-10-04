@@ -76,7 +76,7 @@ namespace simple_platformer
         std::vector<NamedNavigationProfile> namedProfiles;
     };
 
-    // Cells the body can rest in within the requested view, and per-profile totals.
+    // The selected profile and cells the body can rest in within the requested view.
     // Absent when no platformer NPC profile is known.
     struct NavigationConnectionsDebugInfo
     {
@@ -84,8 +84,6 @@ namespace simple_platformer
         std::string actorName;
         std::size_t profileIndex = 0;
         std::size_t profileCount = 0;
-        // Cells with connections within the requested view.
-        std::size_t cellsConnected = 0;
         std::vector<NavigationCellDebugInfo> cells;
         std::optional<CursorCellDebugInfo> cursorCell;
     };
@@ -93,7 +91,7 @@ namespace simple_platformer
     // Builds plain diagnostics from the map and connection table. Only sampling the
     // cursor cell's jump and fall arcs runs movement; collecting counts does not.
     // simulationStepSeconds must match the world's step, because profiles include it.
-    // visibleBounds limits both the cells listed and the connected-cell count.
+    // visibleBounds limits the cells listed.
     std::optional<NavigationConnectionsDebugInfo> makeNavigationConnectionsDebugInfo(
         const World& world,
         const TileMap& map,

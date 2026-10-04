@@ -233,6 +233,10 @@ fraction; sight also needs the leave fraction to find where starting cover ends.
   supported ground run. Both use notice distance.
 - Fresh sight takes priority over heard positions. Without either, target memory counts down.
 - Entering a state resets its time and path. Movement and combat execute its intentions later.
+- Transition functions return a state to enter, or `std::nullopt` to keep the current
+  state. Staying keeps the path, runs the state's actions, and advances its elapsed time.
+- All tactics share `NpcState`. A tactic's switch handles states supplied by callers,
+  including states that tactic does not normally choose. See `nextPursuerState` for an example.
 
 | Tactic                                       | Choice                                                                              |
 | -------------------------------------------- | ----------------------------------------------------------------------------------- |

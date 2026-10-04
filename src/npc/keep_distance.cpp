@@ -148,6 +148,8 @@ namespace simple_platformer
     std::optional<NpcState> nextKeepDistanceState(NpcState state, const NpcFacts& facts)
     {
         const std::optional<NpcState> pursuing = pursuit(facts);
+        // Supplied states from other tactics reuse these decisions: Flee/Sleep/Charge/
+        // Stunned use Idle, and Search uses Watch.
         switch (state)
         {
         case NpcState::Flee:

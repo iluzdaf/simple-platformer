@@ -10,7 +10,7 @@ namespace simple_platformer
     struct NpcUpdate;
     struct PathFollower;
 
-    // Coward's decisions and actions are grouped in coward.cpp.
+    // Coward normally chooses Idle, Patrol, Flee, or Bite.
     std::optional<NpcState> nextCowardState(NpcState state, const NpcFacts& facts);
     void enterCowardState(Actor& actor, NpcState state);
     void updateCowardState(

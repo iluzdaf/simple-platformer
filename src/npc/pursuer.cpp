@@ -120,6 +120,8 @@ namespace simple_platformer
     std::optional<NpcState> nextPursuerState(NpcState state, const NpcFacts& facts)
     {
         const std::optional<NpcState> pursuing = pursuit(facts);
+        // Supplied states from other tactics reuse these decisions: Flee/Sleep/Charge/
+        // Stunned use Idle, Retreat uses Chase/Shoot, and Watch uses Search.
         switch (state)
         {
         case NpcState::Flee:

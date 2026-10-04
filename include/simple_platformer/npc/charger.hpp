@@ -10,7 +10,7 @@ namespace simple_platformer
     struct NpcFacts;
     struct NpcUpdate;
 
-    // Charger owns Sleep -> Charge -> Stunned. Shared state entry resets time and path.
+    // Charger normally chooses Sleep, Charge, or Stunned.
     std::optional<NpcState> nextChargerState(NpcState state, const NpcFacts& facts);
     void enterChargerState(Actor& actor, NpcBrain& brain, NpcState state);
     void updateChargerState(

@@ -12,6 +12,8 @@
 #include "support/require_near.hpp"
 #include "support/tile_map_builder.hpp"
 
+// Box intersections
+
 TEST_CASE("A segment cast reports its first entry into an AABB", "[physics][segment]")
 {
     const simple_platformer::Aabb box{{10.0F, 10.0F}, {10.0F, 10.0F}};
@@ -30,12 +32,7 @@ TEST_CASE("A segment can miss or begin inside an AABB", "[physics][segment]")
     REQUIRE(simple_platformer::segmentCast(box, {15.0F, 15.0F}, {40.0F, 15.0F}) == 0.0F);
 }
 
-TEST_CASE("Segment casts reject invalid data", "[physics][segment]")
-{
-    const simple_platformer::Aabb empty{{0.0F, 0.0F}, {0.0F, 10.0F}};
-    REQUIRE_THROWS_AS(
-        simple_platformer::segmentCast(empty, {0.0F, 0.0F}, {1.0F, 1.0F}), std::invalid_argument);
-}
+// Movement-blocking tiles
 
 TEST_CASE("A solid tile cast reports the earliest tile", "[physics][segment][tile]")
 {
@@ -64,6 +61,34 @@ TEST_CASE("A solid tile cast accounts for the moving box size", "[physics][segme
     REQUIRE(simple_platformer::segmentCastMovementBlockingTiles(map, start, end, {4.0F, 16.0F})
                 .has_value());
 }
+
+TEST_CASE(
+    "A movement cast from right to left hits the nearest tile first",
+    "[physics][segment][tile]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".x.x.", "....."})
+                                               .where('x', tests::Tile().blocksMovement());
+    const auto hit = simple_platformer::segmentCastMovementBlockingTiles(
+        map, {72.0F, 24.0F}, {8.0F, 24.0F}, {4.0F, 4.0F});
+
+    if (!hit)
+    {
+        throw std::logic_error("Expected the cast to hit the nearer tile");
+    }
+    REQUIRE(hit->cell == simple_platformer::Cell{3, 1});
+    REQUIRE_NEAR(hit->segmentTime, 6.0F / 64.0F);
+}
+
+TEST_CASE("Expanding a target by a moving box grows it half the box each side", "[physics][cast]")
+{
+    const simple_platformer::Aabb expanded =
+        simple_platformer::expandedForMovingBox({{10.0F, 10.0F}, {4.0F, 4.0F}}, {2.0F, 6.0F});
+
+    REQUIRE(expanded.topLeft == glm::vec2{9.0F, 7.0F});
+    REQUIRE(expanded.size == glm::vec2{6.0F, 10.0F});
+}
+
+// Sight-blocking tiles and cover
 
 TEST_CASE(
     "A sight cast ignores the cover it starts in until it reaches open ground",
@@ -113,44 +138,8 @@ TEST_CASE(
     REQUIRE_NEAR(hit.value_or(-1.0F), 0.5F);
 }
 
-TEST_CASE("Solid tile casts reject an invalid moving size", "[physics][segment][tile]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({"..."});
-
-    REQUIRE_THROWS_AS(
-        simple_platformer::segmentCastMovementBlockingTiles(
-            map, {0.0F, 0.0F}, {16.0F, 0.0F}, {-1.0F, 0.0F}),
-        std::invalid_argument);
-}
-
-TEST_CASE("Expanding a target by a moving box grows it half the box each side", "[physics][cast]")
-{
-    const simple_platformer::Aabb expanded =
-        simple_platformer::expandedForMovingBox({{10.0F, 10.0F}, {4.0F, 4.0F}}, {2.0F, 6.0F});
-
-    REQUIRE(expanded.topLeft == glm::vec2{9.0F, 7.0F});
-    REQUIRE(expanded.size == glm::vec2{6.0F, 10.0F});
-}
-
 TEST_CASE(
-    "Movement casts choose the nearest hit against tile scan order",
-    "[physics][segment][tile]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".x.x.", "....."})
-                                               .where('x', tests::Tile().blocksMovement());
-    const auto hit = simple_platformer::segmentCastMovementBlockingTiles(
-        map, {72.0F, 24.0F}, {8.0F, 24.0F}, {4.0F, 4.0F});
-
-    if (!hit)
-    {
-        throw std::logic_error("Expected the cast to hit the nearer tile");
-    }
-    REQUIRE(hit->cell == simple_platformer::Cell{3, 1});
-    REQUIRE_NEAR(hit->segmentTime, 6.0F / 64.0F);
-}
-
-TEST_CASE(
-    "Sight cover is joined in travel order against tile scan order",
+    "A sight cast from right to left leaves its own cover before hitting another patch",
     "[physics][segment][tile]")
 {
     const simple_platformer::TileMap connected =
@@ -188,4 +177,23 @@ TEST_CASE(
     const auto sightHit = simple_platformer::segmentCastSightBlockingTiles(map, start, end);
     REQUIRE(sightHit.has_value());
     REQUIRE_NEAR(sightHit.value_or(-1.0F), 40.0F / 64.0F);
+}
+
+// Invalid cast inputs
+
+TEST_CASE("Segment casts reject invalid data", "[physics][segment]")
+{
+    const simple_platformer::Aabb empty{{0.0F, 0.0F}, {0.0F, 10.0F}};
+    REQUIRE_THROWS_AS(
+        simple_platformer::segmentCast(empty, {0.0F, 0.0F}, {1.0F, 1.0F}), std::invalid_argument);
+}
+
+TEST_CASE("Solid tile casts reject an invalid moving size", "[physics][segment][tile]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"..."});
+
+    REQUIRE_THROWS_AS(
+        simple_platformer::segmentCastMovementBlockingTiles(
+            map, {0.0F, 0.0F}, {16.0F, 0.0F}, {-1.0F, 0.0F}),
+        std::invalid_argument);
 }

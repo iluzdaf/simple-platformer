@@ -222,8 +222,8 @@ When jumping is allowed, `startBufferedJump` sets `body.velocity.y` to negative
 - In [`tile_map.cpp`](../src/world/tile_map.cpp), read `blocksMovement` for tile and map
   boundary rules.
 - **Starting tests:** "Horizontal movement stops on either side of a solid tile", then
-  "Collision resolves X before Y at a corner" in
-  [`test_body.cpp`](../tests/physics/test_body.cpp).
+  "Collision resolves horizontal movement before vertical movement at a corner"
+  in [`test_body.cpp`](../tests/physics/test_body.cpp).
 - See the [worked collision example](ARCHITECTURE.md#worked-example-moving-right-into-a-wall)
   for a sweep into a wall.
 - **Check:** Where does the body stop, and what happens to its velocity?

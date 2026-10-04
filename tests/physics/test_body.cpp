@@ -26,35 +26,7 @@ namespace
     }
 }
 
-TEST_CASE("Gravity accelerates a body downwards until its fall speed", "[physics][body]")
-{
-    Body body;
-    body.bounds = {{0.0F, 0.0F}, {8.0F, 8.0F}};
-
-    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
-    REQUIRE_NEAR(body.velocity.y, 10.0F);
-
-    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
-    REQUIRE_NEAR(body.velocity.y, 20.0F);
-
-    // The next step would reach 30 exactly; the one after clamps.
-    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
-    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
-    REQUIRE_NEAR(body.velocity.y, 30.0F);
-    REQUIRE_NEAR(body.velocity.x, 0.0F);
-}
-
-TEST_CASE("Gravity slows a rising body without touching its horizontal speed", "[physics][body]")
-{
-    Body body;
-    body.bounds = {{0.0F, 0.0F}, {8.0F, 8.0F}};
-    body.velocity = {5.0F, -50.0F};
-
-    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
-
-    REQUIRE_NEAR(body.velocity.x, 5.0F);
-    REQUIRE_NEAR(body.velocity.y, -40.0F);
-}
+// Movement and tile collision
 
 TEST_CASE("A body moves by its velocity over the step", "[physics][body]")
 {
@@ -70,6 +42,21 @@ TEST_CASE("A body moves by its velocity over the step", "[physics][body]")
     REQUIRE_NEAR(body.velocity.x, 120.0F);
     REQUIRE_NEAR(body.velocity.y, 90.0F);
     REQUIRE_FALSE(contacts.ground);
+}
+
+TEST_CASE("A body moves freely through empty tiles", "[physics][body][collision]")
+{
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
+    Body body;
+    body.bounds = {{8.0F, 8.0F}, {8.0F, 8.0F}};
+
+    body.velocity = {12.0F, 9.0F};
+
+    const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+
+    REQUIRE_NEAR(body.bounds.topLeft.x, 20.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 17.0F);
+    requireNoContacts(contacts);
 }
 
 TEST_CASE(
@@ -107,21 +94,6 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("A body moves freely through empty tiles", "[physics][body][collision]")
-{
-    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
-    Body body;
-    body.bounds = {{8.0F, 8.0F}, {8.0F, 8.0F}};
-
-    body.velocity = {12.0F, 9.0F};
-
-    const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
-
-    REQUIRE_NEAR(body.bounds.topLeft.x, 20.0F);
-    REQUIRE_NEAR(body.bounds.topLeft.y, 17.0F);
-    requireNoContacts(contacts);
-}
-
 TEST_CASE("Horizontal movement stops on either side of a solid tile", "[physics][body][collision]")
 {
     const TileMap map = tests::TileMapBuilder({"..#...", "..#..."});
@@ -149,21 +121,6 @@ TEST_CASE("Horizontal movement stops on either side of a solid tile", "[physics]
         REQUIRE_NEAR(body.bounds.topLeft.y, 4.0F);
         REQUIRE(contacts.left);
     }
-}
-
-TEST_CASE("Landing exactly on a floor reports ground contact", "[physics][body][collision]")
-{
-    const TileMap map = tests::TileMapBuilder({"....", "....", "####"});
-    Body body;
-    body.bounds = {{20.0F, 4.0F}, {12.0F, 12.0F}};
-
-    body.velocity = {0.0F, 16.0F};
-
-    const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
-
-    REQUIRE_NEAR(body.bounds.topLeft.x, 20.0F);
-    REQUIRE_NEAR(body.bounds.topLeft.y, 20.0F);
-    REQUIRE(contacts.ground);
 }
 
 TEST_CASE("Vertical movement stops on floors and ceilings", "[physics][body][collision]")
@@ -195,7 +152,24 @@ TEST_CASE("Vertical movement stops on floors and ceilings", "[physics][body][col
     }
 }
 
-TEST_CASE("Collision resolves X before Y at a corner", "[physics][body][collision]")
+TEST_CASE("Fast movement cannot pass through a solid tile", "[physics][body][collision]")
+{
+    const TileMap map = tests::TileMapBuilder({"...#..", "...#.."});
+    Body body;
+    body.bounds = {{4.0F, 4.0F}, {8.0F, 20.0F}};
+
+    body.velocity = {80.0F, 0.0F};
+
+    const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+
+    REQUIRE_NEAR(body.bounds.topLeft.x, 40.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 4.0F);
+    REQUIRE(contacts.right);
+}
+
+TEST_CASE(
+    "Collision resolves horizontal movement before vertical movement at a corner",
+    "[physics][body][collision]")
 {
     const TileMap map = tests::TileMapBuilder({"...", ".#.", "..."});
     Body body;
@@ -226,56 +200,41 @@ TEST_CASE("Collision supports bodies larger than one tile", "[physics][body][col
     REQUIRE(contacts.ground);
 }
 
-TEST_CASE("Fast movement cannot pass through a solid tile", "[physics][body][collision]")
+// Gravity
+
+TEST_CASE("Gravity accelerates a falling body up to its maximum fall speed", "[physics][body]")
 {
-    const TileMap map = tests::TileMapBuilder({"...#..", "...#.."});
     Body body;
-    body.bounds = {{4.0F, 4.0F}, {8.0F, 20.0F}};
+    body.bounds = {{0.0F, 0.0F}, {8.0F, 8.0F}};
 
-    body.velocity = {80.0F, 0.0F};
+    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
+    REQUIRE_NEAR(body.velocity.y, 10.0F);
 
-    const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
+    REQUIRE_NEAR(body.velocity.y, 20.0F);
 
-    REQUIRE_NEAR(body.bounds.topLeft.x, 40.0F);
-    REQUIRE_NEAR(body.bounds.topLeft.y, 4.0F);
-    REQUIRE(contacts.right);
+    // The next step would reach 30 exactly; the one after clamps.
+    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
+    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
+    REQUIRE_NEAR(body.velocity.y, 30.0F);
+    REQUIRE_NEAR(body.velocity.x, 0.0F);
 }
 
-TEST_CASE("Very large finite movement respects map boundaries", "[physics][body][collision]")
+TEST_CASE("Gravity slows a rising body without touching its horizontal speed", "[physics][body]")
 {
-    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
-    const float largeMovement = std::numeric_limits<float>::max();
+    Body body;
+    body.bounds = {{0.0F, 0.0F}, {8.0F, 8.0F}};
+    body.velocity = {5.0F, -50.0F};
 
-    SECTION("closed boundaries stop movement")
-    {
-        Body body;
-        body.bounds = {{8.0F, 8.0F}, {8.0F, 8.0F}};
+    simple_platformer::applyGravity(body, 100.0F, 30.0F, 0.1F);
 
-        body.velocity = {largeMovement, largeMovement};
-
-        const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
-
-        REQUIRE_NEAR(body.bounds.topLeft.x, 56.0F);
-        REQUIRE_NEAR(body.bounds.topLeft.y, 40.0F);
-        REQUIRE(contacts.right);
-        REQUIRE(contacts.ground);
-    }
-
-    SECTION("the open top permits movement")
-    {
-        Body body;
-        body.bounds = {{8.0F, 8.0F}, {8.0F, 8.0F}};
-
-        body.velocity = {0.0F, -largeMovement};
-
-        const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
-
-        REQUIRE(body.bounds.topLeft.y == 8.0F - largeMovement);
-        requireNoContacts(contacts);
-    }
+    REQUIRE_NEAR(body.velocity.x, 5.0F);
+    REQUIRE_NEAR(body.velocity.y, -40.0F);
 }
 
-TEST_CASE("The left right and bottom map edges are solid", "[physics][body][collision]")
+// Tile edges and map boundaries
+
+TEST_CASE("The left, right and bottom map edges block movement", "[physics][body][collision]")
 {
     const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
 
@@ -328,18 +287,19 @@ TEST_CASE("The top map edge stays open", "[physics][body][collision]")
     requireNoContacts(contacts);
 }
 
-TEST_CASE("Collision rejects invalid bounds and movement", "[physics][body][collision]")
+TEST_CASE("Landing exactly on a floor reports ground contact", "[physics][body][collision]")
 {
-    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
+    const TileMap map = tests::TileMapBuilder({"....", "....", "####"});
+    Body body;
+    body.bounds = {{20.0F, 4.0F}, {12.0F, 12.0F}};
 
-    Body emptyBody;
-    emptyBody.bounds = {{0.0F, 0.0F}, {0.0F, 8.0F}};
-    REQUIRE_THROWS_AS(simple_platformer::moveBody(map, emptyBody, 1.0F), std::invalid_argument);
+    body.velocity = {0.0F, 16.0F};
 
-    Body nonFiniteBody;
-    nonFiniteBody.bounds = {{0.0F, 0.0F}, {8.0F, 8.0F}};
-    nonFiniteBody.velocity = {std::numeric_limits<float>::infinity(), 0.0F};
-    REQUIRE_THROWS_AS(simple_platformer::moveBody(map, nonFiniteBody, 1.0F), std::invalid_argument);
+    const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+
+    REQUIRE_NEAR(body.bounds.topLeft.x, 20.0F);
+    REQUIRE_NEAR(body.bounds.topLeft.y, 20.0F);
+    REQUIRE(contacts.ground);
 }
 
 TEST_CASE("Arriving exactly at a map edge counts as touching it", "[physics][body][collision]")
@@ -387,6 +347,73 @@ TEST_CASE("Arriving exactly at a map edge counts as touching it", "[physics][bod
     }
 }
 
+TEST_CASE(
+    "Sliding along a tile edge does not overlap the neighbouring row or column",
+    "[physics][body][collision]")
+{
+    SECTION("horizontal movement along a floor")
+    {
+        const TileMap map = tests::TileMapBuilder({"....", "....", "####", "...."});
+        for (const float speed : {-8.0F, 8.0F})
+        {
+            Body body{{{24.0F, 16.0F}, {8.0F, 16.0F}}, {speed, 0.0F}};
+            const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+            REQUIRE_NEAR(body.bounds.topLeft.x, 24.0F + speed);
+            REQUIRE_NEAR(body.velocity.x, speed);
+            requireNoContacts(contacts);
+        }
+    }
+
+    SECTION("vertical movement along a wall")
+    {
+        const TileMap map = tests::TileMapBuilder({"..#.", "..#.", "..#.", "..#."});
+        for (const float speed : {-8.0F, 8.0F})
+        {
+            Body body{{{16.0F, 24.0F}, {16.0F, 8.0F}}, {0.0F, speed}};
+            const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+            REQUIRE_NEAR(body.bounds.topLeft.y, 24.0F + speed);
+            REQUIRE_NEAR(body.velocity.y, speed);
+            requireNoContacts(contacts);
+        }
+    }
+}
+
+TEST_CASE("Very large finite movement respects map boundaries", "[physics][body][collision]")
+{
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
+    const float largeMovement = std::numeric_limits<float>::max();
+
+    SECTION("closed boundaries stop movement")
+    {
+        Body body;
+        body.bounds = {{8.0F, 8.0F}, {8.0F, 8.0F}};
+
+        body.velocity = {largeMovement, largeMovement};
+
+        const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+
+        REQUIRE_NEAR(body.bounds.topLeft.x, 56.0F);
+        REQUIRE_NEAR(body.bounds.topLeft.y, 40.0F);
+        REQUIRE(contacts.right);
+        REQUIRE(contacts.ground);
+    }
+
+    SECTION("the open top permits movement")
+    {
+        Body body;
+        body.bounds = {{8.0F, 8.0F}, {8.0F, 8.0F}};
+
+        body.velocity = {0.0F, -largeMovement};
+
+        const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+
+        REQUIRE(body.bounds.topLeft.y == 8.0F - largeMovement);
+        requireNoContacts(contacts);
+    }
+}
+
+// Stationary contacts
+
 TEST_CASE("Stationary bodies report the surfaces they touch", "[physics][body][collision]")
 {
     const TileMap map = tests::TileMapBuilder({".##.", "#..#", "#..#", ".##."});
@@ -431,33 +458,18 @@ TEST_CASE("Climbable contacts exclude ordinary solid tiles", "[physics][body][co
     REQUIRE(climbable.ceiling);
 }
 
-TEST_CASE(
-    "Sliding along a tile edge does not overlap the neighbouring row or column",
-    "[physics][body][collision]")
-{
-    SECTION("horizontal movement along a floor")
-    {
-        const TileMap map = tests::TileMapBuilder({"....", "....", "####", "...."});
-        for (const float speed : {-8.0F, 8.0F})
-        {
-            Body body{{{24.0F, 16.0F}, {8.0F, 16.0F}}, {speed, 0.0F}};
-            const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
-            REQUIRE_NEAR(body.bounds.topLeft.x, 24.0F + speed);
-            REQUIRE_NEAR(body.velocity.x, speed);
-            requireNoContacts(contacts);
-        }
-    }
+// Invalid collision inputs
 
-    SECTION("vertical movement along a wall")
-    {
-        const TileMap map = tests::TileMapBuilder({"..#.", "..#.", "..#.", "..#."});
-        for (const float speed : {-8.0F, 8.0F})
-        {
-            Body body{{{16.0F, 24.0F}, {16.0F, 8.0F}}, {0.0F, speed}};
-            const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
-            REQUIRE_NEAR(body.bounds.topLeft.y, 24.0F + speed);
-            REQUIRE_NEAR(body.velocity.y, speed);
-            requireNoContacts(contacts);
-        }
-    }
+TEST_CASE("Collision rejects invalid bounds and movement", "[physics][body][collision]")
+{
+    const TileMap map = tests::TileMapBuilder({"....", "....", "...."});
+
+    Body emptyBody;
+    emptyBody.bounds = {{0.0F, 0.0F}, {0.0F, 8.0F}};
+    REQUIRE_THROWS_AS(simple_platformer::moveBody(map, emptyBody, 1.0F), std::invalid_argument);
+
+    Body nonFiniteBody;
+    nonFiniteBody.bounds = {{0.0F, 0.0F}, {8.0F, 8.0F}};
+    nonFiniteBody.velocity = {std::numeric_limits<float>::infinity(), 0.0F};
+    REQUIRE_THROWS_AS(simple_platformer::moveBody(map, nonFiniteBody, 1.0F), std::invalid_argument);
 }

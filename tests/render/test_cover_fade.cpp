@@ -90,7 +90,9 @@ namespace
     }
 }
 
-TEST_CASE("A newly placed NPC is shown at its target at once", "[render][cover-fade]")
+// Cover visibility and fading
+
+TEST_CASE("A newly placed NPC starts at the visibility its cover requires", "[render][cover-fade]")
 {
     const simple_platformer::TileMap map = patchMap();
     simple_platformer::World world;
@@ -159,6 +161,37 @@ TEST_CASE("Pickups fade the same way as NPCs", "[render][cover-fade]")
     REQUIRE(world.pickups().front().screenVisibility.has_value());
     REQUIRE_NEAR(world.pickups().front().screenVisibility.value_or(-1.0F), 0.25F);
 }
+
+TEST_CASE("A player in cover sees its own patch fully but not another", "[render][cover-fade]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "...ccc.c", "........"})
+            .where('c', tests::Tile().blocksSight());
+
+    REQUIRE(firstShown(map, boxIn({5, 1}), simple_platformer::Cell{3, 1}) == 1.0F);
+    REQUIRE(firstShown(map, boxIn({7, 1}), simple_platformer::Cell{3, 1}) == 0.0F);
+}
+
+TEST_CASE("Cover between the player and an NPC hides nothing", "[render][cover-fade]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({"........", "...cc...", "........"})
+            .where('c', tests::Tile().blocksSight());
+
+    // Only standing in cover hides.
+    REQUIRE(firstShown(map, boxIn({7, 1}), simple_platformer::Cell{0, 1}) == 1.0F);
+}
+
+TEST_CASE("A wall hides nothing standing in the open", "[render][cover-fade]")
+{
+    const simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", "..w..", "....."})
+            .where('w', tests::Tile().blocksMovement().blocksSight());
+
+    REQUIRE(firstShown(map, boxIn({4, 1}), simple_platformer::Cell{0, 1}) == 1.0F);
+}
+
+// Player concealment and exposure
 
 TEST_CASE("A player alone in cover is shown concealed", "[render][cover-fade]")
 {
@@ -237,13 +270,7 @@ TEST_CASE("Firing exposes a hidden player for the reveal window", "[render][cove
     REQUIRE_NEAR(shown(world, player), 0.25F);
 }
 
-TEST_CASE("Cover fades reject a negative step", "[render][cover]")
-{
-    const simple_platformer::TileMap map = tests::TileMapBuilder({"..", "##"});
-    simple_platformer::World world;
-    REQUIRE_THROWS_AS(
-        simple_platformer::updateCoverFades(map, world, -0.1F), std::invalid_argument);
-}
+// Visibility without a player
 
 TEST_CASE(
     "Without a viewer, the share of a body in cover decides what is shown",
@@ -267,31 +294,12 @@ TEST_CASE(
     REQUIRE_NEAR(shownAt({12.0F, 18.0F}), 0.375F);
 }
 
-TEST_CASE("A player in cover sees its own patch fully but not another", "[render][cover-fade]")
+// Invalid presentation steps
+
+TEST_CASE("Cover fades reject a negative step", "[render][cover]")
 {
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"........", "...ccc.c", "........"})
-            .where('c', tests::Tile().blocksSight());
-
-    REQUIRE(firstShown(map, boxIn({5, 1}), simple_platformer::Cell{3, 1}) == 1.0F);
-    REQUIRE(firstShown(map, boxIn({7, 1}), simple_platformer::Cell{3, 1}) == 0.0F);
-}
-
-TEST_CASE("Cover between the player and an NPC hides nothing", "[render][cover-fade]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({"........", "...cc...", "........"})
-            .where('c', tests::Tile().blocksSight());
-
-    // Only standing in cover hides.
-    REQUIRE(firstShown(map, boxIn({7, 1}), simple_platformer::Cell{0, 1}) == 1.0F);
-}
-
-TEST_CASE("A wall hides nothing standing in the open", "[render][cover-fade]")
-{
-    const simple_platformer::TileMap map =
-        tests::TileMapBuilder({".....", "..w..", "....."})
-            .where('w', tests::Tile().blocksMovement().blocksSight());
-
-    REQUIRE(firstShown(map, boxIn({4, 1}), simple_platformer::Cell{0, 1}) == 1.0F);
+    const simple_platformer::TileMap map = tests::TileMapBuilder({"..", "##"});
+    simple_platformer::World world;
+    REQUIRE_THROWS_AS(
+        simple_platformer::updateCoverFades(map, world, -0.1F), std::invalid_argument);
 }

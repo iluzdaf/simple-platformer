@@ -27,7 +27,9 @@ namespace
     }
 }
 
-TEST_CASE("World assigns stable monotonically increasing actor IDs", "[world][actor]")
+// Actors and the player
+
+TEST_CASE("Actor IDs increase and are not reused after removal", "[world][actor]")
 {
     simple_platformer::World world;
 
@@ -56,6 +58,35 @@ TEST_CASE("Actor IDs are not vector indexes", "[world][actor]")
     REQUIRE(world.actors().size() == 1);
     REQUIRE(world.actors().front().id == second);
 }
+
+TEST_CASE("The world records the player and feet-based spawn", "[world][actor]")
+{
+    simple_platformer::World world;
+    const simple_platformer::ActorId player = world.addActor(makeActor());
+
+    world.setPlayer(player, {40.0F, 48.0F});
+
+    REQUIRE(world.playerId() == player);
+    REQUIRE(world.playerSpawnFeet().x == 40.0F);
+    REQUIRE(world.playerSpawnFeet().y == 48.0F);
+    REQUIRE_THROWS_AS(world.setPlayer({999}, {0.0F, 0.0F}), std::invalid_argument);
+}
+
+TEST_CASE("NPC composition does not require a bite attack", "[world][actor]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor npc = makeActor();
+    npc.brain = simple_platformer::NpcBrain{};
+    npc.perception = simple_platformer::NpcPerception{};
+    npc.senses = simple_platformer::NpcSenses{};
+    npc.pathFollower = simple_platformer::PathFollower{};
+
+    const simple_platformer::ActorId npcId = world.addActor(npc);
+
+    REQUIRE(world.findActor(npcId) != nullptr);
+}
+
+// Simulation clock and event stamps
 
 TEST_CASE("World owns a validated simulation clock", "[world][time]")
 {
@@ -86,7 +117,9 @@ TEST_CASE("World measures how long ago a stamp on its clock was", "[world][time]
     REQUIRE_THROWS_AS(world.secondsSince(0.75F), std::invalid_argument);
 }
 
-TEST_CASE("A stamp taken hours in still measures a single step", "[world][time]")
+TEST_CASE(
+    "The world clock measures a single step accurately after hours of simulation",
+    "[world][time]")
 {
     simple_platformer::World world;
     for (int hour = 0; hour < 5; ++hour)
@@ -97,6 +130,49 @@ TEST_CASE("A stamp taken hours in still measures a single step", "[world][time]"
     world.advanceSimulationTime(tests::FixedStepSeconds);
     REQUIRE_NEAR(world.secondsSince(stamp).value_or(0.0F), tests::FixedStepSeconds);
 }
+
+// Projectiles and hit feedback
+
+TEST_CASE("World adds and removes projectiles through its public interface", "[world][projectile]")
+{
+    simple_platformer::World world;
+    simple_platformer::Projectile first;
+    first.bounds = {{8.0F, 8.0F}, {4.0F, 2.0F}};
+    first.sprite.region.size = {4.0F, 2.0F};
+    simple_platformer::Projectile second = first;
+    second.bounds.topLeft = {16.0F, 8.0F};
+
+    world.addProjectile(first);
+    world.addProjectile(second);
+
+    REQUIRE(world.removeProjectile(0));
+    REQUIRE(world.projectiles().size() == 1);
+    REQUIRE(world.projectiles().front().bounds.topLeft.x == 16.0F);
+    REQUIRE_FALSE(world.removeProjectile(1));
+}
+
+TEST_CASE("World validates and owns projectile bursts", "[world][projectile]")
+{
+    simple_platformer::World world;
+    simple_platformer::ProjectileBurst burst;
+    burst.center = {8.0F, 8.0F};
+    burst.sprite.region.size = {4.0F, 2.0F};
+
+    world.addProjectileBurst(burst);
+
+    REQUIRE(world.projectileBursts().size() == 1);
+    REQUIRE(world.removeProjectileBurst(0));
+    REQUIRE(world.projectileBursts().empty());
+    REQUIRE_FALSE(world.removeProjectileBurst(0));
+
+    burst.direction = {0.0F, 0.0F};
+    REQUIRE_THROWS_AS(world.addProjectileBurst(burst), std::invalid_argument);
+    burst.direction = {1.0F, 0.0F};
+    burst.lifetimeRemaining = burst.duration + 0.1F;
+    REQUIRE_THROWS_AS(world.addProjectileBurst(burst), std::invalid_argument);
+}
+
+// Invalid actor composition
 
 TEST_CASE("World rejects invalid actor composition", "[world][actor]")
 {
@@ -178,70 +254,4 @@ TEST_CASE("World rejects invalid actor composition", "[world][actor]")
     }
 
     REQUIRE_THROWS_AS(world.addActor(actor), std::invalid_argument);
-}
-
-TEST_CASE("NPC composition does not require a bite attack", "[world][actor]")
-{
-    simple_platformer::World world;
-    simple_platformer::Actor npc = makeActor();
-    npc.brain = simple_platformer::NpcBrain{};
-    npc.perception = simple_platformer::NpcPerception{};
-    npc.senses = simple_platformer::NpcSenses{};
-    npc.pathFollower = simple_platformer::PathFollower{};
-
-    const simple_platformer::ActorId npcId = world.addActor(npc);
-
-    REQUIRE(world.findActor(npcId) != nullptr);
-}
-
-TEST_CASE("World adds and removes projectiles through its public interface", "[world][projectile]")
-{
-    simple_platformer::World world;
-    simple_platformer::Projectile first;
-    first.bounds = {{8.0F, 8.0F}, {4.0F, 2.0F}};
-    first.sprite.region.size = {4.0F, 2.0F};
-    simple_platformer::Projectile second = first;
-    second.bounds.topLeft = {16.0F, 8.0F};
-
-    world.addProjectile(first);
-    world.addProjectile(second);
-
-    REQUIRE(world.removeProjectile(0));
-    REQUIRE(world.projectiles().size() == 1);
-    REQUIRE(world.projectiles().front().bounds.topLeft.x == 16.0F);
-    REQUIRE_FALSE(world.removeProjectile(1));
-}
-
-TEST_CASE("World validates and owns projectile bursts", "[world][projectile]")
-{
-    simple_platformer::World world;
-    simple_platformer::ProjectileBurst burst;
-    burst.center = {8.0F, 8.0F};
-    burst.sprite.region.size = {4.0F, 2.0F};
-
-    world.addProjectileBurst(burst);
-
-    REQUIRE(world.projectileBursts().size() == 1);
-    REQUIRE(world.removeProjectileBurst(0));
-    REQUIRE(world.projectileBursts().empty());
-    REQUIRE_FALSE(world.removeProjectileBurst(0));
-
-    burst.direction = {0.0F, 0.0F};
-    REQUIRE_THROWS_AS(world.addProjectileBurst(burst), std::invalid_argument);
-    burst.direction = {1.0F, 0.0F};
-    burst.lifetimeRemaining = burst.duration + 0.1F;
-    REQUIRE_THROWS_AS(world.addProjectileBurst(burst), std::invalid_argument);
-}
-
-TEST_CASE("The world records the player and feet-based spawn", "[world][actor]")
-{
-    simple_platformer::World world;
-    const simple_platformer::ActorId player = world.addActor(makeActor());
-
-    world.setPlayer(player, {40.0F, 48.0F});
-
-    REQUIRE(world.playerId() == player);
-    REQUIRE(world.playerSpawnFeet().x == 40.0F);
-    REQUIRE(world.playerSpawnFeet().y == 48.0F);
-    REQUIRE_THROWS_AS(world.setPlayer({999}, {0.0F, 0.0F}), std::invalid_argument);
 }

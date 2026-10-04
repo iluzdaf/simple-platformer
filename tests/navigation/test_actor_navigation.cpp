@@ -181,7 +181,8 @@ namespace
             updateSurfaceClimbMovement(
                 map, climber.body, movement, climb, intentions, tests::FixedStepSeconds);
         }
-        return pathComplete(follower);
+        // Clearing a failed path also makes pathComplete true; that is not an arrival.
+        return follower.path.has_value() && pathComplete(follower);
     }
 
     glm::vec2 endOf(const NavigationPathResult& result)
@@ -237,7 +238,7 @@ namespace
     }
 }
 
-// Where a search starts
+// Platformer paths
 
 TEST_CASE("A platformer's path starts from the cell that holds it up", "[navigation][actor]")
 {
@@ -263,73 +264,6 @@ TEST_CASE("A platformer's path starts from the cell that holds it up", "[navigat
     hovering.body.bounds.topLeft.y -= 3.0F;
     REQUIRE_FALSE(startFeetOf(map, hovering));
 }
-
-TEST_CASE(
-    "A climber's path starts from the surface its body is against",
-    "[navigation][actor][climb]")
-{
-    const TileMap map = tests::TileMapBuilder({"cccccc", "c.....", "c.....", "c.....", "######"})
-                            .where('c', tests::Tile{}.blocksMovement().climbable());
-
-    // The climber is built holding no surface, so these starts come from where its body
-    // rests alone, not from its climb component.
-
-    // Partway up the wall, it starts from the nearest resting place along it.
-    const RouteLocation wall{{1, 2}, ClimbSurface::LeftWall};
-    Actor onWall = climberAt(wall);
-    onWall.body.bounds.topLeft.y -= 5.0F;
-    REQUIRE(startFeetOf(map, onWall) == feetAt(wall));
-    // A platformer that cannot climb cannot hold the wall, so the same body rests nowhere.
-    Actor platformerOnWall = platformerAt(wall);
-    platformerOnWall.body.bounds.topLeft.y -= 5.0F;
-    REQUIRE_FALSE(startFeetOf(map, platformerOnWall));
-
-    const RouteLocation hanging{{3, 1}, ClimbSurface::Ceiling};
-    REQUIRE(startFeetOf(map, climberAt(hanging)) == feetAt(hanging));
-}
-
-TEST_CASE("Actors that climb differently get different traversal profiles", "[navigation][actor]")
-{
-    // Climb capability and speed both affect the simulated connections.
-    Actor actor = tests::ActorBuilder::sized(SmallBody).inCell({0, 0}).platforming();
-    const auto withoutClimbing = platformerTraversalProfileFor(actor, tests::FixedStepSeconds);
-    REQUIRE_FALSE(withoutClimbing.climb.has_value());
-
-    actor.surfaceClimb = SurfaceClimb{{60.0F}};
-    const auto climbing = platformerTraversalProfileFor(actor, tests::FixedStepSeconds);
-    REQUIRE(climbing.climb.has_value());
-    REQUIRE(climbing.climb.value_or(SurfaceClimbConfig{}).speed == 60.0F);
-    REQUIRE_FALSE(climbing == withoutClimbing);
-
-    actor.surfaceClimb = SurfaceClimb{{90.0F}};
-    REQUIRE_FALSE(platformerTraversalProfileFor(actor, tests::FixedStepSeconds) == climbing);
-}
-
-// Flying
-
-TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying]")
-{
-    const TileMap map = tests::TileMapBuilder({"....", ".##.", "...."});
-
-    const Actor flyer = tests::ActorBuilder::sized(FlyerSize).inCell({0, 1}).flying(60.0F);
-    const NavigationPathResult result = resultOf(findFlight(map, flyer, feetIn({3, 1})));
-
-    REQUIRE(result.status == NavigationPathStatus::Found);
-    REQUIRE(result.path.has_value());
-    const NavigationPath path = pathOf(result);
-    REQUIRE(cellOf(path.startFeet) == Cell{0, 1});
-    REQUIRE(cellOf(path.waypoints.back().feet) == Cell{3, 1});
-    REQUIRE(path.waypoints.front().traversal == Traversal::Fly);
-}
-
-TEST_CASE("A flyer whose feet are off the map gets no result", "[navigation][flying]")
-{
-    const TileMap map = tests::TileMapBuilder({"...", "..."});
-    const Actor flyer = tests::ActorBuilder::sized(FlyerSize).inCell({3, 0}).flying(60.0F);
-    REQUIRE_FALSE(findFlight(map, flyer, feetIn({0, 0})).has_value());
-}
-
-// Platformers
 
 TEST_CASE(
     "The jump start penalty stops a needless hop but not a needed jump",
@@ -361,19 +295,6 @@ TEST_CASE(
     REQUIRE(hasStep(climbed, Traversal::Jump));
 }
 
-TEST_CASE(
-    "A platformer search rejects a step that is not finite and positive",
-    "[navigation][platformer][validation]")
-{
-    const TileMap map = tests::TileMapBuilder({"...", "###"});
-    const Actor platformer = platformerAt({{0, 0}});
-    for (const float step :
-         {0.0F, -tests::FixedStepSeconds, std::numeric_limits<float>::infinity()})
-    {
-        REQUIRE_THROWS_AS(findPath(map, platformer, feetIn({1, 0}), step), std::invalid_argument);
-    }
-}
-
 TEST_CASE("A goal out of reach returns no path", "[navigation][platformer]")
 {
     const TileMap map = tests::TileMapBuilder({"........", "........", "........", "########"});
@@ -386,7 +307,55 @@ TEST_CASE("A goal out of reach returns no path", "[navigation][platformer]")
     REQUIRE_FALSE(result.path.has_value());
 }
 
-// Climbing
+// Flying paths
+
+TEST_CASE("A flying path crosses open cells around a wall", "[navigation][flying]")
+{
+    const TileMap map = tests::TileMapBuilder({"....", ".##.", "...."});
+
+    const Actor flyer = tests::ActorBuilder::sized(FlyerSize).inCell({0, 1}).flying(60.0F);
+    const NavigationPathResult result = resultOf(findFlight(map, flyer, feetIn({3, 1})));
+
+    REQUIRE(result.status == NavigationPathStatus::Found);
+    REQUIRE(result.path.has_value());
+    const NavigationPath path = pathOf(result);
+    REQUIRE(cellOf(path.startFeet) == Cell{0, 1});
+    REQUIRE(cellOf(path.waypoints.back().feet) == Cell{3, 1});
+    REQUIRE(path.waypoints.front().traversal == Traversal::Fly);
+}
+
+TEST_CASE("A flyer whose feet are off the map gets no result", "[navigation][flying]")
+{
+    const TileMap map = tests::TileMapBuilder({"...", "..."});
+    const Actor flyer = tests::ActorBuilder::sized(FlyerSize).inCell({3, 0}).flying(60.0F);
+    REQUIRE_FALSE(findFlight(map, flyer, feetIn({0, 0})).has_value());
+}
+
+// Climbing paths
+
+TEST_CASE(
+    "A climber's path starts from the surface its body is against",
+    "[navigation][actor][climb]")
+{
+    const TileMap map = tests::TileMapBuilder({"cccccc", "c.....", "c.....", "c.....", "######"})
+                            .where('c', tests::Tile{}.blocksMovement().climbable());
+
+    // The climber is built holding no surface, so these starts come from where its body
+    // rests alone, not from its climb component.
+
+    // Partway up the wall, it starts from the nearest resting place along it.
+    const RouteLocation wall{{1, 2}, ClimbSurface::LeftWall};
+    Actor onWall = climberAt(wall);
+    onWall.body.bounds.topLeft.y -= 5.0F;
+    REQUIRE(startFeetOf(map, onWall) == feetAt(wall));
+    // A platformer that cannot climb cannot hold the wall, so the same body rests nowhere.
+    Actor platformerOnWall = platformerAt(wall);
+    platformerOnWall.body.bounds.topLeft.y -= 5.0F;
+    REQUIRE_FALSE(startFeetOf(map, platformerOnWall));
+
+    const RouteLocation hanging{{3, 1}, ClimbSurface::Ceiling};
+    REQUIRE(startFeetOf(map, climberAt(hanging)) == feetAt(hanging));
+}
 
 TEST_CASE(
     "A path that starts partway along a wall can be followed to its end",
@@ -452,6 +421,25 @@ TEST_CASE(
     REQUIRE(followsToTheEnd(map, pathOf(result), climber, 1000));
 }
 
+// Shared profiles and changing terrain
+
+TEST_CASE("Actors that climb differently get different traversal profiles", "[navigation][actor]")
+{
+    // Climb capability and speed both affect the simulated connections.
+    Actor actor = tests::ActorBuilder::sized(SmallBody).inCell({0, 0}).platforming();
+    const auto withoutClimbing = platformerTraversalProfileFor(actor, tests::FixedStepSeconds);
+    REQUIRE_FALSE(withoutClimbing.climb.has_value());
+
+    actor.surfaceClimb = SurfaceClimb{{60.0F}};
+    const auto climbing = platformerTraversalProfileFor(actor, tests::FixedStepSeconds);
+    REQUIRE(climbing.climb.has_value());
+    REQUIRE(climbing.climb.value_or(SurfaceClimbConfig{}).speed == 60.0F);
+    REQUIRE_FALSE(climbing == withoutClimbing);
+
+    actor.surfaceClimb = SurfaceClimb{{90.0F}};
+    REQUIRE_FALSE(platformerTraversalProfileFor(actor, tests::FixedStepSeconds) == climbing);
+}
+
 TEST_CASE(
     "The first search for a profile builds it and later ones only read it",
     "[navigation][actor]")
@@ -512,4 +500,19 @@ TEST_CASE(
     const auto result = findPathWith(table, map, actor, goal);
     REQUIRE(result.status == NavigationPathStatus::Unreachable);
     REQUIRE_FALSE(result.path.has_value());
+}
+
+// Invalid simulation steps
+
+TEST_CASE(
+    "A platformer search rejects a step that is not finite and positive",
+    "[navigation][platformer][validation]")
+{
+    const TileMap map = tests::TileMapBuilder({"...", "###"});
+    const Actor platformer = platformerAt({{0, 0}});
+    for (const float step :
+         {0.0F, -tests::FixedStepSeconds, std::numeric_limits<float>::infinity()})
+    {
+        REQUIRE_THROWS_AS(findPath(map, platformer, feetIn({1, 0}), step), std::invalid_argument);
+    }
 }

@@ -7,24 +7,9 @@
 #include "content/content_json.hpp"
 #include <glm/vec2.hpp>
 
-TEST_CASE("Required and optional JSON reads use the same diagnostics", "[app][content][json]")
-{
-    const auto object = nlohmann::json::parse(R"({"quantity":"bad"})");
-    int quantity = 7;
-    REQUIRE_THROWS_WITH(
-        simple_platformer::readInteger(object, "quantity", "items.json", "items.key"),
-        "items.json: items.key.quantity: expected an integer");
-    REQUIRE_THROWS_WITH(
-        simple_platformer::readOptionalInteger(
-            object, "quantity", quantity, "items.json", "items.key"),
-        "items.json: items.key.quantity: expected an integer");
-    REQUIRE(quantity == 7);
-    REQUIRE_THROWS_WITH(
-        simple_platformer::readInteger(object, "missing", "items.json", "items.key"),
-        "items.json: items.key: missing 'missing'");
-}
+// Field values and defaults
 
-TEST_CASE("Optional JSON reads keep defaults only when absent", "[app][content][json]")
+TEST_CASE("Optional JSON fields keep their defaults only when absent", "[app][content][json]")
 {
     const auto empty = nlohmann::json::object();
     int count = 7;
@@ -60,7 +45,7 @@ TEST_CASE("Optional JSON reads keep defaults only when absent", "[app][content][
 }
 
 TEST_CASE(
-    "Shared JSON values reject invalid types ranges and nonfinite numbers",
+    "JSON readers reject wrong types, out-of-range integers and non-finite numbers",
     "[app][content][json]")
 {
     REQUIRE_THROWS_WITH(
@@ -83,6 +68,25 @@ TEST_CASE(
             "file.json",
             "icon"),
         Catch::Matchers::ContainsSubstring("file.json: icon.anchor:"));
+}
+
+// Error context
+
+TEST_CASE("Required and optional JSON reads use the same diagnostics", "[app][content][json]")
+{
+    const auto object = nlohmann::json::parse(R"({"quantity":"bad"})");
+    int quantity = 7;
+    REQUIRE_THROWS_WITH(
+        simple_platformer::readInteger(object, "quantity", "items.json", "items.key"),
+        "items.json: items.key.quantity: expected an integer");
+    REQUIRE_THROWS_WITH(
+        simple_platformer::readOptionalInteger(
+            object, "quantity", quantity, "items.json", "items.key"),
+        "items.json: items.key.quantity: expected an integer");
+    REQUIRE(quantity == 7);
+    REQUIRE_THROWS_WITH(
+        simple_platformer::readInteger(object, "missing", "items.json", "items.key"),
+        "items.json: items.key: missing 'missing'");
 }
 
 TEST_CASE(

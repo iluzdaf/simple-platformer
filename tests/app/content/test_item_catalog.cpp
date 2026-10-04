@@ -17,7 +17,9 @@ namespace
     }
 }
 
-TEST_CASE("Item JSON resolves custom names to stable runtime IDs", "[app][items][json]")
+// Item names and stacks
+
+TEST_CASE("Item names resolve to the IDs assigned by the catalog", "[app][items][json]")
 {
     const auto catalog = simple_platformer::parseItemCatalog(itemData().dump(), "items.json");
     const auto stack = simple_platformer::composeItemStack(catalog, {"herb", 2});
@@ -37,6 +39,23 @@ TEST_CASE("Item JSON resolves custom names to stable runtime IDs", "[app][items]
     REQUIRE_THROWS_AS(
         simple_platformer::composeItemStack(catalog, {"herb", 0}), std::invalid_argument);
 }
+
+TEST_CASE(
+    "Item names receive distinct generated IDs even with matching display names",
+    "[app][items][json]")
+{
+    auto itemJson = itemData();
+    itemJson["items"]["other_herb"] = itemJson["items"]["herb"];
+    const auto catalog = simple_platformer::parseItemCatalog(itemJson.dump(), "items.json");
+    const auto& first = simple_platformer::itemDefinition(catalog, "herb");
+    const auto& second = simple_platformer::itemDefinition(catalog, "other_herb");
+    REQUIRE(first.id > 0);
+    REQUIRE(second.id > 0);
+    REQUIRE(first.id != second.id);
+    REQUIRE(first.name == second.name);
+}
+
+// Invalid definitions
 
 TEST_CASE("Item JSON rejects malformed and invalid definitions", "[app][items][json]")
 {
@@ -97,19 +116,4 @@ TEST_CASE("Item definitions are validated without JSON", "[app][items][validatio
         std::invalid_argument);
     REQUIRE_THROWS_AS(
         simple_platformer::parseItemCatalog("not JSON", "broken"), std::invalid_argument);
-}
-
-TEST_CASE(
-    "Item names receive distinct generated IDs even with matching display names",
-    "[app][items][json]")
-{
-    auto itemJson = itemData();
-    itemJson["items"]["other_herb"] = itemJson["items"]["herb"];
-    const auto catalog = simple_platformer::parseItemCatalog(itemJson.dump(), "items.json");
-    const auto& first = simple_platformer::itemDefinition(catalog, "herb");
-    const auto& second = simple_platformer::itemDefinition(catalog, "other_herb");
-    REQUIRE(first.id > 0);
-    REQUIRE(second.id > 0);
-    REQUIRE(first.id != second.id);
-    REQUIRE(first.name == second.name);
 }

@@ -55,16 +55,7 @@ namespace
 
 }
 
-TEST_CASE("Movement configs are equal in every field or not at all", "[movement][platformer]")
-{
-    const simple_platformer::PlatformerMovementConfig config;
-    simple_platformer::PlatformerMovementConfig other;
-    REQUIRE(config == other);
-    REQUIRE_FALSE(config != other);
-    other.jumpBufferDuration += 0.01F;
-    REQUIRE(config != other);
-    REQUIRE_FALSE(config == other);
-}
+// Walking and air control
 
 TEST_CASE("Ground movement accelerates and decelerates", "[movement][platformer]")
 {
@@ -85,61 +76,6 @@ TEST_CASE("Ground movement accelerates and decelerates", "[movement][platformer]
     simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
 
     REQUIRE_NEAR(body.velocity.x, 15.0F);
-}
-
-TEST_CASE("Ledge avoidance cannot skip a gap in either direction", "[movement][platformer]")
-{
-    const TileMap map = tests::TileMapBuilder({"........", "........", "###..###"});
-    float side = 1.0F;
-    SECTION("Walking right")
-    {
-        side = 1.0F;
-    }
-    SECTION("Walking left")
-    {
-        side = -1.0F;
-    }
-    const float start = side > 0.0F ? 18.0F : 98.0F;
-    Body body{{{start, 20.0F}, {12.0F, 12.0F}}, {side * 400.0F, 0.0F}};
-    PlatformerMovement movement;
-    movement.config.maximumSpeed = 400.0F;
-    movement.grounded = true;
-    InputIntentions intentions;
-    intentions.direction.x = side;
-    intentions.avoidLedges = true;
-
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
-
-    REQUIRE(movement.blocked);
-    REQUIRE(movement.grounded);
-    REQUIRE(body.bounds.topLeft.x == start);
-    REQUIRE(body.velocity.x == 0.0F);
-}
-
-TEST_CASE("Ledge avoidance is opt-in and does not prevent jumping", "[movement][platformer]")
-{
-    const TileMap map =
-        tests::TileMapBuilder({"........", "........", "###.....", "........", "########"});
-    Body body{{{36.0F, 20.0F}, {12.0F, 12.0F}}, {100.0F, 0.0F}};
-    PlatformerMovement movement;
-    movement.grounded = true;
-    InputIntentions intentions;
-    intentions.direction.x = 1.0F;
-    SECTION("Ordinary walking can leave the floor")
-    {
-    }
-    SECTION("A requested jump bypasses the ledge guard")
-    {
-        intentions.avoidLedges = true;
-        intentions.jumpPressed = true;
-        intentions.jumpHeld = true;
-    }
-
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
-
-    REQUIRE_FALSE(movement.blocked);
-    REQUIRE(body.bounds.topLeft.x > 36.0F);
-    REQUIRE(body.velocity.x > 0.0F);
 }
 
 TEST_CASE("Air movement uses its separate acceleration", "[movement][platformer]")
@@ -179,6 +115,8 @@ TEST_CASE("Horizontal acceleration stops at maximum speed", "[movement][platform
     REQUIRE_NEAR(body.velocity.x, movement.config.maximumSpeed);
 }
 
+// Jumping and falling
+
 TEST_CASE("Grounded actors can jump", "[movement][platformer]")
 {
     const TileMap map = makeFloorMap();
@@ -195,77 +133,6 @@ TEST_CASE("Grounded actors can jump", "[movement][platformer]")
     REQUIRE(body.bounds.topLeft.y < FloorTop - body.bounds.size.y);
     REQUIRE_FALSE(movement.grounded);
     REQUIRE(movement.coyoteRemaining == 0.0F);
-    REQUIRE(movement.jumpBufferRemaining == 0.0F);
-}
-
-TEST_CASE("Grounded jumping does not require assistance timers", "[movement][platformer]")
-{
-    const TileMap map = makeFloorMap();
-    Body body = bodyOnFloor();
-    PlatformerMovement movement = makeMovement();
-    movement.grounded = true;
-    movement.config.coyoteDuration = 0.0F;
-    movement.config.jumpBufferDuration = 0.0F;
-    InputIntentions intentions;
-    intentions.jumpPressed = true;
-    intentions.jumpHeld = true;
-
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
-
-    REQUIRE(body.velocity.y < 0.0F);
-    REQUIRE_FALSE(movement.grounded);
-}
-
-TEST_CASE("Coyote time permits a jump shortly after leaving ground", "[movement][platformer]")
-{
-    const TileMap map = makeFloorMap();
-    Body body{{{80.0F, 40.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
-    PlatformerMovement movement = makeMovement();
-    movement.coyoteRemaining = 0.05F;
-    InputIntentions intentions;
-    intentions.jumpPressed = true;
-    intentions.jumpHeld = true;
-
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.01F);
-
-    REQUIRE_NEAR(body.velocity.y, -199.0F);
-}
-
-TEST_CASE("Expired coyote time does not permit a jump", "[movement][platformer]")
-{
-    const TileMap map = makeFloorMap();
-    Body body{{{80.0F, 40.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
-    PlatformerMovement movement = makeMovement();
-    movement.coyoteRemaining = 0.005F;
-    InputIntentions intentions;
-    intentions.jumpPressed = true;
-    intentions.jumpHeld = true;
-
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.01F);
-
-    REQUIRE_NEAR(body.velocity.y, 1.0F);
-    REQUIRE(movement.jumpBufferRemaining > 0.0F);
-}
-
-TEST_CASE("A buffered jump starts after landing", "[movement][platformer]")
-{
-    const TileMap map = makeFloorMap();
-    Body body{{{80.0F, FloorTop - 13.0F}, {12.0F, 12.0F}}, {0.0F, 30.0F}};
-    PlatformerMovement movement = makeMovement();
-    InputIntentions intentions;
-    intentions.jumpPressed = true;
-    intentions.jumpHeld = true;
-
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
-
-    REQUIRE(movement.grounded);
-    REQUIRE(movement.jumpBufferRemaining > 0.0F);
-
-    intentions.jumpPressed = false;
-    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.01F);
-
-    REQUIRE(body.velocity.y < 0.0F);
-    REQUIRE_FALSE(movement.grounded);
     REQUIRE(movement.jumpBufferRemaining == 0.0F);
 }
 
@@ -324,6 +191,158 @@ TEST_CASE("Tile contacts stop velocity and update grounded state", "[movement][p
     REQUIRE(movement.grounded);
 }
 
+// Jump assistance
+
+TEST_CASE("Coyote time permits a jump shortly after leaving ground", "[movement][platformer]")
+{
+    const TileMap map = makeFloorMap();
+    Body body{{{80.0F, 40.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+    PlatformerMovement movement = makeMovement();
+    movement.coyoteRemaining = 0.05F;
+    InputIntentions intentions;
+    intentions.jumpPressed = true;
+    intentions.jumpHeld = true;
+
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.01F);
+
+    REQUIRE_NEAR(body.velocity.y, -199.0F);
+}
+
+TEST_CASE("Expired coyote time does not permit a jump", "[movement][platformer]")
+{
+    const TileMap map = makeFloorMap();
+    Body body{{{80.0F, 40.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+    PlatformerMovement movement = makeMovement();
+    movement.coyoteRemaining = 0.005F;
+    InputIntentions intentions;
+    intentions.jumpPressed = true;
+    intentions.jumpHeld = true;
+
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.01F);
+
+    REQUIRE_NEAR(body.velocity.y, 1.0F);
+    REQUIRE(movement.jumpBufferRemaining > 0.0F);
+}
+
+TEST_CASE("A buffered jump starts after landing", "[movement][platformer]")
+{
+    const TileMap map = makeFloorMap();
+    Body body{{{80.0F, FloorTop - 13.0F}, {12.0F, 12.0F}}, {0.0F, 30.0F}};
+    PlatformerMovement movement = makeMovement();
+    InputIntentions intentions;
+    intentions.jumpPressed = true;
+    intentions.jumpHeld = true;
+
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
+
+    REQUIRE(movement.grounded);
+    REQUIRE(movement.jumpBufferRemaining > 0.0F);
+
+    intentions.jumpPressed = false;
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.01F);
+
+    REQUIRE(body.velocity.y < 0.0F);
+    REQUIRE_FALSE(movement.grounded);
+    REQUIRE(movement.jumpBufferRemaining == 0.0F);
+}
+
+TEST_CASE("Grounded jumping does not require assistance timers", "[movement][platformer]")
+{
+    const TileMap map = makeFloorMap();
+    Body body = bodyOnFloor();
+    PlatformerMovement movement = makeMovement();
+    movement.grounded = true;
+    movement.config.coyoteDuration = 0.0F;
+    movement.config.jumpBufferDuration = 0.0F;
+    InputIntentions intentions;
+    intentions.jumpPressed = true;
+    intentions.jumpHeld = true;
+
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
+
+    REQUIRE(body.velocity.y < 0.0F);
+    REQUIRE_FALSE(movement.grounded);
+}
+
+// Ledge avoidance
+
+TEST_CASE("Ledge avoidance cannot skip a gap in either direction", "[movement][platformer]")
+{
+    const TileMap map = tests::TileMapBuilder({"........", "........", "###..###"});
+    float side = 1.0F;
+    SECTION("Walking right")
+    {
+        side = 1.0F;
+    }
+    SECTION("Walking left")
+    {
+        side = -1.0F;
+    }
+    const float start = side > 0.0F ? 18.0F : 98.0F;
+    Body body{{{start, 20.0F}, {12.0F, 12.0F}}, {side * 400.0F, 0.0F}};
+    PlatformerMovement movement;
+    movement.config.maximumSpeed = 400.0F;
+    movement.grounded = true;
+    InputIntentions intentions;
+    intentions.direction.x = side;
+    intentions.avoidLedges = true;
+
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
+
+    REQUIRE(movement.blocked);
+    REQUIRE(movement.grounded);
+    REQUIRE(body.bounds.topLeft.x == start);
+    REQUIRE(body.velocity.x == 0.0F);
+}
+
+TEST_CASE("Ledge avoidance is opt-in and does not prevent jumping", "[movement][platformer]")
+{
+    const TileMap map =
+        tests::TileMapBuilder({"........", "........", "###.....", "........", "########"});
+    Body body{{{36.0F, 20.0F}, {12.0F, 12.0F}}, {100.0F, 0.0F}};
+    PlatformerMovement movement;
+    movement.grounded = true;
+    InputIntentions intentions;
+    intentions.direction.x = 1.0F;
+    SECTION("Ordinary walking can leave the floor")
+    {
+    }
+    SECTION("A requested jump bypasses the ledge guard")
+    {
+        intentions.avoidLedges = true;
+        intentions.jumpPressed = true;
+        intentions.jumpHeld = true;
+    }
+
+    simple_platformer::updatePlatformerMovement(map, body, movement, intentions, 0.1F);
+
+    REQUIRE_FALSE(movement.blocked);
+    REQUIRE(body.bounds.topLeft.x > 36.0F);
+    REQUIRE(body.velocity.x > 0.0F);
+}
+
+// Facing
+
+TEST_CASE("Facing follows aim first, then movement, then stays put", "[movement][facing]")
+{
+    InputIntentions intentions;
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Left) == Facing::Left);
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Right) == Facing::Right);
+
+    intentions.direction.x = -1.0F;
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Right) == Facing::Left);
+
+    // Aiming the other way overrides where the actor is walking.
+    intentions.aimDirection = {1.0F, -1.0F};
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Left) == Facing::Right);
+
+    // Aiming straight up or down says nothing about left or right.
+    intentions.aimDirection = {0.0F, -1.0F};
+    REQUIRE(simple_platformer::facingFor(intentions, Facing::Right) == Facing::Left);
+}
+
+// Configuration contracts
+
 TEST_CASE("Invalid movement configuration and time steps are rejected", "[movement][platformer]")
 {
     const TileMap map = makeFloorMap();
@@ -342,20 +361,15 @@ TEST_CASE("Invalid movement configuration and time steps are rejected", "[moveme
         std::invalid_argument);
 }
 
-TEST_CASE("Facing follows aim first, then movement, then stays put", "[movement][facing]")
+TEST_CASE(
+    "Movement configurations with different jump buffer durations are unequal",
+    "[movement][platformer]")
 {
-    InputIntentions intentions;
-    REQUIRE(simple_platformer::facingFor(intentions, Facing::Left) == Facing::Left);
-    REQUIRE(simple_platformer::facingFor(intentions, Facing::Right) == Facing::Right);
-
-    intentions.direction.x = -1.0F;
-    REQUIRE(simple_platformer::facingFor(intentions, Facing::Right) == Facing::Left);
-
-    // Aiming the other way overrides where the actor is walking.
-    intentions.aimDirection = {1.0F, -1.0F};
-    REQUIRE(simple_platformer::facingFor(intentions, Facing::Left) == Facing::Right);
-
-    // Aiming straight up or down says nothing about left or right.
-    intentions.aimDirection = {0.0F, -1.0F};
-    REQUIRE(simple_platformer::facingFor(intentions, Facing::Right) == Facing::Left);
+    const simple_platformer::PlatformerMovementConfig config;
+    simple_platformer::PlatformerMovementConfig other;
+    REQUIRE(config == other);
+    REQUIRE_FALSE(config != other);
+    other.jumpBufferDuration += 0.01F;
+    REQUIRE(config != other);
+    REQUIRE_FALSE(config == other);
 }

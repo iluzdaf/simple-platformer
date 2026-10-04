@@ -6,15 +6,11 @@
 #include <fstream>
 #include <ios>
 #include <stdexcept>
-#include <string>
 
 #include <glm/vec2.hpp>
 
 #include "content/game_catalogs.hpp"
-#include "content/actor_catalog.hpp"
 #include "content/actor_definition.hpp"
-#include "support/actor_components.hpp"
-#include "simple_platformer/npc/npc.hpp"
 #include "content/level_catalog.hpp"
 #include "game/level_composition.hpp"
 #include "simple_platformer/actor/actor.hpp"
@@ -46,11 +42,7 @@ namespace
     }
 }
 
-TEST_CASE("Every catalog region lies inside the shipped atlas", "[app][content][atlas]")
-{
-    const glm::ivec2 atlas = pngSize(ShippedAtlas);
-    REQUIRE_NOTHROW(simple_platformer::loadGameCatalogs("assets/catalogs", atlas));
-}
+// Level composition and placement
 
 TEST_CASE("Every catalog level can be composed", "[app][content]")
 {
@@ -95,22 +87,10 @@ TEST_CASE("Every catalog level has valid actor placement", "[app][content]")
     }
 }
 
-TEST_CASE("Shipped NPCs use built-in enum tactics", "[app][content][npc]")
+// Atlas bounds
+
+TEST_CASE("Every catalog region lies inside the shipped atlas", "[app][content][atlas]")
 {
-    const auto catalogs =
-        simple_platformer::loadGameCatalogs("assets/catalogs", pngSize(ShippedAtlas));
-    for (const auto& name : {"rat", "zombie_soldier", "spider", "boar"})
-    {
-        INFO(name);
-        auto npc = simple_platformer::composeActor(
-            simple_platformer::actorDefinition(catalogs.actors, name), catalogs.animations, 0);
-        REQUIRE(npc.brain.has_value());
-        REQUIRE(tests::brain(npc).state == simple_platformer::NpcState::Idle);
-        const auto expected = std::string(name) == "rat"    ? simple_platformer::NpcTactic::Coward
-                              : std::string(name) == "boar" ? simple_platformer::NpcTactic::Charger
-                              : std::string(name) == "zombie_soldier"
-                                  ? simple_platformer::NpcTactic::KeepDistance
-                                  : simple_platformer::NpcTactic::Pursuer;
-        REQUIRE(tests::brain(npc).tactic == expected);
-    }
+    const glm::ivec2 atlas = pngSize(ShippedAtlas);
+    REQUIRE_NOTHROW(simple_platformer::loadGameCatalogs("assets/catalogs", atlas));
 }

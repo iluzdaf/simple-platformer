@@ -77,7 +77,9 @@ namespace
     }
 }
 
-TEST_CASE("Preparing a profile builds every cell once", "[navigation][table]")
+// Profile preparation and reuse
+
+TEST_CASE("Preparing an existing profile reuses its stored connections", "[navigation][table]")
 {
     const TileMap map = tests::TileMapBuilder({"........", "....##..", "########"});
     PlatformerConnectionTable table;
@@ -93,6 +95,30 @@ TEST_CASE("Preparing a profile builds every cell once", "[navigation][table]")
     table.prepare(map, Walker);
     REQUIRE(table.connections({0, 1}, Walker).data() == stored);
 }
+
+TEST_CASE("Preparing navigation builds the profiles of platformer NPCs", "[navigation][table]")
+{
+    const TileMap map = tests::TileMapBuilder({"......", "......", "######"});
+    simple_platformer::World world;
+    // A player-like actor without a path follower is not navigated for.
+    world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F}).inCell({0, 1}).platforming());
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .inCell({2, 1})
+                       .platforming()
+                       .thinking({64.0F, 1.0F}));
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .inCell({4, 1})
+                       .platforming()
+                       .thinking({64.0F, 1.0F}));
+
+    simple_platformer::prepareNavigation(map, world, tests::FixedStepSeconds);
+    const PlatformerConnectionTable& table = world.platformerConnections();
+    REQUIRE(table.isBuilt(Walker));
+    REQUIRE_FALSE(table.isBuilt({{12.0F, 20.0F}, {}, tests::FixedStepSeconds}));
+    requireMatchesTheMap(table, map, Walker);
+}
+
+// Tile breaks
 
 TEST_CASE("A break rebuilds only the cells whose footprint holds it", "[navigation][table]")
 {
@@ -163,7 +189,11 @@ TEST_CASE("A profile prepared after a break is built on the broken map", "[navig
     requireMatchesTheMap(table, map, Climber);
 }
 
-TEST_CASE("A connection table refuses what it does not hold", "[navigation][table]")
+// Invalid table access
+
+TEST_CASE(
+    "A connection table rejects unprepared profiles, invalid cells and mismatched map sizes",
+    "[navigation][table]")
 {
     const TileMap map = tests::TileMapBuilder({"....", "####"});
     PlatformerConnectionTable table;
@@ -177,26 +207,4 @@ TEST_CASE("A connection table refuses what it does not hold", "[navigation][tabl
 
     const TileMap other = tests::TileMapBuilder({".....", "#####"});
     REQUIRE_THROWS_AS(table.prepare(other, Climber), std::logic_error);
-}
-
-TEST_CASE("Preparing navigation builds the profiles of platformer NPCs", "[navigation][table]")
-{
-    const TileMap map = tests::TileMapBuilder({"......", "......", "######"});
-    simple_platformer::World world;
-    // A player-like actor without a path follower is not navigated for.
-    world.addActor(tests::ActorBuilder::sized({12.0F, 20.0F}).inCell({0, 1}).platforming());
-    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                       .inCell({2, 1})
-                       .platforming()
-                       .thinking({64.0F, 1.0F}));
-    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
-                       .inCell({4, 1})
-                       .platforming()
-                       .thinking({64.0F, 1.0F}));
-
-    simple_platformer::prepareNavigation(map, world, tests::FixedStepSeconds);
-    const PlatformerConnectionTable& table = world.platformerConnections();
-    REQUIRE(table.isBuilt(Walker));
-    REQUIRE_FALSE(table.isBuilt({{12.0F, 20.0F}, {}, tests::FixedStepSeconds}));
-    requireMatchesTheMap(table, map, Walker);
 }

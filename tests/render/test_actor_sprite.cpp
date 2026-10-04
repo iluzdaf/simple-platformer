@@ -89,7 +89,9 @@ namespace
     }
 }
 
-TEST_CASE("A sprite off every surface stands on the body's feet unturned", "[render][sprite]")
+// Upright placement
+
+TEST_CASE("A sprite without a held surface stands upright on the body's feet", "[render][sprite]")
 {
     simple_platformer::Actor actor = climber(ClimbSurface::None, Facing::Left);
     const ActorSpritePlacement placement = simple_platformer::placeActorSprite(actor);
@@ -102,6 +104,8 @@ TEST_CASE("A sprite off every surface stands on the body's feet unturned", "[ren
     REQUIRE(placement.drawn.size == expected.size);
     REQUIRE(placement.visible.topLeft == expected.topLeft);
 }
+
+// Climbing placement and facing
 
 TEST_CASE("A climber's sprite stands its feet on the surface it holds", "[render][sprite][climb]")
 {
@@ -146,7 +150,9 @@ TEST_CASE("A climber's sprite stands its feet on the surface it holds", "[render
     }
 }
 
-TEST_CASE("A climber's head leads the way it goes", "[render][sprite][climb]")
+TEST_CASE(
+    "A climber's sprite faces the direction it moves along the surface",
+    "[render][sprite][climb]")
 {
     // On a ceiling the head points the way the climber faces.
     REQUIRE(pointsAlong(
@@ -170,6 +176,8 @@ TEST_CASE("A climber's head leads the way it goes", "[render][sprite][climb]")
             pointsAlong(headDirection(simple_platformer::placeActorSprite(actor)), {0.0F, 1.0F}));
     }
 }
+
+// Sprite anchors
 
 TEST_CASE("A centre-anchored climber's sprite turns about its body's centre", "[render][sprite]")
 {

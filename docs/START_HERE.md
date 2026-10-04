@@ -288,7 +288,7 @@ attack intention -> hit check -> damage request -> health change
 - Skim [`attack_system.cpp`](../src/combat/attack_system.cpp) and
   [`projectile_system.cpp`](../src/combat/projectile_system.cpp): attack intentions produce
   hits and queue damage. See the [attack timing example](ARCHITECTURE.md#attack-timing-example)
-  for phase advancement and hit checks across a large update.
+  for the bite phases and when they check for hits.
 - Read [`actor_lifecycle.cpp`](../src/actor/actor_lifecycle.cpp): `updateActorLifecycle`
   applies queued damage, starts fatal deaths, advances existing death timers, respawns
   the player, and queues NPC removal.

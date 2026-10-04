@@ -133,24 +133,19 @@ namespace simple_platformer
             }
         }
 
-        // Reports whether the bite was active at any point in this update. A large step
-        // may pass through Active into Recovery; it must still get its hit check.
-        bool advanceBite(BiteAttack& bite, float deltaTime)
+        // Each update advances at most one phase; the next phase starts with its full timer.
+        void advanceBite(BiteAttack& bite, float deltaTime)
         {
-            bool activeDuringUpdate = bite.phase == BitePhase::Active;
-            float remaining = deltaTime;
-            while (bite.phase != BitePhase::Ready && remaining >= bite.phaseTimeRemaining)
+            if (bite.phase == BitePhase::Ready)
             {
-                remaining -= bite.phaseTimeRemaining;
-                enterNextPhase(bite);
-                activeDuringUpdate = activeDuringUpdate || bite.phase == BitePhase::Active;
+                return;
             }
 
-            if (bite.phase != BitePhase::Ready)
+            bite.phaseTimeRemaining -= deltaTime;
+            if (bite.phaseTimeRemaining <= 0.0F)
             {
-                bite.phaseTimeRemaining -= remaining;
+                enterNextPhase(bite);
             }
-            return activeDuringUpdate;
         }
 
         void updateContactDamage(Actor& actor, const World& world, WorldRequests& requests)
@@ -258,15 +253,13 @@ namespace simple_platformer
 
             if (bite.phase == BitePhase::Ready && actor.intentions.primaryAttackPressed)
             {
-                // Keep the new Windup phase's full duration, even on a large update.
+                // Keep the new Windup phase's full duration; advance it on later updates.
                 beginBite(bite);
                 return;
             }
 
-            // Advance phases first, then check hits if Active was visited. The final
-            // phase alone cannot tell us whether a large update crossed the hit window.
-            const bool activeDuringUpdate = advanceBite(bite, deltaTime);
-            if (activeDuringUpdate)
+            advanceBite(bite, deltaTime);
+            if (bite.phase == BitePhase::Active)
             {
                 applyBiteHits(actor, bite, world, requests);
             }

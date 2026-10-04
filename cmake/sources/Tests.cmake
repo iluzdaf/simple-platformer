@@ -87,6 +87,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/tests/render/test_presentation.cpp
     ${PROJECT_SOURCE_DIR}/tests/render/test_render_scene.cpp
     ${PROJECT_SOURCE_DIR}/tests/support/test_actor_builder.cpp
+    ${PROJECT_SOURCE_DIR}/tests/support/test_actor_builder_contract.cpp
     ${PROJECT_SOURCE_DIR}/tests/support/test_tile_map_builder.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_fixed_step.cpp
     ${PROJECT_SOURCE_DIR}/tests/timing/test_stopwatch.cpp

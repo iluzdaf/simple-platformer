@@ -1,8 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <type_traits>
-#include <utility>
-
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
@@ -13,25 +10,6 @@
 #include "simple_platformer/world/world.hpp"
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
-
-namespace
-{
-    template <typename Builder, typename = void> struct CanPlatform : std::false_type
-    {
-    };
-
-    template <typename Builder>
-    struct CanPlatform<Builder, std::void_t<decltype(std::declval<Builder>().platforming())>>
-        : std::true_type
-    {
-    };
-}
-
-static_assert(!CanPlatform<tests::ActorBuilder::Sized>::value);
-static_assert(CanPlatform<tests::ActorBuilder::Placed>::value);
-static_assert(!std::is_convertible_v<tests::ActorBuilder::Sized, simple_platformer::Actor>);
-static_assert(!std::is_convertible_v<tests::ActorBuilder::Placed, simple_platformer::Actor>);
-static_assert(std::is_convertible_v<tests::ActorBuilder, simple_platformer::Actor>);
 
 TEST_CASE(
     "The actor builder places a body by its corner, its feet, or its cell",

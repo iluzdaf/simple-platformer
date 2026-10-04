@@ -10,7 +10,6 @@
 #include <glm/vec2.hpp>
 
 #include "content/game_catalogs.hpp"
-#include "content/actor_definition.hpp"
 #include "content/level_catalog.hpp"
 #include "game/level_composition.hpp"
 #include "simple_platformer/actor/actor.hpp"

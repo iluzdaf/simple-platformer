@@ -22,6 +22,7 @@ namespace simple_platformer
 
     void applyGravity(Body& body, float gravity, float maximumFallSpeed, float deltaTime);
 
+    // The sides of a body that meet a tile surface or blocking map boundary.
     struct CollisionContacts
     {
         bool left = false;
@@ -30,8 +31,8 @@ namespace simple_platformer
         bool ceiling = false;
     };
 
-    // Moves X, then Y by velocity * deltaTime, stopping at blocking tiles
-    // and zeroing velocity on each axis that hits.
+    // Moves the body with tile collision: X, then Y by velocity * deltaTime.
+    // Blocking tiles stop travel and zero velocity on the axis that hits.
     CollisionContacts moveBody(const TileMap& map, Body& body, float deltaTime);
 
     // Probes for surfaces touching a stationary box without moving it,

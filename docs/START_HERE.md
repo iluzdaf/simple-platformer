@@ -215,7 +215,7 @@ When jumping is allowed, `startBufferedJump` sets `body.velocity.y` to negative
 - Read [`body.hpp`](../include/simple_platformer/physics/body.hpp) for bounds, velocity,
   and collision contacts.
 - In [`body.cpp`](../src/physics/body.cpp), read `applyGravity`, `moveBody`, then
-  `sweepAxis`.
+  `sweepHorizontalCollision` and `sweepVerticalCollision`.
 - Trace the horizontal move, then the vertical move. Each sweep finds how far the body
   can move before a blocking tile; `moveBody` applies that distance and clears velocity
   on the blocked axis.
@@ -231,8 +231,8 @@ When jumping is allowed, `startBufferedJump` sets `body.velocity.y` to negative
 <details>
 <summary>Answer</summary>
 
-`sweepAxis` finds the distance to the first blocking surface. `moveBody` moves the
-body that far, leaving its leading edge at the surface, and zeroes velocity on the
+`sweepHorizontalCollision` and `sweepVerticalCollision` find the distance to the first blocking surface.
+`moveBody` moves the body that far, leaving its leading edge at the surface, and zeroes velocity on the
 blocked axis. It resolves X first, then Y from the new position.
 
 </details>

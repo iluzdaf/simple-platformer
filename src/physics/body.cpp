@@ -40,39 +40,45 @@ namespace simple_platformer
             }
         }
 
-        enum class Axis
-        {
-            Horizontal,
-            Vertical
-        };
-
         enum class SurfaceKind
         {
             Blocking,
             Climbable
         };
 
-        bool lineHasSurface(
+        bool hasSurface(const TileMap& map, Cell cell, SurfaceKind kind)
+        {
+            return kind == SurfaceKind::Climbable ? map.climbableAt(cell)
+                                                  : map.blocksMovement(cell);
+        }
+
+        bool columnHasSurface(
             const TileMap& map,
-            Axis axis,
-            int along,
-            int firstAcross,
-            int lastAcross,
+            int column,
+            int firstRow,
+            int lastRow,
             SurfaceKind kind)
         {
-            for (int across = firstAcross; across <= lastAcross; ++across)
+            for (int row = firstRow; row <= lastRow; ++row)
             {
-                Cell cell;
-                if (axis == Axis::Horizontal)
+                if (hasSurface(map, {column, row}, kind))
                 {
-                    cell = {along, across}; // Scan a column, from top to bottom.
+                    return true;
                 }
-                else
-                {
-                    cell = {across, along}; // Scan a row, from left to right.
-                }
-                if (kind == SurfaceKind::Climbable ? map.climbableAt(cell)
-                                                   : map.blocksMovement(cell))
+            }
+            return false;
+        }
+
+        bool rowHasSurface(
+            const TileMap& map,
+            int row,
+            int firstColumn,
+            int lastColumn,
+            SurfaceKind kind)
+        {
+            for (int column = firstColumn; column <= lastColumn; ++column)
+            {
+                if (hasSurface(map, {column, row}, kind))
                 {
                     return true;
                 }
@@ -90,19 +96,16 @@ namespace simple_platformer
             return candidate <= 0.0F && candidate >= requested;
         }
 
-        struct SweepResult
+        struct CollisionSweepResult
         {
             float distance = 0.0F;
             bool hitTile = false;
         };
 
-        // Returns how far the box can move along one axis before hitting the requested
-        // kind of surface. Scans from the leading edge to its proposed position, nearest
-        // tiles first. At a map edge it queries the outside cell too, so blocking boundaries
-        // stop the box and the open top lets it pass.
-        SweepResult sweepAxis(
+        // Horizontal tile collision: scan columns nearest first, checking the body's rows.
+        // Include the outside column at either map wall, but never scan beyond it.
+        CollisionSweepResult sweepHorizontalCollision(
             const TileMap& map,
-            Axis axis,
             const Aabb& bounds,
             float requested,
             SurfaceKind kind)
@@ -111,84 +114,131 @@ namespace simple_platformer
             {
                 return {0.0F, false};
             }
+            const int tileSize = map.tileSize();
+            const int firstRow = std::max(0, firstOverlappingTile(tileSize, bounds.topLeft.y));
+            const int lastRow =
+                std::min(map.height() - 1, lastOverlappingTile(tileSize, bottomOf(bounds)));
 
-            const bool forward = requested > 0.0F;
-            float leadingEdge;
-            float acrossMinimum;
-            float acrossMaximum;
-            float mapExtent;
-            int alongCount;
-            int acrossCount;
-            if (axis == Axis::Horizontal)
+            if (requested > 0.0F)
             {
-                leadingEdge = forward ? rightOf(bounds) : bounds.topLeft.x;
-                acrossMinimum = bounds.topLeft.y;
-                acrossMaximum = bottomOf(bounds);
-                mapExtent = map.pixelWidth();
-                alongCount = map.width();
-                acrossCount = map.height();
+                const float rightEdge = rightOf(bounds);
+                const int firstColumn = firstOverlappingTile(tileSize, rightEdge);
+                const float destination = rightEdge + requested;
+                const int lastColumn = destination >= map.pixelWidth()
+                                           ? map.width()
+                                           : firstOverlappingTile(tileSize, destination);
+                for (int column = firstColumn; column <= lastColumn; ++column)
+                {
+                    if (!columnHasSurface(map, column, firstRow, lastRow, kind))
+                    {
+                        continue;
+                    }
+                    const float tileLeft = static_cast<float>(column * tileSize);
+                    const float distance = tileLeft - rightEdge;
+                    if (stopsRequestedMovement(distance, requested))
+                    {
+                        return {distance, true};
+                    }
+                }
             }
             else
             {
-                leadingEdge = forward ? bottomOf(bounds) : bounds.topLeft.y;
-                acrossMinimum = bounds.topLeft.x;
-                acrossMaximum = rightOf(bounds);
-                mapExtent = map.pixelHeight();
-                alongCount = map.height();
-                acrossCount = map.width();
-            }
-
-            // Only rows (for X) or columns (for Y) overlapped by the box can stop it.
-            const int firstAcross =
-                std::max(0, firstOverlappingTile(map.tileSize(), acrossMinimum));
-            const int lastAcross =
-                std::min(acrossCount - 1, lastOverlappingTile(map.tileSize(), acrossMaximum));
-            const int firstAlong = forward ? firstOverlappingTile(map.tileSize(), leadingEdge)
-                                           : lastOverlappingTile(map.tileSize(), leadingEdge);
-            const float finalLeadingEdge = leadingEdge + requested;
-            int lastAlong;
-            if (forward && finalLeadingEdge >= mapExtent)
-            {
-                lastAlong = alongCount;
-            }
-            else if (!forward && finalLeadingEdge <= 0.0F)
-            {
-                lastAlong = -1;
-            }
-            else
-            {
-                lastAlong = firstOverlappingTile(map.tileSize(), finalLeadingEdge);
-            }
-            const int step = forward ? 1 : -1;
-
-            for (int along = firstAlong; forward ? along <= lastAlong : along >= lastAlong;
-                 along += step)
-            {
-                if (!lineHasSurface(map, axis, along, firstAcross, lastAcross, kind))
+                const float leftEdge = bounds.topLeft.x;
+                const int firstColumn = lastOverlappingTile(tileSize, leftEdge);
+                const float destination = leftEdge + requested;
+                const int lastColumn =
+                    destination <= 0.0F ? -1 : firstOverlappingTile(tileSize, destination);
+                for (int column = firstColumn; column >= lastColumn; --column)
                 {
-                    continue;
-                }
-
-                const int tileEdge = forward ? along : along + 1;
-                const float candidate = static_cast<float>(tileEdge * map.tileSize()) - leadingEdge;
-                if (stopsRequestedMovement(candidate, requested))
-                {
-                    return {candidate, true};
+                    if (!columnHasSurface(map, column, firstRow, lastRow, kind))
+                    {
+                        continue;
+                    }
+                    const float tileRight = static_cast<float>((column + 1) * tileSize);
+                    const float distance = tileRight - leftEdge;
+                    if (stopsRequestedMovement(distance, requested))
+                    {
+                        return {distance, true};
+                    }
                 }
             }
-
             return {requested, false};
         }
 
+        // Vertical tile collision: scan rows nearest first, checking the body's columns.
+        // The outside bottom row blocks movement; the outside top row remains open.
+        CollisionSweepResult sweepVerticalCollision(
+            const TileMap& map,
+            const Aabb& bounds,
+            float requested,
+            SurfaceKind kind)
+        {
+            if (requested == 0.0F)
+            {
+                return {0.0F, false};
+            }
+            const int tileSize = map.tileSize();
+            const int firstColumn = std::max(0, firstOverlappingTile(tileSize, bounds.topLeft.x));
+            const int lastColumn =
+                std::min(map.width() - 1, lastOverlappingTile(tileSize, rightOf(bounds)));
+
+            if (requested > 0.0F)
+            {
+                const float bottomEdge = bottomOf(bounds);
+                const int firstRow = firstOverlappingTile(tileSize, bottomEdge);
+                const float destination = bottomEdge + requested;
+                const int lastRow = destination >= map.pixelHeight()
+                                        ? map.height()
+                                        : firstOverlappingTile(tileSize, destination);
+                for (int row = firstRow; row <= lastRow; ++row)
+                {
+                    if (!rowHasSurface(map, row, firstColumn, lastColumn, kind))
+                    {
+                        continue;
+                    }
+                    const float tileTop = static_cast<float>(row * tileSize);
+                    const float distance = tileTop - bottomEdge;
+                    if (stopsRequestedMovement(distance, requested))
+                    {
+                        return {distance, true};
+                    }
+                }
+            }
+            else
+            {
+                const float topEdge = bounds.topLeft.y;
+                const int firstRow = lastOverlappingTile(tileSize, topEdge);
+                const float destination = topEdge + requested;
+                const int lastRow =
+                    destination <= 0.0F ? -1 : firstOverlappingTile(tileSize, destination);
+                for (int row = firstRow; row >= lastRow; --row)
+                {
+                    if (!rowHasSurface(map, row, firstColumn, lastColumn, kind))
+                    {
+                        continue;
+                    }
+                    const float tileBottom = static_cast<float>((row + 1) * tileSize);
+                    const float distance = tileBottom - topEdge;
+                    if (stopsRequestedMovement(distance, requested))
+                    {
+                        return {distance, true};
+                    }
+                }
+            }
+            return {requested, false};
+        }
+
+        // Reuse collision sweeps as short contact probes. Climbable selects grip
+        // surfaces; ordinary movement always selects blocking surfaces.
         CollisionContacts probeSurfaces(const TileMap& map, const Aabb& bounds, SurfaceKind kind)
         {
             validateBounds(map, bounds, {0.0F, 0.0F});
             constexpr float ProbeDistance = 0.01F;
             return {
-                sweepAxis(map, Axis::Horizontal, bounds, -ProbeDistance, kind).hitTile,
-                sweepAxis(map, Axis::Horizontal, bounds, ProbeDistance, kind).hitTile,
-                sweepAxis(map, Axis::Vertical, bounds, ProbeDistance, kind).hitTile,
-                sweepAxis(map, Axis::Vertical, bounds, -ProbeDistance, kind).hitTile};
+                sweepHorizontalCollision(map, bounds, -ProbeDistance, kind).hitTile,
+                sweepHorizontalCollision(map, bounds, ProbeDistance, kind).hitTile,
+                sweepVerticalCollision(map, bounds, ProbeDistance, kind).hitTile,
+                sweepVerticalCollision(map, bounds, -ProbeDistance, kind).hitTile};
         }
     }
 
@@ -205,8 +255,8 @@ namespace simple_platformer
 
         CollisionContacts contacts;
         // Resolve X first, then sweep Y from the new horizontal position.
-        const SweepResult horizontal =
-            sweepAxis(map, Axis::Horizontal, bounds, displacement.x, SurfaceKind::Blocking);
+        const CollisionSweepResult horizontal =
+            sweepHorizontalCollision(map, bounds, displacement.x, SurfaceKind::Blocking);
         bounds.topLeft.x += horizontal.distance;
         if (horizontal.hitTile)
         {
@@ -221,8 +271,8 @@ namespace simple_platformer
             body.velocity.x = 0.0F;
         }
 
-        const SweepResult vertical =
-            sweepAxis(map, Axis::Vertical, bounds, displacement.y, SurfaceKind::Blocking);
+        const CollisionSweepResult vertical =
+            sweepVerticalCollision(map, bounds, displacement.y, SurfaceKind::Blocking);
         bounds.topLeft.y += vertical.distance;
         if (vertical.hitTile)
         {

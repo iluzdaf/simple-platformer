@@ -160,8 +160,12 @@ facing, team, and life state. Players and NPCs use the same type.
 | Glass        | Block                    | Pass  |
 | Grass        | Pass                     | Block |
 
-- `moveBody` sweeps an arbitrary-sized AABB along X, then Y. A hit stops velocity on
-  that axis and reports contacts.
+- Tile collision is handled by `moveBody` in [`body.cpp`](../src/physics/body.cpp).
+  `sweepHorizontalCollision` checks X, then `sweepVerticalCollision` checks Y from the
+  new position. Each sweep finds the first surface an arbitrary-sized AABB would meet;
+  `moveBody` stops travel there, zeroes velocity on that axis, and reports `CollisionContacts`.
+- `touchingSurfaces` and `touchingClimbableSurfaces` reuse those sweeps as short contact
+  probes. The climbable filter finds grip surfaces; movement collision uses blocking tiles.
 - Left, right, and bottom map boundaries block movement; the top is open.
 - Actors do not push or physically collide with one another.
 - Segment casts find the first tile or AABB along a line. Projectiles use movement
@@ -184,10 +188,9 @@ Stopped                         [===========|################
 ```
 
 - `|` marks the wall at 48; `X` shows the overlap the requested move would cause.
-- For a horizontal sweep, `along` means column and `across` means row.
-- `sweepAxis` starts at the body's right edge (`leadingEdge = 32`), skips empty
+- `sweepHorizontalCollision` starts at the body's right edge (`rightEdge = 32`), skips empty
   column 2, and finds the wall in column 3.
-- The allowed distance is `candidate = 3 * 16 - 32 = 16` pixels.
+- The allowed distance is `distance = 3 * 16 - 32 = 16` pixels.
 - `moveBody` moves the body to `x = 36`, sets `contacts.right`, clears horizontal
   velocity, then sweeps vertically.
 

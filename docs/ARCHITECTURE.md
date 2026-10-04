@@ -146,8 +146,12 @@ facing, team, and life state. Players and NPCs use the same type.
 - `TileMap` is a rectangular, row-major array of tile IDs. Zero is empty.
 - Tile definitions choose movement blocking, sight blocking, climbing, and what a
   breakable tile becomes.
-- Actors, pickups, and exits are separate objects. Object-legend markers expand into
-  placements when loading; their terrain is empty.
+- Actors, pickups, and exits are separate objects. The loader parses each object-legend
+  template once into typed settings. It reads explicit placements separately, then copies
+  a template at each marked cell and supplies its position. Marker terrain is empty.
+- Template references keep their authored legend paths, including unused entries, so
+  composition can check every catalog reference. Map placement handles player and exit
+  uniqueness with the original cell paths.
 
 | Example tile | Movement and projectiles | Sight |
 | ------------ | ------------------------ | ----- |
@@ -322,7 +326,7 @@ See [`test_bite_attack.cpp`](../tests/combat/test_bite_attack.cpp) and
 | Step                 | Owner                            | Result                                                                |
 | -------------------- | -------------------------------- | --------------------------------------------------------------------- |
 | Load shared catalogs | `app/content/game_catalogs.cpp`  | Definitions checked against the atlas size and reused for the session |
-| Load a level         | `app/content/level_data.cpp`     | Plain `LevelData`, with object markers expanded                       |
+| Load a level         | `app/content/level_data.cpp`     | Plain `LevelData`, with objects placed at marked cells                |
 | Compose the level    | `app/game/level_composition.cpp` | Names resolved into a map, world, and placed objects                  |
 | Start the level      | `Game::startLevel`               | Player inserted, placements validated, camera and navigation prepared |
 

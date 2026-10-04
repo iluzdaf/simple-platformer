@@ -116,8 +116,9 @@ no other fields.
 - A marked cell becomes empty terrain.
 - A symbol cannot be in both legends.
 - Explicit placements come first, then markers in row order, left to right.
-- Every marker of a symbol shares its entry. Use an explicit placement for an object
-  with its own patrol, on non-empty terrain, or off a cell's centre.
+- Each object-legend entry is a template. Every marked cell places a copy of its
+  settings at that cell. Use an explicit placement for an object with its own patrol,
+  on non-empty terrain, or off a cell's centre.
 
 ## Tiles
 

@@ -192,3 +192,89 @@ TEST_CASE("Inline pickup placements retain their body size", "[app][content][jso
 
     REQUIRE(data.pickups[0].bodySize == glm::vec2{10.0F, 12.0F});
 }
+
+TEST_CASE(
+    "Repeated templates place independent objects in map reading order",
+    "[app][content][json]")
+{
+    auto data = simple_platformer::parseLevelData(
+        R"({
+            "tileLegend": {".": "empty"},
+            "objectLegend": {
+                "A": {"type": "actor", "definition": "guard",
+                      "patrol": {"firstFeet": [12, 8], "secondCell": [3, 1]}},
+                "K": {"type": "pickup", "definition": "treasure"}
+            },
+            "map": [".KA", "AK."],
+            "playerSpawnFeet": [8, 16],
+            "actors": [{"definition": "bat", "spawnFeet": [40, 12]}],
+            "pickups": [{"item": "coin", "quantity": 3, "bodySize": [8, 8],
+                         "spawnCell": [2, 1]}],
+            "exit": {"definition": "test_door", "spawnFeet": [48, 16]}
+        })",
+        "mixed.json");
+
+    REQUIRE(data.playerSpawn == simple_platformer::LevelPosition{glm::vec2{8, 16}});
+    REQUIRE(data.exit.spawn == simple_platformer::LevelPosition{glm::vec2{48, 16}});
+    REQUIRE(data.actors.size() == 3);
+    REQUIRE(data.actors[0].definitionName == "bat");
+    REQUIRE(
+        data.actors[1].spawn == simple_platformer::LevelPosition{simple_platformer::Cell{2, 0}});
+    REQUIRE(
+        data.actors[2].spawn == simple_platformer::LevelPosition{simple_platformer::Cell{0, 1}});
+    REQUIRE(data.actors[1].patrol.has_value());
+    REQUIRE(data.actors[2].patrol.has_value());
+    REQUIRE(
+        data.actors[1].patrol.value_or(simple_platformer::PatrolPlacement{}).first ==
+        simple_platformer::LevelPosition{glm::vec2{12, 8}});
+    REQUIRE(
+        data.actors[2].patrol.value_or(simple_platformer::PatrolPlacement{}).second ==
+        simple_platformer::LevelPosition{simple_platformer::Cell{3, 1}});
+    data.actors[1].patrol.reset();
+    REQUIRE(
+        data.actors[2].patrol.value_or(simple_platformer::PatrolPlacement{}).first ==
+        simple_platformer::LevelPosition{glm::vec2{12, 8}});
+    REQUIRE(data.pickups.size() == 3);
+    REQUIRE(data.pickups[0].stack.item == "coin");
+    REQUIRE(data.pickups[1].definitionName == "treasure");
+    REQUIRE(
+        data.pickups[1].spawn == simple_platformer::LevelPosition{simple_platformer::Cell{1, 0}});
+    REQUIRE(
+        data.pickups[2].spawn == simple_platformer::LevelPosition{simple_platformer::Cell{1, 1}});
+    REQUIRE(data.tileLegend.at('A') == "empty");
+    REQUIRE(data.tileLegend.at('K') == "empty");
+}
+
+TEST_CASE("Template references retain authored paths even without markers", "[app][content][json]")
+{
+    const auto data = simple_platformer::parseLevelData(
+        R"({
+            "tileLegend": {".": "empty"},
+            "objectLegend": {
+                "A": {"type": "actor", "definition": "guard"},
+                "K": {"type": "pickup", "definition": "treasure"},
+                "I": {"type": "pickup", "item": "key", "quantity": 2, "bodySize": [8, 8]},
+                "E": {"type": "exit", "definition": "locked_door",
+                      "requirement": {"item": "key", "quantity": 1}}
+            },
+            "map": ["AA."],
+            "playerSpawnCell": [0, 0],
+            "actors": [{"definition": "bat", "spawnCell": [1, 0]}],
+            "exit": {"definition": "test_door", "spawnCell": [2, 0]}
+        })",
+        "references.json");
+
+    REQUIRE(data.actorReferences.size() == 2);
+    REQUIRE(data.actorReferences.at("objectLegend.A.definition") == "guard");
+    REQUIRE(data.actorReferences.at("actors[0].definition") == "bat");
+    REQUIRE(data.pickupReferences.size() == 1);
+    REQUIRE(data.pickupReferences.at("objectLegend.K.definition") == "treasure");
+    REQUIRE(data.exitReferences.size() == 2);
+    REQUIRE(data.exitReferences.at("objectLegend.E.definition") == "locked_door");
+    REQUIRE(data.exitReferences.at("exit.definition") == "test_door");
+    REQUIRE(data.itemReferences.size() == 2);
+    REQUIRE(data.itemReferences.at("objectLegend.I.item") == "key");
+    REQUIRE(data.itemReferences.at("objectLegend.E.requirement.item") == "key");
+    REQUIRE(data.pickups.empty());
+    REQUIRE(data.exit.definitionName == "test_door");
+}

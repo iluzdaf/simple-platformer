@@ -304,7 +304,9 @@ Patrol -> sees player -> Chase -> movement intentions
 - In [`level_composition.cpp`](../app/game/level_composition.cpp), read `composeGameLevel`:
   level data and catalog definitions become a map and world.
 - In [`level_data.cpp`](../app/content/level_data.cpp), start with `loadLevelData` and
-  `parseLevelData`: JSON becomes the data used by composition.
+  `parseLevelData`. Follow `jsonLevelData`: `jsonLegends` parses typed templates,
+  `jsonExplicitPlacements` reads positioned objects, then `placeMapObjects` copies
+  templates at marked cells. The placement pass works with C++ values; JSON is read once.
 - **Composition test:** "A level composes an actor from its catalog definition" in
   [`test_level_composition.cpp`](../tests/app/game/test_level_composition.cpp).
 - **Check:** Which data comes from the catalog, and which comes from the level placement?

@@ -117,3 +117,35 @@ TEST_CASE("Actor lifecycle rejects a negative time step", "[actor][lifecycle]")
     REQUIRE_THROWS_AS(
         simple_platformer::updateActorLifecycle(world, requests, -1.0F), std::invalid_argument);
 }
+
+TEST_CASE("Damage is deferred until actor lifecycle updates", "[actor][lifecycle]")
+{
+    simple_platformer::World world;
+    const simple_platformer::ActorId id = world.addActor(makeActor());
+    simple_platformer::WorldRequests requests;
+
+    requests.damage(id, 1);
+    simple_platformer::Actor& undamaged = tests::actor(world, id);
+    REQUIRE(tests::health(undamaged).current == 3);
+
+    simple_platformer::updateActorLifecycle(world, requests, 0.1F);
+
+    simple_platformer::Actor& damaged = tests::actor(world, id);
+    REQUIRE(tests::health(damaged).current == 2);
+    REQUIRE(damaged.life == simple_platformer::LifeState::Alive);
+    REQUIRE(requests.empty());
+}
+
+TEST_CASE("Applied damage records the current simulation time", "[actor][lifecycle]")
+{
+    simple_platformer::World world;
+    world.advanceSimulationTime(2.0F);
+    const simple_platformer::ActorId id = world.addActor(makeActor());
+    simple_platformer::WorldRequests requests;
+    requests.damage(id, 1);
+
+    simple_platformer::updateActorLifecycle(world, requests, 0.1F);
+
+    simple_platformer::Actor& damaged = tests::actor(world, id);
+    REQUIRE(damaged.lastDamageTimeSeconds == 2.0F);
+}

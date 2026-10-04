@@ -3,6 +3,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_lifecycle.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/world/world.hpp"
@@ -35,25 +36,25 @@ TEST_CASE("Contact damage hits an opponent once per activation, not allies", "[c
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE(tests::health(world, targetId).current == 2);
     REQUIRE(tests::health(world, allyId).current == 3);
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE(tests::health(world, targetId).current == 2);
     REQUIRE(tests::contactDamage(world, chargerId).actorsHit.size() == 1);
     REQUIRE(tests::actor(world, chargerId).body.velocity == glm::vec2{0.0F, 0.0F});
 
     tests::actor(world, chargerId).intentions.contactDamage = false;
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE_FALSE(tests::contactDamage(world, chargerId).active);
     REQUIRE(tests::contactDamage(world, chargerId).actorsHit.empty());
     REQUIRE(tests::health(world, targetId).current == 2);
 
     tests::actor(world, chargerId).intentions.contactDamage = true;
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE(tests::health(world, targetId).current == 1);
 }
 
@@ -68,7 +69,7 @@ TEST_CASE("Contact damage needs an intention", "[combat][contact]")
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
 
     REQUIRE(tests::health(world, targetId).current == 3);
     REQUIRE_FALSE(tests::contactDamage(world, attackerId).active);
@@ -88,7 +89,7 @@ TEST_CASE("A dying owner cannot keep contact damage active", "[combat][contact][
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateAttacks(world, requests, 0.1F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
 
     REQUIRE(tests::health(world, targetId).current == 3);
     REQUIRE_FALSE(tests::contactDamage(world, attackerId).active);

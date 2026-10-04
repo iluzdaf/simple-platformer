@@ -5,6 +5,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_lifecycle.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/combat.hpp"
 #include "simple_platformer/combat/projectile_system.hpp"
@@ -66,6 +67,7 @@ TEST_CASE("A projectile damages the earliest opposing actor and disappears", "[c
     REQUIRE(tests::health(world, nearTarget).current == 3);
     REQUIRE(world.projectiles().size() == 1);
     REQUIRE(world.projectileBursts().empty());
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(tests::health(world, nearTarget).current == 2);
     REQUIRE(tests::health(world, farTarget).current == 3);
@@ -88,6 +90,7 @@ TEST_CASE("A solid tile stops a projectile before an actor", "[combat][projectil
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateProjectiles(map, world, requests, 1.0F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(tests::health(world, target).current == 3);
@@ -114,6 +117,7 @@ TEST_CASE("Projectiles ignore their owner and actors on the same team", "[combat
 
     simple_platformer::TileMap map = emptyMap();
     simple_platformer::updateProjectiles(map, world, requests, 0.5F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(tests::health(world, owner).current == 3);
@@ -132,6 +136,7 @@ TEST_CASE("A projectile is removed when its lifetime expires", "[combat][project
     simple_platformer::TileMap map = emptyMap();
     simple_platformer::updateProjectiles(map, world, requests, 0.1F);
     REQUIRE(world.projectiles().size() == 1);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().empty());
     REQUIRE(world.projectileBursts().size() == 1);
@@ -150,14 +155,17 @@ TEST_CASE("A projectile burst expires after its short feedback lifetime", "[comb
 
     simple_platformer::TileMap map = emptyMap();
     simple_platformer::updateProjectiles(map, world, requests, 0.5F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectileBursts().size() == 1);
 
     simple_platformer::updateProjectileBursts(world, requests, 0.05F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectileBursts().size() == 1);
 
     simple_platformer::updateProjectileBursts(world, requests, 0.05F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectileBursts().empty());
 }
@@ -173,6 +181,7 @@ TEST_CASE("Separate projectile hits have no shared invulnerability", "[combat][p
 
     simple_platformer::TileMap map = emptyMap();
     simple_platformer::updateProjectiles(map, world, requests, 0.5F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(tests::health(world, target).current == 1);
@@ -203,6 +212,7 @@ TEST_CASE("A projectile that breaks tiles clears the glass it stops at", "[comba
 
     REQUIRE(map.blocksMovement({3, 0}));
     simple_platformer::updateProjectiles(map, world, requests, 1.0F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(map.tileAt({3, 0}) == 0);
@@ -222,6 +232,7 @@ TEST_CASE("A projectile without the flag stops at glass and leaves it", "[combat
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateProjectiles(map, world, requests, 1.0F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(map.tileAt({3, 0}) == 1);
@@ -240,6 +251,7 @@ TEST_CASE("Breaking projectiles leave unbreakable tiles standing", "[combat][pro
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateProjectiles(map, world, requests, 1.0F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
 
     REQUIRE(map.tileAt({3, 0}) == 1);
@@ -267,6 +279,7 @@ TEST_CASE("One shot cannot open a hole for another in the same frame", "[combat]
     }
     REQUIRE(map.tileAt({3, 0}) == 0);
 
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().empty());
     REQUIRE(world.projectileBursts().size() == 2);

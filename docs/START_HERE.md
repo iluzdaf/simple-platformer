@@ -289,14 +289,13 @@ attack intention -> hit check -> damage request -> health change
   [`projectile_system.cpp`](../src/combat/projectile_system.cpp): attack intentions produce
   hits and queue damage. See the [attack timing example](ARCHITECTURE.md#attack-timing-example)
   for phase advancement and hit checks across a large update.
-- Read [`actor_lifecycle.cpp`](../src/actor/actor_lifecycle.cpp): `applyDamageRequests`
-  reduces health and starts fatal deaths. `updateActorLifecycle` also advances existing
-  death timers, respawns the player, and queues NPC removal.
+- Read [`actor_lifecycle.cpp`](../src/actor/actor_lifecycle.cpp): `updateActorLifecycle`
+  applies queued damage, starts fatal deaths, advances existing death timers, respawns
+  the player, and queues NPC removal.
 - Read [`world_requests.cpp`](../src/world/world_requests.cpp) for applying queued
-  removals and spawns. It also applies damage without advancing death timers, so requests
-  can be applied while paused.
-- **Combat tests:** "Damage is deferred until world requests are applied" in
-  [`test_world_requests.cpp`](../tests/world/test_world_requests.cpp), then "Fatal damage
+  removals, spawns, collection, and item use after lifecycle updates. UI item use can
+  be applied while paused without advancing simulation.
+- **Combat tests:** "Damage is deferred until actor lifecycle updates", then "Fatal damage
   begins a timed death" in
   [`test_actor_lifecycle.cpp`](../tests/actor/test_actor_lifecycle.cpp).
 - **Check:** When does a hit reduce health, and when does a dying actor's timer advance?
@@ -304,10 +303,9 @@ attack intention -> hit check -> damage request -> health change
 <details>
 <summary>Answer</summary>
 
-A hit queues damage; `applyDamageRequests` reduces health. During simulation,
-`updateActorLifecycle` applies that damage and advances timers only for actors
-already dying when it began. A newly fatal hit therefore keeps its full death timer.
-`applyWorldRequests` can also apply damage, but does not advance death timers.
+A hit queues damage; `updateActorLifecycle` reduces health and advances timers only
+for actors already dying when it began. A newly fatal hit therefore keeps its full
+death timer. `applyWorldRequests` handles the queued removals and spawns afterward.
 
 </details>
 

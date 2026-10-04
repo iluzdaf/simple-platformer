@@ -57,7 +57,7 @@ TEST_CASE(
     const auto info =
         simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds);
     REQUIRE(info.has_value());
-    const auto& cells = info->cells;
+    const auto cells = info.value_or(simple_platformer::NavigationConnectionsDebugInfo{}).cells;
     REQUIRE(cells.size() == 5);
     REQUIRE(cells.front().bounds.topLeft == glm::vec2{0.0F, 16.0F});
     REQUIRE(cells.front().bounds.size == glm::vec2{16.0F, 16.0F});
@@ -83,10 +83,11 @@ TEST_CASE(
     const auto info =
         simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds);
     REQUIRE(info.has_value());
-    REQUIRE(info->cells.size() == 5);
+    const auto cells = info.value_or(simple_platformer::NavigationConnectionsDebugInfo{}).cells;
+    REQUIRE(cells.size() == 5);
     REQUIRE(std::all_of(
-        info->cells.begin(),
-        info->cells.end(),
+        cells.begin(),
+        cells.end(),
         [](const simple_platformer::NavigationCellDebugInfo& cell)
         { return cell.connections.has_value() && *cell.connections > 0; }));
 }
@@ -110,7 +111,7 @@ TEST_CASE(
     const auto info =
         simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds);
     REQUIRE(info.has_value());
-    const auto& cells = info->cells;
+    const auto cells = info.value_or(simple_platformer::NavigationConnectionsDebugInfo{}).cells;
     // The cell above the hole loses its floor. The hole rests on the map's bottom boundary.
     REQUIRE(cells.size() == 5);
     const auto listed = [&cells](glm::vec2 position)
@@ -154,7 +155,7 @@ TEST_CASE("Navigation debug data shows the selected traversal profile", "[app][d
         const auto info = simple_platformer::makeNavigationConnectionsDebugInfo(
             world, map, tests::FixedStepSeconds, view);
         REQUIRE(info.has_value());
-        return *info;
+        return info.value_or(simple_platformer::NavigationConnectionsDebugInfo{});
     };
 
     // The index picks a profile in the order first found and wraps; an actor name is
@@ -162,7 +163,8 @@ TEST_CASE("Navigation debug data shows the selected traversal profile", "[app][d
     const auto unnamed =
         simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds);
     REQUIRE(unnamed.has_value());
-    REQUIRE(unnamed->actorName.empty());
+    REQUIRE(
+        unnamed.value_or(simple_platformer::NavigationConnectionsDebugInfo{}).actorName.empty());
     REQUIRE(infoFor(0).profileCount == 2);
     REQUIRE(infoFor(0).profileIndex == 0);
     REQUIRE(infoFor(0).bodySize == glm::vec2{12.0F, 12.0F});

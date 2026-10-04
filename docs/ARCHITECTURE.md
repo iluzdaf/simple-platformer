@@ -39,8 +39,13 @@ together. Replacing it starts a fresh world.
 - `Game::update` writes player intentions, runs simulation, handles completion, then
   updates the camera and presentation.
 - Rendering reads the resulting state at the available frame rate.
-- Pausing or opening inventory resets accumulated time and clears gameplay input.
-  Drawing continues; animations and cover fades wait for another simulation step.
+- `preparePlayerInput` clears buttons and pending edges while inventory is open,
+  the game is complete, play is interrupted, or the UI captures the keyboard.
+  Without a gameplay cursor, it clears only attack input.
+- `runGameUpdates` resets accumulated time while inventory is open, the game is
+  complete, or play is interrupted. UI capture alone does not stop simulation.
+- Drawing continues while inventory is open; animations and cover fades wait for
+  simulation to resume.
 
 [`updateWorldSimulation`](../src/world/world_simulation.cpp) owns this order:
 

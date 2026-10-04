@@ -96,15 +96,15 @@ namespace simple_platformer
             return candidate <= 0.0F && candidate >= requested;
         }
 
-        struct SweepResult
+        struct CollisionSweepResult
         {
             float distance = 0.0F;
             bool hitTile = false;
         };
 
-        // Scan columns nearest first, checking only the rows overlapped by the body.
+        // Horizontal tile collision: scan columns nearest first, checking the body's rows.
         // Include the outside column at either map wall, but never scan beyond it.
-        SweepResult sweepHorizontal(
+        CollisionSweepResult sweepHorizontalCollision(
             const TileMap& map,
             const Aabb& bounds,
             float requested,
@@ -165,9 +165,9 @@ namespace simple_platformer
             return {requested, false};
         }
 
-        // Scan rows nearest first, checking only the columns overlapped by the body.
+        // Vertical tile collision: scan rows nearest first, checking the body's columns.
         // The outside bottom row blocks movement; the outside top row remains open.
-        SweepResult sweepVertical(
+        CollisionSweepResult sweepVerticalCollision(
             const TileMap& map,
             const Aabb& bounds,
             float requested,
@@ -228,15 +228,17 @@ namespace simple_platformer
             return {requested, false};
         }
 
+        // Reuse collision sweeps as short contact probes. Climbable selects grip
+        // surfaces; ordinary movement always selects blocking surfaces.
         CollisionContacts probeSurfaces(const TileMap& map, const Aabb& bounds, SurfaceKind kind)
         {
             validateBounds(map, bounds, {0.0F, 0.0F});
             constexpr float ProbeDistance = 0.01F;
             return {
-                sweepHorizontal(map, bounds, -ProbeDistance, kind).hitTile,
-                sweepHorizontal(map, bounds, ProbeDistance, kind).hitTile,
-                sweepVertical(map, bounds, ProbeDistance, kind).hitTile,
-                sweepVertical(map, bounds, -ProbeDistance, kind).hitTile};
+                sweepHorizontalCollision(map, bounds, -ProbeDistance, kind).hitTile,
+                sweepHorizontalCollision(map, bounds, ProbeDistance, kind).hitTile,
+                sweepVerticalCollision(map, bounds, ProbeDistance, kind).hitTile,
+                sweepVerticalCollision(map, bounds, -ProbeDistance, kind).hitTile};
         }
     }
 
@@ -253,8 +255,8 @@ namespace simple_platformer
 
         CollisionContacts contacts;
         // Resolve X first, then sweep Y from the new horizontal position.
-        const SweepResult horizontal =
-            sweepHorizontal(map, bounds, displacement.x, SurfaceKind::Blocking);
+        const CollisionSweepResult horizontal =
+            sweepHorizontalCollision(map, bounds, displacement.x, SurfaceKind::Blocking);
         bounds.topLeft.x += horizontal.distance;
         if (horizontal.hitTile)
         {
@@ -269,8 +271,8 @@ namespace simple_platformer
             body.velocity.x = 0.0F;
         }
 
-        const SweepResult vertical =
-            sweepVertical(map, bounds, displacement.y, SurfaceKind::Blocking);
+        const CollisionSweepResult vertical =
+            sweepVerticalCollision(map, bounds, displacement.y, SurfaceKind::Blocking);
         bounds.topLeft.y += vertical.distance;
         if (vertical.hitTile)
         {

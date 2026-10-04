@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <optional>
-#include <string>
-#include <vector>
 
 #include <glm/vec2.hpp>
 
@@ -34,30 +32,32 @@ namespace
     }
 }
 
-TEST_CASE("Navigation debug data shows the connection table per cell", "[app][debug][navigation]")
+// Navigation cells
+
+TEST_CASE("Navigation debug data is absent without a platformer NPC", "[app][debug][navigation]")
 {
-    simple_platformer::TileMap map =
-        tests::TileMapBuilder({".....", ".....", "##g##"})
-            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
-    simple_platformer::World world;
-    // Without a platformer NPC there is nothing to show.
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
+    const simple_platformer::World world;
     REQUIRE_FALSE(
         simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds)
             .has_value());
+}
 
+TEST_CASE(
+    "Navigation debug data lists standable cells before preparation",
+    "[app][debug][navigation]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
+    simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .atFeet({8.0F, 32.0F})
                        .platforming()
                        .thinking({64.0F, 1.0F}));
-    const auto cellsOf = [&]
-    {
-        return simple_platformer::makeNavigationConnectionsDebugInfo(
-                   world, map, tests::FixedStepSeconds)
-            .value_or(simple_platformer::NavigationConnectionsDebugInfo{})
-            .cells;
-    };
-    // Before the level prepares navigation, the standable cells are listed without counts.
-    std::vector<simple_platformer::NavigationCellDebugInfo> cells = cellsOf();
+
+    const auto info =
+        simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds);
+    REQUIRE(info.has_value());
+    const auto cells = info.value_or(simple_platformer::NavigationConnectionsDebugInfo{}).cells;
     REQUIRE(cells.size() == 5);
     REQUIRE(cells.front().bounds.topLeft == glm::vec2{0.0F, 16.0F});
     REQUIRE(cells.front().bounds.size == glm::vec2{16.0F, 16.0F});
@@ -66,21 +66,53 @@ TEST_CASE("Navigation debug data shows the connection table per cell", "[app][de
         cells.end(),
         [](const simple_platformer::NavigationCellDebugInfo& cell)
         { return cell.connections.has_value(); }));
+}
 
+TEST_CASE(
+    "Prepared navigation debug cells show their connection counts",
+    "[app][debug][navigation]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
+    simple_platformer::World world;
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .atFeet({8.0F, 32.0F})
+                       .platforming()
+                       .thinking({64.0F, 1.0F}));
     prepare(map, world);
-    cells = cellsOf();
+
+    const auto info =
+        simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds);
+    REQUIRE(info.has_value());
+    const auto cells = info.value_or(simple_platformer::NavigationConnectionsDebugInfo{}).cells;
+    REQUIRE(cells.size() == 5);
     REQUIRE(std::all_of(
         cells.begin(),
         cells.end(),
         [](const simple_platformer::NavigationCellDebugInfo& cell)
         { return cell.connections.has_value() && *cell.connections > 0; }));
+}
 
-    // Once the table applies a break, the cells it rebuilt are shown again.
+TEST_CASE(
+    "Navigation debug cells follow rebuilt terrain after a tile breaks",
+    "[app][debug][navigation]")
+{
+    simple_platformer::TileMap map =
+        tests::TileMapBuilder({".....", ".....", "##g##"})
+            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    simple_platformer::World world;
+    world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
+                       .atFeet({8.0F, 32.0F})
+                       .platforming()
+                       .thinking({64.0F, 1.0F}));
+    prepare(map, world);
     REQUIRE(map.breakTile({2, 2}));
     applyBreaks(map, world);
-    cells = cellsOf();
-    // The cell over the hole can no longer be stood on, so it is not listed; the hole
-    // itself can, since the map's floor blocks beneath it.
+
+    const auto info =
+        simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds);
+    REQUIRE(info.has_value());
+    const auto cells = info.value_or(simple_platformer::NavigationConnectionsDebugInfo{}).cells;
+    // The cell above the hole loses its floor. The hole rests on the map's bottom boundary.
     REQUIRE(cells.size() == 5);
     const auto listed = [&cells](glm::vec2 position)
     {
@@ -92,20 +124,18 @@ TEST_CASE("Navigation debug data shows the connection table per cell", "[app][de
     };
     REQUIRE_FALSE(listed({32.0F, 16.0F}));
     REQUIRE(listed({32.0F, 32.0F}));
-    REQUIRE(std::none_of(
+    REQUIRE(std::all_of(
         cells.begin(),
         cells.end(),
         [](const simple_platformer::NavigationCellDebugInfo& cell)
-        { return !cell.connections.has_value(); }));
+        { return cell.connections.has_value(); }));
 }
 
-TEST_CASE(
-    "Navigation debug data shows the selected traversal profile and connection totals",
-    "[app][debug][navigation]")
+// Profile selection
+
+TEST_CASE("Navigation debug data shows the selected traversal profile", "[app][debug][navigation]")
 {
-    simple_platformer::TileMap map =
-        tests::TileMapBuilder({".....", ".....", "##g##"})
-            .where('g', tests::Tile().blocksMovement().breaksInto('.'));
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".....", "#####"});
     simple_platformer::World world;
     world.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                        .atFeet({8.0F, 32.0F})
@@ -115,7 +145,6 @@ TEST_CASE(
                        .atFeet({40.0F, 32.0F})
                        .platforming()
                        .thinking({64.0F, 1.0F}));
-    prepare(map, world);
     const auto infoFor = [&](std::size_t profileIndex)
     {
         simple_platformer::NavigationDebugView view;
@@ -123,17 +152,19 @@ TEST_CASE(
         view.namedProfiles = {
             {"soldier", {{12.0F, 20.0F}, {}, tests::FixedStepSeconds}},
             {"zombie", {{12.0F, 12.0F}, {}, tests::FixedStepSeconds}}};
-        return simple_platformer::makeNavigationConnectionsDebugInfo(
-                   world, map, tests::FixedStepSeconds, view)
-            .value_or(simple_platformer::NavigationConnectionsDebugInfo{});
+        const auto info = simple_platformer::makeNavigationConnectionsDebugInfo(
+            world, map, tests::FixedStepSeconds, view);
+        REQUIRE(info.has_value());
+        return info.value_or(simple_platformer::NavigationConnectionsDebugInfo{});
     };
 
     // The index picks a profile in the order first found and wraps; an actor name is
     // shown when the matching profile has one.
+    const auto unnamed =
+        simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds);
+    REQUIRE(unnamed.has_value());
     REQUIRE(
-        simple_platformer::makeNavigationConnectionsDebugInfo(world, map, tests::FixedStepSeconds)
-            .value_or(simple_platformer::NavigationConnectionsDebugInfo{})
-            .actorName.empty());
+        unnamed.value_or(simple_platformer::NavigationConnectionsDebugInfo{}).actorName.empty());
     REQUIRE(infoFor(0).profileCount == 2);
     REQUIRE(infoFor(0).profileIndex == 0);
     REQUIRE(infoFor(0).bodySize == glm::vec2{12.0F, 12.0F});
@@ -142,13 +173,9 @@ TEST_CASE(
     REQUIRE(infoFor(1).bodySize == glm::vec2{12.0F, 20.0F});
     REQUIRE(infoFor(1).actorName == "soldier");
     REQUIRE(infoFor(2).profileIndex == 0);
-
-    REQUIRE(infoFor(0).cellsConnected == 5);
-    REQUIRE(map.breakTile({2, 2}));
-    applyBreaks(map, world);
-    REQUIRE(infoFor(0).cells.size() == 5);
-    REQUIRE(infoFor(0).cellsConnected > 0);
 }
+
+// Cursor connections
 
 TEST_CASE(
     "Navigation debug data shows the cursor cell's connections and footprint",
@@ -214,6 +241,8 @@ TEST_CASE(
     REQUIRE(sawArc);
 }
 
+// Climbing cells
+
 TEST_CASE(
     "Navigation debug data lists the cells a climber can only hold a wall or ceiling in",
     "[app][debug][navigation][climb]")
@@ -250,7 +279,7 @@ TEST_CASE(
     REQUIRE_FALSE(isListed(walking, {16.0F, 16.0F}));
 
     // A climber is also shown the cells along the wall and under the ceiling, marked as
-    // ones it cannot stand in, and they are counted.
+    // ones it cannot stand in.
     simple_platformer::World climbers;
     climbers.addActor(tests::ActorBuilder::sized({12.0F, 12.0F})
                           .inCell({3, 3})

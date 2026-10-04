@@ -148,13 +148,13 @@ namespace simple_platformer
         }
     }
 
-    void drawNavigationTotals(
+    void drawNavigationProfile(
         ImDrawList& drawList,
         const NavigationConnectionsDebugInfo& navigation,
         ImVec2& position)
     {
         constexpr float Indentation = 12.0F;
-        drawTextLine(drawList, position, "navigation connections", TextHeadingColour);
+        drawTextLine(drawList, position, "navigation profile", TextHeadingColour);
         char text[48];
         if (navigation.actorName.empty())
         {
@@ -176,14 +176,6 @@ namespace simple_platformer
             "shown:  %zu/%zu (N)",
             navigation.profileIndex + 1,
             navigation.profileCount);
-        drawTextLine(drawList, position, text, TextDetailColour, Indentation);
-        // Cells with connections, over every displayed cell.
-        std::snprintf(
-            text,
-            sizeof(text),
-            "cells:  %zu/%zu",
-            navigation.cellsConnected,
-            navigation.cells.size());
         drawTextLine(drawList, position, text, TextDetailColour, Indentation);
     }
 }

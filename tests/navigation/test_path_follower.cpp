@@ -1,7 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <vector>
-
 #include "simple_platformer/input/input_state.hpp"
 #include "simple_platformer/math/aabb.hpp"
 #include "simple_platformer/math/coordinates.hpp"
@@ -21,6 +19,27 @@
 #include "support/fixed_step.hpp"
 #include "support/navigation_paths.hpp"
 #include "support/route_connections.hpp"
+
+namespace
+{
+    // A generated jump's landing and recorded inputs, or a failure if none is found.
+    simple_platformer::RouteStep generatedJumpFrom(
+        const simple_platformer::TileMap& map,
+        simple_platformer::Cell takeoff,
+        glm::vec2 bodySize,
+        const simple_platformer::PlatformerMovementConfig& movement)
+    {
+        const auto connections = simple_platformer::buildPlatformerConnections(
+            map,
+            takeoff,
+            simple_platformer::PlatformerTraversalProfile{
+                bodySize, movement, tests::FixedStepSeconds});
+        return tests::connectionWith(connections.connections, simple_platformer::Traversal::Jump)
+            .step;
+    }
+}
+
+// Following paths
 
 TEST_CASE("A flying path follower produces intentions for its next step", "[navigation][follower]")
 {
@@ -78,21 +97,14 @@ TEST_CASE(
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
-    const std::vector<simple_platformer::RouteConnection> connections =
-        simple_platformer::buildPlatformerConnections(
-            map,
-            {2, 2},
-            simple_platformer::PlatformerTraversalProfile{
-                bodySize, config, tests::FixedStepSeconds})
-            .connections;
-    const simple_platformer::RouteConnection& jump =
-        tests::connectionWith(connections, simple_platformer::Traversal::Jump);
+    const simple_platformer::RouteStep jump = generatedJumpFrom(map, {2, 2}, bodySize, config);
 
     simple_platformer::PathFollower follower;
-    simple_platformer::setPath(follower, tests::floorPath({2, 2}, {jump.step}));
+    simple_platformer::setPath(follower, tests::floorPath({2, 2}, {jump}));
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {0.0F, 0.0F}};
-    simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
+    simple_platformer::PlatformerMovement movement{config};
+    movement.grounded = true;
 
     for (int tick = 0; tick < 180 && !simple_platformer::pathComplete(follower); ++tick)
     {
@@ -106,8 +118,10 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.step.destination.cell);
+        jump.destination.cell);
 }
+
+// Preparing for a jump
 
 TEST_CASE(
     "A platformer path follower approaches and brakes without moving the body directly",
@@ -117,22 +131,15 @@ TEST_CASE(
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
-    const std::vector<simple_platformer::RouteConnection> connections =
-        simple_platformer::buildPlatformerConnections(
-            map,
-            {2, 2},
-            simple_platformer::PlatformerTraversalProfile{
-                bodySize, config, tests::FixedStepSeconds})
-            .connections;
-    const simple_platformer::RouteConnection& jump =
-        tests::connectionWith(connections, simple_platformer::Traversal::Jump);
+    const simple_platformer::RouteStep jump = generatedJumpFrom(map, {2, 2}, bodySize, config);
 
     simple_platformer::PathFollower follower;
-    simple_platformer::setPath(follower, tests::floorPath({2, 2}, {jump.step}));
+    simple_platformer::setPath(follower, tests::floorPath({2, 2}, {jump}));
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {80.0F, 0.0F}};
     body.bounds.topLeft.x -= 6.0F;
-    simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
+    simple_platformer::PlatformerMovement movement{config};
+    movement.grounded = true;
     bool preparedForJump = false;
 
     for (int tick = 0; tick < 240 && !simple_platformer::pathComplete(follower); ++tick)
@@ -155,7 +162,7 @@ TEST_CASE(
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.step.destination.cell);
+        jump.destination.cell);
 }
 
 TEST_CASE(
@@ -164,25 +171,19 @@ TEST_CASE(
 {
     const simple_platformer::TileMap map =
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
+    constexpr simple_platformer::Cell WalkStart{1, 2};
+    constexpr simple_platformer::Cell Takeoff{2, 2};
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
-    const std::vector<simple_platformer::RouteConnection> connections =
-        simple_platformer::buildPlatformerConnections(
-            map,
-            {2, 2},
-            simple_platformer::PlatformerTraversalProfile{
-                bodySize, config, tests::FixedStepSeconds})
-            .connections;
-    const simple_platformer::RouteConnection& jump =
-        tests::connectionWith(connections, simple_platformer::Traversal::Jump);
+    const simple_platformer::RouteStep jump = generatedJumpFrom(map, Takeoff, bodySize, config);
 
+    const simple_platformer::RouteStep walk{{Takeoff}, simple_platformer::Traversal::Walk, {}};
     simple_platformer::PathFollower follower;
-    simple_platformer::setPath(
-        follower,
-        tests::floorPath({1, 2}, {{{{2, 2}}, simple_platformer::Traversal::Walk, {}}, jump.step}));
+    simple_platformer::setPath(follower, tests::floorPath(WalkStart, {walk, jump}));
     simple_platformer::Body body{
-        simple_platformer::boxInCell(tests::TileSize, {1, 2}, bodySize), {0.0F, 0.0F}};
-    simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
+        simple_platformer::boxInCell(tests::TileSize, WalkStart, bodySize), {0.0F, 0.0F}};
+    simple_platformer::PlatformerMovement movement{config};
+    movement.grounded = true;
     bool brakedAfterWalking = false;
 
     for (int tick = 0; tick < 360 && !simple_platformer::pathComplete(follower); ++tick)
@@ -190,19 +191,24 @@ TEST_CASE(
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
                 body, movement, follower, tests::FixedStepSeconds);
-        brakedAfterWalking =
-            brakedAfterWalking ||
-            (follower.nextStep == 0 && body.velocity.x != 0.0F && intentions.direction.x == 0.0F);
+        // Before leaving the walk, stop requesting movement while the body is still moving.
+        if (follower.nextStep == 0 && body.velocity.x != 0.0F && intentions.direction.x == 0.0F)
+        {
+            brakedAfterWalking = true;
+        }
         simple_platformer::updatePlatformerMovement(
             map, body, movement, intentions, tests::FixedStepSeconds);
     }
 
     REQUIRE(brakedAfterWalking);
+    REQUIRE(follower.path.has_value());
     REQUIRE(simple_platformer::pathComplete(follower));
     REQUIRE(
         simple_platformer::cellAtFeet(tests::TileSize, simple_platformer::feetOf(body.bounds)) ==
-        jump.step.destination.cell);
+        jump.destination.cell);
 }
+
+// Failed landings
 
 TEST_CASE(
     "A platformer path follower drops a path whose jump lands on another row",
@@ -212,24 +218,17 @@ TEST_CASE(
         tests::TileMapBuilder({"..........", "....##....", "..........", "##########"});
     const glm::vec2 bodySize{12.0F, 12.0F};
     const simple_platformer::PlatformerMovementConfig config;
-    const std::vector<simple_platformer::RouteConnection> connections =
-        simple_platformer::buildPlatformerConnections(
-            map,
-            {2, 2},
-            simple_platformer::PlatformerTraversalProfile{
-                bodySize, config, tests::FixedStepSeconds})
-            .connections;
-    const simple_platformer::RouteConnection& jump =
-        tests::connectionWith(connections, simple_platformer::Traversal::Jump);
+    const simple_platformer::RouteStep jump = generatedJumpFrom(map, {2, 2}, bodySize, config);
 
     // The same jump, but its waypoint claims a row above where it really lands.
-    simple_platformer::NavigationPath path = tests::floorPath({2, 2}, {jump.step});
+    simple_platformer::NavigationPath path = tests::floorPath({2, 2}, {jump});
     path.waypoints.front().feet.y -= static_cast<float>(tests::TileSize);
     simple_platformer::PathFollower follower;
     simple_platformer::setPath(follower, path);
     simple_platformer::Body body{
         simple_platformer::boxInCell(tests::TileSize, {2, 2}, bodySize), {0.0F, 0.0F}};
-    simple_platformer::PlatformerMovement movement{config, true, 0.0F, 0.0F};
+    simple_platformer::PlatformerMovement movement{config};
+    movement.grounded = true;
 
     for (int tick = 0; tick < 240 && follower.path.has_value(); ++tick)
     {
@@ -243,6 +242,8 @@ TEST_CASE(
     REQUIRE_FALSE(follower.path.has_value());
     REQUIRE(movement.grounded);
 }
+
+// Replay timing and path resets
 
 TEST_CASE("A jump replay stays started when no time has elapsed", "[navigation][follower]")
 {

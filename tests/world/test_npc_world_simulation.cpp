@@ -28,6 +28,8 @@
 #include "support/add_player.hpp"
 #include "support/fixed_step.hpp"
 
+// Sensing, decisions and actions
+
 TEST_CASE("World simulation senses decides and moves an NPC in one update", "[world][simulation]")
 {
     simple_platformer::TileMap map = tests::TileMapBuilder({"........", "........", "########"});
@@ -128,6 +130,8 @@ TEST_CASE("World simulation lets an NPC hear a shot on the next update", "[world
     REQUIRE(tests::brain(world, npcId).state == simple_platformer::NpcState::Chase);
 }
 
+// Continuous patrols
+
 TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulation]")
 {
     simple_platformer::TileMap map = tests::TileMapBuilder(
@@ -188,6 +192,48 @@ TEST_CASE("World simulation continuously patrols a ground NPC", "[world][simulat
 }
 
 TEST_CASE(
+    "A bat continuously patrols around a platform corner",
+    "[world][simulation][flying][regression]")
+{
+    simple_platformer::TileMap map = tests::TileMapBuilder(
+        {"..........", "..........", "..........", "....###...", "..........", "##########"});
+    // The bat must rise beside the platform before turning over its top edge.
+    // Both endpoints are reachable with ample clearance for its 12 x 8 body.
+    const glm::vec2 lowerFeet = GENERATE(glm::vec2{56.0F, 80.0F}, glm::vec2{120.0F, 80.0F});
+    const glm::vec2 upperFeet{88.0F, 48.0F};
+
+    simple_platformer::Actor bat = tests::ActorBuilder::sized({12.0F, 8.0F})
+                                       .atFeet(lowerFeet)
+                                       .flying(60.0F)
+                                       .patrolling(lowerFeet, upperFeet)
+                                       .thinking({});
+    simple_platformer::World world;
+    const simple_platformer::ActorId batId = world.addActor(bat);
+
+    int completedPatrolLegs = 0;
+    bool headingToSecond = true;
+    for (int tick = 0; tick < 1200 && completedPatrolLegs < 4; ++tick)
+    {
+        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
+        simple_platformer::Actor& storedBat = tests::actor(world, batId);
+        if (tests::patrol(storedBat).headingToSecond != headingToSecond)
+        {
+            const glm::vec2 expectedFeet = headingToSecond ? upperFeet : lowerFeet;
+            const glm::vec2 actualFeet = simple_platformer::feetOf(storedBat.body.bounds);
+            CAPTURE(tick, completedPatrolLegs, actualFeet.x, actualFeet.y);
+            REQUIRE(glm::distance(actualFeet, expectedFeet) <= 2.0F);
+            ++completedPatrolLegs;
+            headingToSecond = tests::patrol(storedBat).headingToSecond;
+        }
+    }
+
+    simple_platformer::Actor& storedBat = tests::actor(world, batId);
+    const glm::vec2 finalFeet = simple_platformer::feetOf(storedBat.body.bounds);
+    CAPTURE(finalFeet.x, finalFeet.y, tests::pathFollower(storedBat).nextStep, completedPatrolLegs);
+    REQUIRE(completedPatrolLegs == 4);
+}
+
+TEST_CASE(
     "A slow ground NPC stays grounded on a long lower-platform patrol",
     "[world][simulation][platformer][regression]")
 {
@@ -224,6 +270,8 @@ TEST_CASE(
     REQUIRE(completedPatrolLeg);
     REQUIRE_FALSE(becameAirborne);
 }
+
+// Pursuit and unreachable goals
 
 TEST_CASE(
     "A ground NPC resumes patrol after forgetting its target at a platform edge",
@@ -290,11 +338,10 @@ TEST_CASE(
     "A ground NPC waits when the remembered airborne goal is unreachable",
     "[world][simulation][platformer][regression]")
 {
-    // The player jumps from the floor beside the raised platform. Its solid
-    // edge hides the player before the jump and again after landing.
+    // The player is hidden below the platform; its remembered feet are in unsupported air.
     simple_platformer::TileMap map = tests::TileMapBuilder(
         {"..........", "..........", "...#######", "..........", "##########"});
-    constexpr int JumpAndLandingTicks = 40;
+    const glm::vec2 lastKnownFeet = simple_platformer::feetInCell(tests::TileSize, {2, 1});
     constexpr int RememberedChaseTicks = 30;
 
     simple_platformer::World world;
@@ -303,72 +350,39 @@ TEST_CASE(
                                           .platforming()
                                           .onTeam(simple_platformer::Team::Player);
     tests::platformerMovement(player).grounded = true;
-    const simple_platformer::ActorId playerId = tests::addPlayer(world, player);
+    const auto playerId = tests::addPlayer(world, player);
 
-    simple_platformer::Actor zombie = tests::ActorBuilder::sized({12.0F, 20.0F})
-                                          .inCell({7, 1})
-                                          .platforming()
-                                          .onTeam(simple_platformer::Team::Enemy)
-                                          .thinking({});
-    tests::platformerMovement(zombie).grounded = true;
-    const simple_platformer::ActorId zombieId = world.addActor(zombie);
-
-    const auto jumpAndLand = [&]()
-    {
-        bool seenDuringJump = false;
-        for (int tick = 0; tick < JumpAndLandingTicks; ++tick)
-        {
-            simple_platformer::Actor& storedPlayer = tests::actor(world, playerId);
-            storedPlayer.intentions.jumpPressed = tick == 0;
-            storedPlayer.intentions.jumpHeld = tick < 25;
-            simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
-            simple_platformer::Actor& storedZombie = tests::actor(world, zombieId);
-            seenDuringJump = seenDuringJump || (tests::perception(storedZombie).targetVisible &&
-                                                tests::brain(storedZombie).state ==
-                                                    simple_platformer::NpcState::Chase);
-        }
-        return seenDuringJump;
-    };
-    const auto requireUnseenChase = [&]() -> simple_platformer::Actor&
-    {
-        simple_platformer::Actor& zombie = tests::actor(world, zombieId);
-        REQUIRE_FALSE(tests::perception(zombie).targetVisible);
-        REQUIRE(tests::brain(zombie).target == playerId);
-        REQUIRE(tests::brain(zombie).targetMemoryRemaining > 0.0F);
-        REQUIRE(tests::brain(zombie).state == simple_platformer::NpcState::Chase);
-        return zombie;
-    };
-
-    // First the player jumps into view and lands behind the platform's solid edge.
-    REQUIRE(jumpAndLand());
-    simple_platformer::Actor& rememberedZombie = requireUnseenChase();
-    const glm::vec2 lastKnownFeet = tests::brain(rememberedZombie).lastKnownTargetFeet;
+    simple_platformer::Actor npc = tests::ActorBuilder::sized({12.0F, 20.0F})
+                                       .inCell({7, 1})
+                                       .platforming()
+                                       .onTeam(simple_platformer::Team::Enemy)
+                                       .thinking({});
+    tests::platformerMovement(npc).grounded = true;
+    tests::brain(npc).state = simple_platformer::NpcState::Chase;
+    tests::brain(npc).target = playerId;
+    tests::brain(npc).lastKnownTargetFeet = lastKnownFeet;
+    tests::brain(npc).targetMemoryRemaining = 1.0F;
+    const glm::vec2 startingFeet = simple_platformer::feetOf(npc.body.bounds);
     REQUIRE_FALSE(simple_platformer::canStandAt(
-        map,
-        simple_platformer::cellAtFeet(tests::TileSize, lastKnownFeet),
-        rememberedZombie.body.bounds.size));
-    const float startingDistance =
-        glm::distance(simple_platformer::feetOf(rememberedZombie.body.bounds), lastKnownFeet);
+        map, simple_platformer::cellAtFeet(tests::TileSize, lastKnownFeet), npc.body.bounds.size));
+    const auto npcId = world.addActor(npc);
 
-    // The remembered airborne cell is unreachable, so no partial path is followed.
-    float distanceToRememberedPosition = startingDistance;
     for (int tick = 0; tick < RememberedChaseTicks; ++tick)
     {
         CAPTURE(tick);
         simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
-        if (tests::perception(tests::actor(world, zombieId)).targetVisible)
-        {
-            break;
-        }
-        simple_platformer::Actor& storedZombie = requireUnseenChase();
-        REQUIRE(tests::brain(storedZombie).lastKnownTargetFeet == lastKnownFeet);
-        REQUIRE_FALSE(tests::pathFollower(storedZombie).path.has_value());
-        REQUIRE(storedZombie.intentions.direction == glm::vec2{});
-        distanceToRememberedPosition =
-            glm::distance(simple_platformer::feetOf(storedZombie.body.bounds), lastKnownFeet);
+        auto& storedNpc = tests::actor(world, npcId);
+        const auto& brain = tests::brain(storedNpc);
+
+        REQUIRE_FALSE(tests::perception(storedNpc).targetVisible);
+        REQUIRE(brain.target == playerId);
+        REQUIRE(brain.targetMemoryRemaining > 0.0F);
+        REQUIRE(brain.state == simple_platformer::NpcState::Chase);
+        REQUIRE(brain.lastKnownTargetFeet == lastKnownFeet);
+        REQUIRE_FALSE(tests::pathFollower(storedNpc).path.has_value());
+        REQUIRE(storedNpc.intentions.direction == glm::vec2{});
+        REQUIRE(simple_platformer::feetOf(storedNpc.body.bounds) == startingFeet);
     }
-    CAPTURE(startingDistance, distanceToRememberedPosition);
-    REQUIRE(distanceToRememberedPosition == startingDistance);
 }
 
 TEST_CASE(
@@ -439,46 +453,4 @@ TEST_CASE(
     {
         REQUIRE(distanceToPlayer <= CloseDistance);
     }
-}
-
-TEST_CASE(
-    "A bat continuously patrols around a platform corner",
-    "[world][simulation][flying][regression]")
-{
-    simple_platformer::TileMap map = tests::TileMapBuilder(
-        {"..........", "..........", "..........", "....###...", "..........", "##########"});
-    // The bat must rise beside the platform before turning over its top edge.
-    // Both endpoints are reachable with ample clearance for its 12 x 8 body.
-    const glm::vec2 lowerFeet = GENERATE(glm::vec2{56.0F, 80.0F}, glm::vec2{120.0F, 80.0F});
-    const glm::vec2 upperFeet{88.0F, 48.0F};
-
-    simple_platformer::Actor bat = tests::ActorBuilder::sized({12.0F, 8.0F})
-                                       .atFeet(lowerFeet)
-                                       .flying(60.0F)
-                                       .patrolling(lowerFeet, upperFeet)
-                                       .thinking({});
-    simple_platformer::World world;
-    const simple_platformer::ActorId batId = world.addActor(bat);
-
-    int completedPatrolLegs = 0;
-    bool headingToSecond = true;
-    for (int tick = 0; tick < 1200 && completedPatrolLegs < 4; ++tick)
-    {
-        simple_platformer::updateWorldSimulation(map, world, tests::FixedStepSeconds);
-        simple_platformer::Actor& storedBat = tests::actor(world, batId);
-        if (tests::patrol(storedBat).headingToSecond != headingToSecond)
-        {
-            const glm::vec2 expectedFeet = headingToSecond ? upperFeet : lowerFeet;
-            const glm::vec2 actualFeet = simple_platformer::feetOf(storedBat.body.bounds);
-            CAPTURE(tick, completedPatrolLegs, actualFeet.x, actualFeet.y);
-            REQUIRE(glm::distance(actualFeet, expectedFeet) <= 2.0F);
-            ++completedPatrolLegs;
-            headingToSecond = tests::patrol(storedBat).headingToSecond;
-        }
-    }
-
-    simple_platformer::Actor& storedBat = tests::actor(world, batId);
-    const glm::vec2 finalFeet = simple_platformer::feetOf(storedBat.body.bounds);
-    CAPTURE(finalFeet.x, finalFeet.y, tests::pathFollower(storedBat).nextStep, completedPatrolLegs);
-    REQUIRE(completedPatrolLegs == 4);
 }

@@ -70,7 +70,8 @@ everyday development.
 
 ## macOS: configure, build, and test
 
-The shared macOS preset uses the build tools supplied with Xcode.
+The shared macOS preset uses the build tools supplied with Xcode. Run the commands
+below from the repository root.
 
 ```sh
 cmake --preset mac-debug
@@ -81,8 +82,7 @@ ctest --preset mac-debug
 Run the example game:
 
 ```sh
-cd build/mac-debug
-./simple_platformer
+build/mac-debug/simple_platformer
 ```
 
 To check performance,

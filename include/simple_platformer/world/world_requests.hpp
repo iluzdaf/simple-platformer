@@ -38,7 +38,7 @@ namespace simple_platformer
             std::size_t slot = 0;
         };
 
-        friend void applyDamageRequests(World&, WorldRequests&);
+        friend void updateActorLifecycle(World&, WorldRequests&, float);
         friend void applyWorldRequests(World&, WorldRequests&);
 
         std::vector<DamageRequest> damageRequests;
@@ -51,7 +51,8 @@ namespace simple_platformer
         std::vector<UseItemRequest> itemUses;
     };
 
-    // Applies damage, item use, collection and structural changes without advancing time.
+    // Applies item use, collection and structural changes without advancing time.
+    // Queued damage is consumed separately by updateActorLifecycle.
     // Use this for UI requests while paused.
     void applyWorldRequests(World& world, WorldRequests& requests);
 }

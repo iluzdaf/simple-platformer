@@ -62,8 +62,9 @@ together. Replacing it starts a fresh world.
 
 - Systems update existing objects while iterating. Spawns and removals go into
   `WorldRequests` and are applied after iteration.
-- Actor lifecycle owns damage, death timers, and respawning; `WorldRequests` holds
-  deferred changes.
+- `updateActorLifecycle` alone applies damage and owns death timers and respawning.
+  `WorldRequests` holds deferred changes; `applyWorldRequests` applies item use,
+  collection, spawns, and removals.
 - Simulation calls `updateActorLifecycle`, then `updatePickups`, then
   `applyWorldRequests`. This lets pickups see damage and respawns before queued changes
   alter the lists. For inventory clicks, `drawInterface` returns a slot request; the

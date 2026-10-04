@@ -3,6 +3,7 @@
 #include <glm/vec2.hpp>
 
 #include "simple_platformer/actor/actor.hpp"
+#include "simple_platformer/actor/actor_lifecycle.hpp"
 #include "simple_platformer/actor/actor_id.hpp"
 #include "simple_platformer/combat/attack_system.hpp"
 #include "simple_platformer/combat/combat.hpp"
@@ -43,12 +44,12 @@ TEST_CASE("A bite uses windup active and recovery phases", "[combat][bite]")
     REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Windup);
 
     simple_platformer::updateAttacks(world, requests, 0.12F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE(tests::health(world, target).current == 2);
     REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Active);
 
     simple_platformer::updateAttacks(world, requests, 0.04F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE(tests::health(world, target).current == 2);
 
     simple_platformer::updateAttacks(world, requests, 0.04F);
@@ -71,7 +72,7 @@ TEST_CASE("A large update preserves a new bite and hits when crossing Active", "
 
     // Starting an attack does not spend this update's time on its new Windup.
     simple_platformer::updateAttacks(world, requests, 1.0F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Windup);
     REQUIRE_NEAR(tests::bite(world, attackerId).phaseTimeRemaining, 0.12F);
     REQUIRE(tests::health(world, targetId).current == 3);
@@ -92,11 +93,11 @@ TEST_CASE("A large update preserves a new bite and hits when crossing Active", "
     // Both updates must check hits, even though neither ends in Active.
     REQUIRE(tests::bite(world, attackerId).actorsHit.size() == 1);
     REQUIRE(tests::bite(world, attackerId).actorsHit.front() == targetId);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE(tests::health(world, targetId).current == 2);
     tests::actor(world, attackerId).intentions.primaryAttackPressed = false;
     simple_platformer::updateAttacks(world, requests, 0.0F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE(tests::health(world, targetId).current == 2);
 }
 
@@ -111,7 +112,7 @@ TEST_CASE("A ready bite is harmless and never lunges", "[combat][bite]")
     simple_platformer::WorldRequests requests;
 
     simple_platformer::updateAttacks(world, requests, 1.0F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
 
     REQUIRE(tests::health(world, target).current == 3);
     REQUIRE(tests::actor(world, attackerId).body.bounds.topLeft.x == 10.0F);
@@ -133,7 +134,7 @@ TEST_CASE("A committed bite completes but can miss", "[combat][bite]")
     simple_platformer::Actor& movedTarget = tests::actor(world, target);
     movedTarget.body.bounds.topLeft.x = 100.0F;
     simple_platformer::updateAttacks(world, requests, 0.51F);
-    simple_platformer::applyWorldRequests(world, requests);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
 
     REQUIRE(tests::health(world, target).current == 3);
     REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Ready);

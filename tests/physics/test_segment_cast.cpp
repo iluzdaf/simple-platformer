@@ -131,3 +131,61 @@ TEST_CASE("Expanding a target by a moving box grows it half the box each side", 
     REQUIRE(expanded.topLeft == glm::vec2{9.0F, 7.0F});
     REQUIRE(expanded.size == glm::vec2{6.0F, 10.0F});
 }
+
+TEST_CASE(
+    "Movement casts choose the nearest hit against tile scan order",
+    "[physics][segment][tile]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".x.x.", "....."})
+                                               .where('x', tests::Tile().blocksMovement());
+    const auto hit = simple_platformer::segmentCastMovementBlockingTiles(
+        map, {72.0F, 24.0F}, {8.0F, 24.0F}, {4.0F, 4.0F});
+
+    if (!hit)
+    {
+        throw std::logic_error("Expected the cast to hit the nearer tile");
+    }
+    REQUIRE(hit->cell == simple_platformer::Cell{3, 1});
+    REQUIRE_NEAR(hit->segmentTime, 6.0F / 64.0F);
+}
+
+TEST_CASE(
+    "Sight cover is joined in travel order against tile scan order",
+    "[physics][segment][tile]")
+{
+    const simple_platformer::TileMap connected =
+        tests::TileMapBuilder({"......", ".ccccc", "......"})
+            .where('c', tests::Tile().blocksSight());
+    const simple_platformer::TileMap separated =
+        tests::TileMapBuilder({"......", ".c.ccc", "......"})
+            .where('c', tests::Tile().blocksSight());
+    const glm::vec2 start{88.0F, 24.0F};
+    const glm::vec2 end{8.0F, 24.0F};
+
+    REQUIRE_FALSE(simple_platformer::segmentCastSightBlockingTiles(connected, start, end));
+    const auto hit = simple_platformer::segmentCastSightBlockingTiles(separated, start, end);
+    REQUIRE(hit.has_value());
+    REQUIRE_NEAR(hit.value_or(-1.0F), 56.0F / 80.0F);
+}
+
+TEST_CASE(
+    "Movement and sight casts use independent tile blocking rules",
+    "[physics][segment][tile]")
+{
+    const simple_platformer::TileMap map = tests::TileMapBuilder({".....", ".g.c.", "....."})
+                                               .where('g', tests::Tile().blocksMovement())
+                                               .where('c', tests::Tile().blocksSight());
+    const glm::vec2 start{8.0F, 24.0F};
+    const glm::vec2 end{72.0F, 24.0F};
+
+    const auto movementHit = simple_platformer::segmentCastMovementBlockingTiles(map, start, end);
+    if (!movementHit)
+    {
+        throw std::logic_error("Expected glass to stop movement");
+    }
+    REQUIRE(movementHit->cell == simple_platformer::Cell{1, 1});
+    REQUIRE_NEAR(movementHit->segmentTime, 8.0F / 64.0F);
+    const auto sightHit = simple_platformer::segmentCastSightBlockingTiles(map, start, end);
+    REQUIRE(sightHit.has_value());
+    REQUIRE_NEAR(sightHit.value_or(-1.0F), 40.0F / 64.0F);
+}

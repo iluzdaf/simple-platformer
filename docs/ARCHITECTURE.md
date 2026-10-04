@@ -191,6 +191,27 @@ Stopped                         [===========|################
 - `moveBody` moves the body to `x = 36`, sets `contacts.right`, clears horizontal
   velocity, then sweeps vertically.
 
+### Advanced reading: segment casts
+
+The public contracts in [`segment_cast.hpp`](../include/simple_platformer/physics/segment_cast.hpp)
+are enough to use casts for projectiles and sensing. Study the intersection math and
+cover spans when changing collision geometry or the rules for seeing out of cover.
+
+In [`segment_cast.cpp`](../src/physics/segment_cast.cpp), the two tile casts have
+separate reading paths:
+
+- `segmentCastMovementBlockingTiles` scans candidate cells, expands each blocking tile
+  for the moving body's size, and keeps the earliest intersection.
+- `segmentCastSightBlockingTiles` reads `sightBlockingSpans`, then
+  `firstHitAfterStartingCover`. Spans use fractions along the line, from 0 to 1.
+  Sorting puts them in travel order. Touching or overlapping spans from 0 form the
+  starting cover; the first span after a gap blocks sight. An exact shared corner
+  keeps that cover connected.
+
+`segmentTileRange` and `tileBox` supply candidate cells and tile bounds. `segmentSpan`
+and `castAxis` contain the shared intersection math. The movement cast uses the entry
+fraction; sight also needs the leave fraction to find where starting cover ends.
+
 ## NPC behaviour
 
 | Part                | What it holds or does                                                    |

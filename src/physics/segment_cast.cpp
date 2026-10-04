@@ -1,8 +1,6 @@
 #include "simple_platformer/physics/segment_cast.hpp"
 
 #include <algorithm>
-#include <cmath>
-#include <functional>
 #include <optional>
 #include <stdexcept>
 #include <vector>
@@ -65,49 +63,76 @@ namespace simple_platformer
             return SegmentSpan{first, last};
         }
 
-        using TileBlockingQuery = std::function<bool(Cell)>;
-        using BlockingTileVisitor = std::function<void(Cell, const Aabb&)>;
-
-        // Visits every blocking tile the segment's bounds overlap, expanded for the moving
-        // box, in no particular order.
-        void forEachBlockingTile(
+        // Candidate cells for the segment, including the moving box's half-size.
+        // Exact intersections are checked separately by each kind of cast.
+        CellRange segmentTileRange(
             int tileSize,
             glm::vec2 start,
             glm::vec2 end,
-            glm::vec2 movingSize,
-            const TileBlockingQuery& blocks,
-            const BlockingTileVisitor& visit)
+            glm::vec2 movingSize)
         {
             if (!isFinite(start) || !isFinite(end) || !isFiniteNonNegative(movingSize))
             {
                 throw std::invalid_argument(
                     "Tile segment casts require finite, non-negative-sized data");
             }
-
             const glm::vec2 halfSize = movingSize * 0.5F;
             const glm::vec2 minimum = glm::min(start, end) - halfSize;
             const glm::vec2 maximum = glm::max(start, end) + halfSize;
-            const float tileLength = static_cast<float>(tileSize);
-            const int firstColumn = static_cast<int>(std::floor(minimum.x / tileLength));
-            const int lastColumn = static_cast<int>(std::floor(maximum.x / tileLength));
-            const int firstRow = static_cast<int>(std::floor(minimum.y / tileLength));
-            const int lastRow = static_cast<int>(std::floor(maximum.y / tileLength));
+            return {cellAt(tileSize, minimum), cellAt(tileSize, maximum)};
+        }
 
-            for (int row = firstRow; row <= lastRow; ++row)
+        Aabb tileBox(int tileSize, Cell cell)
+        {
+            const float tileLength = static_cast<float>(tileSize);
+            return {cellCorner(tileSize, cell), {tileLength, tileLength}};
+        }
+
+        std::vector<SegmentSpan> sightBlockingSpans(
+            const TileMap& map,
+            glm::vec2 start,
+            glm::vec2 end)
+        {
+            const CellRange cells = segmentTileRange(map.tileSize(), start, end, {0.0F, 0.0F});
+            std::vector<SegmentSpan> spans;
+            for (int row = cells.first.y; row <= cells.last.y; ++row)
             {
-                for (int column = firstColumn; column <= lastColumn; ++column)
+                for (int column = cells.first.x; column <= cells.last.x; ++column)
                 {
-                    if (!blocks({column, row}))
+                    const Cell cell{column, row};
+                    if (!map.blocksSight(cell))
                     {
                         continue;
                     }
-
-                    const Aabb tile{
-                        {static_cast<float>(column * tileSize), static_cast<float>(row * tileSize)},
-                        {tileLength, tileLength}};
-                    visit({column, row}, expandedForMovingBox(tile, movingSize));
+                    const auto span = segmentSpan(tileBox(map.tileSize(), cell), start, end);
+                    if (span.has_value())
+                    {
+                        spans.push_back(*span);
+                    }
                 }
             }
+            return spans;
+        }
+
+        // Spans that touch or overlap from time zero form the starting cover.
+        // The first span after a gap blocks sight; an exact shared corner is not a gap.
+        std::optional<float> firstHitAfterStartingCover(std::vector<SegmentSpan> spans)
+        {
+            std::sort(
+                spans.begin(),
+                spans.end(),
+                [](const SegmentSpan& left, const SegmentSpan& right)
+                { return left.enter < right.enter; });
+            float startingCoverEnd = 0.0F;
+            for (const SegmentSpan& span : spans)
+            {
+                if (span.enter > startingCoverEnd)
+                {
+                    return span.enter;
+                }
+                startingCoverEnd = std::max(startingCoverEnd, span.leave);
+            }
+            return std::nullopt;
         }
     }
 
@@ -139,21 +164,25 @@ namespace simple_platformer
         glm::vec2 end,
         glm::vec2 movingSize)
     {
+        const CellRange cells = segmentTileRange(map.tileSize(), start, end, movingSize);
         std::optional<TileSegmentHit> earliest;
-        forEachBlockingTile(
-            map.tileSize(),
-            start,
-            end,
-            movingSize,
-            [&map](Cell cell) { return map.blocksMovement(cell); },
-            [&](Cell cell, const Aabb& tile)
+        for (int row = cells.first.y; row <= cells.last.y; ++row)
+        {
+            for (int column = cells.first.x; column <= cells.last.x; ++column)
             {
-                const std::optional<float> hit = segmentCast(tile, start, end);
+                const Cell cell{column, row};
+                if (!map.blocksMovement(cell))
+                {
+                    continue;
+                }
+                const Aabb target = expandedForMovingBox(tileBox(map.tileSize(), cell), movingSize);
+                const auto hit = segmentCast(target, start, end);
                 if (hit.has_value() && (!earliest.has_value() || *hit < earliest->segmentTime))
                 {
                     earliest = TileSegmentHit{*hit, cell};
                 }
-            });
+            }
+        }
         return earliest;
     }
 
@@ -162,38 +191,6 @@ namespace simple_platformer
         glm::vec2 start,
         glm::vec2 end)
     {
-        std::vector<SegmentSpan> spans;
-        forEachBlockingTile(
-            map.tileSize(),
-            start,
-            end,
-            {0.0F, 0.0F},
-            [&map](Cell cell) { return map.blocksSight(cell); },
-            [&](Cell /*cell*/, const Aabb& tile)
-            {
-                const std::optional<SegmentSpan> span = segmentSpan(tile, start, end);
-                if (span.has_value())
-                {
-                    spans.push_back(*span);
-                }
-            });
-        std::sort(
-            spans.begin(),
-            spans.end(),
-            [](const SegmentSpan& left, const SegmentSpan& right)
-            { return left.enter < right.enter; });
-
-        // Tiles that chain unbroken from the start are the cover the line begins in, and do
-        // not block. The first tile entered after a gap does.
-        float startingCoverEnd = 0.0F;
-        for (const SegmentSpan& span : spans)
-        {
-            if (span.enter > startingCoverEnd)
-            {
-                return span.enter;
-            }
-            startingCoverEnd = std::max(startingCoverEnd, span.leave);
-        }
-        return std::nullopt;
+        return firstHitAfterStartingCover(sightBlockingSpans(map, start, end));
     }
 }

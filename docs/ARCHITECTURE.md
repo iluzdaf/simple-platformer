@@ -317,26 +317,26 @@ transitions and behaviour. Sensing, facts, and system validation have separate t
 
 ### Attack timing example
 
-In [`attack_system.cpp`](../src/combat/attack_system.cpp), `advanceBite` advances
-existing phases, then `applyBiteHits` queues damage if Active occurred during the update.
-Starting a bite or shot keeps its full initial timer; it advances on later updates.
-
-For a bite with 0.12 s Windup, 0.08 s Active, and 0.30 s Recovery:
+A default bite follows these phases in
+[`attack_system.cpp`](../src/combat/attack_system.cpp):
 
 ```text
-Time since start   0          0.12       0.20                  0.50 s
-Phase             | Windup   | Active   | Recovery            | Ready
-Later update      |--------------------------> 0.25 s
+Ready -> Windup (0.12 s) -> Active (0.08 s) -> Recovery (0.30 s) -> Ready
+                           hit check
 ```
 
-- The starting update leaves the full 0.12 s Windup, regardless of its step size.
-- A later 0.25 s update ends in Recovery with 0.25 s left, but still checks for a hit.
-- A later 0.51 s update ends Ready and still checks for a hit, once per opponent.
+- Starting a bite gives Windup its full timer; it advances on later updates.
+- `advanceBite` counts down the current timer, then enters the next phase with its full
+  timer. Each update advances at most one phase and discards leftover time.
+- `applyBiteHits` queues damage only during Active, once per opponent. Windup delays
+  the hit; Recovery delays the next attack.
+- The durations total 0.50 s. Transitions happen on update boundaries, so the actual
+  bite can take slightly longer.
 - NPC decisions run before attacks. A newly entered Bite waits for combat to process
   its request before Ready can mean the bite finished.
 
-See [`test_bite_attack.cpp`](../tests/combat/test_bite_attack.cpp) and
-[`test_ranged_attack.cpp`](../tests/combat/test_ranged_attack.cpp) for large-step cases.
+See [`test_bite_attack.cpp`](../tests/combat/test_bite_attack.cpp) for phase advancement
+and hit checks.
 
 ## Inventory, pickups, and levels
 

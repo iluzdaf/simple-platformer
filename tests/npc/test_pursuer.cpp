@@ -305,7 +305,11 @@ TEST_CASE("An NPC enters bite once and returns to chase after recovery", "[npc][
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);
     REQUIRE_FALSE(actor(world, npcId).intentions.primaryAttackPressed);
-    simple_platformer::updateAttacks(world, requests, 1.0F);
+    simple_platformer::updateAttacks(world, requests, 0.12F);
+    REQUIRE(bite(world, npcId).phase == simple_platformer::BitePhase::Active);
+    simple_platformer::updateAttacks(world, requests, 0.08F);
+    REQUIRE(bite(world, npcId).phase == simple_platformer::BitePhase::Recovery);
+    simple_platformer::updateAttacks(world, requests, 0.30F);
     REQUIRE(bite(world, npcId).phase == simple_platformer::BitePhase::Ready);
 
     simple_platformer::updateNpcBehaviour(map, world, 0.1F);

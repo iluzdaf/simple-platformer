@@ -430,3 +430,34 @@ TEST_CASE("Climbable contacts exclude ordinary solid tiles", "[physics][body][co
     REQUIRE(climbable.right);
     REQUIRE(climbable.ceiling);
 }
+
+TEST_CASE(
+    "Sliding along a tile edge does not overlap the neighbouring row or column",
+    "[physics][body][collision]")
+{
+    SECTION("horizontal movement along a floor")
+    {
+        const TileMap map = tests::TileMapBuilder({"....", "....", "####", "...."});
+        for (const float speed : {-8.0F, 8.0F})
+        {
+            Body body{{{24.0F, 16.0F}, {8.0F, 16.0F}}, {speed, 0.0F}};
+            const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+            REQUIRE_NEAR(body.bounds.topLeft.x, 24.0F + speed);
+            REQUIRE_NEAR(body.velocity.x, speed);
+            requireNoContacts(contacts);
+        }
+    }
+
+    SECTION("vertical movement along a wall")
+    {
+        const TileMap map = tests::TileMapBuilder({"..#.", "..#.", "..#.", "..#."});
+        for (const float speed : {-8.0F, 8.0F})
+        {
+            Body body{{{16.0F, 24.0F}, {16.0F, 8.0F}}, {0.0F, speed}};
+            const CollisionContacts contacts = simple_platformer::moveBody(map, body, 1.0F);
+            REQUIRE_NEAR(body.bounds.topLeft.y, 24.0F + speed);
+            REQUIRE_NEAR(body.velocity.y, speed);
+            requireNoContacts(contacts);
+        }
+    }
+}

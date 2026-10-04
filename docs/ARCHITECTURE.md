@@ -184,10 +184,9 @@ Stopped                         [===========|################
 ```
 
 - `|` marks the wall at 48; `X` shows the overlap the requested move would cause.
-- For a horizontal sweep, `along` means column and `across` means row.
-- `sweepAxis` starts at the body's right edge (`leadingEdge = 32`), skips empty
+- `sweepHorizontal` starts at the body's right edge (`rightEdge = 32`), skips empty
   column 2, and finds the wall in column 3.
-- The allowed distance is `candidate = 3 * 16 - 32 = 16` pixels.
+- The allowed distance is `distance = 3 * 16 - 32 = 16` pixels.
 - `moveBody` moves the body to `x = 36`, sets `contacts.right`, clears horizontal
   velocity, then sweeps vertically.
 

@@ -26,6 +26,8 @@ namespace
     }
 }
 
+// Firing and aiming
+
 TEST_CASE("A ranged weapon queues a projectile in its aim direction", "[combat][weapon]")
 {
     simple_platformer::World world;
@@ -97,6 +99,8 @@ TEST_CASE("A ranged weapon does not fire without an aim direction", "[combat][we
     REQUIRE(tests::rangedWeapon(world, shooter).phase == simple_platformer::RangedPhase::Ready);
 }
 
+// Attack phases
+
 TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
 {
     simple_platformer::World world;
@@ -136,7 +140,9 @@ TEST_CASE("A ranged weapon uses shoot and recovery phases", "[combat][weapon]")
     REQUIRE(world.projectiles().size() == 2);
 }
 
-TEST_CASE("A large update preserves a new shot and later crosses its phases", "[combat][weapon]")
+TEST_CASE(
+    "A new shot keeps its shoot time and later updates can cross several attack phases",
+    "[combat][weapon]")
 {
     simple_platformer::World world;
     simple_platformer::Actor actor = makeActor({20.0F, 20.0F}, simple_platformer::Team::Player);
@@ -161,6 +167,8 @@ TEST_CASE("A large update preserves a new shot and later crosses its phases", "[
     simple_platformer::applyWorldRequests(world, requests);
     REQUIRE(world.projectiles().size() == 1);
 }
+
+// Dying actors
 
 TEST_CASE("Dying actors cannot begin ranged attacks", "[combat][weapon][lifecycle]")
 {

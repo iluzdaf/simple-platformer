@@ -9,66 +9,7 @@
 #include "content/tile_catalog.hpp"
 #include "content/level_data.hpp"
 
-TEST_CASE("Pickup and exit settings are validated without JSON", "[app][content][validation]")
-{
-    simple_platformer::PickupPlacement pickup;
-    pickup.bodySize = {8.0F, 8.0F};
-    REQUIRE_NOTHROW(simple_platformer::validatePickupSettings(pickup));
-    pickup.bodySize.y = 0.0F;
-    REQUIRE_THROWS_WITH(
-        simple_platformer::validatePickupSettings(pickup, "pickups[0]"),
-        "pickups[0].bodySize: expected a finite, positive size");
-    pickup.bodySize = {8.0F, 8.0F};
-    pickup.stack.quantity = 0;
-    REQUIRE_THROWS_WITH(
-        simple_platformer::validatePickupSettings(pickup, "objectLegend.K"),
-        "objectLegend.K.quantity: expected a positive integer, got 0");
-    pickup.stack.quantity = -2;
-    REQUIRE_THROWS_AS(simple_platformer::validatePickupSettings(pickup), std::invalid_argument);
-
-    simple_platformer::ExitPlacement exit;
-    exit.definitionName = "test_door";
-    REQUIRE_NOTHROW(simple_platformer::validateExitSettings(exit));
-    exit.requirement = simple_platformer::NamedItemStack{"key", 1};
-    exit.nextLevel = 2;
-    REQUIRE_NOTHROW(simple_platformer::validateExitSettings(exit));
-    exit.requirement->quantity = 0;
-    REQUIRE_THROWS_WITH(
-        simple_platformer::validateExitSettings(exit),
-        "exit.requirement.quantity: expected a positive integer, got 0");
-    exit.requirement->quantity = -1;
-    REQUIRE_THROWS_AS(simple_platformer::validateExitSettings(exit), std::invalid_argument);
-    exit.requirement.reset();
-    exit.nextLevel = 0;
-    REQUIRE_THROWS_WITH(
-        simple_platformer::validateExitSettings(exit),
-        "exit.nextLevel: level number must be positive");
-    exit.nextLevel = -1;
-    REQUIRE_THROWS_AS(simple_platformer::validateExitSettings(exit), std::invalid_argument);
-}
-
-TEST_CASE("Unique placement validation retains authoring origins", "[app][content][validation]")
-{
-    REQUIRE_NOTHROW(simple_platformer::validateSinglePlacement({{"map[0][1]", 'P'}}, "player"));
-    REQUIRE_THROWS_WITH(
-        simple_platformer::validateSinglePlacement({}, "player"),
-        "player: expected exactly one placement");
-    REQUIRE_THROWS_WITH(
-        simple_platformer::validateSinglePlacement({}, "exit"),
-        "exit: expected exactly one placement");
-    REQUIRE_THROWS_WITH(
-        simple_platformer::validateSinglePlacement(
-            {{"map[0][1]", 'P'}, {"map[0][2]", 'P'}}, "player"),
-        "map[0][2]: second player marker 'P'; player already placed at map[0][1]");
-    REQUIRE_THROWS_WITH(
-        simple_platformer::validateSinglePlacement(
-            {{"exit", std::nullopt}, {"map[0][3]", 'E'}}, "exit"),
-        "map[0][3]: second exit marker 'E'; exit already placed at exit");
-    REQUIRE_THROWS_WITH(
-        simple_platformer::validateSinglePlacement(
-            {{"playerSpawnCell", std::nullopt}, {"playerSpawnFeet", std::nullopt}}, "player"),
-        "playerSpawnFeet: second player placement; player already placed at playerSpawnCell");
-}
+// Catalog definitions
 
 TEST_CASE(
     "Tile catalog validation accepts C++ definitions without JSON",
@@ -151,7 +92,47 @@ TEST_CASE("Tile catalog validation rejects invalid C++ definitions", "[app][cont
     REQUIRE_THROWS_AS(simple_platformer::validateTileCatalog(catalog), std::invalid_argument);
 }
 
-TEST_CASE("Legend symbols are unambiguous independently of JSON", "[app][content][validation]")
+TEST_CASE("Pickup and exit settings are validated without JSON", "[app][content][validation]")
+{
+    simple_platformer::PickupPlacement pickup;
+    pickup.bodySize = {8.0F, 8.0F};
+    REQUIRE_NOTHROW(simple_platformer::validatePickupSettings(pickup));
+    pickup.bodySize.y = 0.0F;
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validatePickupSettings(pickup, "pickups[0]"),
+        "pickups[0].bodySize: expected a finite, positive size");
+    pickup.bodySize = {8.0F, 8.0F};
+    pickup.stack.quantity = 0;
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validatePickupSettings(pickup, "objectLegend.K"),
+        "objectLegend.K.quantity: expected a positive integer, got 0");
+    pickup.stack.quantity = -2;
+    REQUIRE_THROWS_AS(simple_platformer::validatePickupSettings(pickup), std::invalid_argument);
+
+    simple_platformer::ExitPlacement exit;
+    exit.definitionName = "test_door";
+    REQUIRE_NOTHROW(simple_platformer::validateExitSettings(exit));
+    exit.requirement = simple_platformer::NamedItemStack{"key", 1};
+    exit.nextLevel = 2;
+    REQUIRE_NOTHROW(simple_platformer::validateExitSettings(exit));
+    exit.requirement->quantity = 0;
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validateExitSettings(exit),
+        "exit.requirement.quantity: expected a positive integer, got 0");
+    exit.requirement->quantity = -1;
+    REQUIRE_THROWS_AS(simple_platformer::validateExitSettings(exit), std::invalid_argument);
+    exit.requirement.reset();
+    exit.nextLevel = 0;
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validateExitSettings(exit),
+        "exit.nextLevel: level number must be positive");
+    exit.nextLevel = -1;
+    REQUIRE_THROWS_AS(simple_platformer::validateExitSettings(exit), std::invalid_argument);
+}
+
+// Level authoring
+
+TEST_CASE("Tile and object legends cannot use the same symbol", "[app][content][validation]")
 {
     REQUIRE_NOTHROW(simple_platformer::validateLegendSymbols({".", "#"}, {"P", "Z"}));
     REQUIRE_THROWS_AS(
@@ -163,6 +144,31 @@ TEST_CASE("Legend symbols are unambiguous independently of JSON", "[app][content
         simple_platformer::validateLegendSymbols({".", "."}, {}), std::invalid_argument);
     REQUIRE_THROWS_AS(
         simple_platformer::validateLegendSymbols({"."}, {"P", "P"}), std::invalid_argument);
+}
+
+TEST_CASE(
+    "Missing or repeated placements report where they were authored",
+    "[app][content][validation]")
+{
+    REQUIRE_NOTHROW(simple_platformer::validateSinglePlacement({{"map[0][1]", 'P'}}, "player"));
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validateSinglePlacement({}, "player"),
+        "player: expected exactly one placement");
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validateSinglePlacement({}, "exit"),
+        "exit: expected exactly one placement");
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validateSinglePlacement(
+            {{"map[0][1]", 'P'}, {"map[0][2]", 'P'}}, "player"),
+        "map[0][2]: second player marker 'P'; player already placed at map[0][1]");
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validateSinglePlacement(
+            {{"exit", std::nullopt}, {"map[0][3]", 'E'}}, "exit"),
+        "map[0][3]: second exit marker 'E'; exit already placed at exit");
+    REQUIRE_THROWS_WITH(
+        simple_platformer::validateSinglePlacement(
+            {{"playerSpawnCell", std::nullopt}, {"playerSpawnFeet", std::nullopt}}, "player"),
+        "playerSpawnFeet: second player placement; player already placed at playerSpawnCell");
 }
 
 TEST_CASE(

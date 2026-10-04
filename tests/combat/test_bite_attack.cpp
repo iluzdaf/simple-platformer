@@ -27,7 +27,9 @@ namespace
     }
 }
 
-TEST_CASE("A bite uses windup active and recovery phases", "[combat][bite]")
+// Attack phases and damage
+
+TEST_CASE("A bite passes through windup, active and recovery phases", "[combat][bite]")
 {
     simple_platformer::World world;
     simple_platformer::Actor attacker = makeActor({10.0F, 10.0F}, simple_platformer::Team::Enemy);
@@ -58,7 +60,70 @@ TEST_CASE("A bite uses windup active and recovery phases", "[combat][bite]")
     REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Ready);
 }
 
-TEST_CASE("A large update preserves a new bite and hits when crossing Active", "[combat][bite]")
+TEST_CASE("A committed bite completes but can miss", "[combat][bite]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor attacker = makeActor({10.0F, 10.0F}, simple_platformer::Team::Enemy);
+    attacker.bite = simple_platformer::BiteAttack{};
+    tests::bite(attacker).reach = 0.0F;
+    attacker.intentions.primaryAttackPressed = true;
+    const simple_platformer::ActorId attackerId = world.addActor(attacker);
+    const simple_platformer::ActorId target =
+        world.addActor(makeActor({22.0F, 10.0F}, simple_platformer::Team::Player));
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateAttacks(world, requests, 0.0F);
+    simple_platformer::Actor& movedTarget = tests::actor(world, target);
+    movedTarget.body.bounds.topLeft.x = 100.0F;
+    simple_platformer::updateAttacks(world, requests, 0.51F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
+
+    REQUIRE(tests::health(world, target).current == 3);
+    REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Ready);
+}
+
+TEST_CASE("A ready bite is harmless and never lunges", "[combat][bite]")
+{
+    simple_platformer::World world;
+    simple_platformer::Actor attacker = makeActor({10.0F, 10.0F}, simple_platformer::Team::Enemy);
+    attacker.bite = simple_platformer::BiteAttack{};
+    const simple_platformer::ActorId attackerId = world.addActor(attacker);
+    const simple_platformer::ActorId target =
+        world.addActor(makeActor({15.0F, 10.0F}, simple_platformer::Team::Player));
+    simple_platformer::WorldRequests requests;
+
+    simple_platformer::updateAttacks(world, requests, 1.0F);
+    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
+
+    REQUIRE(tests::health(world, target).current == 3);
+    REQUIRE(tests::actor(world, attackerId).body.bounds.topLeft.x == 10.0F);
+}
+
+// Hitbox placement
+
+TEST_CASE("Bite hitboxes are placed in the retained facing direction", "[combat][bite]")
+{
+    const simple_platformer::Aabb actor{{20.0F, 30.0F}, {12.0F, 12.0F}};
+    simple_platformer::BiteAttack bite;
+    bite.hitboxSize = {10.0F, 8.0F};
+    bite.reach = 4.0F;
+
+    const simple_platformer::Aabb right =
+        simple_platformer::biteHitbox(actor, bite, simple_platformer::Facing::Right);
+    const simple_platformer::Aabb left =
+        simple_platformer::biteHitbox(actor, bite, simple_platformer::Facing::Left);
+
+    REQUIRE(right.topLeft.x == 36.0F);
+    REQUIRE(left.topLeft.x == 6.0F);
+    REQUIRE(right.topLeft.y == 32.0F);
+    REQUIRE(left.topLeft.y == 32.0F);
+}
+
+// Updates crossing phase boundaries
+
+TEST_CASE(
+    "A new bite keeps its windup time and later hits even if an update skips the active phase",
+    "[combat][bite]")
 {
     simple_platformer::World world;
     simple_platformer::Actor attacker = makeActor({10.0F, 10.0F}, simple_platformer::Team::Enemy);
@@ -99,61 +164,4 @@ TEST_CASE("A large update preserves a new bite and hits when crossing Active", "
     simple_platformer::updateAttacks(world, requests, 0.0F);
     simple_platformer::updateActorLifecycle(world, requests, 0.0F);
     REQUIRE(tests::health(world, targetId).current == 2);
-}
-
-TEST_CASE("A ready bite is harmless and never lunges", "[combat][bite]")
-{
-    simple_platformer::World world;
-    simple_platformer::Actor attacker = makeActor({10.0F, 10.0F}, simple_platformer::Team::Enemy);
-    attacker.bite = simple_platformer::BiteAttack{};
-    const simple_platformer::ActorId attackerId = world.addActor(attacker);
-    const simple_platformer::ActorId target =
-        world.addActor(makeActor({15.0F, 10.0F}, simple_platformer::Team::Player));
-    simple_platformer::WorldRequests requests;
-
-    simple_platformer::updateAttacks(world, requests, 1.0F);
-    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
-
-    REQUIRE(tests::health(world, target).current == 3);
-    REQUIRE(tests::actor(world, attackerId).body.bounds.topLeft.x == 10.0F);
-}
-
-TEST_CASE("A committed bite completes but can miss", "[combat][bite]")
-{
-    simple_platformer::World world;
-    simple_platformer::Actor attacker = makeActor({10.0F, 10.0F}, simple_platformer::Team::Enemy);
-    attacker.bite = simple_platformer::BiteAttack{};
-    tests::bite(attacker).reach = 0.0F;
-    attacker.intentions.primaryAttackPressed = true;
-    const simple_platformer::ActorId attackerId = world.addActor(attacker);
-    const simple_platformer::ActorId target =
-        world.addActor(makeActor({22.0F, 10.0F}, simple_platformer::Team::Player));
-    simple_platformer::WorldRequests requests;
-
-    simple_platformer::updateAttacks(world, requests, 0.0F);
-    simple_platformer::Actor& movedTarget = tests::actor(world, target);
-    movedTarget.body.bounds.topLeft.x = 100.0F;
-    simple_platformer::updateAttacks(world, requests, 0.51F);
-    simple_platformer::updateActorLifecycle(world, requests, 0.0F);
-
-    REQUIRE(tests::health(world, target).current == 3);
-    REQUIRE(tests::bite(world, attackerId).phase == simple_platformer::BitePhase::Ready);
-}
-
-TEST_CASE("Bite hitboxes are placed in the retained facing direction", "[combat][bite]")
-{
-    const simple_platformer::Aabb actor{{20.0F, 30.0F}, {12.0F, 12.0F}};
-    simple_platformer::BiteAttack bite;
-    bite.hitboxSize = {10.0F, 8.0F};
-    bite.reach = 4.0F;
-
-    const simple_platformer::Aabb right =
-        simple_platformer::biteHitbox(actor, bite, simple_platformer::Facing::Right);
-    const simple_platformer::Aabb left =
-        simple_platformer::biteHitbox(actor, bite, simple_platformer::Facing::Left);
-
-    REQUIRE(right.topLeft.x == 36.0F);
-    REQUIRE(left.topLeft.x == 6.0F);
-    REQUIRE(right.topLeft.y == 32.0F);
-    REQUIRE(left.topLeft.y == 32.0F);
 }

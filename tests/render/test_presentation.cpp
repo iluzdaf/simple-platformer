@@ -14,6 +14,8 @@
 #include "support/tile_map_builder.hpp"
 #include "support/animator.hpp"
 
+// World presentation
+
 TEST_CASE(
     "Presenting the world animates actors and fades cover in one call",
     "[render][presentation]")
@@ -30,6 +32,8 @@ TEST_CASE(
                            .withSprite({0, {{0.0F, 0.0F}, {1.0F, 1.0F}}})
                            .withAnimator(tests::fullAnimator()));
 
+    // Start on another animation so an omitted animation update cannot pass.
+    tests::animator(world, npc).current = simple_platformer::AnimationName::Move;
     simple_platformer::updateWorldPresentation(map, world, 0.0F);
 
     REQUIRE(tests::animator(world, npc).current == simple_platformer::AnimationName::Idle);

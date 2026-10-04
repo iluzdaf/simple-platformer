@@ -67,6 +67,8 @@ namespace simple_platformer
             const CellRange covered = cellsCovered(tileSize, bounds);
             std::optional<RouteLocation> resting;
             float restingOffset = static_cast<float>(tileSize);
+            // Include neighbouring cells: a supporting surface may sit just outside
+            // the cells overlapped by the body.
             for (int row = covered.first.y - 1; row <= covered.last.y + 1; ++row)
             {
                 for (int column = covered.first.x - 1; column <= covered.last.x + 1; ++column)
@@ -84,6 +86,8 @@ namespace simple_platformer
                             boundsAtSurface(tileSize, candidate, bounds.size).topLeft;
                         const bool onWall =
                             surface == ClimbSurface::LeftWall || surface == ClimbSurface::RightWall;
+                        // Across measures separation from the surface; along measures
+                        // distance to the candidate's resting position on that surface.
                         const float across = std::abs(onWall ? offset.x : offset.y);
                         const float along = std::abs(onWall ? offset.y : offset.x);
                         if (across <= RestingTolerance && along < restingOffset)
@@ -121,6 +125,7 @@ namespace simple_platformer
             glm::vec2 goalFeet)
         {
             NavigationPath path = waypointsOf(tileSize, route, bodySize);
+            // Reaching the goal cell need not put the feet at the exact requested point.
             const float remaining = glm::distance(endOf(path), goalFeet);
             return {NavigationPathStatus::Found, std::move(path), remaining};
         }
@@ -178,6 +183,7 @@ namespace simple_platformer
 
             if (!result.route.has_value())
             {
+                // A valid start but no route: Unreachable, rather than no search result.
                 return NavigationPathResult{};
             }
             return pathResultOf(tileSize, *result.route, body.size, goalFeet);
@@ -186,8 +192,10 @@ namespace simple_platformer
         // Guesses the ticks left from a cell to the goal cell: the time to cross the whole
         // columns between them at the profile's fastest speed. A body's feet in the one
         // cell and in the other are at least that far apart, whatever surface it holds,
-        // and the guess leaves out acceleration, braking, obstacles and height, so it is
-        // never more than the real cost.
+        // and the guess leaves out acceleration, braking and obstacles, so it is never
+        // more than the real cost. Height is ignored because jumps, falls and climbing
+        // use different vertical speeds; dividing row distance by horizontal speed could
+        // overestimate the remaining time. A* needs a guess that never overestimates.
         int platformerTickHeuristic(
             int tileSize,
             Cell cell,
@@ -204,12 +212,16 @@ namespace simple_platformer
             if (profile.climb.has_value())
             {
                 validateSurfaceClimbConfig(*profile.climb);
+                // Ceiling climbing can cover horizontal distance faster than walking.
                 maximumSpeed = std::max(maximumSpeed, profile.climb->speed);
             }
 
+            // Count only whole columns between the cells: feet may be near their
+            // facing edges, so adjacent cells provide no minimum horizontal distance.
             const int columnsBetween = std::abs(goal.x - cell.x) - 1;
             if (columnsBetween <= 0 || maximumSpeed == 0.0F)
             {
+                // Zero gives the search no guidance; it does not declare the goal unreachable.
                 return 0;
             }
             const float distance = static_cast<float>(columnsBetween * tileSize);
@@ -255,6 +267,8 @@ namespace simple_platformer
             PlatformerConnectionTable& table)
         {
             requireValid(goalFeet, profile);
+            // Reuse simulated connections, updating them for tile breaks or a new profile
+            // before the search reads the table.
             table.prepare(map, profile);
 
             const std::optional<RouteLocation> resting = restingLocationOf(map, body, profile);
@@ -343,6 +357,7 @@ namespace simple_platformer
     {
         requirePositiveSeconds(stepSeconds, "Navigation step");
         PlatformerConnectionTable& table = world.platformerConnections();
+        // Actors with the same profile share a table; preparing it again reuses the build.
         for (const Actor& actor : world.actors())
         {
             if (actor.pathFollower.has_value() && actor.platformerMovement.has_value())

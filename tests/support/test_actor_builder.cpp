@@ -11,6 +11,8 @@
 #include "support/actor_builder.hpp"
 #include "support/actor_components.hpp"
 
+// Required geometry and movement
+
 TEST_CASE(
     "The actor builder places a body by its corner, its feet, or its cell",
     "[support][actor-builder]")
@@ -43,7 +45,11 @@ TEST_CASE("The actor builder gives exactly one movement component", "[support][a
     REQUIRE_FALSE(flyer.platformerMovement.has_value());
 }
 
-TEST_CASE("An NPC from the actor builder is one World accepts", "[support][actor-builder]")
+// NPC composition
+
+TEST_CASE(
+    "The actor builder creates an NPC with all components the world requires",
+    "[support][actor-builder]")
 {
     simple_platformer::World world;
     const simple_platformer::ActorId id =

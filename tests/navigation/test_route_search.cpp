@@ -101,6 +101,57 @@ namespace
     }
 }
 
+// Lowest-cost routes
+
+TEST_CASE(
+    "A search chooses by the connections' costs, not by how many steps a route takes",
+    "[navigation][search]")
+{
+    // Two ways from the start to the goal: a jump straight there, and two walks by way of
+    // a middle cell. Changing the jump's cost changes which route is chosen.
+    const auto withJumpCosting = [](int jumpCost)
+    {
+        return connectionsFrom(
+            {{{0, 0},
+              {connectionTo(floorOf(2, 0), Traversal::Jump, jumpCost, {{0.5F, {}}}),
+               connectionTo(floorOf(1, 0), Traversal::Walk, 1)}},
+             {{1, 0}, {connectionTo(floorOf(2, 0), Traversal::Walk, 1)}}});
+    };
+
+    // With the jump costing 6, the two walks at 1 each are cheaper.
+    const RouteSearchResult aroundJump =
+        findLowestCostRoute(floorOf(0, 0), {2, 0}, TestGrid, withJumpCosting(6), zeroHeuristic);
+    REQUIRE(aroundJump.route.has_value());
+    const Route walkRoute = routeOf(aroundJump);
+    REQUIRE(walkRoute.steps.size() == 2);
+    REQUIRE(walkRoute.steps.front().traversal == Traversal::Walk);
+
+    // With the jump costing 1, it is cheaper, and the route keeps its inputs.
+    const RouteSearchResult overJump =
+        findLowestCostRoute(floorOf(0, 0), {2, 0}, TestGrid, withJumpCosting(1), zeroHeuristic);
+    REQUIRE(overJump.route.has_value());
+    const Route jumpRoute = routeOf(overJump);
+    REQUIRE(jumpRoute.steps.size() == 1);
+    REQUIRE(jumpRoute.steps.front().traversal == Traversal::Jump);
+    REQUIRE(jumpRoute.steps.front().inputs.size() == 1);
+}
+
+TEST_CASE("A route connection can cross several cells in one step", "[navigation][search]")
+{
+    // One connection can cross several cells and still cost less than the number of
+    // cells it crosses.
+    const ConnectionFunction leaping =
+        connectionsFrom({{{0, 0}, {connectionTo(floorOf(4, 0), Traversal::Jump, 2)}}});
+    const RouteSearchResult leap =
+        findLowestCostRoute(floorOf(0, 0), {4, 0}, TestGrid, leaping, zeroHeuristic);
+    REQUIRE(leap.route.has_value());
+    const Route leapRoute = routeOf(leap);
+    REQUIRE(leapRoute.steps.size() == 1);
+    REQUIRE(leapRoute.steps.front().destination == floorOf(4, 0));
+}
+
+// Unreachable goals and completed routes
+
 TEST_CASE(
     "A search without connections fails unless it starts in the goal cell",
     "[navigation][search]")
@@ -116,6 +167,36 @@ TEST_CASE(
     REQUIRE(route.start.cell == Cell{2, 3});
     REQUIRE(route.steps.empty());
 }
+
+TEST_CASE(
+    "A search returns no route when connections cannot reach the goal cell",
+    "[navigation][search]")
+{
+    // A line of three cells. Nothing leads beyond the last.
+    const ConnectionFunction line = lineUpTo(2);
+
+    // Reachable intermediate cells do not make an unreachable goal succeed.
+    const RouteSearchResult outOfReach =
+        findLowestCostRoute(floorOf(0, 0), {5, 0}, TestGrid, line, gridSteps);
+    REQUIRE_FALSE(outOfReach.route.has_value());
+
+    // The last cell itself is still reachable.
+    const RouteSearchResult inReach =
+        findLowestCostRoute(floorOf(0, 0), {2, 0}, TestGrid, line, gridSteps);
+    REQUIRE(inReach.route.has_value());
+    REQUIRE(endOf(routeOf(inReach)) == floorOf(2, 0));
+}
+
+TEST_CASE("A goal off the grid returns no route", "[navigation][search]")
+{
+    // A line along the top row to the grid's last column. The goal is past the grid's
+    // edge, so the search fails.
+    const RouteSearchResult offGrid =
+        findLowestCostRoute(floorOf(0, 0), {20, 0}, TestGrid, lineUpTo(7), gridSteps);
+    REQUIRE_FALSE(offGrid.route.has_value());
+}
+
+// Surface locations
 
 TEST_CASE(
     "A search treats a cell's floor, walls and ceiling as separate places",
@@ -156,87 +237,23 @@ TEST_CASE(
     REQUIRE(route.steps[2].destination.cell == Cell{1, 0});
 }
 
-TEST_CASE(
-    "A search picks the cheapest route, however many cells each connection crosses",
-    "[navigation][search]")
+TEST_CASE("A search stops at the cheapest location in the goal cell", "[navigation][search]")
 {
-    // A jump straight to the goal costs more than two walks by way of the middle cell,
-    // so the route takes the walks.
+    // The goal cell can be reached on its floor or on its wall. The wall costs less, so
+    // the route ends there.
+    const RouteLocation goalWall{{1, 0}, ClimbSurface::LeftWall};
     const ConnectionFunction connections = connectionsFrom(
         {{{0, 0},
-          {connectionTo(floorOf(2, 0), Traversal::Jump, 8),
-           connectionTo(floorOf(1, 0), Traversal::Walk, 1)}},
-         {{1, 0}, {connectionTo(floorOf(2, 0), Traversal::Walk, 1)}}});
-    const RouteSearchResult walks =
-        findLowestCostRoute(floorOf(0, 0), {2, 0}, TestGrid, connections, zeroHeuristic);
-    REQUIRE(walks.route.has_value());
-    const Route walkRoute = routeOf(walks);
-    REQUIRE(walkRoute.steps.size() == 2);
-    REQUIRE(walkRoute.steps.front().traversal == Traversal::Walk);
+          {connectionTo(floorOf(1, 0), Traversal::Walk, 5),
+           connectionTo(goalWall, Traversal::Climb, 2)}}});
 
-    // One connection can cross several cells and still cost less than the number of
-    // cells it crosses.
-    const ConnectionFunction leaping =
-        connectionsFrom({{{0, 0}, {connectionTo(floorOf(4, 0), Traversal::Jump, 2)}}});
-    const RouteSearchResult leap =
-        findLowestCostRoute(floorOf(0, 0), {4, 0}, TestGrid, leaping, zeroHeuristic);
-    REQUIRE(leap.route.has_value());
-    const Route leapRoute = routeOf(leap);
-    REQUIRE(leapRoute.steps.size() == 1);
-    REQUIRE(leapRoute.steps.front().destination == floorOf(4, 0));
+    const RouteSearchResult result =
+        findLowestCostRoute(floorOf(0, 0), {1, 0}, TestGrid, connections, zeroHeuristic);
+    REQUIRE(result.route.has_value());
+    REQUIRE(endOf(routeOf(result)) == goalWall);
 }
 
-TEST_CASE(
-    "A search returns no route when connections cannot reach the goal cell",
-    "[navigation][search]")
-{
-    // A line of three cells. Nothing leads beyond the last.
-    const ConnectionFunction line = lineUpTo(2);
-
-    // Reachable intermediate cells do not make an unreachable goal succeed.
-    const RouteSearchResult outOfReach =
-        findLowestCostRoute(floorOf(0, 0), {5, 0}, TestGrid, line, gridSteps);
-    REQUIRE_FALSE(outOfReach.route.has_value());
-
-    // The last cell itself is still reachable.
-    const RouteSearchResult inReach =
-        findLowestCostRoute(floorOf(0, 0), {2, 0}, TestGrid, line, gridSteps);
-    REQUIRE(inReach.route.has_value());
-    REQUIRE(endOf(routeOf(inReach)) == floorOf(2, 0));
-}
-
-TEST_CASE(
-    "A search chooses by the connections' costs, not by how many steps a route takes",
-    "[navigation][search]")
-{
-    // Two ways from the start to the goal: a jump straight there, and two walks by way of
-    // a middle cell. Changing the jump's cost changes which route is chosen.
-    const auto withJumpCosting = [](int jumpCost)
-    {
-        return connectionsFrom(
-            {{{0, 0},
-              {connectionTo(floorOf(2, 0), Traversal::Jump, jumpCost, {{0.5F, {}}}),
-               connectionTo(floorOf(1, 0), Traversal::Walk, 1)}},
-             {{1, 0}, {connectionTo(floorOf(2, 0), Traversal::Walk, 1)}}});
-    };
-
-    // With the jump costing 6, the two walks at 1 each are cheaper.
-    const RouteSearchResult aroundJump =
-        findLowestCostRoute(floorOf(0, 0), {2, 0}, TestGrid, withJumpCosting(6), zeroHeuristic);
-    REQUIRE(aroundJump.route.has_value());
-    const Route walkRoute = routeOf(aroundJump);
-    REQUIRE(walkRoute.steps.size() == 2);
-    REQUIRE(walkRoute.steps.front().traversal == Traversal::Walk);
-
-    // With the jump costing 1, it is cheaper, and the route keeps its inputs.
-    const RouteSearchResult overJump =
-        findLowestCostRoute(floorOf(0, 0), {2, 0}, TestGrid, withJumpCosting(1), zeroHeuristic);
-    REQUIRE(overJump.route.has_value());
-    const Route jumpRoute = routeOf(overJump);
-    REQUIRE(jumpRoute.steps.size() == 1);
-    REQUIRE(jumpRoute.steps.front().traversal == Traversal::Jump);
-    REQUIRE(jumpRoute.steps.front().inputs.size() == 1);
-}
+// Invalid search inputs
 
 TEST_CASE(
     "A search rejects places off its grid, missing functions and costs below one",
@@ -276,29 +293,4 @@ TEST_CASE(
     REQUIRE_THROWS_AS(
         findLowestCostRoute(floorOf(0, 0), {1, 0}, TestGrid, costsNothing, zeroHeuristic),
         std::invalid_argument);
-}
-
-TEST_CASE("A search stops at the cheapest location in the goal cell", "[navigation][search]")
-{
-    // The goal cell can be reached on its floor or on its wall. The wall costs less, so
-    // the route ends there.
-    const RouteLocation goalWall{{1, 0}, ClimbSurface::LeftWall};
-    const ConnectionFunction connections = connectionsFrom(
-        {{{0, 0},
-          {connectionTo(floorOf(1, 0), Traversal::Walk, 5),
-           connectionTo(goalWall, Traversal::Climb, 2)}}});
-
-    const RouteSearchResult result =
-        findLowestCostRoute(floorOf(0, 0), {1, 0}, TestGrid, connections, zeroHeuristic);
-    REQUIRE(result.route.has_value());
-    REQUIRE(endOf(routeOf(result)) == goalWall);
-}
-
-TEST_CASE("A goal off the grid returns no route", "[navigation][search]")
-{
-    // A line along the top row to the grid's last column. The goal is past the grid's
-    // edge, so the search fails.
-    const RouteSearchResult offGrid =
-        findLowestCostRoute(floorOf(0, 0), {20, 0}, TestGrid, lineUpTo(7), gridSteps);
-    REQUIRE_FALSE(offGrid.route.has_value());
 }

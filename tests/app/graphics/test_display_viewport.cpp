@@ -42,6 +42,8 @@ namespace
     }
 }
 
+// Display scaling
+
 TEST_CASE("The display viewport uses the largest integer scale", "[app][viewport]")
 {
     const simple_platformer::DisplayViewport viewport =
@@ -53,7 +55,7 @@ TEST_CASE("The display viewport uses the largest integer scale", "[app][viewport
     REQUIRE(viewport.bottomMargin == 30);
 }
 
-TEST_CASE("Odd letterbox space preserves both vertical origins", "[app][viewport]")
+TEST_CASE("An odd letterbox height gives the extra pixel to the top margin", "[app][viewport]")
 {
     const simple_platformer::DisplayViewport viewport =
         required(simple_platformer::makeDisplayViewport({1001, 601}));
@@ -61,6 +63,8 @@ TEST_CASE("Odd letterbox space preserves both vertical origins", "[app][viewport
     REQUIRE(viewport.topLeftMargin == glm::ivec2{20, 31});
     REQUIRE(viewport.bottomMargin == 30);
 }
+
+// Window and cursor coordinates
 
 TEST_CASE("Window cursor positions account for high DPI and letterboxing", "[app][viewport]")
 {
@@ -79,6 +83,8 @@ TEST_CASE("Window viewport coordinates account for high DPI", "[app][viewport]")
     REQUIRE(viewport.topLeft == glm::vec2{10.0F, 15.0F});
     REQUIRE(viewport.scale == glm::vec2{1.5F, 1.5F});
 }
+
+// Positions outside the viewport
 
 TEST_CASE("Cursor positions in the letterbox are rejected", "[app][viewport]")
 {

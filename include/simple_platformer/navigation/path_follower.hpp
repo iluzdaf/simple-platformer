@@ -16,6 +16,13 @@ namespace simple_platformer
     struct PlatformerMovement;
     struct SurfaceClimb;
 
+    enum class PathStepPhase
+    {
+        ApproachStart,
+        ReplayInputs,
+        AwaitArrival
+    };
+
     // Progress along an actor's path. Following produces intentions; ordinary movement
     // changes the body.
     struct PathFollower
@@ -23,8 +30,9 @@ namespace simple_platformer
         std::optional<NavigationPath> path;
         // The waypoint being travelled to; one past the last once the path is complete.
         std::size_t nextStep = 0;
-        // How far into the current step's input program the follower is. Zero means the
-        // program has not started, so the follower is still getting to its takeoff.
+        // Recorded traversals approach their start, replay inputs, then check arrival.
+        PathStepPhase phase = PathStepPhase::ApproachStart;
+        // How far into the current step's input program the follower is, in seconds.
         float programElapsed = 0.0F;
         // The goal the path was planned for, so asking for much the same goal again
         // does not plan again while a path exists.

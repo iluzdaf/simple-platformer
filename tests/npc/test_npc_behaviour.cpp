@@ -30,6 +30,7 @@ TEST_CASE("Entering an NPC state discards its old path and progress", "[npc][beh
     follower.path = simple_platformer::NavigationPath{};
     follower.goal = {64.0F, 32.0F};
     follower.nextStep = 2;
+    follower.phase = simple_platformer::PathStepPhase::ReplayInputs;
     follower.programElapsed = 0.3F;
 
     simple_platformer::enterNpcState(actor, brain, follower, simple_platformer::NpcState::Idle);
@@ -37,5 +38,6 @@ TEST_CASE("Entering an NPC state discards its old path and progress", "[npc][beh
     REQUIRE_FALSE(follower.path.has_value());
     REQUIRE_FALSE(follower.goal.has_value());
     REQUIRE(follower.nextStep == 0);
+    REQUIRE(follower.phase == simple_platformer::PathStepPhase::ApproachStart);
     REQUIRE(follower.programElapsed == 0.0F);
 }

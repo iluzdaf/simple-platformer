@@ -142,9 +142,24 @@ namespace simple_platformer
             return {false, approachAndBrake(body, movement, waypoint.feet)};
         }
 
-        // A jump or fall runs in three phases: getting to the takeoff and stopping there,
-        // replaying the recorded inputs, then waiting to land. programElapsed says which
-        // phase it is in: zero before the replay starts, the program's duration after it.
+        // Plays this tick's inputs before advancing time. Arrival is checked on the
+        // next tick, after movement has applied the final recorded inputs.
+        InputIntentions replayStepInputs(
+            PathFollower& follower,
+            const InputProgram& inputs,
+            float deltaTime)
+        {
+            const InputIntentions intentions = replayInput(inputs, follower.programElapsed);
+            const float duration = durationOf(inputs);
+            follower.programElapsed = std::min(duration, follower.programElapsed + deltaTime);
+            if (follower.programElapsed >= duration)
+            {
+                follower.phase = PathStepPhase::AwaitArrival;
+            }
+            return intentions;
+        }
+
+        // Approach a stationary takeoff, replay the recorded inputs, then wait to land.
         StepProgress followAirborneStep(
             const Body& body,
             const PlatformerMovement& movement,
@@ -157,22 +172,17 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("Jump and fall path steps require an input program");
             }
-            // The recorded inputs assume a stationary takeoff at the previous waypoint.
-            if (follower.programElapsed == 0.0F && !stoppedAt(body, movement, takeoff))
+            if (follower.phase == PathStepPhase::ApproachStart)
             {
-                return {false, approachAndBrake(body, movement, takeoff)};
+                if (!stoppedAt(body, movement, takeoff))
+                {
+                    return {false, approachAndBrake(body, movement, takeoff)};
+                }
+                follower.phase = PathStepPhase::ReplayInputs;
             }
-
-            // Play the inputs at the current time, then move the time on, so the first
-            // tick plays the program's start.
-            const float programDuration = durationOf(waypoint.inputs);
-            if (follower.programElapsed < programDuration)
+            if (follower.phase == PathStepPhase::ReplayInputs)
             {
-                const InputIntentions intentions =
-                    replayInput(waypoint.inputs, follower.programElapsed);
-                follower.programElapsed =
-                    std::min(programDuration, follower.programElapsed + deltaTime);
-                return {false, intentions};
+                return {false, replayStepInputs(follower, waypoint.inputs, deltaTime)};
             }
             // After the program runs out, wait without input until the actor lands and
             // stops. A landing may stop short of the waypoint along its row; the next
@@ -187,7 +197,6 @@ namespace simple_platformer
                 clearPath(follower);
                 return {};
             }
-            follower.programElapsed = 0.0F;
             return {true, {}};
         }
 
@@ -206,9 +215,8 @@ namespace simple_platformer
             {
                 throw std::invalid_argument("Climb path steps require an input program");
             }
-            // Zero elapsed means the replay has not started, so the climber is still
-            // getting to the start. Each branch falls through to the replay once there.
-            if (follower.programElapsed == 0.0F)
+            // Each approach branch reaches the recorded start before replay begins.
+            if (follower.phase == PathStepPhase::ApproachStart)
             {
                 if (climb.surface != ClimbSurface::None)
                 {
@@ -236,19 +244,15 @@ namespace simple_platformer
                     // Keep asking for the grab until attached, then replay the climb.
                     return {false, waypoint.inputs.front().intentions};
                 }
+                follower.phase = PathStepPhase::ReplayInputs;
             }
 
-            const float duration = durationOf(waypoint.inputs);
-            if (follower.programElapsed < duration)
+            if (follower.phase == PathStepPhase::ReplayInputs)
             {
-                const InputIntentions intentions =
-                    replayInput(waypoint.inputs, follower.programElapsed);
-                follower.programElapsed = std::min(duration, follower.programElapsed + deltaTime);
-                return {false, intentions};
+                return {false, replayStepInputs(follower, waypoint.inputs, deltaTime)};
             }
             if (arrivedAt(feetOf(body.bounds), waypoint.feet))
             {
-                follower.programElapsed = 0.0F;
                 return {true, {}};
             }
             // The climb ended somewhere else; the NPC plans again. A climber still on a
@@ -268,6 +272,7 @@ namespace simple_platformer
     {
         follower.path = std::move(path);
         follower.nextStep = 0;
+        follower.phase = PathStepPhase::ApproachStart;
         follower.programElapsed = 0.0F;
     }
 
@@ -275,6 +280,7 @@ namespace simple_platformer
     {
         follower.path.reset();
         follower.nextStep = 0;
+        follower.phase = PathStepPhase::ApproachStart;
         follower.programElapsed = 0.0F;
         follower.goal.reset();
     }
@@ -375,6 +381,8 @@ namespace simple_platformer
                 return progress.intentions;
             }
             ++follower.nextStep;
+            follower.phase = PathStepPhase::ApproachStart;
+            follower.programElapsed = 0.0F;
         }
         return {};
     }

@@ -142,7 +142,8 @@ TEST_CASE(
         const simple_platformer::InputIntentions intentions =
             simple_platformer::followPlatformerPath(
                 body, movement, follower, tests::FixedStepSeconds);
-        preparedForJump = preparedForJump || follower.programElapsed == 0.0F;
+        preparedForJump =
+            preparedForJump || follower.phase == simple_platformer::PathStepPhase::ApproachStart;
 
         REQUIRE(body.bounds.topLeft == positionBeforeFollowing);
         REQUIRE(body.velocity == velocityBeforeFollowing);
@@ -241,4 +242,60 @@ TEST_CASE(
 
     REQUIRE_FALSE(follower.path.has_value());
     REQUIRE(movement.grounded);
+}
+
+TEST_CASE("A jump replay stays started when no time has elapsed", "[navigation][follower]")
+{
+    simple_platformer::InputIntentions jump;
+    jump.jumpPressed = true;
+    jump.jumpHeld = true;
+    simple_platformer::PathFollower follower;
+    simple_platformer::setPath(
+        follower,
+        {{16.0F, 32.0F}, {{{48.0F, 32.0F}, simple_platformer::Traversal::Jump, {{0.1F, jump}}}}});
+    simple_platformer::Body body{{{10.0F, 20.0F}, {12.0F, 12.0F}}, {0.0F, 0.0F}};
+    simple_platformer::PlatformerMovement movement;
+    movement.grounded = true;
+
+    const auto first = simple_platformer::followPlatformerPath(body, movement, follower, 0.0F);
+    REQUIRE(first.jumpPressed);
+    REQUIRE(follower.phase == simple_platformer::PathStepPhase::ReplayInputs);
+    REQUIRE(follower.programElapsed == 0.0F);
+
+    // Moving away from takeoff must not send an already-started replay back to approach.
+    movement.grounded = false;
+    body.bounds.topLeft.y -= 4.0F;
+    const auto replay = simple_platformer::followPlatformerPath(body, movement, follower, 0.1F);
+    REQUIRE(replay.jumpPressed);
+    REQUIRE(follower.phase == simple_platformer::PathStepPhase::AwaitArrival);
+    REQUIRE_FALSE(simple_platformer::pathComplete(follower));
+
+    const auto waiting = simple_platformer::followPlatformerPath(body, movement, follower, 0.1F);
+    REQUIRE_FALSE(waiting.jumpPressed);
+    REQUIRE(follower.phase == simple_platformer::PathStepPhase::AwaitArrival);
+    REQUIRE_FALSE(simple_platformer::pathComplete(follower));
+
+    movement.grounded = true;
+    simple_platformer::moveFeetTo(body.bounds, {48.0F, 32.0F});
+    simple_platformer::followPlatformerPath(body, movement, follower, 0.1F);
+    REQUIRE(simple_platformer::pathComplete(follower));
+    REQUIRE(follower.phase == simple_platformer::PathStepPhase::ApproachStart);
+    REQUIRE(follower.programElapsed == 0.0F);
+}
+
+TEST_CASE("Replacing or clearing a path resets its traversal phase", "[navigation][follower]")
+{
+    simple_platformer::PathFollower follower;
+    follower.phase = simple_platformer::PathStepPhase::AwaitArrival;
+    follower.programElapsed = 0.5F;
+    simple_platformer::setPath(follower, {{16.0F, 32.0F}, {}});
+    REQUIRE(follower.phase == simple_platformer::PathStepPhase::ApproachStart);
+    REQUIRE(follower.programElapsed == 0.0F);
+
+    follower.phase = simple_platformer::PathStepPhase::ReplayInputs;
+    follower.programElapsed = 0.1F;
+    simple_platformer::clearPath(follower);
+    REQUIRE_FALSE(follower.path.has_value());
+    REQUIRE(follower.phase == simple_platformer::PathStepPhase::ApproachStart);
+    REQUIRE(follower.programElapsed == 0.0F);
 }

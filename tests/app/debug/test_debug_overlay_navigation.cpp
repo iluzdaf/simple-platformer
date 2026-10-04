@@ -103,6 +103,7 @@ TEST_CASE("Debug overlay data samples the simulated jump curve", "[app][debug]")
     npc.pathFollower = simple_platformer::PathFollower{
         tests::floorPath({2, 2}, {jump.step}),
         0,
+        simple_platformer::PathStepPhase::ApproachStart,
         0.0F,
         simple_platformer::feetInCell(tests::TileSize, jump.step.destination.cell)};
 

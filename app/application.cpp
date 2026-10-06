@@ -14,7 +14,7 @@
 
 #include "content/game_catalogs.hpp"
 #include "content/level_catalog.hpp"
-#include "debug/debug_tools.hpp"
+#include "debug/ui/debug_tools.hpp"
 #include "game/game.hpp"
 #include "graphics/display_viewport.hpp"
 #include "graphics/game_window.hpp"

@@ -1,105 +1,34 @@
-# Keep this file source-only so clang-tidy can scope manifest changes safely.
+# Content loading, game flow, and debug snapshots can be tested without a window.
+file(
+    GLOB_RECURSE testable_application_sources
+    CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/app/content/*.cpp"
+    "${PROJECT_SOURCE_DIR}/app/game/*.cpp"
+)
+file(
+    GLOB testable_debug_sources
+    CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/app/debug/*.cpp"
+)
+
+# Other application code is included only when a headless test needs it.
+set(test_application_sources
+    ${PROJECT_SOURCE_DIR}/app/graphics/display_viewport.cpp
+    ${PROJECT_SOURCE_DIR}/app/ui/inventory_layout.cpp
+)
+
+# New test files and headers are discovered by folder.
+file(
+    GLOB_RECURSE test_sources
+    CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/tests/*.cpp"
+    "${PROJECT_SOURCE_DIR}/tests/*.hpp"
+)
 target_sources(
     simple_platformer_tests
     PRIVATE
-    ${PROJECT_SOURCE_DIR}/app/debug/debug_overlay.cpp
-    ${PROJECT_SOURCE_DIR}/app/debug/navigation_debug.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/actor_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/actor_definition.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/animation_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/content_diagnostics.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/content_json.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/content_validation.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/exit_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/game_catalogs.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/hud_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/item_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/level_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/level_data.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/pickup_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/content/tile_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/app/game/game.cpp
-    ${PROJECT_SOURCE_DIR}/app/game/level_composition.cpp
-    ${PROJECT_SOURCE_DIR}/app/graphics/display_viewport.cpp
-    ${PROJECT_SOURCE_DIR}/app/ui/inventory_layout.cpp
-    ${PROJECT_SOURCE_DIR}/tests/actor/test_actor_lifecycle.cpp
-    ${PROJECT_SOURCE_DIR}/tests/actor/test_actor_system.cpp
-    ${PROJECT_SOURCE_DIR}/tests/combat/test_bite_attack.cpp
-    ${PROJECT_SOURCE_DIR}/tests/combat/test_contact_damage.cpp
-    ${PROJECT_SOURCE_DIR}/tests/combat/test_projectile_system.cpp
-    ${PROJECT_SOURCE_DIR}/tests/combat/test_ranged_attack.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_actor_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_actor_definition.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_animation_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_atlas_regions.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_integrity.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_json.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_content_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_exit_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_hud_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_item_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data_diagnostics.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data_object_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_level_data_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_pickup_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/content/test_tile_catalog.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_debug_overlay_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_game_debug.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/debug/test_navigation_debug.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/game/test_level_composition.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/game/test_level_object_composition.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/game/test_level_transition.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/graphics/test_display_viewport.cpp
-    ${PROJECT_SOURCE_DIR}/tests/input/test_input_state.cpp
-    ${PROJECT_SOURCE_DIR}/tests/input/test_input_program.cpp
-    ${PROJECT_SOURCE_DIR}/tests/inventory/test_inventory.cpp
-    ${PROJECT_SOURCE_DIR}/tests/math/test_coordinates.cpp
-    ${PROJECT_SOURCE_DIR}/tests/math/test_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/movement/test_flying_movement.cpp
-    ${PROJECT_SOURCE_DIR}/tests/movement/test_platformer_movement.cpp
-    ${PROJECT_SOURCE_DIR}/tests/movement/test_surface_climb.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_actor_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_path_follower.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_platformer_cells.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_platformer_connection_table.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_platformer_connections.cpp
-    ${PROJECT_SOURCE_DIR}/tests/navigation/test_route_search.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_senses.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_system.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_behaviour.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_pursuer.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_keep_distance.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_coward.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_charger.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_facts.cpp
-    ${PROJECT_SOURCE_DIR}/tests/npc/test_npc_navigation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/physics/test_body.cpp
-    ${PROJECT_SOURCE_DIR}/tests/physics/test_segment_cast.cpp
-    ${PROJECT_SOURCE_DIR}/tests/render/test_actor_sprite.cpp
-    ${PROJECT_SOURCE_DIR}/tests/render/test_animation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/render/test_animation_system.cpp
-    ${PROJECT_SOURCE_DIR}/tests/render/test_camera.cpp
-    ${PROJECT_SOURCE_DIR}/tests/render/test_cover_fade.cpp
-    ${PROJECT_SOURCE_DIR}/tests/render/test_level_object_render.cpp
-    ${PROJECT_SOURCE_DIR}/tests/render/test_presentation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/render/test_render_scene.cpp
-    ${PROJECT_SOURCE_DIR}/tests/support/test_actor_builder.cpp
-    ${PROJECT_SOURCE_DIR}/tests/support/test_actor_builder_contract.cpp
-    ${PROJECT_SOURCE_DIR}/tests/support/test_tile_map_builder.cpp
-    ${PROJECT_SOURCE_DIR}/tests/timing/test_fixed_step.cpp
-    ${PROJECT_SOURCE_DIR}/tests/timing/test_stopwatch.cpp
-    ${PROJECT_SOURCE_DIR}/tests/app/ui/test_inventory_layout.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_level_exit.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_pickups.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_level_validation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_sight.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_tile_map.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_world.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_world_inventory.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_world_requests.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_world_simulation.cpp
-    ${PROJECT_SOURCE_DIR}/tests/world/test_npc_world_simulation.cpp
+    ${testable_application_sources}
+    ${testable_debug_sources}
+    ${test_application_sources}
+    ${test_sources}
 )

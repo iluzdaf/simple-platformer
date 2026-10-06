@@ -100,8 +100,25 @@ else()
     message(STATUS "clang-tidy not found; tidy target is unavailable")
 endif()
 
-set_source_files_properties(${PROJECT_PUBLIC_HEADERS} PROPERTIES LANGUAGE CXX)
-add_library(header_self_containment OBJECT EXCLUDE_FROM_ALL ${PROJECT_PUBLIC_HEADERS})
+# Compile one translation unit per public header without changing how other targets
+# treat those headers. This keeps the headers visible in simple_platformer_core.
+set(header_check_sources)
+foreach(header IN LISTS PROJECT_PUBLIC_HEADERS)
+    file(RELATIVE_PATH header_include_path "${PROJECT_SOURCE_DIR}/include" "${header}")
+    set(header_check_source
+        "${CMAKE_CURRENT_BINARY_DIR}/header_self_containment/${header_include_path}.cpp"
+    )
+    get_filename_component(header_check_directory "${header_check_source}" DIRECTORY)
+    file(MAKE_DIRECTORY "${header_check_directory}")
+    file(CONFIGURE
+        OUTPUT "${header_check_source}"
+        CONTENT "#include \"${header_include_path}\"\n"
+        @ONLY
+    )
+    list(APPEND header_check_sources "${header_check_source}")
+endforeach()
+
+add_library(header_self_containment OBJECT EXCLUDE_FROM_ALL ${header_check_sources})
 target_compile_features(header_self_containment PRIVATE cxx_std_17)
 target_link_libraries(header_self_containment PRIVATE simple_platformer_core)
 enable_project_warnings(header_self_containment)
@@ -110,7 +127,6 @@ if(NOT MSVC)
     target_compile_options(
         header_self_containment
         PRIVATE
-        -Wno-pragma-once-outside-header
         -Wno-unused-const-variable
     )
 endif()

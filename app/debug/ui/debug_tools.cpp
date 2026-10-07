@@ -1,6 +1,6 @@
 #include "debug_tools.hpp"
 
-#include "debug_overlay.hpp"
+#include "debug/debug_overlay.hpp"
 #include "debug_overlay_ui.hpp"
 
 #include <optional>

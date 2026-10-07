@@ -26,7 +26,8 @@ Start with [START_HERE.md](START_HERE.md) for a route through the code. Use
 | `app/content`         | Plain content definitions, JSON loaders, catalogs, and validators                       |
 | `app/graphics`        | Window and graphics resources, viewport conversion, and sprite submission               |
 | `app/ui`              | HUD, inventory, and completion UI                                                       |
-| `app/debug`           | Debug snapshots and their display                                                       |
+| `app/debug`           | Debug snapshots that can be tested without a window                                     |
+| `app/debug/ui`        | ImGui panels and drawing for debug snapshots                                            |
 | `assets`              | Level geometry, placements, and shared definitions                                      |
 
 `GameLevel` keeps the level number, map, world, player spawn, and actor definition names

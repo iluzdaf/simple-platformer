@@ -456,7 +456,7 @@ larger duration plays the clip more slowly.
   `makeInventoryGridLayout`, for the inventory's rows and columns.
 - In [`interface_ui.cpp`](../app/ui/interface_ui.cpp), follow `drawInventorySlot`
   and the grid layout into drawing and click handling. Then skim
-  [`debug_overlay_ui.cpp`](../app/debug/debug_overlay_ui.cpp) for drawing debug labels
+  [`debug_overlay_ui.cpp`](../app/debug/ui/debug_overlay_ui.cpp) for drawing debug labels
   and paths from a snapshot.
 - **Starting test:** "Inventory grid dimensions follow its slot capacity" in
   [`test_inventory_layout.cpp`](../tests/app/ui/test_inventory_layout.cpp).

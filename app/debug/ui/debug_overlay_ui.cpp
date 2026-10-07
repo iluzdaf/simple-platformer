@@ -1,9 +1,9 @@
 #include "debug_overlay_ui.hpp"
 
 #include "debug_draw.hpp"
-#include "debug_overlay.hpp"
+#include "debug/debug_overlay.hpp"
 #include "debug_ui_layout.hpp"
-#include "navigation_debug.hpp"
+#include "debug/navigation_debug.hpp"
 #include "navigation_debug_ui.hpp"
 #include "npc_names.hpp"
 #include "graphics/display_viewport.hpp"

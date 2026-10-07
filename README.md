@@ -57,6 +57,28 @@ The solution is generated from `CMakeLists.txt` and `CMakePresets.json`. It belo
 the ignored `build/` directory and should not be committed. Run `setup-windows.bat`
 again after changing the CMake configuration.
 
+### Adding your own C++ files
+
+| What you are adding                                       | Place the `.cpp` file in                            | Place its `.hpp` file in                           |
+| --------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------- |
+| Simulation or gameplay rules that run without a window    | `src/`, beside related code                         | `include/simple_platformer/`, in the matching area |
+| Game setup, content loading, debug tools, graphics, or UI | `app/`, beside related code                         | `app/`, beside related code                        |
+| A test or test helper                                     | `tests/`, following the folder of the code it tests | `tests/`, beside the test or helper                |
+
+CMake finds new `.cpp` and `.hpp` files in these folders automatically. You do not
+need to edit a source list. If you use Visual Studio's **Add > New Item**, check
+that the file is saved in the repository folder shown above, not under `build/`.
+After creating a file on Windows, run
+`setup-windows.bat` again to refresh the generated Visual Studio solution, then build.
+Changes made only to generated project files under `build/` will be lost when the
+solution is regenerated.
+
+Tests can use core code and new files in `app/content/`, `app/game/`, or directly
+in `app/debug/` automatically. Put ImGui debug drawing in `app/debug/ui/`.
+If a test needs a new implementation in another `app/` folder, add it to the
+headless-test selection in
+[`cmake/sources/Tests.cmake`](cmake/sources/Tests.cmake).
+
 The Windows executable is:
 
 ```text
@@ -228,8 +250,8 @@ To use CI's clang-tidy version locally, set `CLANG_TIDY_EXECUTABLE` in a persona
 `CMakeUserPresets.json` preset, then configure and build with that preset. This selects
 the analysis tool; compiler and SDK differences can still affect diagnostics.
 
-[SourceRegistration.cmake](cmake/SourceRegistration.cmake) validates source manifests
-and reports any unlisted `app/`, `src/`, or enabled `tests/` source during configuration.
+CMake discovers `.cpp` sources in `src/`, `app/`, and `tests/` during configuration
+and checks for new files when building. See [Adding your own C++ files](#adding-your-own-c-files).
 
 The `header_self_containment` target verifies that public headers include everything
 they need themselves:
@@ -248,7 +270,7 @@ assets/        runtime game content
   catalogs/    shared JSON definitions
   levels/      level catalog and maps
   textures/    runtime sprite atlas
-cmake/         dependencies, quality rules, and explicit target source manifests
+cmake/         dependencies, quality rules, and source discovery
 include/       public core headers
 src/           core implementations
 tests/         Catch2 tests for core systems and testable application code

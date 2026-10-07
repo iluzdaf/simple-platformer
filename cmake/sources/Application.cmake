@@ -31,11 +31,7 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/app/graphics/imgui_session.cpp
     ${PROJECT_SOURCE_DIR}/app/graphics/sprite_renderer.cpp
     ${PROJECT_SOURCE_DIR}/app/main.cpp
-    ${PROJECT_SOURCE_DIR}/app/ui/completion_ui.cpp
-    ${PROJECT_SOURCE_DIR}/app/ui/exit_hint_ui.cpp
-    ${PROJECT_SOURCE_DIR}/app/ui/health_hud_ui.cpp
     ${PROJECT_SOURCE_DIR}/app/ui/hud_draw.cpp
     ${PROJECT_SOURCE_DIR}/app/ui/interface_ui.cpp
     ${PROJECT_SOURCE_DIR}/app/ui/inventory_layout.cpp
-    ${PROJECT_SOURCE_DIR}/app/ui/inventory_ui.cpp
 )
